@@ -14,9 +14,9 @@ services:
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
-        value: https://z-g.co.il
+        value: https://z-g-website.onrender.com
       - key: SITE_URL
-        value: https://z-g.co.il
+        value: https://z-g-website.onrender.com
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
