@@ -1,0 +1,289 @@
+import type { Metadata } from "next";
+import {
+  Award,
+  Heart,
+  Lightbulb,
+  ShieldCheck,
+  GraduationCap,
+  BookOpen,
+  Users,
+} from "lucide-react";
+import PublicLayout from "@/components/layout/public-layout";
+import { Container } from "@/components/ui/container";
+import { SectionHeading } from "@/components/ui/section-heading";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ArrowLeft } from "lucide-react";
+
+/* ─── Metadata ─── */
+
+export const metadata: Metadata = {
+  title: "אודות המשרד",
+  description:
+    "אודות משרד עורכי דין זומר - הכירו את הצוות, הניסיון והערכים שלנו. ליווי משפטי מקצועי עם מחויבות למצוינות.",
+};
+
+/* ─── Data ─── */
+
+const VALUES = [
+  {
+    icon: Award,
+    title: "מקצועיות",
+    description:
+      "אנו מקפידים על רמה מקצועית גבוהה בכל תיק ובכל ייעוץ. הצוות שלנו עובר הכשרות מתמשכות ומעדכן את הידע באופן שוטף.",
+  },
+  {
+    icon: Heart,
+    title: "מחויבות",
+    description:
+      "מחויבותנו ללקוח היא מוחלטת. אנו מאמינים שכל לקוח ראוי לקבל את מלוא תשומת הלב והמשאבים המקצועיים הנדרשים.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "יושרה",
+    description:
+      "אנו פועלים בשקיפות מלאה ובהתאם לסטנדרטים האתיים הגבוהים ביותר. אמינות ויושרה הם עקרונות היסוד של המשרד.",
+  },
+  {
+    icon: Lightbulb,
+    title: "חדשנות",
+    description:
+      "אנו מאמצים גישות חדשניות וכלים מתקדמים כדי להעניק ללקוחותינו שירות משפטי יעיל ועדכני בהתאם לעולם המשתנה.",
+  },
+] as const;
+
+/* ─── Page ─── */
+
+export default function AboutPage() {
+  return (
+    <PublicLayout>
+      {/* ── Hero Banner ── */}
+      <section
+        aria-labelledby="about-hero-heading"
+        className="relative overflow-hidden bg-primary"
+      >
+        <div
+          className="absolute inset-0 bg-gradient-to-bl from-primary via-primary-dark to-primary-dark/95"
+          aria-hidden="true"
+        />
+        <div className="absolute inset-0" aria-hidden="true">
+          <div className="absolute top-0 left-0 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
+          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-primary-light/20 blur-3xl" />
+        </div>
+
+        <Container className="relative py-20 sm:py-24 lg:py-28">
+          <div
+            className="mb-4 h-1 w-16 rounded-full bg-accent"
+            aria-hidden="true"
+          />
+          <h1
+            id="about-hero-heading"
+            className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
+          >
+            אודות המשרד
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
+            הכירו את משרד עורכי דין זומר - מחויבות למצוינות, מקצועיות ושירות
+            אישי ללקוחותינו.
+          </p>
+        </Container>
+
+        <div
+          className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-l from-accent via-accent/50 to-transparent"
+          aria-hidden="true"
+        />
+      </section>
+
+      {/* ── Firm Story ── */}
+      <section aria-labelledby="firm-story-heading" className="py-20 lg:py-28">
+        <Container narrow>
+          <SectionHeading
+            id="firm-story-heading"
+            title="הסיפור שלנו"
+            subtitle="מסורת של מצוינות משפטית ושירות אישי"
+            align="start"
+          />
+
+          <div className="prose-rtl space-y-6 text-lg leading-relaxed text-muted">
+            <p>
+              משרד עורכי דין זומר הוקם מתוך חזון להעניק ללקוחותיו שירות משפטי
+              ברמה הגבוהה ביותר, תוך שמירה על גישה אישית וקשובה. מאז הקמתו,
+              המשרד ליווה מאות לקוחות - חברות מובילות, יזמים ולקוחות פרטיים -
+              בתיקים מורכבים ומגוונים.
+            </p>
+            <p>
+              אנו מאמינים שכל לקוח הוא עולם ומלואו, ולכן אנו מקדישים זמן
+              ומשאבים להבנה מעמיקה של הצרכים הייחודיים של כל מקרה. הגישה שלנו
+              משלבת ידע משפטי רחב עם הבנה עסקית מעשית, ומאפשרת לנו להציע
+              פתרונות יצירתיים ואפקטיביים.
+            </p>
+            <p>
+              המשרד מתמחה במגוון רחב של תחומי משפט, לרבות דיני חברות ומסחרי,
+              נדל&quot;ן ומקרקעין, ליטיגציה ויישוב סכסוכים, ועוד. אנו מקפידים על
+              עדכון מתמשך בפסיקה ובחקיקה החדשה, ומיישמים את הידע הנרחב שלנו
+              לטובת לקוחותינו.
+            </p>
+            <p>
+              לאורך השנים, בנינו מוניטין של מקצועיות, אמינות ותוצאות מוכחות.
+              אנו גאים בקשרים ארוכי הטווח שיצרנו עם לקוחותינו, ומחויבים להמשיך
+              ולספק שירות משפטי איכותי ומותאם אישית.
+            </p>
+          </div>
+        </Container>
+      </section>
+
+      {/* ── Attorney Profile ── */}
+      <section
+        aria-labelledby="attorney-heading"
+        className="bg-muted-bg py-20 lg:py-28"
+      >
+        <Container>
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+            {/* Decorative / photo placeholder */}
+            <div className="relative" aria-hidden="true">
+              <div className="aspect-[3/4] max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-xl lg:mx-0">
+                <div className="absolute -top-3 -right-3 h-20 w-20 rounded-xl bg-accent/20" />
+                <div className="absolute -bottom-3 -left-3 h-28 w-28 rounded-xl bg-accent/15" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Users className="h-20 w-20 text-white/15" />
+                </div>
+              </div>
+            </div>
+
+            {/* Profile info */}
+            <div>
+              <div
+                className="mb-4 h-1 w-16 rounded-full bg-accent"
+                aria-hidden="true"
+              />
+              <h2
+                id="attorney-heading"
+                className="text-3xl font-bold leading-snug tracking-tight text-primary-dark sm:text-4xl"
+              >
+                עו&quot;ד גיא זומר
+              </h2>
+              <p className="mt-2 text-lg font-semibold text-accent">
+                מייסד ומנהל המשרד
+              </p>
+
+              <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
+                <p>
+                  עורך הדין גיא זומר הוא מייסד ומנהל משרד עורכי דין זומר. בעל
+                  ניסיון עשיר בתחומי המשפט המסחרי, דיני חברות ונדל&quot;ן.
+                </p>
+                <p>
+                  עו&quot;ד זומר מלווה חברות ויזמים בעסקאות מורכבות, מייעץ
+                  בנושאי ממשל תאגידי, ומייצג לקוחות בהליכים משפטיים בכל
+                  הערכאות.
+                </p>
+              </div>
+
+              {/* Credentials */}
+              <div className="mt-8 space-y-3">
+                <div className="flex items-center gap-3 text-foreground">
+                  <GraduationCap
+                    className="h-5 w-5 shrink-0 text-accent"
+                    aria-hidden="true"
+                  />
+                  <span className="text-base">
+                    LL.B, הפקולטה למשפטים, אוניברסיטת תל אביב
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-foreground">
+                  <BookOpen
+                    className="h-5 w-5 shrink-0 text-accent"
+                    aria-hidden="true"
+                  />
+                  <span className="text-base">
+                    חבר לשכת עורכי הדין בישראל
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-foreground">
+                  <Award
+                    className="h-5 w-5 shrink-0 text-accent"
+                    aria-hidden="true"
+                  />
+                  <span className="text-base">
+                    ניסיון מקצועי נרחב בתחומי המשפט המסחרי
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
+      {/* ── Values ── */}
+      <section aria-labelledby="values-heading" className="py-20 lg:py-28">
+        <Container>
+          <SectionHeading
+            id="values-heading"
+            title="הערכים שלנו"
+            subtitle="העקרונות שמנחים אותנו בכל פעולה ובכל ייצוג משפטי"
+          />
+
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {VALUES.map((value) => {
+              const Icon = value.icon;
+              return (
+                <Card key={value.title} className="text-center">
+                  <CardHeader className="items-center">
+                    <div
+                      className={cn(
+                        "mb-4 inline-flex h-14 w-14 items-center justify-center",
+                        "rounded-full bg-accent/10 text-accent"
+                      )}
+                    >
+                      <Icon className="h-7 w-7" aria-hidden="true" />
+                    </div>
+                    <CardTitle>{value.title}</CardTitle>
+                    <CardDescription className="text-center">
+                      {value.description}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
+        </Container>
+      </section>
+
+      {/* ── CTA ── */}
+      <section
+        aria-labelledby="about-cta-heading"
+        className="relative overflow-hidden bg-primary py-16 lg:py-20"
+      >
+        <div className="absolute inset-0" aria-hidden="true">
+          <div className="absolute inset-0 bg-gradient-to-bl from-primary-dark/80 to-primary" />
+          <div className="absolute top-0 left-1/3 h-64 w-64 rounded-full bg-accent/5 blur-3xl" />
+        </div>
+
+        <Container className="relative text-center">
+          <h2
+            id="about-cta-heading"
+            className="text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl"
+          >
+            מוכנים לדבר?
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-white/80">
+            נשמח להכיר אתכם ולשמוע על הצרכים המשפטיים שלכם. פנו אלינו לשיחת
+            ייעוץ ראשונית ללא התחייבות.
+          </p>
+          <div className="mt-8">
+            <Button href="/contact" variant="accent" size="lg">
+              צרו קשר
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
+        </Container>
+      </section>
+    </PublicLayout>
+  );
+}

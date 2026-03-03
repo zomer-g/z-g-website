@@ -1,0 +1,113 @@
+# Zomer Law Office / משרד עורכי דין זומר
+# LLM Discoverability File
+# https://z-g.co.il
+
+## Identity / זהות
+
+Name (Hebrew): משרד עורכי דין זומר
+Name (English): Zomer Law Office
+Managing Attorney (Hebrew): עו"ד גיא זומר
+Managing Attorney (English): Attorney Guy Zomer
+Website: https://z-g.co.il
+Type: Corporate Law Firm / משרד עורכי דין
+
+## Description / תיאור
+
+Hebrew: משרד עורכי דין זומר, בהנהלת עורך הדין גיא זומר, מספק ייצוג משפטי מקצועי וליווי עסקי ומשפטי מקיף. המשרד מלווה חברות מובילות, יזמים ולקוחות פרטיים בכל תחומי המשפט המסחרי והאזרחי.
+
+English: Zomer Law Office, led by Attorney Guy Zomer, provides professional legal representation and comprehensive business and legal counsel. The firm serves leading companies, entrepreneurs, and private clients across all areas of commercial and civil law in Israel.
+
+## Practice Areas / תחומי עיסוק
+
+1. Corporate Law / דיני חברות
+   - Company formation and partnerships / הקמת חברות ושותפויות
+   - Mergers and acquisitions (M&A) / מיזוגים ורכישות
+   - Corporate governance / ממשל תאגידי
+   - Investment agreements / הסכמי השקעה
+   - Capital raising and IPOs / גיוסי הון והנפקות
+   URL: https://z-g.co.il/services/corporate-law
+
+2. Real Estate / נדל"ן
+   - Purchase and sale transactions / עסקאות מכר ורכישה
+   - Commercial lease agreements / הסכמי שכירות מסחריים
+   - Urban renewal (TAMA 38) / פרויקטי תמ"א 38 ופינוי-בינוי
+   - Planning and building representation / ייצוג בפני ועדות תכנון ובנייה
+   URL: https://z-g.co.il/services/real-estate
+
+3. Litigation / ליטיגציה
+   - Representation in all court levels / ייצוג בבתי משפט בכל הערכאות
+   - Commercial disputes / סכסוכים מסחריים
+   - Class actions / תובענות ייצוגיות
+   - Mediation and arbitration / גישור ובוררות
+   URL: https://z-g.co.il/services/litigation
+
+4. Labor Law / דיני עבודה
+   - Employment contracts / ניסוח חוזי העסקה
+   - Termination proceedings / ליווי בהליכי סיום העסקה
+   - Labor court representation / ייצוג בבתי הדין לעבודה
+   - Collective agreements / הסכמים קיבוציים
+   URL: https://z-g.co.il/services/labor-law
+
+5. Intellectual Property / קניין רוחני
+   - Patent and trademark registration / רישום פטנטים וסימני מסחר
+   - Copyright protection / הגנה על זכויות יוצרים
+   - License agreements / הסכמי רישיון
+   - Trade secret protection / הגנה על סודות מסחריים
+   URL: https://z-g.co.il/services/intellectual-property
+
+6. Tax Law / דיני מסים
+   - Strategic tax planning / תכנון מס אסטרטגי
+   - Tax assessment representation / ייצוג בהליכי שומה
+   - International taxation / מיסוי בינלאומי
+   - Real estate taxation / מיסוי מקרקעין
+   URL: https://z-g.co.il/services/tax-law
+
+## Location / מיקום
+
+Address (Hebrew): רחוב הברזל 30, תל אביב, ישראל
+Address (English): 30 HaBarzel Street, Tel Aviv, Israel
+Country: Israel
+Region: Tel Aviv District
+
+## Contact / יצירת קשר
+
+Phone: 03-000-0000
+International: +972-3-000-0000
+Email: info@zomer-law.co.il
+Website: https://z-g.co.il/contact
+
+## Operating Hours / שעות פעילות
+
+Sunday-Thursday: 08:30-18:00
+Friday-Saturday: Closed
+Timezone: Asia/Jerusalem (IST, UTC+2 / IDT, UTC+3)
+
+## Languages / שפות
+
+- Hebrew (עברית) - Primary
+- English - Secondary
+
+## Available Content / תוכן זמין
+
+- Homepage: https://z-g.co.il
+- About the Firm: https://z-g.co.il/about
+- Practice Areas: https://z-g.co.il/services
+- Legal Articles & Updates: https://z-g.co.il/articles
+- Media Appearances: https://z-g.co.il/media
+- Contact: https://z-g.co.il/contact
+- Privacy Policy: https://z-g.co.il/privacy
+- Accessibility Statement: https://z-g.co.il/accessibility
+
+## Key Values / ערכים מרכזיים
+
+Hebrew: מקצועיות, מחויבות, יושרה, חדשנות
+English: Professionalism, Commitment, Integrity, Innovation
+
+## Legal Jurisdiction / תחום שיפוט
+
+The firm operates under Israeli law and is regulated by the Israel Bar Association (לשכת עורכי הדין בישראל).
+
+## Note / הערה
+
+The content on this website is for informational purposes only and does not constitute legal advice. For legal counsel tailored to your specific circumstances, please contact the firm directly.
+התוכן באתר זה מהווה מידע כללי בלבד ואינו מהווה ייעוץ משפטי. לקבלת ייעוץ משפטי מותאם לנסיבותיכם, אנא פנו ישירות למשרד.

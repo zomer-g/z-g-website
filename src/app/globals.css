@@ -1,26 +1,170 @@
 @import "tailwindcss";
 
 :root {
+  --primary: #1a365d;
+  --primary-light: #2a4a7f;
+  --primary-dark: #0f2440;
+  --accent: #c9a84c;
+  --accent-light: #d4b86a;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a2e;
+  --muted: #6b7280;
+  --muted-bg: #f3f4f6;
+  --border: #e5e7eb;
+  --card: #ffffff;
+  --card-foreground: #1a1a2e;
+  --success: #059669;
+  --error: #dc2626;
 }
 
 @theme inline {
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-muted-bg: var(--muted-bg);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --font-heebo: "Heebo", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* ─── Base ─── */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Heebo", sans-serif;
+  line-height: 1.8;
+}
+
+/* ─── WCAG AAA Focus Indicators ─── */
+
+*:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ─── Skip Navigation ─── */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  right: 0;
+  z-index: 9999;
+  padding: 1rem 2rem;
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ─── Reduced Motion ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Selection ─── */
+
+::selection {
+  background: var(--accent);
+  color: var(--primary-dark);
+}
+
+/* ─── Scrollbar ─── */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ─── Prose Styles for Articles ─── */
+
+.prose-rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.prose-rtl h1,
+.prose-rtl h2,
+.prose-rtl h3,
+.prose-rtl h4 {
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 0.75em;
+  color: var(--primary-dark);
+}
+
+.prose-rtl h1 { font-size: 2.25rem; }
+.prose-rtl h2 { font-size: 1.75rem; }
+.prose-rtl h3 { font-size: 1.375rem; }
+
+.prose-rtl p {
+  margin-bottom: 1.25em;
+  line-height: 1.9;
+}
+
+.prose-rtl ul,
+.prose-rtl ol {
+  padding-right: 1.5em;
+  margin-bottom: 1.25em;
+}
+
+.prose-rtl li {
+  margin-bottom: 0.5em;
+}
+
+.prose-rtl a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-rtl a:hover {
+  color: var(--accent);
+}
+
+.prose-rtl blockquote {
+  border-right: 4px solid var(--accent);
+  padding-right: 1em;
+  margin: 1.5em 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.prose-rtl img {
+  border-radius: 0.5rem;
+  margin: 1.5em 0;
 }
