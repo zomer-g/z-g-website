@@ -28,6 +28,6 @@ services:
 
 databases:
   - name: z-g-db
-    plan: starter
+    plan: basic-256mb
     region: frankfurt
     databaseName: zg_website
