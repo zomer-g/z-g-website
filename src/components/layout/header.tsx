@@ -5,72 +5,54 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { HeaderContent } from "@/types/content";
+import { DEFAULT_HEADER_CONTENT } from "@/lib/content-defaults";
 
-interface NavItem {
-  readonly label: string;
-  readonly href: string;
+interface HeaderProps {
+  content?: HeaderContent;
 }
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { label: "ראשי", href: "/" },
-  { label: "אודות", href: "/about" },
-  { label: "תחומי עיסוק", href: "/services" },
-  { label: "מאמרים", href: "/articles" },
-  { label: "מדיה", href: "/media" },
-  { label: "צור קשר", href: "/contact" },
-] as const;
-
-export default function Header() {
+export default function Header({ content }: HeaderProps) {
+  const data = content ?? DEFAULT_HEADER_CONTENT;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Track scroll position for sticky header styling
   useEffect(() => {
     function handleScroll() {
       setIsScrolled(window.scrollY > 10);
     }
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [isMobileMenuOpen]);
 
-  // Handle Escape key to close mobile menu
   useEffect(() => {
     if (!isMobileMenuOpen) return;
-
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsMobileMenuOpen(false);
         menuButtonRef.current?.focus();
       }
     }
-
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isMobileMenuOpen]);
 
-  // Focus the mobile menu when it opens
   useEffect(() => {
     if (isMobileMenuOpen && mobileMenuRef.current) {
       mobileMenuRef.current.focus();
@@ -87,9 +69,7 @@ export default function Header() {
   }, []);
 
   function isActive(href: string): boolean {
-    if (href === "/") {
-      return pathname === "/";
-    }
+    if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   }
 
@@ -104,53 +84,35 @@ export default function Header() {
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between">
-          {/* Logo / Firm Name - right side in RTL */}
           <Link
             href="/"
             className={cn(
               "flex items-center gap-3 text-primary",
               "transition-colors duration-200 hover:text-primary-light"
             )}
-            aria-label="זומר - משרד עורכי דין - עמוד הבית"
+            aria-label={`${data.logoText} - ${data.logoSubtext} - עמוד הבית`}
           >
-            <span className="text-2xl font-bold tracking-tight">זומר</span>
-            <span
-              className="hidden text-sm font-medium text-muted sm:inline-block"
-              aria-hidden="true"
-            >
-              |
-            </span>
-            <span className="hidden text-sm font-medium text-muted sm:inline-block">
-              משרד עורכי דין
-            </span>
+            <span className="text-2xl font-bold tracking-tight">{data.logoText}</span>
+            <span className="hidden text-sm font-medium text-muted sm:inline-block" aria-hidden="true">|</span>
+            <span className="hidden text-sm font-medium text-muted sm:inline-block">{data.logoSubtext}</span>
           </Link>
 
-          {/* Desktop Navigation - center */}
-          <nav
-            role="navigation"
-            aria-label="ניווט ראשי"
-            className="hidden lg:flex"
-          >
+          <nav role="navigation" aria-label="ניווט ראשי" className="hidden lg:flex">
             <ul className="flex items-center gap-1" role="list">
-              {NAV_ITEMS.map((item) => (
+              {data.navItems.map((item) => (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
                       "relative inline-block rounded-md px-4 py-2 text-sm font-medium",
                       "transition-colors duration-200",
-                      isActive(item.href)
-                        ? "text-accent"
-                        : "text-primary hover:text-accent hover:bg-muted-bg"
+                      isActive(item.href) ? "text-accent" : "text-primary hover:text-accent hover:bg-muted-bg"
                     )}
                     aria-current={isActive(item.href) ? "page" : undefined}
                   >
                     {item.label}
                     {isActive(item.href) && (
-                      <span
-                        className="absolute inset-x-4 -bottom-[1px] h-0.5 bg-accent"
-                        aria-hidden="true"
-                      />
+                      <span className="absolute inset-x-4 -bottom-[1px] h-0.5 bg-accent" aria-hidden="true" />
                     )}
                   </Link>
                 </li>
@@ -158,57 +120,39 @@ export default function Header() {
             </ul>
           </nav>
 
-          {/* Desktop CTA */}
           <div className="hidden lg:block">
             <Link
-              href="/contact"
+              href={data.ctaLink}
               className={cn(
                 "inline-flex items-center rounded-md px-5 py-2.5",
                 "bg-accent text-primary-dark text-sm font-bold",
-                "transition-all duration-200",
-                "hover:bg-accent-light",
-                "focus-visible:outline-accent"
+                "transition-all duration-200 hover:bg-accent-light focus-visible:outline-accent"
               )}
             >
-              ייעוץ ראשוני
+              {data.ctaText}
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             ref={menuButtonRef}
             type="button"
             onClick={toggleMobileMenu}
             className={cn(
               "inline-flex items-center justify-center rounded-md p-2 lg:hidden",
-              "text-primary transition-colors duration-200",
-              "hover:bg-muted-bg hover:text-accent",
-              "focus-visible:outline-accent"
+              "text-primary transition-colors duration-200 hover:bg-muted-bg hover:text-accent focus-visible:outline-accent"
             )}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
             aria-label={isMobileMenuOpen ? "סגור תפריט ניווט" : "פתח תפריט ניווט"}
           >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" aria-hidden="true" />
-            ) : (
-              <Menu className="h-6 w-6" aria-hidden="true" />
-            )}
+            {isMobileMenuOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Navigation Overlay & Panel */}
       {isMobileMenuOpen && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 top-20 z-40 bg-foreground/40 lg:hidden"
-            aria-hidden="true"
-            onClick={closeMobileMenu}
-          />
-
-          {/* Mobile Menu Panel - acts as a dialog-like region */}
+          <div className="fixed inset-0 top-20 z-40 bg-foreground/40 lg:hidden" aria-hidden="true" onClick={closeMobileMenu} />
           <div
             ref={mobileMenuRef}
             id="mobile-navigation"
@@ -216,24 +160,18 @@ export default function Header() {
             aria-modal="true"
             aria-label="תפריט ניווט נייד"
             tabIndex={-1}
-            className={cn(
-              "fixed inset-x-0 top-20 z-50 lg:hidden",
-              "border-b border-border bg-background shadow-lg"
-            )}
+            className={cn("fixed inset-x-0 top-20 z-50 lg:hidden", "border-b border-border bg-background shadow-lg")}
           >
             <nav role="navigation" aria-label="ניווט ראשי - נייד">
               <ul className="divide-y divide-border px-4 py-2" role="list">
-                {NAV_ITEMS.map((item) => (
+                {data.navItems.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={closeMobileMenu}
                       className={cn(
-                        "block px-4 py-4 text-base font-medium",
-                        "transition-colors duration-200",
-                        isActive(item.href)
-                          ? "text-accent bg-muted-bg"
-                          : "text-primary hover:text-accent hover:bg-muted-bg"
+                        "block px-4 py-4 text-base font-medium transition-colors duration-200",
+                        isActive(item.href) ? "text-accent bg-muted-bg" : "text-primary hover:text-accent hover:bg-muted-bg"
                       )}
                       aria-current={isActive(item.href) ? "page" : undefined}
                     >
@@ -242,19 +180,16 @@ export default function Header() {
                   </li>
                 ))}
               </ul>
-
               <div className="border-t border-border px-8 py-4">
                 <Link
-                  href="/contact"
+                  href={data.ctaLink}
                   onClick={closeMobileMenu}
                   className={cn(
                     "block w-full rounded-md px-5 py-3 text-center",
-                    "bg-accent text-primary-dark font-bold",
-                    "transition-all duration-200",
-                    "hover:bg-accent-light"
+                    "bg-accent text-primary-dark font-bold transition-all duration-200 hover:bg-accent-light"
                   )}
                 >
-                  ייעוץ ראשוני
+                  {data.ctaText}
                 </Link>
               </div>
             </nav>

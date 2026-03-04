@@ -1,0 +1,50 @@
+import {
+  Scale,
+  Building2,
+  Gavel,
+  FileText,
+  Shield,
+  Briefcase,
+  Award,
+  Heart,
+  ShieldCheck,
+  Lightbulb,
+  GraduationCap,
+  BookOpen,
+  Users,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  type LucideIcon,
+} from "lucide-react";
+
+/* ─── Icon name → component map for dynamic rendering ─── */
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  Scale,
+  Building2,
+  Gavel,
+  FileText,
+  Shield,
+  Briefcase,
+  Award,
+  Heart,
+  ShieldCheck,
+  Lightbulb,
+  GraduationCap,
+  BookOpen,
+  Users,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+};
+
+/**
+ * Resolve a lucide icon name string to its component.
+ * Falls back to Briefcase if not found.
+ */
+export function getIcon(name: string): LucideIcon {
+  return ICON_MAP[name] ?? Briefcase;
+}

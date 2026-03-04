@@ -17,12 +17,14 @@ import {
   ExternalLink,
   Menu,
   X,
+  PenTool,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
 
 const navItems = [
   { label: "לוח בקרה", href: "/admin", icon: LayoutDashboard },
+  { label: "עורך האתר", href: "/admin/site-editor", icon: PenTool },
   { label: "מאמרים", href: "/admin/posts", icon: FileText },
   { label: "עמודים", href: "/admin/pages", icon: Layers },
   { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },

@@ -78,13 +78,21 @@ model Post {
 }
 
 model Page {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  content   Json
-  updatedAt DateTime @updatedAt
-  seoTitle  String?
-  seoDesc   String?
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  title        String
+  content      Json
+  draftContent Json?
+  status       PageStatus @default(DRAFT)
+  updatedAt    DateTime   @updatedAt
+  publishedAt  DateTime?
+  seoTitle     String?
+  seoDesc      String?
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
 }
 
 model Service {
