@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 /* ─── Metadata ─── */
 
@@ -22,23 +25,6 @@ export const metadata: Metadata = {
   description:
     "מאמרים מקצועיים בתחומי המשפט — דיני חברות, נדל״ן, ליטיגציה, דיני עבודה ועוד. תובנות משפטיות מצוות משרד עורכי דין זומר.",
 };
-
-/* ─── Categories ─── */
-
-interface Category {
-  readonly label: string;
-  readonly slug: string;
-}
-
-const CATEGORIES: readonly Category[] = [
-  { label: "הכל", slug: "all" },
-  { label: "דיני חברות", slug: "corporate-law" },
-  { label: 'נדל"ן', slug: "real-estate" },
-  { label: "ליטיגציה", slug: "litigation" },
-  { label: "דיני עבודה", slug: "labor-law" },
-  { label: "קניין רוחני", slug: "intellectual-property" },
-  { label: "דיני מסים", slug: "tax-law" },
-] as const;
 
 /* ─── CSS Gradient Patterns for Article Covers ─── */
 
@@ -51,77 +37,45 @@ const COVER_GRADIENTS: readonly string[] = [
   "bg-gradient-to-br from-primary-dark via-primary-light to-accent/50",
 ] as const;
 
-/* ─── Articles Data ─── */
+/* ─── Fetch articles from DB ─── */
 
-interface ArticleSummary {
-  readonly slug: string;
-  readonly title: string;
-  readonly excerpt: string;
-  readonly date: string;
-  readonly category: string;
-  readonly categoryLabel: string;
+async function getArticles() {
+  try {
+    const posts = await prisma.post.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        slug: true,
+        title: true,
+        excerpt: true,
+        category: true,
+        publishedAt: true,
+        coverImage: true,
+      },
+    });
+
+    return posts;
+  } catch {
+    return [];
+  }
 }
 
-const ARTICLES: readonly ArticleSummary[] = [
-  {
-    slug: "corporate-governance-guide",
-    title: "מדריך מקיף לממשל תאגידי בישראל",
-    excerpt:
-      "ממשל תאגידי הוא מערכת הכללים והנהלים שלפיהם מנוהלת חברה. במאמר זה נסקור את עקרונות הממשל התאגידי בישראל, חובות הדירקטורים ונושאי המשרה, ואת ההתפתחויות האחרונות בתחום.",
-    date: "2025-12-15",
-    category: "corporate-law",
-    categoryLabel: "דיני חברות",
-  },
-  {
-    slug: "real-estate-tax-reform",
-    title: "רפורמת מיסוי מקרקעין — מה חשוב לדעת",
-    excerpt:
-      "סקירה מקיפה של השינויים האחרונים בחוק מיסוי מקרקעין וההשלכות שלהם על רוכשי דירות, משקיעים ויזמי נדל״ן. כולל טיפים מעשיים לתכנון מס נכון.",
-    date: "2025-11-28",
-    category: "real-estate",
-    categoryLabel: 'נדל"ן',
-  },
-  {
-    slug: "class-action-trends",
-    title: "מגמות בתובענות ייצוגיות — סקירה שנתית",
-    excerpt:
-      "סקירה של המגמות העיקריות בתחום התובענות הייצוגיות בישראל בשנה האחרונה, כולל ניתוח פסקי דין מרכזיים, שינויים בחקיקה וצפי להתפתחויות עתידיות.",
-    date: "2025-10-10",
-    category: "litigation",
-    categoryLabel: "ליטיגציה",
-  },
-  {
-    slug: "remote-work-legal-aspects",
-    title: "היבטים משפטיים של עבודה מרחוק",
-    excerpt:
-      "המעבר לעבודה מרחוק מעלה שאלות משפטיות רבות בתחום דיני העבודה. מאמר זה סוקר את ההיבטים המשפטיים המרכזיים שמעסיקים ועובדים צריכים להכיר.",
-    date: "2025-09-05",
-    category: "labor-law",
-    categoryLabel: "דיני עבודה",
-  },
-  {
-    slug: "ai-intellectual-property",
-    title: "בינה מלאכותית וקניין רוחני — אתגרים חדשים",
-    excerpt:
-      "ההתפתחויות המהירות בתחום הבינה המלאכותית מעלות שאלות חדשות בתחום הקניין הרוחני. מי הוא הבעלים של יצירה שנוצרה על ידי AI? כיצד מגנים על פטנטים בעידן ה-AI?",
-    date: "2025-08-20",
-    category: "intellectual-property",
-    categoryLabel: "קניין רוחני",
-  },
-  {
-    slug: "international-tax-planning",
-    title: "תכנון מס בינלאומי — עקרונות ואסטרטגיות",
-    excerpt:
-      "מדריך מקצועי לתכנון מס בינלאומי עבור חברות ישראליות הפועלות בחו״ל ולחברות זרות הפועלות בישראל. סקירה של אמנות מס, מחירי העברה ושינויים רגולטוריים.",
-    date: "2025-07-12",
-    category: "tax-law",
-    categoryLabel: "דיני מסים",
-  },
-] as const;
+/* ─── Category labels ─── */
+
+const CATEGORY_LABELS: Record<string, string> = {
+  "corporate-law": "דיני חברות",
+  "real-estate": 'נדל"ן',
+  litigation: "ליטיגציה",
+  "labor-law": "דיני עבודה",
+  "intellectual-property": "קניין רוחני",
+  "tax-law": "דיני מסים",
+};
 
 /* ─── Page Component ─── */
 
-export default function ArticlesPage() {
+export default async function ArticlesPage() {
+  const articles = await getArticles();
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -147,24 +101,6 @@ export default function ArticlesPage() {
         </Container>
       </section>
 
-      {/* Category Filters (visual placeholder — functionality for later) */}
-      <section className="border-b border-border bg-background" aria-label="סינון לפי קטגוריה">
-        <Container>
-          <div className="flex flex-wrap items-center gap-2 py-4" role="list">
-            {CATEGORIES.map((category, index) => (
-              <span key={category.slug} role="listitem">
-                <Badge
-                  variant={index === 0 ? "primary" : "outline"}
-                  className="cursor-pointer transition-colors duration-200 hover:bg-primary hover:text-white"
-                >
-                  {category.label}
-                </Badge>
-              </span>
-            ))}
-          </div>
-        </Container>
-      </section>
-
       {/* Articles Grid */}
       <section
         className="bg-background py-16 sm:py-24"
@@ -177,68 +113,98 @@ export default function ArticlesPage() {
             id="articles-grid-heading"
           />
 
-          <ul
-            role="list"
-            className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {ARTICLES.map((article, index) => (
-              <li key={article.slug}>
-                <Link
-                  href={`/articles/${article.slug}`}
-                  className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
-                  aria-label={`${article.title} — קרא עוד`}
-                >
-                  <Card className="flex h-full flex-col overflow-hidden hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
-                    {/* Cover Image Placeholder (CSS Gradient) */}
-                    <div
-                      className={`${COVER_GRADIENTS[index % COVER_GRADIENTS.length]} relative h-48 w-full`}
-                      aria-hidden="true"
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                        <span className="text-7xl font-bold text-white">
-                          {article.title.charAt(0)}
-                        </span>
-                      </div>
-                    </div>
+          {articles.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-lg text-muted">עדיין לא פורסמו מאמרים.</p>
+              <p className="mt-2 text-sm text-muted">
+                מאמרים חדשים יופיעו כאן בקרוב.
+              </p>
+            </div>
+          ) : (
+            <ul
+              role="list"
+              className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {articles.map((article, index) => (
+                <li key={article.slug}>
+                  <Link
+                    href={`/articles/${article.slug}`}
+                    className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
+                    aria-label={`${article.title} — קרא עוד`}
+                  >
+                    <Card className="flex h-full flex-col overflow-hidden hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
+                      {/* Cover Image or Gradient */}
+                      {article.coverImage ? (
+                        <div className="relative h-48 w-full overflow-hidden">
+                          <img
+                            src={article.coverImage}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className={`${COVER_GRADIENTS[index % COVER_GRADIENTS.length]} relative h-48 w-full`}
+                          aria-hidden="true"
+                        >
+                          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                            <span className="text-7xl font-bold text-white">
+                              {article.title.charAt(0)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
 
-                    <CardHeader>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="accent">{article.categoryLabel}</Badge>
-                        <span className="inline-flex items-center gap-1 text-xs text-muted">
-                          <Calendar
-                            className="h-3.5 w-3.5"
+                      <CardHeader>
+                        <div className="flex items-center gap-3">
+                          {article.category && (
+                            <Badge variant="accent">
+                              {CATEGORY_LABELS[article.category] ??
+                                article.category}
+                            </Badge>
+                          )}
+                          {article.publishedAt && (
+                            <span className="inline-flex items-center gap-1 text-xs text-muted">
+                              <Calendar
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
+                              <time
+                                dateTime={article.publishedAt.toISOString()}
+                              >
+                                {formatDate(
+                                  article.publishedAt.toISOString(),
+                                )}
+                              </time>
+                            </span>
+                          )}
+                        </div>
+                        <CardTitle className="mt-2 group-hover:text-accent transition-colors duration-200">
+                          {article.title}
+                        </CardTitle>
+                      </CardHeader>
+
+                      <CardContent className="flex-1">
+                        <CardDescription className="line-clamp-3">
+                          {article.excerpt ?? ""}
+                        </CardDescription>
+                      </CardContent>
+
+                      <CardFooter>
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
+                          קרא עוד
+                          <ArrowLeft
+                            className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
                             aria-hidden="true"
                           />
-                          <time dateTime={article.date}>
-                            {formatDate(article.date)}
-                          </time>
                         </span>
-                      </div>
-                      <CardTitle className="mt-2 group-hover:text-accent transition-colors duration-200">
-                        {article.title}
-                      </CardTitle>
-                    </CardHeader>
-
-                    <CardContent className="flex-1">
-                      <CardDescription className="line-clamp-3">
-                        {article.excerpt}
-                      </CardDescription>
-                    </CardContent>
-
-                    <CardFooter>
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
-                        קרא עוד
-                        <ArrowLeft
-                          className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
-                          aria-hidden="true"
-                        />
-                      </span>
-                    </CardFooter>
-                  </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                      </CardFooter>
+                    </Card>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Container>
       </section>
 

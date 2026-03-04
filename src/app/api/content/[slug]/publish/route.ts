@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { CONTENT_DEFAULTS } from "@/lib/content-defaults";
+
+const PAGE_TITLES: Record<string, string> = {
+  home: "דף הבית",
+  about: "אודות",
+  contact: "צור קשר",
+  header: "כותרת עליונה",
+  footer: "כותרת תחתונה",
+};
 
 /* ── POST /api/content/[slug]/publish ── */
 
@@ -19,10 +28,28 @@ export async function POST(
 
     const { slug } = await params;
 
-    const existing = await prisma.page.findUnique({
+    let existing = await prisma.page.findUnique({
       where: { slug },
       select: { draftContent: true, content: true },
     });
+
+    // Auto-create if doesn't exist
+    if (!existing && CONTENT_DEFAULTS[slug]) {
+      await prisma.page.create({
+        data: {
+          slug,
+          title: PAGE_TITLES[slug] ?? slug,
+          content: CONTENT_DEFAULTS[slug] as any,
+          draftContent: CONTENT_DEFAULTS[slug] as any,
+          status: "PUBLISHED",
+          publishedAt: new Date(),
+        },
+      });
+      existing = {
+        draftContent: CONTENT_DEFAULTS[slug] as any,
+        content: CONTENT_DEFAULTS[slug] as any,
+      };
+    }
 
     if (!existing) {
       return NextResponse.json(

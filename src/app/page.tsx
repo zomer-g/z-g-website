@@ -16,7 +16,11 @@ import { cn } from "@/lib/utils";
 import Hero from "@/components/home/hero";
 import { getPageContent } from "@/lib/content";
 import { getIcon } from "@/lib/icons";
+import { prisma } from "@/lib/prisma";
+import { formatDate } from "@/lib/utils";
 import type { HomePageContent } from "@/types/content";
+
+export const dynamic = "force-dynamic";
 
 /* ─── Metadata ─── */
 
@@ -30,6 +34,30 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const content = await getPageContent<HomePageContent>("home");
+
+  // Fetch latest published articles from DB
+  let dbArticles: { title: string; excerpt: string; date: string; href: string }[] = [];
+  try {
+    const posts = await prisma.post.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: { title: true, excerpt: true, publishedAt: true, slug: true },
+    });
+    if (posts.length > 0) {
+      dbArticles = posts.map((p) => ({
+        title: p.title,
+        excerpt: p.excerpt ?? "",
+        date: p.publishedAt ? formatDate(p.publishedAt.toISOString()) : "",
+        href: `/articles/${p.slug}`,
+      }));
+    }
+  } catch {
+    // DB not available, use content defaults
+  }
+
+  // Use DB articles if available, otherwise fall back to content defaults
+  const articlesToShow = dbArticles.length > 0 ? dbArticles : content.articles.items;
 
   return (
     <PublicLayout>
@@ -146,7 +174,7 @@ export default async function HomePage() {
           />
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {content.articles.items.map((article) => (
+            {articlesToShow.map((article) => (
               <Link key={article.title} href={article.href} className="group block">
                 <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                   <div className="h-48 rounded-t-xl bg-gradient-to-br from-primary/10 to-primary/5" />

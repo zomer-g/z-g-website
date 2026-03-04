@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { CONTENT_DEFAULTS } from "@/lib/content-defaults";
+
+/* ─── Page title labels ─── */
+
+const PAGE_TITLES: Record<string, string> = {
+  home: "דף הבית",
+  about: "אודות",
+  contact: "צור קשר",
+  header: "כותרת עליונה",
+  footer: "כותרת תחתונה",
+};
+
+/* ─── Helper: ensure page exists (auto-creates from defaults) ─── */
+
+async function ensurePageExists(slug: string) {
+  let page = await prisma.page.findUnique({ where: { slug } });
+
+  if (!page && CONTENT_DEFAULTS[slug]) {
+    // Auto-create the page with default content
+    page = await prisma.page.create({
+      data: {
+        slug,
+        title: PAGE_TITLES[slug] ?? slug,
+        content: CONTENT_DEFAULTS[slug] as any,
+        draftContent: CONTENT_DEFAULTS[slug] as any,
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+    });
+  }
+
+  return page;
+}
 
 /* ── GET /api/content/[slug] ── */
 
@@ -12,17 +45,7 @@ export async function GET(
     const { slug } = await params;
     const isDraft = req.nextUrl.searchParams.get("draft") === "true";
 
-    const page = await prisma.page.findUnique({
-      where: { slug },
-      select: {
-        content: true,
-        draftContent: true,
-        status: true,
-        publishedAt: true,
-        updatedAt: true,
-        title: true,
-      },
-    });
+    const page = await ensurePageExists(slug);
 
     if (!page) {
       return NextResponse.json(
@@ -90,13 +113,8 @@ export async function PUT(
       );
     }
 
-    const existing = await prisma.page.findUnique({ where: { slug } });
-    if (!existing) {
-      return NextResponse.json(
-        { error: "הדף לא נמצא" },
-        { status: 404 }
-      );
-    }
+    // Auto-create if doesn't exist
+    await ensurePageExists(slug);
 
     const page = await prisma.page.update({
       where: { slug },
