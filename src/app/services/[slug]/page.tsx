@@ -11,6 +11,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getIcon } from "@/lib/icons";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
+import { getPageContent } from "@/lib/content";
+import type { HomePageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +81,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   }
 
   const Icon = getIcon(service.icon ?? "briefcase");
-  const relatedServices = await getRelatedServices(slug);
+  const [relatedServices, homeContent] = await Promise.all([
+    getRelatedServices(slug),
+    getPageContent<HomePageContent>("home"),
+  ]);
+  const cta = homeContent.cta;
 
   return (
     <PublicLayout>
@@ -163,7 +169,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
             {/* Sidebar */}
             <aside aria-label="מידע נוסף" className="space-y-8">
-              {/* CTA Card */}
+              {/* CTA Card — editable from admin (דף הבית → CTA) */}
               <Card className="border-accent/30 bg-primary text-white">
                 <CardContent className="p-6">
                   <div
@@ -173,17 +179,16 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                     <Phone className="h-6 w-6 text-accent" />
                   </div>
                   <h2 className="text-xl font-bold text-white">
-                    צריכים ייעוץ משפטי?
+                    {cta.title}
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-white/80">
-                    צוות המשרד ישמח לסייע לכם. צרו קשר לתיאום פגישת ייעוץ
-                    ראשונית ללא התחייבות.
+                    {cta.description}
                   </p>
                   <Link
-                    href="/contact"
+                    href={cta.ctaLink}
                     className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
                   >
-                    צרו קשר
+                    {cta.ctaText}
                   </Link>
                 </CardContent>
               </Card>
