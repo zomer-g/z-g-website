@@ -100,35 +100,56 @@ function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
   }, text);
 }
 
-/* ─── Extract plain text from a node (for list items) ─── */
+/* ─── Extract inline content from a node (renders text without block wrappers) ─── */
 
-function extractInlineContent(node: TipTapNode, index: number): React.ReactNode {
+function renderInline(node: TipTapNode, index: number): React.ReactNode {
   if (node.type === "text") {
     return <span key={index}>{renderMarks(node.text ?? "", node.marks)}</span>;
   }
   if (node.type === "paragraph") {
-    return node.content?.map((child, i) => extractInlineContent(child, i));
+    return node.content?.map((child, i) => renderInline(child, i));
+  }
+  if (node.type === "listItem") {
+    // List items contain paragraphs — unwrap them
+    return node.content?.map((child, i) => renderInline(child, i));
+  }
+  if (node.type === "hardBreak") {
+    return <br key={index} />;
   }
   if (node.content) {
-    return node.content.map((child, i) => extractInlineContent(child, i));
+    return node.content.map((child, i) => renderInline(child, i));
   }
   return null;
 }
 
-/* ─── Extract list items from bullet/ordered lists inside an info block ─── */
+/* ─── Flatten info block content into individual card rows ─── */
+/* Each paragraph and each list item becomes its own card row */
 
-function extractListItems(nodes: TipTapNode[]): TipTapNode[] {
-  const items: TipTapNode[] = [];
+function flattenToCardRows(nodes: TipTapNode[]): TipTapNode[] {
+  const rows: TipTapNode[] = [];
   for (const node of nodes) {
-    if (node.type === "listItem") {
-      items.push(node);
-    } else if (node.type === "bulletList" || node.type === "orderedList") {
-      if (node.content) {
-        items.push(...extractListItems(node.content));
+    if (node.type === "paragraph") {
+      // Only add non-empty paragraphs
+      if (node.content && node.content.length > 0) {
+        rows.push(node);
       }
+    } else if (node.type === "bulletList" || node.type === "orderedList") {
+      // Unwrap list → each listItem becomes a row
+      if (node.content) {
+        for (const item of node.content) {
+          if (item.type === "listItem") {
+            rows.push(item);
+          }
+        }
+      }
+    } else if (node.type === "heading") {
+      rows.push(node);
+    } else if (node.content) {
+      // Recurse for any other wrapper nodes
+      rows.push(...flattenToCardRows(node.content));
     }
   }
-  return items;
+  return rows;
 }
 
 /* ─── Node Renderer ─── */
@@ -260,12 +281,8 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
       const IconComponent = getIcon(iconName);
       const styles = VARIANT_STYLES[variant] || VARIANT_STYLES.default;
 
-      // Extract list items from content to render each as its own card
-      const listItems = node.content ? extractListItems(node.content) : [];
-      // Non-list content (paragraphs, headings, etc.)
-      const nonListContent = node.content?.filter(
-        (c) => c.type !== "bulletList" && c.type !== "orderedList",
-      ) ?? [];
+      // Flatten all content (paragraphs + list items) into card rows
+      const cardRows = node.content ? flattenToCardRows(node.content) : [];
 
       return (
         <div key={index} className="my-6">
@@ -277,28 +294,21 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
             </div>
           )}
 
-          {/* Non-list content (paragraphs, etc.) rendered normally */}
-          {nonListContent.length > 0 && (
-            <div className="mb-3 text-foreground">
-              {nonListContent.map((child, i) => renderNode(child, i))}
-            </div>
-          )}
-
-          {/* Each list item as its own colored card */}
-          {listItems.length > 0 && (
+          {/* Each row as its own colored card */}
+          {cardRows.length > 0 && (
             <div className="space-y-2">
-              {listItems.map((item, i) => (
+              {cardRows.map((row, i) => (
                 <div
                   key={i}
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${styles.card}`}
+                  className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${styles.card}`}
                 >
                   <div
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${styles.icon}`}
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${styles.icon}`}
                   >
                     <IconComponent className="h-4 w-4" />
                   </div>
                   <span className="text-sm leading-relaxed text-foreground">
-                    {extractInlineContent(item, i)}
+                    {renderInline(row, i)}
                   </span>
                 </div>
               ))}
