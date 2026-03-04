@@ -3,6 +3,7 @@
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
 import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2 } from "lucide-react";
+import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { HomePageContent } from "@/types/content";
 
 interface HomeEditorsProps {
@@ -38,13 +39,22 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
             onChange={(e) => update("hero", { titleAccent: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תיאור"
-            value={content.hero.description}
-            onChange={(e) => update("hero", { description: e.target.value })}
-            rows={3}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תיאור"
+              value={content.hero.description}
+              onChange={(e) => update("hero", { description: e.target.value })}
+              rows={3}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.hero.description}
+                onResult={(text) => update("hero", { description: text })}
+                fieldLabel="תיאור באנר ראשי"
+              />
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               label="טקסט כפתור ראשי"
@@ -130,17 +140,30 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
                     dir="ltr"
                   />
                 </div>
-                <Textarea
-                  label="תיאור"
-                  value={item.description}
-                  onChange={(e) => {
-                    const items = [...content.services.items];
-                    items[idx] = { ...items[idx], description: e.target.value };
-                    update("services", { items });
-                  }}
-                  rows={2}
-                  dir="rtl"
-                />
+                <div className="relative">
+                  <Textarea
+                    label="תיאור"
+                    value={item.description}
+                    onChange={(e) => {
+                      const items = [...content.services.items];
+                      items[idx] = { ...items[idx], description: e.target.value };
+                      update("services", { items });
+                    }}
+                    rows={2}
+                    dir="rtl"
+                  />
+                  <div className="absolute top-0 left-0">
+                    <AiWriterButton
+                      value={item.description}
+                      onResult={(text) => {
+                        const items = [...content.services.items];
+                        items[idx] = { ...items[idx], description: text };
+                        update("services", { items });
+                      }}
+                      fieldLabel={`תיאור תחום עיסוק: ${item.title}`}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
             <button
@@ -168,18 +191,30 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
           />
           {content.aboutPreview.paragraphs.map((p, idx) => (
             <div key={idx} className="flex gap-2">
-              <Textarea
-                label={`פסקה ${idx + 1}`}
-                value={p}
-                onChange={(e) => {
-                  const paragraphs = [...content.aboutPreview.paragraphs];
-                  paragraphs[idx] = e.target.value;
-                  update("aboutPreview", { paragraphs });
-                }}
-                rows={2}
-                dir="rtl"
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Textarea
+                  label={`פסקה ${idx + 1}`}
+                  value={p}
+                  onChange={(e) => {
+                    const paragraphs = [...content.aboutPreview.paragraphs];
+                    paragraphs[idx] = e.target.value;
+                    update("aboutPreview", { paragraphs });
+                  }}
+                  rows={2}
+                  dir="rtl"
+                />
+                <div className="absolute top-0 left-0">
+                  <AiWriterButton
+                    value={p}
+                    onResult={(text) => {
+                      const paragraphs = [...content.aboutPreview.paragraphs];
+                      paragraphs[idx] = text;
+                      update("aboutPreview", { paragraphs });
+                    }}
+                    fieldLabel="פסקת אודות - תצוגה מקדימה"
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -311,13 +346,22 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
             onChange={(e) => update("cta", { title: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תיאור"
-            value={content.cta.description}
-            onChange={(e) => update("cta", { description: e.target.value })}
-            rows={2}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תיאור"
+              value={content.cta.description}
+              onChange={(e) => update("cta", { description: e.target.value })}
+              rows={2}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.cta.description}
+                onResult={(text) => update("cta", { description: text })}
+                fieldLabel="תיאור קריאה לפעולה"
+              />
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               label="טקסט כפתור"

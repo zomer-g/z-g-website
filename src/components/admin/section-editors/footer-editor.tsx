@@ -3,6 +3,7 @@
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
 import { Type, Link2, Phone, Scale, Plus, Trash2 } from "lucide-react";
+import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { FooterContent } from "@/types/content";
 
 interface FooterEditorProps {
@@ -29,13 +30,22 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
               dir="rtl"
             />
           </div>
-          <Textarea
-            label="תיאור המשרד"
-            value={content.firmDescription}
-            onChange={(e) => onChange({ ...content, firmDescription: e.target.value })}
-            rows={3}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תיאור המשרד"
+              value={content.firmDescription}
+              onChange={(e) => onChange({ ...content, firmDescription: e.target.value })}
+              rows={3}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.firmDescription}
+                onResult={(text) => onChange({ ...content, firmDescription: text })}
+                fieldLabel="תיאור המשרד בפוטר"
+              />
+            </div>
+          </div>
           <Input
             label="טקסט זכויות יוצרים"
             value={content.copyright}

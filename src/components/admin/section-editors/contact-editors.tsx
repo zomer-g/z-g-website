@@ -3,6 +3,7 @@
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
 import { Sparkles, Phone, MessageSquare } from "lucide-react";
+import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { ContactPageContent } from "@/types/content";
 
 interface ContactEditorsProps {
@@ -31,13 +32,22 @@ export function ContactEditors({ content, onChange }: ContactEditorsProps) {
             onChange={(e) => update("hero", { title: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תת-כותרת"
-            value={content.hero.subtitle}
-            onChange={(e) => update("hero", { subtitle: e.target.value })}
-            rows={2}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תת-כותרת"
+              value={content.hero.subtitle}
+              onChange={(e) => update("hero", { subtitle: e.target.value })}
+              rows={2}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.hero.subtitle}
+                onResult={(text) => update("hero", { subtitle: text })}
+                fieldLabel="תת-כותרת דף יצירת קשר"
+              />
+            </div>
+          </div>
         </div>
       </SectionCard>
 
@@ -103,13 +113,22 @@ export function ContactEditors({ content, onChange }: ContactEditorsProps) {
             onChange={(e) => update("consultationNote", { title: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תיאור"
-            value={content.consultationNote.description}
-            onChange={(e) => update("consultationNote", { description: e.target.value })}
-            rows={3}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תיאור"
+              value={content.consultationNote.description}
+              onChange={(e) => update("consultationNote", { description: e.target.value })}
+              rows={3}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.consultationNote.description}
+                onResult={(text) => update("consultationNote", { description: text })}
+                fieldLabel="תיאור הערת ייעוץ ראשוני"
+              />
+            </div>
+          </div>
         </div>
       </SectionCard>
     </div>

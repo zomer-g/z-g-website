@@ -1,0 +1,304 @@
+import Link from "next/link";
+import { getIcon } from "@/lib/icons";
+
+/* ─── Types for TipTap / ProseMirror JSON ─── */
+
+interface TipTapMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
+interface TipTapNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: TipTapNode[];
+  marks?: TipTapMark[];
+  text?: string;
+}
+
+interface TipTapDoc {
+  type: "doc";
+  content?: TipTapNode[];
+}
+
+/* ─── Props ─── */
+
+interface TipTapRendererProps {
+  content: TipTapDoc | Record<string, unknown>;
+  className?: string;
+}
+
+/* ─── Mark Renderer ─── */
+
+function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
+  if (!marks || marks.length === 0) return text;
+
+  return marks.reduce<React.ReactNode>((acc, mark) => {
+    switch (mark.type) {
+      case "bold":
+        return <strong>{acc}</strong>;
+      case "italic":
+        return <em>{acc}</em>;
+      case "code":
+        return (
+          <code className="rounded bg-gray-100 px-1.5 py-0.5 text-sm font-mono">
+            {acc}
+          </code>
+        );
+      case "link": {
+        const href = (mark.attrs?.href as string) ?? "#";
+        const isExternal =
+          href.startsWith("http") && !href.includes(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+        return (
+          <Link
+            href={href}
+            className="font-semibold text-primary underline underline-offset-2 hover:text-accent transition-colors duration-200"
+            {...(isExternal
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+          >
+            {acc}
+          </Link>
+        );
+      }
+      default:
+        return acc;
+    }
+  }, text);
+}
+
+/* ─── Node Renderer ─── */
+
+function renderNode(node: TipTapNode, index: number): React.ReactNode {
+  switch (node.type) {
+    case "text":
+      return (
+        <span key={index}>{renderMarks(node.text ?? "", node.marks)}</span>
+      );
+
+    case "paragraph":
+      return (
+        <p key={index} className="mb-4 leading-relaxed text-foreground">
+          {node.content?.map((child, i) => renderNode(child, i))}
+        </p>
+      );
+
+    case "heading": {
+      const level = (node.attrs?.level as number) ?? 2;
+      const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
+      const sizes: Record<number, string> = {
+        1: "text-3xl font-bold mt-10 mb-4",
+        2: "text-2xl font-bold mt-8 mb-3",
+        3: "text-xl font-bold mt-6 mb-2",
+        4: "text-lg font-semibold mt-4 mb-2",
+        5: "text-base font-semibold mt-3 mb-1",
+        6: "text-sm font-semibold mt-3 mb-1",
+      };
+      return (
+        <Tag
+          key={index}
+          className={`${sizes[level] ?? sizes[2]} text-primary-dark`}
+        >
+          {node.content?.map((child, i) => renderNode(child, i))}
+        </Tag>
+      );
+    }
+
+    case "bulletList":
+      return (
+        <ul
+          key={index}
+          className="mb-4 list-disc space-y-1.5 ps-6 text-foreground"
+        >
+          {node.content?.map((child, i) => renderNode(child, i))}
+        </ul>
+      );
+
+    case "orderedList":
+      return (
+        <ol
+          key={index}
+          className="mb-4 list-decimal space-y-1.5 ps-6 text-foreground"
+        >
+          {node.content?.map((child, i) => renderNode(child, i))}
+        </ol>
+      );
+
+    case "listItem":
+      return (
+        <li key={index} className="leading-relaxed">
+          {node.content?.map((child, i) => {
+            // List items wrap content in paragraphs — strip the <p> for cleaner rendering
+            if (child.type === "paragraph") {
+              return child.content?.map((grandchild, j) =>
+                renderNode(grandchild, j),
+              );
+            }
+            return renderNode(child, i);
+          })}
+        </li>
+      );
+
+    case "blockquote":
+      return (
+        <blockquote
+          key={index}
+          className="mb-4 border-r-4 border-accent pr-4 italic text-muted"
+        >
+          {node.content?.map((child, i) => renderNode(child, i))}
+        </blockquote>
+      );
+
+    case "codeBlock":
+      return (
+        <pre
+          key={index}
+          className="mb-4 overflow-x-auto rounded-lg bg-gray-900 p-4 text-sm text-gray-100"
+          dir="ltr"
+        >
+          <code>
+            {node.content?.map((child) => child.text).join("") ?? ""}
+          </code>
+        </pre>
+      );
+
+    case "horizontalRule":
+      return <hr key={index} className="my-8 border-border" />;
+
+    case "image": {
+      const src = (node.attrs?.src as string) ?? "";
+      const alt = (node.attrs?.alt as string) ?? "";
+      return (
+        <figure key={index} className="my-6">
+          <img
+            src={src}
+            alt={alt}
+            className="max-w-full rounded-lg"
+            loading="lazy"
+          />
+          {alt && (
+            <figcaption className="mt-2 text-center text-sm text-muted">
+              {alt}
+            </figcaption>
+          )}
+        </figure>
+      );
+    }
+
+    case "hardBreak":
+      return <br key={index} />;
+
+    /* ── Info Block (Custom Node) ── */
+    case "infoBlock": {
+      const iconName = (node.attrs?.icon as string) ?? "Briefcase";
+      const title = (node.attrs?.title as string) ?? "";
+      const IconComponent = getIcon(iconName);
+
+      return (
+        <div
+          key={index}
+          className="my-6 rounded-xl border border-border bg-card p-5 shadow-sm"
+        >
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <IconComponent className="h-5 w-5 text-primary" />
+            </div>
+            <h3 className="text-lg font-bold text-primary-dark">{title}</h3>
+          </div>
+          <div className="text-foreground">
+            {node.content?.map((child, i) => renderNode(child, i))}
+          </div>
+        </div>
+      );
+    }
+
+    default:
+      // Fallback: render children if they exist
+      if (node.content) {
+        return (
+          <div key={index}>
+            {node.content.map((child, i) => renderNode(child, i))}
+          </div>
+        );
+      }
+      return null;
+  }
+}
+
+/* ─── Check for adjacent info blocks and wrap in grid ─── */
+
+function groupInfoBlocks(nodes: TipTapNode[]): React.ReactNode[] {
+  const result: React.ReactNode[] = [];
+  let infoBlockGroup: { node: TipTapNode; index: number }[] = [];
+
+  const flushGroup = () => {
+    if (infoBlockGroup.length === 0) return;
+
+    if (infoBlockGroup.length >= 2) {
+      result.push(
+        <div
+          key={`info-grid-${infoBlockGroup[0].index}`}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 my-6"
+        >
+          {infoBlockGroup.map(({ node, index }) => {
+            const iconName = (node.attrs?.icon as string) ?? "Briefcase";
+            const title = (node.attrs?.title as string) ?? "";
+            const IconComponent = getIcon(iconName);
+
+            return (
+              <div
+                key={index}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm"
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <IconComponent className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-bold text-primary-dark">
+                    {title}
+                  </h3>
+                </div>
+                <div className="text-foreground">
+                  {node.content?.map((child, i) => renderNode(child, i))}
+                </div>
+              </div>
+            );
+          })}
+        </div>,
+      );
+    } else {
+      // Single info block — render normally
+      result.push(renderNode(infoBlockGroup[0].node, infoBlockGroup[0].index));
+    }
+
+    infoBlockGroup = [];
+  };
+
+  nodes.forEach((node, index) => {
+    if (node.type === "infoBlock") {
+      infoBlockGroup.push({ node, index });
+    } else {
+      flushGroup();
+      result.push(renderNode(node, index));
+    }
+  });
+
+  flushGroup();
+  return result;
+}
+
+/* ─── Main Component ─── */
+
+export function TipTapRenderer({ content, className }: TipTapRendererProps) {
+  const doc = content as TipTapDoc;
+
+  if (!doc?.content || doc.content.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={className} dir="rtl">
+      {groupInfoBlocks(doc.content)}
+    </div>
+  );
+}

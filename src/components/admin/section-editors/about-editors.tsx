@@ -3,6 +3,7 @@
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
 import { Sparkles, BookOpen, User, Heart, Megaphone, Plus, Trash2 } from "lucide-react";
+import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { AboutPageContent } from "@/types/content";
 
 interface AboutEditorsProps {
@@ -32,13 +33,22 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onChange={(e) => update("hero", { title: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תת-כותרת"
-            value={content.hero.subtitle}
-            onChange={(e) => update("hero", { subtitle: e.target.value })}
-            rows={2}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תת-כותרת"
+              value={content.hero.subtitle}
+              onChange={(e) => update("hero", { subtitle: e.target.value })}
+              rows={2}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.hero.subtitle}
+                onResult={(text) => update("hero", { subtitle: text })}
+                fieldLabel="תת-כותרת דף אודות"
+              />
+            </div>
+          </div>
         </div>
       </SectionCard>
 
@@ -59,18 +69,30 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
           />
           {content.firmStory.paragraphs.map((p, idx) => (
             <div key={idx} className="flex gap-2">
-              <Textarea
-                label={`פסקה ${idx + 1}`}
-                value={p}
-                onChange={(e) => {
-                  const paragraphs = [...content.firmStory.paragraphs];
-                  paragraphs[idx] = e.target.value;
-                  update("firmStory", { paragraphs });
-                }}
-                rows={3}
-                dir="rtl"
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Textarea
+                  label={`פסקה ${idx + 1}`}
+                  value={p}
+                  onChange={(e) => {
+                    const paragraphs = [...content.firmStory.paragraphs];
+                    paragraphs[idx] = e.target.value;
+                    update("firmStory", { paragraphs });
+                  }}
+                  rows={3}
+                  dir="rtl"
+                />
+                <div className="absolute top-0 left-0">
+                  <AiWriterButton
+                    value={p}
+                    onResult={(text) => {
+                      const paragraphs = [...content.firmStory.paragraphs];
+                      paragraphs[idx] = text;
+                      update("firmStory", { paragraphs });
+                    }}
+                    fieldLabel="פסקת הסיפור שלנו"
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -115,18 +137,30 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
           <p className="text-xs font-medium text-muted">ביוגרפיה</p>
           {content.attorney.bio.map((p, idx) => (
             <div key={idx} className="flex gap-2">
-              <Textarea
-                label={`פסקה ${idx + 1}`}
-                value={p}
-                onChange={(e) => {
-                  const bio = [...content.attorney.bio];
-                  bio[idx] = e.target.value;
-                  update("attorney", { bio });
-                }}
-                rows={2}
-                dir="rtl"
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Textarea
+                  label={`פסקה ${idx + 1}`}
+                  value={p}
+                  onChange={(e) => {
+                    const bio = [...content.attorney.bio];
+                    bio[idx] = e.target.value;
+                    update("attorney", { bio });
+                  }}
+                  rows={2}
+                  dir="rtl"
+                />
+                <div className="absolute top-0 left-0">
+                  <AiWriterButton
+                    value={p}
+                    onResult={(text) => {
+                      const bio = [...content.attorney.bio];
+                      bio[idx] = text;
+                      update("attorney", { bio });
+                    }}
+                    fieldLabel="ביוגרפיה של עורך הדין"
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -250,17 +284,30 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
                   dir="ltr"
                 />
               </div>
-              <Textarea
-                label="תיאור"
-                value={item.description}
-                onChange={(e) => {
-                  const items = [...content.values.items];
-                  items[idx] = { ...items[idx], description: e.target.value };
-                  update("values", { items });
-                }}
-                rows={2}
-                dir="rtl"
-              />
+              <div className="relative">
+                <Textarea
+                  label="תיאור"
+                  value={item.description}
+                  onChange={(e) => {
+                    const items = [...content.values.items];
+                    items[idx] = { ...items[idx], description: e.target.value };
+                    update("values", { items });
+                  }}
+                  rows={2}
+                  dir="rtl"
+                />
+                <div className="absolute top-0 left-0">
+                  <AiWriterButton
+                    value={item.description}
+                    onResult={(text) => {
+                      const items = [...content.values.items];
+                      items[idx] = { ...items[idx], description: text };
+                      update("values", { items });
+                    }}
+                    fieldLabel={`תיאור ערך: ${item.title}`}
+                  />
+                </div>
+              </div>
             </div>
           ))}
           <button
@@ -284,13 +331,22 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onChange={(e) => update("cta", { title: e.target.value })}
             dir="rtl"
           />
-          <Textarea
-            label="תיאור"
-            value={content.cta.description}
-            onChange={(e) => update("cta", { description: e.target.value })}
-            rows={2}
-            dir="rtl"
-          />
+          <div className="relative">
+            <Textarea
+              label="תיאור"
+              value={content.cta.description}
+              onChange={(e) => update("cta", { description: e.target.value })}
+              rows={2}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.cta.description}
+                onResult={(text) => update("cta", { description: text })}
+                fieldLabel="תיאור קריאה לפעולה - אודות"
+              />
+            </div>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
               label="טקסט כפתור"

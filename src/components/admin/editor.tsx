@@ -1,6 +1,7 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, NodeViewWrapper, NodeViewContent, ReactNodeViewRenderer } from "@tiptap/react";
+import { Node, mergeAttributes } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
@@ -17,8 +18,156 @@ import {
   ImageIcon,
   Undo2,
   Redo2,
+  LayoutList,
+  Sparkles,
+  Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState, useCallback } from "react";
+
+/* ─── Icon names available for info blocks ─── */
+
+const AVAILABLE_ICONS = [
+  "Scale",
+  "Building2",
+  "Gavel",
+  "FileText",
+  "Shield",
+  "Briefcase",
+  "Award",
+  "Heart",
+  "ShieldCheck",
+  "Lightbulb",
+  "GraduationCap",
+  "BookOpen",
+  "Users",
+  "Phone",
+  "Mail",
+  "MapPin",
+  "Clock",
+] as const;
+
+/* ─── Info Block Node View (Editor rendering) ─── */
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function InfoBlockView(props: any) {
+  const { node, updateAttributes } = props as {
+    node: { attrs: { icon: string; title: string } };
+    updateAttributes: (attrs: Record<string, unknown>) => void;
+  };
+  const [showIconPicker, setShowIconPicker] = useState(false);
+
+  return (
+    <NodeViewWrapper
+      className="my-4 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50/50 p-4"
+      data-type="infoBlock"
+    >
+      {/* Header row */}
+      <div className="mb-2 flex items-center gap-2">
+        {/* Icon picker */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowIconPicker(!showIconPicker)}
+            className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+            contentEditable={false}
+          >
+            🎨 {node.attrs.icon}
+            <ChevronDown size={12} />
+          </button>
+          {showIconPicker && (
+            <div
+              className="absolute top-full right-0 z-10 mt-1 grid max-h-48 w-64 grid-cols-3 gap-1 overflow-auto rounded-lg border border-border bg-card p-2 shadow-lg"
+              contentEditable={false}
+            >
+              {AVAILABLE_ICONS.map((iconName) => (
+                <button
+                  key={iconName}
+                  type="button"
+                  onClick={() => {
+                    updateAttributes({ icon: iconName });
+                    setShowIconPicker(false);
+                  }}
+                  className={cn(
+                    "rounded px-2 py-1 text-xs transition-colors",
+                    node.attrs.icon === iconName
+                      ? "bg-primary text-white"
+                      : "hover:bg-gray-100",
+                  )}
+                >
+                  {iconName}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Title input */}
+        <input
+          type="text"
+          value={node.attrs.title}
+          onChange={(e) => updateAttributes({ title: e.target.value })}
+          placeholder="כותרת הבלוק..."
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-bold text-primary-dark placeholder:text-muted focus-visible:outline-2 focus-visible:outline-purple-400"
+          contentEditable={false}
+          dir="rtl"
+        />
+
+        <span
+          className="text-[10px] text-purple-400 font-medium"
+          contentEditable={false}
+        >
+          בלוק מידע
+        </span>
+      </div>
+
+      {/* Content area (editable) */}
+      <div className="rounded-lg border border-border bg-background p-3 min-h-[60px]">
+        <NodeViewContent className="prose prose-sm max-w-none" />
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+/* ─── Info Block Extension ─── */
+
+const InfoBlock = Node.create({
+  name: "infoBlock",
+  group: "block",
+  content: "block+",
+
+  addAttributes() {
+    return {
+      icon: {
+        default: "Briefcase",
+      },
+      title: {
+        default: "",
+      },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-type="infoBlock"]',
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, { "data-type": "infoBlock" }),
+      0,
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(InfoBlockView);
+  },
+});
 
 /* ─── Types ─── */
 
@@ -56,9 +205,132 @@ function ToolbarButton({
   );
 }
 
+/* ─── AI Writer Modal for Editor ─── */
+
+function EditorAiWriter({
+  isOpen,
+  onClose,
+  onInsert,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onInsert: (text: string) => void;
+}) {
+  const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGenerate = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setResult("");
+
+    try {
+      const res = await fetch("/api/ai/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          fieldLabel: "תוכן מאמר",
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `שגיאה (${res.status})`);
+      }
+
+      const data = await res.json();
+      setResult(data.result || data.content || "");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "שגיאה ביצירת הטקסט");
+    } finally {
+      setLoading(false);
+    }
+  }, [prompt]);
+
+  const handleInsert = () => {
+    onInsert(result);
+    setPrompt("");
+    setResult("");
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="absolute top-full left-0 z-50 mt-1 w-80 rounded-xl border border-border bg-card p-4 shadow-xl" dir="rtl">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles size={16} className="text-purple-500" />
+          <span className="text-sm font-semibold">AI כתיבה</span>
+        </div>
+        <button type="button" onClick={onClose} className="text-muted hover:text-foreground">
+          ✕
+        </button>
+      </div>
+
+      {!result ? (
+        <>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="תאר מה לכתוב..."
+            rows={3}
+            dir="rtl"
+            className="mb-3 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-purple-400"
+          />
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={loading || !prompt}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-50 transition-colors"
+          >
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {loading ? "יוצר..." : "צור טקסט"}
+          </button>
+        </>
+      ) : (
+        <>
+          <textarea
+            value={result}
+            onChange={(e) => setResult(e.target.value)}
+            rows={5}
+            dir="rtl"
+            className="mb-3 w-full resize-y rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-green-400"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleInsert}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+            >
+              הוסף לעורך
+            </button>
+            <button
+              type="button"
+              onClick={() => { setResult(""); }}
+              className="rounded-lg border border-border px-3 py-2 text-sm text-muted hover:bg-gray-50 transition-colors"
+            >
+              נסה שוב
+            </button>
+          </div>
+        </>
+      )}
+
+      {error && (
+        <div className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-600">{error}</div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Editor Component ─── */
 
 export function Editor({ initialContent, onChange }: EditorProps) {
+  const [showAiWriter, setShowAiWriter] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -74,6 +346,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       Placeholder.configure({
         placeholder: "התחל לכתוב...",
       }),
+      InfoBlock,
     ],
     content: initialContent ?? undefined,
     editorProps: {
@@ -118,6 +391,32 @@ export function Editor({ initialContent, onChange }: EditorProps) {
     if (!url) return;
 
     editor.chain().focus().setImage({ src: url }).run();
+  };
+
+  const handleInsertInfoBlock = () => {
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "infoBlock",
+        attrs: { icon: "Briefcase", title: "" },
+        content: [
+          {
+            type: "bulletList",
+            content: [
+              {
+                type: "listItem",
+                content: [{ type: "paragraph", content: [{ type: "text", text: "נקודה ראשונה" }] }],
+              },
+            ],
+          },
+        ],
+      })
+      .run();
+  };
+
+  const handleAiInsert = (text: string) => {
+    editor.chain().focus().insertContent(text).run();
   };
 
   return (
@@ -191,6 +490,13 @@ export function Editor({ initialContent, onChange }: EditorProps) {
         <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
 
         <ToolbarButton
+          onClick={handleInsertInfoBlock}
+          ariaLabel="בלוק מידע"
+        >
+          <LayoutList size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
           onClick={handleLink}
           isActive={editor.isActive("link")}
           ariaLabel="קישור"
@@ -201,6 +507,24 @@ export function Editor({ initialContent, onChange }: EditorProps) {
         <ToolbarButton onClick={handleImage} ariaLabel="תמונה">
           <ImageIcon size={16} />
         </ToolbarButton>
+
+        <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+
+        {/* AI Writer */}
+        <div className="relative">
+          <ToolbarButton
+            onClick={() => setShowAiWriter(!showAiWriter)}
+            isActive={showAiWriter}
+            ariaLabel="AI כתיבה"
+          >
+            <Sparkles size={16} className="text-purple-500" />
+          </ToolbarButton>
+          <EditorAiWriter
+            isOpen={showAiWriter}
+            onClose={() => setShowAiWriter(false)}
+            onInsert={handleAiInsert}
+          />
+        </div>
 
         <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
 

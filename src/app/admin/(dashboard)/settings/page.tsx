@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
 import {
   Loader2,
   Save,
@@ -15,6 +16,7 @@ import {
   MapPin,
   Linkedin,
   Facebook,
+  Sparkles,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -25,6 +27,7 @@ interface SiteSettingsData {
   address: string;
   linkedinUrl: string;
   facebookUrl: string;
+  aiGenericPrompt: string;
 }
 
 const DEFAULT_SETTINGS: SiteSettingsData = {
@@ -33,6 +36,7 @@ const DEFAULT_SETTINGS: SiteSettingsData = {
   address: "",
   linkedinUrl: "",
   facebookUrl: "",
+  aiGenericPrompt: "",
 };
 
 const STORAGE_KEY = "zg-site-settings";
@@ -254,6 +258,36 @@ export default function AdminSettingsPage() {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── AI Writing Assistant ── */}
+      <Card>
+        <CardContent className="space-y-5 p-6">
+          <div className="flex items-center gap-2">
+            <Sparkles size={20} className="text-purple-500" />
+            <h2 className="text-lg font-semibold text-foreground">
+              עוזר כתיבה AI
+            </h2>
+          </div>
+
+          <p className="text-sm text-muted">
+            הגדר פרומפט כללי שישמש את עוזר הכתיבה AI בכל שדות הטקסט. הפרומפט
+            הזה יתווסף אוטומטית לכל בקשה שנשלחת ל-Gemini.
+          </p>
+
+          <Textarea
+            label="פרומפט כללי"
+            value={settings.aiGenericPrompt}
+            onChange={(e) => updateField("aiGenericPrompt", e.target.value)}
+            placeholder="לדוגמה: אתה כותב תוכן עבור משרד עורכי דין ישראלי. כתוב בעברית מקצועית ורשמית. שמור על טון מקצועי ואמין."
+            rows={4}
+            dir="rtl"
+          />
+
+          <p className="text-xs text-muted">
+            💡 מפתח ה-API של Gemini מוגדר כמשתנה סביבה (GEMINI_API_KEY) בשרת.
+          </p>
         </CardContent>
       </Card>
 
