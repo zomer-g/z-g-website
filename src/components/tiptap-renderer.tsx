@@ -28,6 +28,39 @@ interface TipTapRendererProps {
   className?: string;
 }
 
+/* ─── Variant Color Styles ─── */
+
+const VARIANT_STYLES: Record<
+  string,
+  { card: string; icon: string; titleIcon: string }
+> = {
+  default: {
+    card: "border-border bg-card",
+    icon: "bg-primary/10 text-primary",
+    titleIcon: "text-primary",
+  },
+  success: {
+    card: "border-green-200 bg-green-50",
+    icon: "bg-green-100 text-green-600",
+    titleIcon: "text-green-600",
+  },
+  error: {
+    card: "border-red-200 bg-red-50",
+    icon: "bg-red-100 text-red-500",
+    titleIcon: "text-red-500",
+  },
+  warning: {
+    card: "border-amber-200 bg-amber-50",
+    icon: "bg-amber-100 text-amber-600",
+    titleIcon: "text-amber-600",
+  },
+  info: {
+    card: "border-blue-200 bg-blue-50",
+    icon: "bg-blue-100 text-blue-600",
+    titleIcon: "text-blue-600",
+  },
+};
+
 /* ─── Mark Renderer ─── */
 
 function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
@@ -65,6 +98,37 @@ function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
         return acc;
     }
   }, text);
+}
+
+/* ─── Extract plain text from a node (for list items) ─── */
+
+function extractInlineContent(node: TipTapNode, index: number): React.ReactNode {
+  if (node.type === "text") {
+    return <span key={index}>{renderMarks(node.text ?? "", node.marks)}</span>;
+  }
+  if (node.type === "paragraph") {
+    return node.content?.map((child, i) => extractInlineContent(child, i));
+  }
+  if (node.content) {
+    return node.content.map((child, i) => extractInlineContent(child, i));
+  }
+  return null;
+}
+
+/* ─── Extract list items from bullet/ordered lists inside an info block ─── */
+
+function extractListItems(nodes: TipTapNode[]): TipTapNode[] {
+  const items: TipTapNode[] = [];
+  for (const node of nodes) {
+    if (node.type === "listItem") {
+      items.push(node);
+    } else if (node.type === "bulletList" || node.type === "orderedList") {
+      if (node.content) {
+        items.push(...extractListItems(node.content));
+      }
+    }
+  }
+  return items;
 }
 
 /* ─── Node Renderer ─── */
@@ -192,22 +256,54 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
     case "infoBlock": {
       const iconName = (node.attrs?.icon as string) ?? "Briefcase";
       const title = (node.attrs?.title as string) ?? "";
+      const variant = (node.attrs?.variant as string) ?? "default";
       const IconComponent = getIcon(iconName);
+      const styles = VARIANT_STYLES[variant] || VARIANT_STYLES.default;
+
+      // Extract list items from content to render each as its own card
+      const listItems = node.content ? extractListItems(node.content) : [];
+      // Non-list content (paragraphs, headings, etc.)
+      const nonListContent = node.content?.filter(
+        (c) => c.type !== "bulletList" && c.type !== "orderedList",
+      ) ?? [];
 
       return (
-        <div
-          key={index}
-          className="my-6 rounded-xl border border-border bg-card p-5 shadow-sm"
-        >
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <IconComponent className="h-5 w-5 text-primary" />
+        <div key={index} className="my-6">
+          {/* Block title */}
+          {title && (
+            <div className="mb-3 flex items-center gap-2">
+              <IconComponent className={`h-5 w-5 ${styles.titleIcon}`} />
+              <h3 className="text-lg font-bold text-primary-dark">{title}</h3>
             </div>
-            <h3 className="text-lg font-bold text-primary-dark">{title}</h3>
-          </div>
-          <div className="text-foreground">
-            {node.content?.map((child, i) => renderNode(child, i))}
-          </div>
+          )}
+
+          {/* Non-list content (paragraphs, etc.) rendered normally */}
+          {nonListContent.length > 0 && (
+            <div className="mb-3 text-foreground">
+              {nonListContent.map((child, i) => renderNode(child, i))}
+            </div>
+          )}
+
+          {/* Each list item as its own colored card */}
+          {listItems.length > 0 && (
+            <div className="space-y-2">
+              {listItems.map((item, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${styles.card}`}
+                >
+                  <div
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${styles.icon}`}
+                  >
+                    <IconComponent className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm leading-relaxed text-foreground">
+                    {extractInlineContent(item, i)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }
@@ -225,68 +321,6 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
   }
 }
 
-/* ─── Check for adjacent info blocks and wrap in grid ─── */
-
-function groupInfoBlocks(nodes: TipTapNode[]): React.ReactNode[] {
-  const result: React.ReactNode[] = [];
-  let infoBlockGroup: { node: TipTapNode; index: number }[] = [];
-
-  const flushGroup = () => {
-    if (infoBlockGroup.length === 0) return;
-
-    if (infoBlockGroup.length >= 2) {
-      result.push(
-        <div
-          key={`info-grid-${infoBlockGroup[0].index}`}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2 my-6"
-        >
-          {infoBlockGroup.map(({ node, index }) => {
-            const iconName = (node.attrs?.icon as string) ?? "Briefcase";
-            const title = (node.attrs?.title as string) ?? "";
-            const IconComponent = getIcon(iconName);
-
-            return (
-              <div
-                key={index}
-                className="rounded-xl border border-border bg-card p-5 shadow-sm"
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <IconComponent className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-bold text-primary-dark">
-                    {title}
-                  </h3>
-                </div>
-                <div className="text-foreground">
-                  {node.content?.map((child, i) => renderNode(child, i))}
-                </div>
-              </div>
-            );
-          })}
-        </div>,
-      );
-    } else {
-      // Single info block — render normally
-      result.push(renderNode(infoBlockGroup[0].node, infoBlockGroup[0].index));
-    }
-
-    infoBlockGroup = [];
-  };
-
-  nodes.forEach((node, index) => {
-    if (node.type === "infoBlock") {
-      infoBlockGroup.push({ node, index });
-    } else {
-      flushGroup();
-      result.push(renderNode(node, index));
-    }
-  });
-
-  flushGroup();
-  return result;
-}
-
 /* ─── Main Component ─── */
 
 export function TipTapRenderer({ content, className }: TipTapRendererProps) {
@@ -298,7 +332,7 @@ export function TipTapRenderer({ content, className }: TipTapRendererProps) {
 
   return (
     <div className={className} dir="rtl">
-      {groupInfoBlocks(doc.content)}
+      {doc.content.map((node, index) => renderNode(node, index))}
     </div>
   );
 }

@@ -16,6 +16,16 @@ import {
   Mail,
   MapPin,
   Clock,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  XCircle,
+  CircleDot,
+  Star,
+  Zap,
+  Target,
+  ThumbsUp,
+  ThumbsDown,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +49,16 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Mail,
   MapPin,
   Clock,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  XCircle,
+  CircleDot,
+  Star,
+  Zap,
+  Target,
+  ThumbsUp,
+  ThumbsDown,
 };
 
 /**

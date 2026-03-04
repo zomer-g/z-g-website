@@ -29,47 +29,93 @@ import { useState, useCallback } from "react";
 /* ─── Icon names available for info blocks ─── */
 
 const AVAILABLE_ICONS = [
-  "Scale",
-  "Building2",
-  "Gavel",
-  "FileText",
-  "Shield",
-  "Briefcase",
-  "Award",
-  "Heart",
-  "ShieldCheck",
-  "Lightbulb",
-  "GraduationCap",
-  "BookOpen",
-  "Users",
-  "Phone",
-  "Mail",
-  "MapPin",
-  "Clock",
+  "Scale", "Building2", "Gavel", "FileText", "Shield", "Briefcase",
+  "Award", "Heart", "ShieldCheck", "Lightbulb", "GraduationCap", "BookOpen",
+  "Users", "Phone", "Mail", "MapPin", "Clock",
+  "CheckCircle", "AlertTriangle", "Info", "XCircle", "CircleDot",
+  "Star", "Zap", "Target", "ThumbsUp", "ThumbsDown",
 ] as const;
+
+/* ─── Color variants for info blocks ─── */
+
+const VARIANT_OPTIONS = [
+  { value: "default", label: "רגיל", dot: "bg-gray-400" },
+  { value: "success", label: "ירוק", dot: "bg-green-500" },
+  { value: "error", label: "אדום", dot: "bg-red-500" },
+  { value: "warning", label: "כתום", dot: "bg-amber-500" },
+  { value: "info", label: "כחול", dot: "bg-blue-500" },
+] as const;
+
+const VARIANT_EDITOR_BORDER: Record<string, string> = {
+  default: "border-gray-300 bg-gray-50/50",
+  success: "border-green-300 bg-green-50/30",
+  error: "border-red-300 bg-red-50/30",
+  warning: "border-amber-300 bg-amber-50/30",
+  info: "border-blue-300 bg-blue-50/30",
+};
 
 /* ─── Info Block Node View (Editor rendering) ─── */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function InfoBlockView(props: any) {
   const { node, updateAttributes } = props as {
-    node: { attrs: { icon: string; title: string } };
+    node: { attrs: { icon: string; title: string; variant: string } };
     updateAttributes: (attrs: Record<string, unknown>) => void;
   };
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showVariantPicker, setShowVariantPicker] = useState(false);
+
+  const variant = node.attrs.variant || "default";
+  const borderStyle = VARIANT_EDITOR_BORDER[variant] || VARIANT_EDITOR_BORDER.default;
+  const currentVariant = VARIANT_OPTIONS.find((v) => v.value === variant) ?? VARIANT_OPTIONS[0];
 
   return (
     <NodeViewWrapper
-      className="my-4 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50/50 p-4"
+      className={`my-4 rounded-xl border-2 border-dashed p-4 ${borderStyle}`}
       data-type="infoBlock"
     >
       {/* Header row */}
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        {/* Variant (color) picker */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => { setShowVariantPicker(!showVariantPicker); setShowIconPicker(false); }}
+            className="flex items-center gap-1.5 rounded-lg bg-white px-2 py-1.5 text-xs font-medium border border-border hover:bg-gray-50 transition-colors"
+            contentEditable={false}
+          >
+            <span className={`h-3 w-3 rounded-full ${currentVariant.dot}`} />
+            {currentVariant.label}
+            <ChevronDown size={12} />
+          </button>
+          {showVariantPicker && (
+            <div
+              className="absolute top-full right-0 z-10 mt-1 w-32 rounded-lg border border-border bg-card p-1.5 shadow-lg"
+              contentEditable={false}
+            >
+              {VARIANT_OPTIONS.map((v) => (
+                <button
+                  key={v.value}
+                  type="button"
+                  onClick={() => { updateAttributes({ variant: v.value }); setShowVariantPicker(false); }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs transition-colors",
+                    variant === v.value ? "bg-primary/10 font-bold" : "hover:bg-gray-100",
+                  )}
+                >
+                  <span className={`h-3 w-3 rounded-full ${v.dot}`} />
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Icon picker */}
         <div className="relative">
           <button
             type="button"
-            onClick={() => setShowIconPicker(!showIconPicker)}
+            onClick={() => { setShowIconPicker(!showIconPicker); setShowVariantPicker(false); }}
             className="flex items-center gap-1 rounded-lg bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
             contentEditable={false}
           >
@@ -85,10 +131,7 @@ function InfoBlockView(props: any) {
                 <button
                   key={iconName}
                   type="button"
-                  onClick={() => {
-                    updateAttributes({ icon: iconName });
-                    setShowIconPicker(false);
-                  }}
+                  onClick={() => { updateAttributes({ icon: iconName }); setShowIconPicker(false); }}
                   className={cn(
                     "rounded px-2 py-1 text-xs transition-colors",
                     node.attrs.icon === iconName
@@ -109,13 +152,13 @@ function InfoBlockView(props: any) {
           value={node.attrs.title}
           onChange={(e) => updateAttributes({ title: e.target.value })}
           placeholder="כותרת הבלוק..."
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-bold text-primary-dark placeholder:text-muted focus-visible:outline-2 focus-visible:outline-purple-400"
+          className="flex-1 min-w-[120px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-bold text-primary-dark placeholder:text-muted focus-visible:outline-2 focus-visible:outline-purple-400"
           contentEditable={false}
           dir="rtl"
         />
 
         <span
-          className="text-[10px] text-purple-400 font-medium"
+          className="text-[10px] text-purple-400 font-medium whitespace-nowrap"
           contentEditable={false}
         >
           בלוק מידע
@@ -144,6 +187,9 @@ const InfoBlock = Node.create({
       },
       title: {
         default: "",
+      },
+      variant: {
+        default: "default",
       },
     };
   },
