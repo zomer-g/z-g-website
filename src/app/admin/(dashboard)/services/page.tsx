@@ -7,6 +7,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Editor } from "@/components/admin/editor";
+import SitePreview from "@/components/admin/site-preview";
 import {
   Loader2,
   Plus,
@@ -71,6 +72,7 @@ export default function AdminServicesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ServiceForm>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   /* ── Fetch Services ── */
 
@@ -193,6 +195,7 @@ export default function AdminServicesPage() {
         message: editingId ? "תחום העיסוק עודכן בהצלחה" : "תחום העיסוק נוצר בהצלחה",
       });
 
+      setRefreshKey((k) => k + 1);
       closeForm();
       await fetchServices();
 
@@ -262,6 +265,9 @@ export default function AdminServicesPage() {
     );
   }
 
+  /* ── Preview URL for current form ── */
+  const previewUrl = form.slug ? `/services/${form.slug}` : "/services";
+
   return (
     <div className="space-y-6">
       {/* ── Header ── */}
@@ -296,220 +302,239 @@ export default function AdminServicesPage() {
         </div>
       )}
 
-      {/* ── Create / Edit Form ── */}
+      {/* ── Create / Edit Form (side-by-side with preview) ── */}
       {showForm && (
-        <Card>
-          <CardContent className="space-y-5 p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                {editingId ? "עריכת תחום עיסוק" : "הוספת תחום עיסוק חדש"}
-              </h2>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="rounded-lg p-1 text-muted hover:bg-gray-100 hover:text-foreground"
-                aria-label="סגור טופס"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label="כותרת"
-                value={form.title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="דיני עבודה"
-                required
-                dir="rtl"
-              />
-
-              <Input
-                label="Slug (כתובת URL)"
-                value={form.slug}
-                onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
-                placeholder="labor-law"
-                required
-                dir="ltr"
+        <div className="flex gap-4 min-h-[calc(100vh-220px)]">
+          {/* Preview (Left - 60%) */}
+          <div className="hidden xl:block xl:w-[60%] shrink-0">
+            <div className="sticky top-20">
+              <SitePreview
+                url={previewUrl}
+                refreshKey={refreshKey}
               />
             </div>
+          </div>
 
-            <Textarea
-              label="תיאור קצר"
-              value={form.description}
-              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-              placeholder="תיאור קצר של תחום העיסוק..."
-              rows={3}
-              required
-              dir="rtl"
-            />
+          {/* Form (Right - 40%) */}
+          <div className="flex-1 min-w-0">
+            <Card>
+              <CardContent className="space-y-5 p-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {editingId ? "עריכת תחום עיסוק" : "הוספת תחום עיסוק חדש"}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    className="rounded-lg p-1 text-muted hover:bg-gray-100 hover:text-foreground"
+                    aria-label="סגור טופס"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground">תוכן מפורט</label>
-              <Editor initialContent={form.content} onChange={handleEditorChange} />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Input
-                label="אייקון (שם lucide)"
-                value={form.icon}
-                onChange={(e) => setForm((prev) => ({ ...prev, icon: e.target.value }))}
-                placeholder="scale"
-                dir="ltr"
-              />
-
-              <Input
-                label="סדר תצוגה"
-                type="number"
-                value={form.order}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, order: parseInt(e.target.value, 10) || 0 }))
-                }
-                dir="ltr"
-              />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-foreground">סטטוס</label>
-                <button
-                  type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
-                    form.isActive
-                      ? "border-green-300 bg-green-50 text-green-700"
-                      : "border-gray-300 bg-gray-50 text-gray-500",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-3 w-3 rounded-full",
-                      form.isActive ? "bg-green-500" : "bg-gray-400",
-                    )}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Input
+                    label="כותרת"
+                    value={form.title}
+                    onChange={(e) => handleTitleChange(e.target.value)}
+                    placeholder="דיני עבודה"
+                    required
+                    dir="rtl"
                   />
-                  {form.isActive ? "פעיל" : "לא פעיל"}
-                </button>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-3 border-t border-border pt-4">
-              <Button onClick={handleSave} loading={saving} disabled={saving}>
-                <Save size={16} />
-                {editingId ? "עדכון" : "יצירה"}
-              </Button>
-              <Button variant="ghost" onClick={closeForm}>
-                ביטול
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  <Input
+                    label="Slug (כתובת URL)"
+                    value={form.slug}
+                    onChange={(e) => setForm((prev) => ({ ...prev, slug: e.target.value }))}
+                    placeholder="labor-law"
+                    required
+                    dir="ltr"
+                  />
+                </div>
 
-      {/* ── Services List ── */}
-      {services.length === 0 && !showForm ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Briefcase className="mx-auto mb-3 h-10 w-10 text-muted" />
-            <p className="text-muted">אין תחומי עיסוק עדיין</p>
-            <Button onClick={openNewForm} variant="ghost" className="mt-4">
-              <Plus size={16} />
-              הוסף תחום ראשון
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {services.map((service) => (
-            <Card key={service.id}>
-              <CardContent className="flex items-center justify-between gap-4 p-4">
-                {/* ── Info ── */}
-                <div className="flex items-center gap-4 min-w-0 flex-1">
-                  <div className="flex items-center gap-2 shrink-0 text-muted">
-                    <GripVertical size={16} />
-                    <span className="text-xs font-medium tabular-nums w-6 text-center">
-                      {service.order}
-                    </span>
-                  </div>
+                <Textarea
+                  label="תיאור קצר"
+                  value={form.description}
+                  onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="תיאור קצר של תחום העיסוק..."
+                  rows={3}
+                  required
+                  dir="rtl"
+                />
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="truncate font-semibold text-foreground">
-                        {service.title}
-                      </h3>
-                      <Badge variant={service.isActive ? "success" : "muted"}>
-                        {service.isActive ? "פעיל" : "לא פעיל"}
-                      </Badge>
-                    </div>
-                    <p className="truncate text-sm text-muted">
-                      /{service.slug}
-                    </p>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-foreground">תוכן מפורט</label>
+                  <Editor initialContent={form.content} onChange={handleEditorChange} />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Input
+                    label="אייקון (שם lucide)"
+                    value={form.icon}
+                    onChange={(e) => setForm((prev) => ({ ...prev, icon: e.target.value }))}
+                    placeholder="scale"
+                    dir="ltr"
+                  />
+
+                  <Input
+                    label="סדר תצוגה"
+                    type="number"
+                    value={form.order}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, order: parseInt(e.target.value, 10) || 0 }))
+                    }
+                    dir="ltr"
+                  />
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-semibold text-foreground">סטטוס</label>
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, isActive: !prev.isActive }))}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors",
+                        form.isActive
+                          ? "border-green-300 bg-green-50 text-green-700"
+                          : "border-gray-300 bg-gray-50 text-gray-500",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "h-3 w-3 rounded-full",
+                          form.isActive ? "bg-green-500" : "bg-gray-400",
+                        )}
+                      />
+                      {form.isActive ? "פעיל" : "לא פעיל"}
+                    </button>
                   </div>
                 </div>
 
-                {/* ── Actions ── */}
-                <div className="flex items-center gap-1 shrink-0">
-                  {/* Toggle Active */}
-                  <button
-                    type="button"
-                    onClick={() => toggleActive(service)}
-                    className={cn(
-                      "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-                      service.isActive ? "bg-green-500" : "bg-gray-300",
-                    )}
-                    role="switch"
-                    aria-checked={service.isActive}
-                    aria-label={service.isActive ? "כבה" : "הפעל"}
-                  >
-                    <span
-                      className={cn(
-                        "inline-block h-4 w-4 rounded-full bg-white transition-transform shadow-sm",
-                        service.isActive ? "-translate-x-5" : "-translate-x-1",
-                      )}
-                    />
-                  </button>
-
-                  {/* Edit */}
-                  <button
-                    type="button"
-                    onClick={() => openEditForm(service)}
-                    className="rounded-lg p-2 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
-                    aria-label="ערוך"
-                  >
-                    <Pencil size={16} />
-                  </button>
-
-                  {/* Delete */}
-                  {deleteConfirm === service.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(service.id)}
-                        className="rounded-lg px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
-                      >
-                        אישור
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteConfirm(null)}
-                        className="rounded-lg px-2 py-1 text-xs font-medium text-muted hover:bg-gray-100 transition-colors"
-                      >
-                        ביטול
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirm(service.id)}
-                      className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
-                      aria-label="מחק"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                <div className="flex items-center gap-3 border-t border-border pt-4">
+                  <Button onClick={handleSave} loading={saving} disabled={saving}>
+                    <Save size={16} />
+                    {editingId ? "עדכון" : "יצירה"}
+                  </Button>
+                  <Button variant="ghost" onClick={closeForm}>
+                    ביטול
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          </div>
         </div>
+      )}
+
+      {/* ── Services List ── */}
+      {!showForm && (
+        <>
+          {services.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Briefcase className="mx-auto mb-3 h-10 w-10 text-muted" />
+                <p className="text-muted">אין תחומי עיסוק עדיין</p>
+                <Button onClick={openNewForm} variant="ghost" className="mt-4">
+                  <Plus size={16} />
+                  הוסף תחום ראשון
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {services.map((service) => (
+                <Card key={service.id}>
+                  <CardContent className="flex items-center justify-between gap-4 p-4">
+                    {/* ── Info ── */}
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 shrink-0 text-muted">
+                        <GripVertical size={16} />
+                        <span className="text-xs font-medium tabular-nums w-6 text-center">
+                          {service.order}
+                        </span>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="truncate font-semibold text-foreground">
+                            {service.title}
+                          </h3>
+                          <Badge variant={service.isActive ? "success" : "muted"}>
+                            {service.isActive ? "פעיל" : "לא פעיל"}
+                          </Badge>
+                        </div>
+                        <p className="truncate text-sm text-muted">
+                          /{service.slug}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* ── Actions ── */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Toggle Active */}
+                      <button
+                        type="button"
+                        onClick={() => toggleActive(service)}
+                        className={cn(
+                          "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                          service.isActive ? "bg-green-500" : "bg-gray-300",
+                        )}
+                        role="switch"
+                        aria-checked={service.isActive}
+                        aria-label={service.isActive ? "כבה" : "הפעל"}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-4 w-4 rounded-full bg-white transition-transform shadow-sm",
+                            service.isActive ? "-translate-x-5" : "-translate-x-1",
+                          )}
+                        />
+                      </button>
+
+                      {/* Edit */}
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(service)}
+                        className="rounded-lg p-2 text-muted hover:bg-gray-100 hover:text-foreground transition-colors"
+                        aria-label="ערוך"
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      {/* Delete */}
+                      {deleteConfirm === service.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(service.id)}
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
+                          >
+                            אישור
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirm(null)}
+                            className="rounded-lg px-2 py-1 text-xs font-medium text-muted hover:bg-gray-100 transition-colors"
+                          >
+                            ביטול
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirm(service.id)}
+                          className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-500 transition-colors"
+                          aria-label="מחק"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

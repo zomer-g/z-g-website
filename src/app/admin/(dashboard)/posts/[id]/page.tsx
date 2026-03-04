@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Editor } from "@/components/admin/editor";
+import SitePreview from "@/components/admin/site-preview";
 import { slugify } from "@/lib/utils";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, Save } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -55,6 +56,7 @@ export default function EditPostPage({
     string,
     unknown
   > | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   /* ── Fetch Post ── */
 
@@ -133,7 +135,14 @@ export default function EditPostPage({
         );
       }
 
-      router.push("/admin/posts");
+      setRefreshKey((k) => k + 1);
+
+      if (status === "PUBLISHED") {
+        // Stay on page so user can see the preview update
+        setError(null);
+      } else {
+        router.push("/admin/posts");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
     } finally {
@@ -170,10 +179,13 @@ export default function EditPostPage({
     );
   }
 
+  /* ── Preview URL ── */
+  const previewUrl = slug ? `/articles/${slug}` : "/articles";
+
   /* ── Render ── */
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">עריכת מאמר</h1>
@@ -198,125 +210,142 @@ export default function EditPostPage({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
-        <Input
-          label="כותרת"
-          required
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="כותרת המאמר"
-        />
-
-        {/* Slug */}
-        <Input
-          label="Slug (כתובת URL)"
-          required
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          placeholder="post-url-slug"
-          dir="ltr"
-          className="text-left"
-        />
-
-        {/* Category & Tags */}
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Input
-            label="קטגוריה"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="למשל: משפט מסחרי"
-          />
-          <Input
-            label="תגיות (מופרדות בפסיקים)"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="חוזים, ליטיגציה, נדל״ן"
-          />
-        </div>
-
-        {/* Cover Image */}
-        <Input
-          label="תמונת שער (URL)"
-          value={coverImage}
-          onChange={(e) => setCoverImage(e.target.value)}
-          placeholder="https://example.com/image.jpg"
-          dir="ltr"
-          className="text-left"
-        />
-
-        {/* Excerpt */}
-        <Textarea
-          label="תקציר"
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          placeholder="תיאור קצר של המאמר..."
-          rows={3}
-        />
-
-        {/* Content Editor */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-foreground">
-            תוכן המאמר
-          </label>
-          {initialContent && (
-            <Editor
-              initialContent={initialContent}
-              onChange={(json) => setContent(json)}
+      {/* ── Side-by-Side Layout ── */}
+      <div className="flex gap-4 min-h-[calc(100vh-220px)]">
+        {/* Preview (Left - 60%) */}
+        <div className="hidden xl:block xl:w-[60%] shrink-0">
+          <div className="sticky top-20">
+            <SitePreview
+              url={previewUrl}
+              refreshKey={refreshKey}
             />
-          )}
-        </div>
-
-        {/* SEO Section */}
-        <div className="space-y-4 rounded-lg border border-border bg-gray-50/50 p-4">
-          <h2 className="text-sm font-semibold text-foreground">
-            הגדרות SEO
-          </h2>
-          <Input
-            label="כותרת SEO"
-            value={seoTitle}
-            onChange={(e) => setSeoTitle(e.target.value)}
-            placeholder="כותרת לתוצאות חיפוש (אופציונלי)"
-          />
-          <Textarea
-            label="תיאור SEO"
-            value={seoDesc}
-            onChange={(e) => setSeoDesc(e.target.value)}
-            placeholder="תיאור מטא לתוצאות חיפוש (אופציונלי)"
-            rows={2}
-          />
-        </div>
-
-        {/* Status & Submit */}
-        <div className="flex items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="status-select"
-              className="text-sm font-semibold text-foreground"
-            >
-              סטטוס
-            </label>
-            <select
-              id="status-select"
-              value={status}
-              onChange={(e) =>
-                setStatus(
-                  e.target.value as "DRAFT" | "PUBLISHED" | "ARCHIVED",
-                )
-              }
-              className="rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors hover:border-primary/40 focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
-            >
-              <option value="DRAFT">טיוטה</option>
-              <option value="PUBLISHED">פורסם</option>
-              <option value="ARCHIVED">בארכיון</option>
-            </select>
           </div>
-
-          <Button type="submit" loading={saving}>
-            {saving ? "שומר..." : "שמירת שינויים"}
-          </Button>
         </div>
-      </form>
+
+        {/* Editor Form (Right - 40%) */}
+        <div className="flex-1 min-w-0">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Title */}
+            <Input
+              label="כותרת"
+              required
+              value={title}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              placeholder="כותרת המאמר"
+            />
+
+            {/* Slug */}
+            <Input
+              label="Slug (כתובת URL)"
+              required
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              placeholder="post-url-slug"
+              dir="ltr"
+              className="text-left"
+            />
+
+            {/* Category & Tags */}
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Input
+                label="קטגוריה"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="למשל: משפט מסחרי"
+              />
+              <Input
+                label="תגיות (מופרדות בפסיקים)"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="חוזים, ליטיגציה, נדל״ן"
+              />
+            </div>
+
+            {/* Cover Image */}
+            <Input
+              label="תמונת שער (URL)"
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              dir="ltr"
+              className="text-left"
+            />
+
+            {/* Excerpt */}
+            <Textarea
+              label="תקציר"
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              placeholder="תיאור קצר של המאמר..."
+              rows={3}
+            />
+
+            {/* Content Editor */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">
+                תוכן המאמר
+              </label>
+              {initialContent && (
+                <Editor
+                  initialContent={initialContent}
+                  onChange={(json) => setContent(json)}
+                />
+              )}
+            </div>
+
+            {/* SEO Section */}
+            <div className="space-y-4 rounded-lg border border-border bg-gray-50/50 p-4">
+              <h2 className="text-sm font-semibold text-foreground">
+                הגדרות SEO
+              </h2>
+              <Input
+                label="כותרת SEO"
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                placeholder="כותרת לתוצאות חיפוש (אופציונלי)"
+              />
+              <Textarea
+                label="תיאור SEO"
+                value={seoDesc}
+                onChange={(e) => setSeoDesc(e.target.value)}
+                placeholder="תיאור מטא לתוצאות חיפוש (אופציונלי)"
+                rows={2}
+              />
+            </div>
+
+            {/* Status & Submit */}
+            <div className="flex items-end gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="status-select"
+                  className="text-sm font-semibold text-foreground"
+                >
+                  סטטוס
+                </label>
+                <select
+                  id="status-select"
+                  value={status}
+                  onChange={(e) =>
+                    setStatus(
+                      e.target.value as "DRAFT" | "PUBLISHED" | "ARCHIVED",
+                    )
+                  }
+                  className="rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors hover:border-primary/40 focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                >
+                  <option value="DRAFT">טיוטה</option>
+                  <option value="PUBLISHED">פורסם</option>
+                  <option value="ARCHIVED">בארכיון</option>
+                </select>
+              </div>
+
+              <Button type="submit" loading={saving}>
+                <Save size={16} />
+                {saving ? "שומר..." : "שמירת שינויים"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

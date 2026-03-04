@@ -75,7 +75,7 @@ export default async function AboutPage() {
           />
 
           <div className="prose-rtl space-y-6 text-lg leading-relaxed text-muted">
-            {content.firmStory.paragraphs.map((p, i) => (
+            {content.firmStory?.paragraphs?.map((p, i) => (
               <p key={i}>{p}</p>
             ))}
           </div>
@@ -112,13 +112,13 @@ export default async function AboutPage() {
               </p>
 
               <div className="mt-6 space-y-4 text-lg leading-relaxed text-muted">
-                {content.attorney.bio.map((p, i) => (
+                {content.attorney?.bio?.map((p, i) => (
                   <p key={i}>{p}</p>
                 ))}
               </div>
 
               <div className="mt-8 space-y-3">
-                {content.attorney.credentials.map((cred, i) => {
+                {content.attorney?.credentials?.map((cred, i) => {
                   const CredIcon = getIcon(cred.icon);
                   return (
                     <div key={i} className="flex items-center gap-3 text-foreground">
@@ -143,7 +143,7 @@ export default async function AboutPage() {
           />
 
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            {content.values.items.map((value) => {
+            {content.values?.items?.map((value) => {
               const ValueIcon = getIcon(value.icon);
               return (
                 <Card key={value.title} className="text-center">
