@@ -27,20 +27,6 @@ export interface ValueItem {
   description: string;
 }
 
-export interface ServicePreviewItem {
-  icon: string; // lucide icon name
-  title: string;
-  description: string;
-  href: string;
-}
-
-export interface ArticlePreviewItem {
-  title: string;
-  excerpt: string;
-  date: string;
-  href: string;
-}
-
 // ── Homepage Content ──
 
 export interface HomeHeroContent {
@@ -56,7 +42,6 @@ export interface HomeHeroContent {
 export interface HomeServicesSection {
   title: string;
   subtitle: string;
-  items: ServicePreviewItem[];
 }
 
 export interface HomeAboutPreview {
@@ -69,7 +54,6 @@ export interface HomeAboutPreview {
 export interface HomeArticlesSection {
   title: string;
   subtitle: string;
-  items: ArticlePreviewItem[];
   ctaText: string;
 }
 

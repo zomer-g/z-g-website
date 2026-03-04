@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
-import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2 } from "lucide-react";
+import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2, ExternalLink } from "lucide-react";
 import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { HomePageContent } from "@/types/content";
 
@@ -101,81 +102,17 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
             onChange={(e) => update("services", { subtitle: e.target.value })}
             dir="rtl"
           />
-          <div className="space-y-2">
-            <p className="text-xs text-muted">פריטי תחומי העיסוק ({content.services.items.length})</p>
-            {content.services.items.map((item, idx) => (
-              <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted">#{idx + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const items = content.services.items.filter((_, i) => i !== idx);
-                      update("services", { items });
-                    }}
-                    className="text-red-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Input
-                    label="כותרת"
-                    value={item.title}
-                    onChange={(e) => {
-                      const items = [...content.services.items];
-                      items[idx] = { ...items[idx], title: e.target.value };
-                      update("services", { items });
-                    }}
-                    dir="rtl"
-                  />
-                  <Input
-                    label="אייקון"
-                    value={item.icon}
-                    onChange={(e) => {
-                      const items = [...content.services.items];
-                      items[idx] = { ...items[idx], icon: e.target.value };
-                      update("services", { items });
-                    }}
-                    dir="ltr"
-                  />
-                </div>
-                <div className="relative">
-                  <Textarea
-                    label="תיאור"
-                    value={item.description}
-                    onChange={(e) => {
-                      const items = [...content.services.items];
-                      items[idx] = { ...items[idx], description: e.target.value };
-                      update("services", { items });
-                    }}
-                    rows={2}
-                    dir="rtl"
-                  />
-                  <div className="absolute top-0 left-0">
-                    <AiWriterButton
-                      value={item.description}
-                      onResult={(text) => {
-                        const items = [...content.services.items];
-                        items[idx] = { ...items[idx], description: text };
-                        update("services", { items });
-                      }}
-                      fieldLabel={`תיאור תחום עיסוק: ${item.title}`}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => {
-                const items = [...content.services.items, { icon: "Briefcase", title: "", description: "", href: "/services" }];
-                update("services", { items });
-              }}
-              className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-700">
+              תחומי העיסוק מנוהלים בעמוד ניהול תחומי העיסוק.
+            </p>
+            <Link
+              href="/admin/services"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
             >
-              <Plus size={14} /> הוסף תחום
-            </button>
+              <ExternalLink size={14} />
+              עבור לניהול תחומי עיסוק
+            </Link>
           </div>
         </div>
       </SectionCard>
@@ -275,65 +212,18 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
             onChange={(e) => update("articles", { ctaText: e.target.value })}
             dir="rtl"
           />
-          <p className="text-xs text-muted">מאמרים לתצוגה ({content.articles.items.length})</p>
-          {content.articles.items.map((item, idx) => (
-            <div key={idx} className="rounded-lg border border-border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted">מאמר #{idx + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const items = content.articles.items.filter((_, i) => i !== idx);
-                    update("articles", { items });
-                  }}
-                  className="text-red-400 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-              <Input
-                label="כותרת"
-                value={item.title}
-                onChange={(e) => {
-                  const items = [...content.articles.items];
-                  items[idx] = { ...items[idx], title: e.target.value };
-                  update("articles", { items });
-                }}
-                dir="rtl"
-              />
-              <Textarea
-                label="תקציר"
-                value={item.excerpt}
-                onChange={(e) => {
-                  const items = [...content.articles.items];
-                  items[idx] = { ...items[idx], excerpt: e.target.value };
-                  update("articles", { items });
-                }}
-                rows={2}
-                dir="rtl"
-              />
-              <Input
-                label="תאריך"
-                value={item.date}
-                onChange={(e) => {
-                  const items = [...content.articles.items];
-                  items[idx] = { ...items[idx], date: e.target.value };
-                  update("articles", { items });
-                }}
-                dir="rtl"
-              />
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              const items = [...content.articles.items, { title: "", excerpt: "", date: "", href: "/articles" }];
-              update("articles", { items });
-            }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
-          >
-            <Plus size={14} /> הוסף מאמר
-          </button>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-700">
+              המאמרים מנוהלים בעמוד ניהול מאמרים. 3 המאמרים האחרונים שפורסמו יוצגו כאן אוטומטית.
+            </p>
+            <Link
+              href="/admin/posts"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <ExternalLink size={14} />
+              עבור לניהול מאמרים
+            </Link>
+          </div>
         </div>
       </SectionCard>
 

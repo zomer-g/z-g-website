@@ -40,7 +40,19 @@ export const pageSchema = z.object({
   seoDesc: z.string().optional(),
 });
 
+export const mediaAppearanceSchema = z.object({
+  title: z.string().min(1, "כותרת נדרשת"),
+  description: z.string().min(1, "תיאור נדרש"),
+  type: z.enum(["video", "article", "podcast"]),
+  source: z.string().min(1, "מקור נדרש"),
+  date: z.string().min(1, "תאריך נדרש"),
+  url: z.string().optional(),
+  order: z.number().default(0),
+  isActive: z.boolean().default(true),
+});
+
 export type SubmissionInput = z.infer<typeof submissionSchema>;
 export type PostInput = z.infer<typeof postSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type PageInput = z.infer<typeof pageSchema>;
+export type MediaAppearanceInput = z.infer<typeof mediaAppearanceSchema>;

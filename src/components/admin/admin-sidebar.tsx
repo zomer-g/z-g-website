@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   PenTool,
+  Tv,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
@@ -28,7 +29,8 @@ const navItems = [
   { label: "מאמרים", href: "/admin/posts", icon: FileText },
   { label: "עמודים", href: "/admin/pages", icon: Layers },
   { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
-  { label: "מדיה", href: "/admin/media", icon: Image },
+  { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
+  { label: "העלאת קבצים", href: "/admin/media", icon: Image },
   { label: "פניות", href: "/admin/submissions", icon: Inbox },
   { label: "הגדרות", href: "/admin/settings", icon: Settings },
 ] as const;

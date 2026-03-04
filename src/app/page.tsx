@@ -35,6 +35,18 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const content = await getPageContent<HomePageContent>("home");
 
+  // Fetch services from DB
+  let dbServices: { slug: string; title: string; description: string; icon: string | null }[] = [];
+  try {
+    dbServices = await prisma.service.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+      select: { slug: true, title: true, description: true, icon: true },
+    });
+  } catch {
+    // DB not available
+  }
+
   // Fetch latest published articles from DB
   let dbArticles: { title: string; excerpt: string; date: string; href: string }[] = [];
   try {
@@ -53,70 +65,69 @@ export default async function HomePage() {
       }));
     }
   } catch {
-    // DB not available, use content defaults
+    // DB not available
   }
-
-  // Use DB articles if available, otherwise fall back to content defaults
-  const articlesToShow = dbArticles.length > 0 ? dbArticles : content.articles.items;
 
   return (
     <PublicLayout>
       {/* ── Hero ── */}
       <Hero content={content.hero} />
 
-      {/* ── Services Preview ── */}
-      <section aria-labelledby="services-heading" className="py-20 lg:py-28">
-        <Container>
-          <SectionHeading
-            id="services-heading"
-            title={content.services.title}
-            subtitle={content.services.subtitle}
-          />
+      {/* ── Services Preview (from DB) ── */}
+      {dbServices.length > 0 && (
+        <section aria-labelledby="services-heading" className="py-20 lg:py-28">
+          <Container>
+            <SectionHeading
+              id="services-heading"
+              title={content.services.title}
+              subtitle={content.services.subtitle}
+            />
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {content.services.items.map((service) => {
-              const Icon = getIcon(service.icon);
-              return (
-                <Link
-                  key={service.title}
-                  href={service.href}
-                  className="group block"
-                >
-                  <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
-                    <CardHeader>
-                      <div
-                        className={cn(
-                          "mb-4 inline-flex h-12 w-12 items-center justify-center",
-                          "rounded-lg bg-primary/5 text-primary",
-                          "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
-                        )}
-                      >
-                        <Icon className="h-6 w-6" aria-hidden="true" />
-                      </div>
-                      <CardTitle>{service.title}</CardTitle>
-                      <CardDescription>{service.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                          "transition-colors duration-200 group-hover:text-accent"
-                        )}
-                      >
-                        למידע נוסף
-                        <ArrowLeft
-                          className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
-                          aria-hidden="true"
-                        />
-                      </span>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </Container>
-      </section>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {dbServices.map((service) => {
+                const Icon = getIcon(service.icon ?? "briefcase");
+                return (
+                  <Link
+                    key={service.slug}
+                    href={`/services/${service.slug}`}
+                    className="group block"
+                  >
+                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
+                      <CardHeader>
+                        <div
+                          className={cn(
+                            "mb-4 inline-flex h-12 w-12 items-center justify-center",
+                            "rounded-lg bg-primary/5 text-primary",
+                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
+                          )}
+                        >
+                          <Icon className="h-6 w-6" aria-hidden="true" />
+                        </div>
+                        <CardTitle>{service.title}</CardTitle>
+                        <CardDescription>{service.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
+                            "transition-colors duration-200 group-hover:text-accent"
+                          )}
+                        >
+                          למידע נוסף
+                          <ArrowLeft
+                            className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* ── About Preview ── */}
       <section
@@ -164,54 +175,56 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      {/* ── Articles Preview ── */}
-      <section aria-labelledby="articles-heading" className="py-20 lg:py-28">
-        <Container>
-          <SectionHeading
-            id="articles-heading"
-            title={content.articles.title}
-            subtitle={content.articles.subtitle}
-          />
+      {/* ── Articles Preview (from DB) ── */}
+      {dbArticles.length > 0 && (
+        <section aria-labelledby="articles-heading" className="py-20 lg:py-28">
+          <Container>
+            <SectionHeading
+              id="articles-heading"
+              title={content.articles.title}
+              subtitle={content.articles.subtitle}
+            />
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            {articlesToShow.map((article) => (
-              <Link key={article.title} href={article.href} className="group block">
-                <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                  <div className="h-48 rounded-t-xl bg-gradient-to-br from-primary/10 to-primary/5" />
-                  <CardHeader>
-                    <div className="flex items-center gap-2 text-sm text-muted">
-                      <Calendar className="h-4 w-4" aria-hidden="true" />
-                      <time>{article.date}</time>
-                    </div>
-                    <CardTitle className={cn("transition-colors duration-200 group-hover:text-accent")}>
-                      {article.title}
-                    </CardTitle>
-                    <CardDescription>{article.excerpt}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                        "transition-colors duration-200 group-hover:text-accent"
-                      )}
-                    >
-                      קראו עוד
-                      <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" aria-hidden="true" />
-                    </span>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+              {dbArticles.map((article) => (
+                <Link key={article.title} href={article.href} className="group block">
+                  <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                    <div className="h-48 rounded-t-xl bg-gradient-to-br from-primary/10 to-primary/5" />
+                    <CardHeader>
+                      <div className="flex items-center gap-2 text-sm text-muted">
+                        <Calendar className="h-4 w-4" aria-hidden="true" />
+                        <time>{article.date}</time>
+                      </div>
+                      <CardTitle className={cn("transition-colors duration-200 group-hover:text-accent")}>
+                        {article.title}
+                      </CardTitle>
+                      <CardDescription>{article.excerpt}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
+                          "transition-colors duration-200 group-hover:text-accent"
+                        )}
+                      >
+                        קראו עוד
+                        <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" aria-hidden="true" />
+                      </span>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
 
-          <div className="mt-12 text-center">
-            <Button href="/articles" variant="secondary" size="md">
-              {content.articles.ctaText}
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          </div>
-        </Container>
-      </section>
+            <div className="mt-12 text-center">
+              <Button href="/articles" variant="secondary" size="md">
+                {content.articles.ctaText}
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </Container>
+        </section>
+      )}
 
       {/* ── CTA Section ── */}
       <section

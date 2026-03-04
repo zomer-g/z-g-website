@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getIcon } from "@/lib/icons";
+import { getPageContent } from "@/lib/content";
+import type { HomePageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +49,11 @@ async function getServices() {
 /* ─── Page Component ─── */
 
 export default async function ServicesPage() {
-  const services = await getServices();
+  const [services, homeContent] = await Promise.all([
+    getServices(),
+    getPageContent<HomePageContent>("home"),
+  ]);
+  const cta = homeContent.cta;
 
   return (
     <PublicLayout>
@@ -139,7 +145,7 @@ export default async function ServicesPage() {
         </Container>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA Section — editable from admin (דף הבית → CTA) */}
       <section
         className="bg-muted-bg py-16"
         aria-labelledby="services-cta-heading"
@@ -149,18 +155,17 @@ export default async function ServicesPage() {
             id="services-cta-heading"
             className="text-2xl font-bold text-primary-dark sm:text-3xl"
           >
-            זקוקים לייעוץ משפטי?
+            {cta.title}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted">
-            צוות המשרד ישמח לעמוד לרשותכם. צרו קשר לתיאום פגישת ייעוץ ראשונית
-            ללא התחייבות.
+            {cta.description}
           </p>
           <div className="mt-8">
             <Link
-              href="/contact"
+              href={cta.ctaLink}
               className="inline-flex items-center rounded-lg bg-accent px-8 py-3.5 text-lg font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
-              צרו קשר עכשיו
+              {cta.ctaText}
             </Link>
           </div>
         </Container>

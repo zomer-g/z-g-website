@@ -129,6 +129,19 @@ model Submission {
   createdAt DateTime @default(now())
 }
 
+model MediaAppearance {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // "video" | "article" | "podcast"
+  source      String
+  date        String
+  url         String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
 model SiteSettings {
   id   String @id @default("main")
   data Json

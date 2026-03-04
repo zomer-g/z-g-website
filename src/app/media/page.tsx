@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { Play, ExternalLink, Newspaper, Mic } from "lucide-react";
+import { Play, ExternalLink, Newspaper, Mic, Tv } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 /* ---- Metadata ---- */
 
@@ -19,18 +22,9 @@ export const metadata: Metadata = {
   },
 };
 
-/* ---- Media Items Data ---- */
+/* ---- Type Config ---- */
 
 type MediaType = "video" | "article" | "podcast";
-
-interface MediaItem {
-  readonly id: string;
-  readonly title: string;
-  readonly description: string;
-  readonly type: MediaType;
-  readonly source: string;
-  readonly date: string;
-}
 
 const MEDIA_TYPE_CONFIG: Record<
   MediaType,
@@ -49,66 +43,24 @@ const MEDIA_TYPE_CONFIG: Record<
   },
 };
 
-const MEDIA_ITEMS: readonly MediaItem[] = [
-  {
-    id: "1",
-    title: "ראיון בערוץ 12",
-    description:
-      "ראיון בתוכנית הבוקר של ערוץ 12 בנושא שינויים בחקיקה העסקית וההשלכות על חברות בישראל.",
-    type: "video",
-    source: "ערוץ 12",
-    date: "ינואר 2025",
-  },
-  {
-    id: "2",
-    title: "הרצאה בכנס המשפט",
-    description:
-      "הרצאה בכנס המשפט השנתי בנושא סוגיות עכשוויות בדיני חברות והממשל התאגידי.",
-    type: "video",
-    source: "כנס המשפט הישראלי",
-    date: "דצמבר 2024",
-  },
-  {
-    id: "3",
-    title: "כתבה בדה מרקר",
-    description:
-      "כתבת עומק בדה מרקר על מגמות בשוק הנדל\"ן המסחרי ועסקאות משמעותיות בתחום.",
-    type: "article",
-    source: "דה מרקר",
-    date: "נובמבר 2024",
-  },
-  {
-    id: "4",
-    title: "פודקאסט \'עולם המשפט\'",
-    description:
-      "שיחה מעמיקה בפודקאסט \'עולם המשפט\' על אתגרים משפטיים בעידן הדיגיטלי והשפעתם על עסקים.",
-    type: "podcast",
-    source: "פודקאסט עולם המשפט",
-    date: "אוקטובר 2024",
-  },
-  {
-    id: "5",
-    title: "ריאיון ברשת 13",
-    description:
-      "דיון בפאנל משפטי ברשת 13 בנושא רגולציה פיננסית חדשה והשפעתה על השוק הישראלי.",
-    type: "video",
-    source: "רשת 13",
-    date: "ספטמבר 2024",
-  },
-  {
-    id: "6",
-    title: "כתבה בגלובס",
-    description:
-      "סקירה מקצועית בגלובס על פסיקות תקדימיות בתחום דיני העבודה ומשמעותן למעסיקים.",
-    type: "article",
-    source: "גלובס",
-    date: "אוגוסט 2024",
-  },
-] as const;
+/* ---- Fetch ---- */
+
+async function getMediaAppearances() {
+  try {
+    return await prisma.mediaAppearance.findMany({
+      where: { isActive: true },
+      orderBy: { order: "asc" },
+    });
+  } catch {
+    return [];
+  }
+}
 
 /* ---- Page Component ---- */
 
-export default function MediaPage() {
+export default async function MediaPage() {
+  const items = await getMediaAppearances();
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -143,84 +95,106 @@ export default function MediaPage() {
             subtitle="ריכוז ההופעות התקשורתיות, ההרצאות והפרסומים האחרונים של צוות המשרד"
           />
 
-          <div
-            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            role="list"
-            aria-label="רשימת פריטי מדיה"
-          >
-            {MEDIA_ITEMS.map((item) => {
-              const typeConfig = MEDIA_TYPE_CONFIG[item.type];
-              const TypeIcon = typeConfig.icon;
+          {items.length === 0 ? (
+            <div className="py-12 text-center">
+              <Tv className="mx-auto mb-3 h-10 w-10 text-muted" />
+              <p className="text-muted">הופעות מדיה יתעדכנו בקרוב.</p>
+            </div>
+          ) : (
+            <div
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              role="list"
+              aria-label="רשימת פריטי מדיה"
+            >
+              {items.map((item) => {
+                const typeConfig = MEDIA_TYPE_CONFIG[item.type as MediaType] ?? MEDIA_TYPE_CONFIG.video;
+                const TypeIcon = typeConfig.icon;
 
-              return (
-                <Card
-                  key={item.id}
-                  role="listitem"
-                  className={cn(
-                    "group flex flex-col overflow-hidden",
-                    "hover:shadow-md hover:border-accent/30",
-                  )}
-                >
-                  {/* Media Thumbnail Placeholder */}
-                  <div
+                const cardContent = (
+                  <Card
+                    role="listitem"
                     className={cn(
-                      "relative flex h-48 items-center justify-center",
-                      "bg-gradient-to-br from-primary/5 to-primary/15",
+                      "group flex flex-col overflow-hidden",
+                      "hover:shadow-md hover:border-accent/30",
                     )}
-                    aria-hidden="true"
                   >
+                    {/* Media Thumbnail Placeholder */}
                     <div
                       className={cn(
-                        "flex h-16 w-16 items-center justify-center rounded-full",
-                        "bg-white/90 shadow-lg",
-                        "transition-transform duration-200 group-hover:scale-110",
+                        "relative flex h-48 items-center justify-center",
+                        "bg-gradient-to-br from-primary/5 to-primary/15",
                       )}
+                      aria-hidden="true"
                     >
-                      {item.type === "video" ? (
-                        <Play className="h-7 w-7 text-primary ms-1" />
-                      ) : item.type === "article" ? (
-                        <ExternalLink className="h-7 w-7 text-primary" />
-                      ) : (
-                        <Mic className="h-7 w-7 text-primary" />
-                      )}
-                    </div>
-                  </div>
-
-                  <CardContent className="flex flex-1 flex-col">
-                    {/* Type Badge & Date */}
-                    <div className="mb-3 flex items-center justify-between">
-                      <span
+                      <div
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                          typeConfig.color,
+                          "flex h-16 w-16 items-center justify-center rounded-full",
+                          "bg-white/90 shadow-lg",
+                          "transition-transform duration-200 group-hover:scale-110",
                         )}
                       >
-                        <TypeIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                        {typeConfig.label}
-                      </span>
-                      <time className="text-xs text-muted">{item.date}</time>
+                        {item.type === "video" ? (
+                          <Play className="h-7 w-7 text-primary ms-1" />
+                        ) : item.type === "article" ? (
+                          <ExternalLink className="h-7 w-7 text-primary" />
+                        ) : (
+                          <Mic className="h-7 w-7 text-primary" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Title */}
-                    <h3 className="text-lg font-bold leading-snug text-primary-dark">
-                      {item.title}
-                    </h3>
+                    <CardContent className="flex flex-1 flex-col">
+                      {/* Type Badge & Date */}
+                      <div className="mb-3 flex items-center justify-between">
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                            typeConfig.color,
+                          )}
+                        >
+                          <TypeIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                          {typeConfig.label}
+                        </span>
+                        <time className="text-xs text-muted">{item.date}</time>
+                      </div>
 
-                    {/* Description */}
-                    <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
-                      {item.description}
-                    </p>
+                      {/* Title */}
+                      <h3 className="text-lg font-bold leading-snug text-primary-dark">
+                        {item.title}
+                      </h3>
 
-                    {/* Source */}
-                    <p className="mt-4 border-t border-border pt-3 text-xs font-medium text-muted">
-                      מקור:{" "}
-                      <span className="text-primary-dark">{item.source}</span>
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      {/* Description */}
+                      <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                        {item.description}
+                      </p>
+
+                      {/* Source */}
+                      <p className="mt-4 border-t border-border pt-3 text-xs font-medium text-muted">
+                        מקור:{" "}
+                        <span className="text-primary-dark">{item.source}</span>
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+
+                if (item.url) {
+                  return (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      {cardContent}
+                    </a>
+                  );
+                }
+
+                return <div key={item.id}>{cardContent}</div>;
+              })}
+            </div>
+          )}
         </Container>
       </section>
     </PublicLayout>
