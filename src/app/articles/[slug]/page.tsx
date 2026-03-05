@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
+import { getPageContent } from "@/lib/content";
+import type { ArticleDetailContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +134,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ArticleDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const article = await getArticle(slug);
+  const [article, cms] = await Promise.all([
+    getArticle(slug),
+    getPageContent<ArticleDetailContent>("article-detail"),
+  ]);
 
   if (!article) {
     notFound();
@@ -145,6 +150,11 @@ export default async function ArticleDetailPage({ params }: PageProps) {
   const headerGradient =
     HEADER_GRADIENTS[article.category ?? ""] ?? HEADER_GRADIENTS["corporate-law"];
   const authorName = article.author?.name ?? "צוות משרד זומר";
+
+  /* Build author bio from template */
+  const authorBio = categoryLabel
+    ? cms.strings.authorTemplate.replace("{category}", categoryLabel)
+    : "";
 
   return (
     <PublicLayout>
@@ -163,7 +173,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 href="/"
                 className="text-muted transition-colors duration-200 hover:text-primary"
               >
-                ראשי
+                {cms.strings.breadcrumbHome}
               </Link>
             </li>
             <li aria-hidden="true">
@@ -174,7 +184,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 href="/articles"
                 className="text-muted transition-colors duration-200 hover:text-primary"
               >
-                מאמרים
+                {cms.strings.breadcrumbArticles}
               </Link>
             </li>
             <li aria-hidden="true">
@@ -242,14 +252,13 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <hr className="my-10 border-border" />
 
                 <p className="text-sm text-muted">
-                  <strong className="text-primary-dark">הערה:</strong> מאמר זה
-                  מהווה מידע כללי בלבד ואינו מהווה ייעוץ משפטי. לקבלת ייעוץ
-                  משפטי מותאם לנסיבות הספציפיות שלכם, אנא{" "}
+                  <strong className="text-primary-dark">{cms.disclaimer.label}</strong>{" "}
+                  {cms.disclaimer.text}{" "}
                   <Link
-                    href="/contact"
+                    href={cms.disclaimer.linkHref}
                     className="font-semibold text-primary underline underline-offset-2 hover:text-accent"
                   >
-                    צרו קשר עם המשרד
+                    {cms.disclaimer.linkText}
                   </Link>
                   .
                 </p>
@@ -257,7 +266,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
             </article>
 
             {/* Sidebar */}
-            <aside aria-label="מאמרים נוספים" className="space-y-8">
+            <aside aria-label={cms.strings.sidebarRelatedTitle} className="space-y-8">
               {/* Author Card */}
               <Card>
                 <CardContent className="p-6">
@@ -270,9 +279,9 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   <h2 className="text-lg font-bold text-primary-dark">
                     {authorName}
                   </h2>
-                  {categoryLabel && (
+                  {authorBio && (
                     <p className="mt-1 text-sm text-muted">
-                      עורך דין במשרד זומר, מתמחה ב{categoryLabel}.
+                      {authorBio}
                     </p>
                   )}
                 </CardContent>
@@ -282,7 +291,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
               {relatedArticles.length > 0 && (
                 <div>
                   <h2 className="mb-4 text-lg font-bold text-primary-dark">
-                    מאמרים נוספים
+                    {cms.strings.sidebarRelatedTitle}
                   </h2>
                   <ul role="list" className="space-y-4">
                     {relatedArticles.map((related) => (
@@ -321,16 +330,16 @@ export default async function ArticleDetailPage({ params }: PageProps) {
               <Card className="border-accent/30 bg-primary text-white">
                 <CardContent className="p-6 text-center">
                   <h2 className="text-xl font-bold text-white">
-                    זקוקים לייעוץ משפטי?
+                    {cms.sidebarCta.title}
                   </h2>
                   <p className="mt-2 text-sm leading-relaxed text-white/80">
-                    צוות המשרד ישמח לסייע לכם בכל שאלה משפטית.
+                    {cms.sidebarCta.description}
                   </p>
                   <Link
-                    href="/contact"
+                    href={cms.sidebarCta.ctaLink}
                     className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
                   >
-                    צרו קשר
+                    {cms.sidebarCta.ctaText}
                   </Link>
                 </CardContent>
               </Card>
@@ -350,7 +359,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
               id="more-articles-heading"
               className="mb-8 text-center text-2xl font-bold text-primary-dark sm:text-3xl"
             >
-              עוד מאמרים שעשויים לעניין אותך
+              {cms.strings.moreArticlesTitle}
             </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedArticles.map((related) => (
@@ -358,7 +367,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   key={related.slug}
                   href={`/articles/${related.slug}`}
                   className="group block focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
-                  aria-label={`${related.title} — קרא עוד`}
+                  aria-label={`${related.title} — ${cms.strings.readMoreText}`}
                 >
                   <Card className="flex h-full flex-col hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
                     <CardHeader>
@@ -378,7 +387,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                     </CardContent>
                     <CardFooter>
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
-                        קרא עוד
+                        {cms.strings.readMoreText}
                         <ArrowLeft
                           className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
                           aria-hidden="true"

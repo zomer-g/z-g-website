@@ -25,7 +25,7 @@ export default async function ContactPage() {
   const contactItems = [
     {
       icon: Phone,
-      label: "טלפון",
+      label: content.form.phoneLabel,
       value: content.contactInfo.phone,
       href: content.contactInfo.phoneHref,
       dir: "ltr" as const,
@@ -33,7 +33,7 @@ export default async function ContactPage() {
     },
     {
       icon: Mail,
-      label: "אימייל",
+      label: content.form.emailLabel,
       value: content.contactInfo.email,
       href: content.contactInfo.emailHref,
       dir: "ltr" as const,
@@ -41,12 +41,12 @@ export default async function ContactPage() {
     },
     {
       icon: MapPin,
-      label: "כתובת",
+      label: content.form.addressLabel,
       value: content.contactInfo.address,
     },
     {
       icon: Clock,
-      label: "שעות פעילות",
+      label: content.form.hoursLabel,
       value: content.contactInfo.hours,
     },
   ];

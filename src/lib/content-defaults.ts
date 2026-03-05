@@ -4,6 +4,11 @@ import type {
   ContactPageContent,
   HeaderContent,
   FooterContent,
+  ServicesPageContent,
+  ArticlesPageContent,
+  MediaPageContent,
+  ArticleDetailContent,
+  ServiceDetailContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -89,7 +94,7 @@ export const DEFAULT_ABOUT_CONTENT: AboutPageContent = {
 
 export const DEFAULT_CONTACT_CONTENT: ContactPageContent = {
   hero: { title: "צור קשר", subtitle: "נשמח לשמוע מכם. מלאו את הטופס או צרו עמנו קשר באחת מהדרכים הבאות ונחזור אליכם בהקדם." },
-  form: { title: "השאירו פרטים" },
+  form: { title: "השאירו פרטים", phoneLabel: "טלפון", emailLabel: "אימייל", addressLabel: "כתובת", hoursLabel: "שעות פעילות" },
   contactInfo: { phone: "03-000-0000", phoneHref: "tel:+972-3-000-0000", email: "info@zomer-law.co.il", emailHref: "mailto:info@zomer-law.co.il", address: "רחוב הברזל 30, תל אביב", hours: "א׳-ה׳: 08:30-18:00" },
   consultationNote: { title: "ייעוץ ראשוני", description: "הפגישה הראשונית עם צוות המשרד היא ללא עלות וללא התחייבות. מטרתה להבין את הצרכים שלכם ולבחון כיצד נוכל לסייע." },
 };
@@ -131,6 +136,97 @@ export const DEFAULT_FOOTER_CONTENT: FooterContent = {
   copyright: "זומר - משרד עורכי דין. כל הזכויות שמורות.",
 };
 
+/* ─── Services Listing Page ─── */
+
+export const DEFAULT_SERVICES_CONTENT: ServicesPageContent = {
+  hero: {
+    title: "תחומי עיסוק",
+    subtitle: "משרד עורכי דין זומר מציע מגוון רחב של שירותים משפטיים, תוך שמירה על מקצועיות, מסירות ויחס אישי לכל לקוח.",
+  },
+  grid: {
+    title: "השירותים שלנו",
+    subtitle: "צוות המשרד מתמחה במגוון תחומי משפט ומעניק ליווי משפטי ברמה הגבוהה ביותר.",
+    emptyState: "תחומי העיסוק יתעדכנו בקרוב.",
+    readMoreText: "קרא עוד",
+  },
+};
+
+/* ─── Articles Listing Page ─── */
+
+export const DEFAULT_ARTICLES_CONTENT: ArticlesPageContent = {
+  hero: {
+    title: "מאמרים",
+    subtitle: "תובנות משפטיות, עדכוני חקיקה ומאמרים מקצועיים מצוות עורכי הדין של משרד זומר.",
+  },
+  grid: {
+    title: "מאמרים אחרונים",
+    subtitle: "מאמרים מקצועיים ועדכונים בתחומי המשפט השונים.",
+    emptyStateTitle: "עדיין לא פורסמו מאמרים.",
+    emptyStateSubtitle: "מאמרים חדשים יופיעו כאן בקרוב.",
+    readMoreText: "קרא עוד",
+  },
+  cta: {
+    title: "הישארו מעודכנים",
+    description: "רוצים לקבל עדכונים על מאמרים חדשים ושינויי חקיקה? צרו קשר ונוסיף אתכם לרשימת התפוצה שלנו.",
+    ctaText: "צרו קשר",
+    ctaLink: "/contact",
+  },
+};
+
+/* ─── Media Page ─── */
+
+export const DEFAULT_MEDIA_CONTENT: MediaPageContent = {
+  hero: {
+    title: "מדיה",
+    subtitle: "ראיונות, הרצאות והופעות תקשורתיות של צוות המשרד בנושאים משפטיים אקטואליים.",
+  },
+  grid: {
+    title: "הופעות אחרונות",
+    subtitle: "ריכוז ההופעות התקשורתיות, ההרצאות והפרסומים האחרונים של צוות המשרד",
+    emptyState: "הופעות מדיה יתעדכנו בקרוב.",
+  },
+  typeLabels: {
+    video: "וידאו",
+    article: "כתבה",
+    podcast: "פודקאסט",
+  },
+};
+
+/* ─── Article Detail Page ─── */
+
+export const DEFAULT_ARTICLE_DETAIL_CONTENT: ArticleDetailContent = {
+  disclaimer: {
+    label: "הערה:",
+    text: "מאמר זה מהווה מידע כללי בלבד ואינו מהווה ייעוץ משפטי. לקבלת ייעוץ משפטי מותאם לנסיבות הספציפיות שלכם, אנא",
+    linkText: "צרו קשר עם המשרד",
+    linkHref: "/contact",
+  },
+  sidebarCta: {
+    title: "זקוקים לייעוץ משפטי?",
+    description: "צוות המשרד ישמח לסייע לכם בכל שאלה משפטית.",
+    ctaText: "צרו קשר",
+    ctaLink: "/contact",
+  },
+  strings: {
+    breadcrumbHome: "ראשי",
+    breadcrumbArticles: "מאמרים",
+    sidebarRelatedTitle: "מאמרים נוספים",
+    moreArticlesTitle: "עוד מאמרים שעשויים לעניין אותך",
+    readMoreText: "קרא עוד",
+    authorTemplate: "עורך דין במשרד זומר, מתמחה ב{category}.",
+  },
+};
+
+/* ─── Service Detail Page ─── */
+
+export const DEFAULT_SERVICE_DETAIL_CONTENT: ServiceDetailContent = {
+  strings: {
+    breadcrumbHome: "ראשי",
+    breadcrumbServices: "תחומי עיסוק",
+    relatedServicesTitle: "תחומי עיסוק נוספים",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -139,4 +235,9 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   contact: DEFAULT_CONTACT_CONTENT,
   header: DEFAULT_HEADER_CONTENT,
   footer: DEFAULT_FOOTER_CONTENT,
+  services: DEFAULT_SERVICES_CONTENT,
+  articles: DEFAULT_ARTICLES_CONTENT,
+  media: DEFAULT_MEDIA_CONTENT,
+  "article-detail": DEFAULT_ARTICLE_DETAIL_CONTENT,
+  "service-detail": DEFAULT_SERVICE_DETAIL_CONTENT,
 };

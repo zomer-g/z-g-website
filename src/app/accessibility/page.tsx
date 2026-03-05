@@ -4,6 +4,10 @@ import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { TipTapRenderer } from "@/components/tiptap-renderer";
+
+export const dynamic = "force-dynamic";
 
 /* ---- Metadata ---- */
 
@@ -18,7 +22,28 @@ export const metadata: Metadata = {
   },
 };
 
-/* ---- Accessibility Features List ---- */
+/* ---- Fetch from DB ---- */
+
+async function getAccessibilityContent() {
+  try {
+    const page = await prisma.page.findUnique({
+      where: { slug: "accessibility" },
+      select: { content: true },
+    });
+    if (
+      page?.content &&
+      typeof page.content === "object" &&
+      (page.content as Record<string, unknown>).type === "doc"
+    ) {
+      return page.content as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/* ---- Accessibility Features List (fallback) ---- */
 
 interface AccessibilityFeature {
   readonly title: string;
@@ -90,7 +115,9 @@ const SUPPORTED_TECHNOLOGIES: readonly string[] = [
 
 /* ---- Page Component ---- */
 
-export default function AccessibilityPage() {
+export default async function AccessibilityPage() {
+  const tiptapContent = await getAccessibilityContent();
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -127,204 +154,212 @@ export default function AccessibilityPage() {
             תוכן הצהרת הנגישות
           </h2>
 
-          <div className="space-y-12">
-            {/* Commitment Section */}
-            <article aria-labelledby="a11y-commitment-heading">
-              <h2
-                id="a11y-commitment-heading"
-                className={cn(
-                  "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                מחויבות לנגישות
-              </h2>
-              <div className="space-y-3">
-                <p className="text-base leading-relaxed text-foreground">
-                  משרד עורכי דין זומר מאמין כי לכל אדם זכות לגישה שוות למידע
-                  ולשירותים. אנו מחויבים להבטיח שאתר האינטרנט שלנו יהיה נגיש
-                  לכלל המשתמשים, לרבות אנשים עם מוגבלויות פיזיות, חושיות,
-                  קוגניטיביות או טכנולוגיות.
-                </p>
-                <p className="text-base leading-relaxed text-foreground">
-                  מחויבות זו נובעת מאמונתנו בשוויון ובכבוד האדם, ומעוגנת בחוק
-                  שוויון זכויות לאנשים עם מוגבלות, התשנ&quot;ח-1998,
-                  ובתקנות הנגישות לשירותי אינטרנט.
-                </p>
-              </div>
-            </article>
+          {tiptapContent ? (
+            /* ── DB content (TipTap) ── */
+            <div className="prose-rtl">
+              <TipTapRenderer content={tiptapContent} />
+            </div>
+          ) : (
+            /* ── Hardcoded fallback ── */
+            <div className="space-y-12">
+              {/* Commitment Section */}
+              <article aria-labelledby="a11y-commitment-heading">
+                <h2
+                  id="a11y-commitment-heading"
+                  className={cn(
+                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  מחויבות לנגישות
+                </h2>
+                <div className="space-y-3">
+                  <p className="text-base leading-relaxed text-foreground">
+                    משרד עורכי דין זומר מאמין כי לכל אדם זכות לגישה שוות למידע
+                    ולשירותים. אנו מחויבים להבטיח שאתר האינטרנט שלנו יהיה נגיש
+                    לכלל המשתמשים, לרבות אנשים עם מוגבלויות פיזיות, חושיות,
+                    קוגניטיביות או טכנולוגיות.
+                  </p>
+                  <p className="text-base leading-relaxed text-foreground">
+                    מחויבות זו נובעת מאמונתנו בשוויון ובכבוד האדם, ומעוגנת בחוק
+                    שוויון זכויות לאנשים עם מוגבלות, התשנ&quot;ח-1998,
+                    ובתקנות הנגישות לשירותי אינטרנט.
+                  </p>
+                </div>
+              </article>
 
-            {/* WCAG Compliance Section */}
-            <article aria-labelledby="a11y-wcag-heading">
-              <h2
-                id="a11y-wcag-heading"
-                className={cn(
-                  "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                עמידה בתקן WCAG 2.1
-              </h2>
-              <div className="space-y-3">
-                <p className="text-base leading-relaxed text-foreground">
-                  אתר זה תוכנן ופותח בהתאם להנחיות הנגישות לתוכן אינטרנט
-                  (Web Content Accessibility Guidelines - WCAG) בגרסה 2.1,
-                  ברמת התאימות הגבוהה ביותר -{" "}
-                  <strong className="font-bold">AAA</strong>.
-                </p>
-                <p className="text-base leading-relaxed text-foreground">
-                  תקן זה מגדיר קריטריונים מחמירים לנגישות בארבעה עקרונות
-                  מרכזיים: נתפס (Perceivable), ניתן להפעלה (Operable), מובן
-                  (Understandable) וחסין (Robust).
-                </p>
-              </div>
-            </article>
+              {/* WCAG Compliance Section */}
+              <article aria-labelledby="a11y-wcag-heading">
+                <h2
+                  id="a11y-wcag-heading"
+                  className={cn(
+                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  עמידה בתקן WCAG 2.1
+                </h2>
+                <div className="space-y-3">
+                  <p className="text-base leading-relaxed text-foreground">
+                    אתר זה תוכנן ופותח בהתאם להנחיות הנגישות לתוכן אינטרנט
+                    (Web Content Accessibility Guidelines - WCAG) בגרסה 2.1,
+                    ברמת התאימות הגבוהה ביותר -{" "}
+                    <strong className="font-bold">AAA</strong>.
+                  </p>
+                  <p className="text-base leading-relaxed text-foreground">
+                    תקן זה מגדיר קריטריונים מחמירים לנגישות בארבעה עקרונות
+                    מרכזיים: נתפס (Perceivable), ניתן להפעלה (Operable), מובן
+                    (Understandable) וחסין (Robust).
+                  </p>
+                </div>
+              </article>
 
-            {/* Accessibility Features Section */}
-            <article aria-labelledby="a11y-features-heading">
-              <h2
-                id="a11y-features-heading"
-                className={cn(
-                  "mb-6 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                אמצעי נגישות באתר
-              </h2>
-              <p className="mb-6 text-base leading-relaxed text-foreground">
-                להלן אמצעי הנגישות העיקריים שיושמו באתר:
-              </p>
-              <div className="space-y-4">
-                {ACCESSIBILITY_FEATURES.map((feature, index) => (
-                  <Card key={index} className="border-s-4 border-s-accent">
-                    <CardContent className="py-4">
-                      <h3 className="text-base font-bold text-primary-dark">
-                        {feature.title}
+              {/* Accessibility Features Section */}
+              <article aria-labelledby="a11y-features-heading">
+                <h2
+                  id="a11y-features-heading"
+                  className={cn(
+                    "mb-6 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  אמצעי נגישות באתר
+                </h2>
+                <p className="mb-6 text-base leading-relaxed text-foreground">
+                  להלן אמצעי הנגישות העיקריים שיושמו באתר:
+                </p>
+                <div className="space-y-4">
+                  {ACCESSIBILITY_FEATURES.map((feature, index) => (
+                    <Card key={index} className="border-s-4 border-s-accent">
+                      <CardContent className="py-4">
+                        <h3 className="text-base font-bold text-primary-dark">
+                          {feature.title}
+                        </h3>
+                        <p className="mt-1.5 text-sm leading-relaxed text-muted">
+                          {feature.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </article>
+
+              {/* Supported Technologies Section */}
+              <article aria-labelledby="a11y-tech-heading">
+                <h2
+                  id="a11y-tech-heading"
+                  className={cn(
+                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  טכנולוגיות תומכות
+                </h2>
+                <p className="mb-4 text-base leading-relaxed text-foreground">
+                  האתר נבדק ונמצא תואם לטכנולוגיות המסייעות הבאות:
+                </p>
+                <ul className="space-y-2" role="list">
+                  {SUPPORTED_TECHNOLOGIES.map((tech, index) => (
+                    <li
+                      key={index}
+                      className="me-5 text-base leading-relaxed text-foreground"
+                    >
+                      {tech}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+
+              {/* Contact for Accessibility Issues */}
+              <article aria-labelledby="a11y-contact-heading">
+                <h2
+                  id="a11y-contact-heading"
+                  className={cn(
+                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  דרכי פנייה בנושא נגישות
+                </h2>
+                <div className="space-y-3">
+                  <p className="text-base leading-relaxed text-foreground">
+                    אם נתקלתם בבעיית נגישות באתר או שיש לכם הצעות לשיפור, נשמח
+                    לשמוע מכם. אנו מתחייבים לטפל בכל פנייה בנושא נגישות תוך 5
+                    ימי עסקים.
+                  </p>
+
+                  <Card className="mt-4 border-accent/30 bg-accent/5">
+                    <CardContent className="py-5">
+                      <h3 className="mb-3 text-base font-bold text-primary-dark">
+                        רכז/ת נגישות
                       </h3>
-                      <p className="mt-1.5 text-sm leading-relaxed text-muted">
-                        {feature.description}
-                      </p>
+                      <address className="not-italic">
+                        <ul className="space-y-3" role="list">
+                          <li>
+                            <a
+                              href="mailto:accessibility@zomer-law.co.il"
+                              className={cn(
+                                "flex items-center gap-3 text-sm text-foreground",
+                                "transition-colors duration-200",
+                                "hover:text-accent",
+                              )}
+                              aria-label="שלחו אימייל לרכז הנגישות: accessibility@zomer-law.co.il"
+                            >
+                              <Mail
+                                className="h-5 w-5 shrink-0 text-accent"
+                                aria-hidden="true"
+                              />
+                              <span dir="ltr">accessibility@zomer-law.co.il</span>
+                            </a>
+                          </li>
+                          <li>
+                            <a
+                              href="tel:+972-3-000-0000"
+                              className={cn(
+                                "flex items-center gap-3 text-sm text-foreground",
+                                "transition-colors duration-200",
+                                "hover:text-accent",
+                              )}
+                              aria-label="התקשרו לרכז הנגישות: 03-000-0000"
+                            >
+                              <Phone
+                                className="h-5 w-5 shrink-0 text-accent"
+                                aria-hidden="true"
+                              />
+                              <span dir="ltr">03-000-0000</span>
+                            </a>
+                          </li>
+                        </ul>
+                      </address>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            </article>
+                </div>
+              </article>
 
-            {/* Supported Technologies Section */}
-            <article aria-labelledby="a11y-tech-heading">
-              <h2
-                id="a11y-tech-heading"
-                className={cn(
-                  "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                טכנולוגיות תומכות
-              </h2>
-              <p className="mb-4 text-base leading-relaxed text-foreground">
-                האתר נבדק ונמצא תואם לטכנולוגיות המסייעות הבאות:
-              </p>
-              <ul className="space-y-2" role="list">
-                {SUPPORTED_TECHNOLOGIES.map((tech, index) => (
-                  <li
-                    key={index}
-                    className="me-5 text-base leading-relaxed text-foreground"
-                  >
-                    {tech}
-                  </li>
-                ))}
-              </ul>
-            </article>
-
-            {/* Contact for Accessibility Issues */}
-            <article aria-labelledby="a11y-contact-heading">
-              <h2
-                id="a11y-contact-heading"
-                className={cn(
-                  "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                דרכי פנייה בנושא נגישות
-              </h2>
-              <div className="space-y-3">
+              {/* Last Updated Section */}
+              <article aria-labelledby="a11y-updated-heading">
+                <h2
+                  id="a11y-updated-heading"
+                  className={cn(
+                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                    "border-b border-border pb-3",
+                  )}
+                >
+                  תאריך עדכון
+                </h2>
                 <p className="text-base leading-relaxed text-foreground">
-                  אם נתקלתם בבעיית נגישות באתר או שיש לכם הצעות לשיפור, נשמח
-                  לשמוע מכם. אנו מתחייבים לטפל בכל פנייה בנושא נגישות תוך 5
-                  ימי עסקים.
+                  הצהרת נגישות זו עודכנה לאחרונה בתאריך:{" "}
+                  <time dateTime="2025-01-01" className="font-semibold">
+                    ינואר 2025
+                  </time>
+                  .
                 </p>
-
-                <Card className="mt-4 border-accent/30 bg-accent/5">
-                  <CardContent className="py-5">
-                    <h3 className="mb-3 text-base font-bold text-primary-dark">
-                      רכז/ת נגישות
-                    </h3>
-                    <address className="not-italic">
-                      <ul className="space-y-3" role="list">
-                        <li>
-                          <a
-                            href="mailto:accessibility@zomer-law.co.il"
-                            className={cn(
-                              "flex items-center gap-3 text-sm text-foreground",
-                              "transition-colors duration-200",
-                              "hover:text-accent",
-                            )}
-                            aria-label="שלחו אימייל לרכז הנגישות: accessibility@zomer-law.co.il"
-                          >
-                            <Mail
-                              className="h-5 w-5 shrink-0 text-accent"
-                              aria-hidden="true"
-                            />
-                            <span dir="ltr">accessibility@zomer-law.co.il</span>
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            href="tel:+972-3-000-0000"
-                            className={cn(
-                              "flex items-center gap-3 text-sm text-foreground",
-                              "transition-colors duration-200",
-                              "hover:text-accent",
-                            )}
-                            aria-label="התקשרו לרכז הנגישות: 03-000-0000"
-                          >
-                            <Phone
-                              className="h-5 w-5 shrink-0 text-accent"
-                              aria-hidden="true"
-                            />
-                            <span dir="ltr">03-000-0000</span>
-                          </a>
-                        </li>
-                      </ul>
-                    </address>
-                  </CardContent>
-                </Card>
-              </div>
-            </article>
-
-            {/* Last Updated Section */}
-            <article aria-labelledby="a11y-updated-heading">
-              <h2
-                id="a11y-updated-heading"
-                className={cn(
-                  "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                  "border-b border-border pb-3",
-                )}
-              >
-                תאריך עדכון
-              </h2>
-              <p className="text-base leading-relaxed text-foreground">
-                הצהרת נגישות זו עודכנה לאחרונה בתאריך:{" "}
-                <time dateTime="2025-01-01" className="font-semibold">
-                  ינואר 2025
-                </time>
-                .
-              </p>
-              <p className="mt-2 text-base leading-relaxed text-foreground">
-                אנו מבצעים סקירות נגישות תקופתיות ומעדכנים הצהרה זו בהתאם.
-              </p>
-            </article>
-          </div>
+                <p className="mt-2 text-base leading-relaxed text-foreground">
+                  אנו מבצעים סקירות נגישות תקופתיות ומעדכנים הצהרה זו בהתאם.
+                </p>
+              </article>
+            </div>
+          )}
         </Container>
       </section>
     </PublicLayout>

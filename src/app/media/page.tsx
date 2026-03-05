@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getPageContent } from "@/lib/content";
+import type { MediaPageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -26,21 +28,10 @@ export const metadata: Metadata = {
 
 type MediaType = "video" | "article" | "podcast";
 
-const MEDIA_TYPE_CONFIG: Record<
-  MediaType,
-  { icon: React.ElementType; label: string; color: string }
-> = {
-  video: { icon: Play, label: "וידאו", color: "bg-red-500/10 text-red-600" },
-  article: {
-    icon: Newspaper,
-    label: "כתבה",
-    color: "bg-blue-500/10 text-blue-600",
-  },
-  podcast: {
-    icon: Mic,
-    label: "פודקאסט",
-    color: "bg-purple-500/10 text-purple-600",
-  },
+const MEDIA_TYPE_ICONS: Record<MediaType, { icon: React.ElementType; color: string }> = {
+  video: { icon: Play, color: "bg-red-500/10 text-red-600" },
+  article: { icon: Newspaper, color: "bg-blue-500/10 text-blue-600" },
+  podcast: { icon: Mic, color: "bg-purple-500/10 text-purple-600" },
 };
 
 /* ---- Fetch ---- */
@@ -59,7 +50,17 @@ async function getMediaAppearances() {
 /* ---- Page Component ---- */
 
 export default async function MediaPage() {
-  const items = await getMediaAppearances();
+  const [items, pageContent] = await Promise.all([
+    getMediaAppearances(),
+    getPageContent<MediaPageContent>("media"),
+  ]);
+
+  /* Build type labels from CMS content */
+  const typeLabels: Record<MediaType, string> = {
+    video: pageContent.typeLabels.video,
+    article: pageContent.typeLabels.article,
+    podcast: pageContent.typeLabels.podcast,
+  };
 
   return (
     <PublicLayout>
@@ -77,11 +78,10 @@ export default async function MediaPage() {
                 "sm:text-4xl lg:text-5xl",
               )}
             >
-              מדיה
+              {pageContent.hero.title}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-              ראיונות, הרצאות והופעות תקשורתיות של צוות המשרד בנושאים משפטיים
-              אקטואליים.
+              {pageContent.hero.subtitle}
             </p>
           </div>
         </Container>
@@ -91,14 +91,14 @@ export default async function MediaPage() {
       <section aria-labelledby="media-grid-heading" className="py-16 sm:py-20">
         <Container>
           <SectionHeading
-            title="הופעות אחרונות"
-            subtitle="ריכוז ההופעות התקשורתיות, ההרצאות והפרסומים האחרונים של צוות המשרד"
+            title={pageContent.grid.title}
+            subtitle={pageContent.grid.subtitle}
           />
 
           {items.length === 0 ? (
             <div className="py-12 text-center">
               <Tv className="mx-auto mb-3 h-10 w-10 text-muted" />
-              <p className="text-muted">הופעות מדיה יתעדכנו בקרוב.</p>
+              <p className="text-muted">{pageContent.grid.emptyState}</p>
             </div>
           ) : (
             <div
@@ -107,8 +107,10 @@ export default async function MediaPage() {
               aria-label="רשימת פריטי מדיה"
             >
               {items.map((item) => {
-                const typeConfig = MEDIA_TYPE_CONFIG[item.type as MediaType] ?? MEDIA_TYPE_CONFIG.video;
-                const TypeIcon = typeConfig.icon;
+                const mediaType = item.type as MediaType;
+                const typeIcon = MEDIA_TYPE_ICONS[mediaType] ?? MEDIA_TYPE_ICONS.video;
+                const TypeIcon = typeIcon.icon;
+                const label = typeLabels[mediaType] ?? typeLabels.video;
 
                 const cardContent = (
                   <Card
@@ -149,11 +151,11 @@ export default async function MediaPage() {
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-                            typeConfig.color,
+                            typeIcon.color,
                           )}
                         >
                           <TypeIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                          {typeConfig.label}
+                          {label}
                         </span>
                         <time className="text-xs text-muted">{item.date}</time>
                       </div>

@@ -124,6 +124,10 @@ export interface ContactHeroBanner {
 
 export interface ContactFormSection {
   title: string;
+  phoneLabel: string;
+  emailLabel: string;
+  addressLabel: string;
+  hoursLabel: string;
 }
 
 export interface ContactConsultationNote {
@@ -162,6 +166,121 @@ export interface FooterContent {
   copyright: string;
 }
 
+// ── Services Listing Page Content ──
+
+export interface ServicesHeroBanner {
+  title: string;
+  subtitle: string;
+}
+
+export interface ServicesGridSection {
+  title: string;
+  subtitle: string;
+  emptyState: string;
+  readMoreText: string;
+}
+
+export interface ServicesPageContent {
+  hero: ServicesHeroBanner;
+  grid: ServicesGridSection;
+}
+
+// ── Articles Listing Page Content ──
+
+export interface ArticlesHeroBanner {
+  title: string;
+  subtitle: string;
+}
+
+export interface ArticlesGridSection {
+  title: string;
+  subtitle: string;
+  emptyStateTitle: string;
+  emptyStateSubtitle: string;
+  readMoreText: string;
+}
+
+export interface ArticlesCtaSection {
+  title: string;
+  description: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
+export interface ArticlesPageContent {
+  hero: ArticlesHeroBanner;
+  grid: ArticlesGridSection;
+  cta: ArticlesCtaSection;
+}
+
+// ── Media Page Content ──
+
+export interface MediaHeroBanner {
+  title: string;
+  subtitle: string;
+}
+
+export interface MediaGridSection {
+  title: string;
+  subtitle: string;
+  emptyState: string;
+}
+
+export interface MediaTypeLabels {
+  video: string;
+  article: string;
+  podcast: string;
+}
+
+export interface MediaPageContent {
+  hero: MediaHeroBanner;
+  grid: MediaGridSection;
+  typeLabels: MediaTypeLabels;
+}
+
+// ── Article Detail Page Content ──
+
+export interface ArticleDetailDisclaimer {
+  label: string;
+  text: string;
+  linkText: string;
+  linkHref: string;
+}
+
+export interface ArticleDetailSidebarCta {
+  title: string;
+  description: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
+export interface ArticleDetailStrings {
+  breadcrumbHome: string;
+  breadcrumbArticles: string;
+  sidebarRelatedTitle: string;
+  moreArticlesTitle: string;
+  readMoreText: string;
+  authorTemplate: string;
+}
+
+export interface ArticleDetailContent {
+  disclaimer: ArticleDetailDisclaimer;
+  sidebarCta: ArticleDetailSidebarCta;
+  strings: ArticleDetailStrings;
+}
+
+// ── Service Detail Page Content ──
+
+export interface ServiceDetailStrings {
+  breadcrumbHome: string;
+  breadcrumbServices: string;
+  relatedServicesTitle: string;
+}
+
+export interface ServiceDetailContent {
+  strings: ServiceDetailStrings;
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -170,6 +289,11 @@ export type PageContentMap = {
   contact: ContactPageContent;
   header: HeaderContent;
   footer: FooterContent;
+  services: ServicesPageContent;
+  articles: ArticlesPageContent;
+  media: MediaPageContent;
+  "article-detail": ArticleDetailContent;
+  "service-detail": ServiceDetailContent;
 };
 
 export type PageSlug = keyof PageContentMap;

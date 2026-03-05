@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { getIcon } from "@/lib/icons";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
 import { getPageContent } from "@/lib/content";
-import type { HomePageContent } from "@/types/content";
+import type { HomePageContent, ServiceDetailContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +81,10 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   }
 
   const Icon = getIcon(service.icon ?? "briefcase");
-  const [relatedServices, homeContent] = await Promise.all([
+  const [relatedServices, homeContent, cms] = await Promise.all([
     getRelatedServices(slug),
     getPageContent<HomePageContent>("home"),
+    getPageContent<ServiceDetailContent>("service-detail"),
   ]);
   const cta = homeContent.cta;
 
@@ -104,7 +105,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 href="/"
                 className="text-muted transition-colors duration-200 hover:text-primary"
               >
-                ראשי
+                {cms.strings.breadcrumbHome}
               </Link>
             </li>
             <li aria-hidden="true">
@@ -115,7 +116,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                 href="/services"
                 className="text-muted transition-colors duration-200 hover:text-primary"
               >
-                תחומי עיסוק
+                {cms.strings.breadcrumbServices}
               </Link>
             </li>
             <li aria-hidden="true">
@@ -197,7 +198,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
               {relatedServices.length > 0 && (
                 <div>
                   <h2 className="mb-4 text-lg font-bold text-primary-dark">
-                    תחומי עיסוק נוספים
+                    {cms.strings.relatedServicesTitle}
                   </h2>
                   <ul role="list" className="space-y-3">
                     {relatedServices.map((related) => {

@@ -14,6 +14,10 @@ import {
   PanelTop,
   PanelBottom,
   ChevronLeft,
+  Briefcase,
+  Newspaper,
+  Tv,
+  FileText,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -40,6 +44,11 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType }[] = [
   { slug: "home", label: "דף הבית", icon: Home },
   { slug: "about", label: "אודות", icon: Info },
   { slug: "contact", label: "צור קשר", icon: Phone },
+  { slug: "services", label: "תחומי עיסוק", icon: Briefcase },
+  { slug: "articles", label: "מאמרים", icon: Newspaper },
+  { slug: "media", label: "מדיה", icon: Tv },
+  { slug: "article-detail", label: "עמוד מאמר (תבנית)", icon: FileText },
+  { slug: "service-detail", label: "עמוד שירות (תבנית)", icon: FileText },
   { slug: "header", label: "כותרת עליונה", icon: PanelTop },
   { slug: "footer", label: "כותרת תחתונה", icon: PanelBottom },
 ];

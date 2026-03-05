@@ -9,6 +9,11 @@ const PAGE_TITLES: Record<string, string> = {
   contact: "צור קשר",
   header: "כותרת עליונה",
   footer: "כותרת תחתונה",
+  services: "תחומי עיסוק",
+  articles: "מאמרים",
+  media: "מדיה",
+  "article-detail": "עמוד מאמר (תבנית)",
+  "service-detail": "עמוד שירות (תבנית)",
 };
 
 /* ── POST /api/content/[slug]/publish ── */

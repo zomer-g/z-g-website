@@ -15,6 +15,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getPageContent } from "@/lib/content";
+import type { ArticlesPageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +76,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 /* ─── Page Component ─── */
 
 export default async function ArticlesPage() {
-  const articles = await getArticles();
+  const [articles, pageContent] = await Promise.all([
+    getArticles(),
+    getPageContent<ArticlesPageContent>("articles"),
+  ]);
 
   return (
     <PublicLayout>
@@ -92,11 +97,10 @@ export default async function ArticlesPage() {
             id="articles-hero-heading"
             className="text-4xl font-bold leading-snug tracking-tight text-white sm:text-5xl"
           >
-            מאמרים
+            {pageContent.hero.title}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-            תובנות משפטיות, עדכוני חקיקה ומאמרים מקצועיים מצוות עורכי הדין של
-            משרד זומר.
+            {pageContent.hero.subtitle}
           </p>
         </Container>
       </section>
@@ -108,16 +112,16 @@ export default async function ArticlesPage() {
       >
         <Container>
           <SectionHeading
-            title="מאמרים אחרונים"
-            subtitle="מאמרים מקצועיים ועדכונים בתחומי המשפט השונים."
+            title={pageContent.grid.title}
+            subtitle={pageContent.grid.subtitle}
             id="articles-grid-heading"
           />
 
           {articles.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-lg text-muted">עדיין לא פורסמו מאמרים.</p>
+              <p className="text-lg text-muted">{pageContent.grid.emptyStateTitle}</p>
               <p className="mt-2 text-sm text-muted">
-                מאמרים חדשים יופיעו כאן בקרוב.
+                {pageContent.grid.emptyStateSubtitle}
               </p>
             </div>
           ) : (
@@ -130,7 +134,7 @@ export default async function ArticlesPage() {
                   <Link
                     href={`/articles/${article.slug}`}
                     className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
-                    aria-label={`${article.title} — קרא עוד`}
+                    aria-label={`${article.title} — ${pageContent.grid.readMoreText}`}
                   >
                     <Card className="flex h-full flex-col overflow-hidden hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
                       {/* Cover Image or Gradient */}
@@ -192,7 +196,7 @@ export default async function ArticlesPage() {
 
                       <CardFooter>
                         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
-                          קרא עוד
+                          {pageContent.grid.readMoreText}
                           <ArrowLeft
                             className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
                             aria-hidden="true"
@@ -218,18 +222,17 @@ export default async function ArticlesPage() {
             id="articles-cta-heading"
             className="text-2xl font-bold text-primary-dark sm:text-3xl"
           >
-            הישארו מעודכנים
+            {pageContent.cta.title}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-muted">
-            רוצים לקבל עדכונים על מאמרים חדשים ושינויי חקיקה? צרו קשר ונוסיף
-            אתכם לרשימת התפוצה שלנו.
+            {pageContent.cta.description}
           </p>
           <div className="mt-8">
             <Link
-              href="/contact"
+              href={pageContent.cta.ctaLink}
               className="inline-flex items-center rounded-lg bg-accent px-8 py-3.5 text-lg font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
             >
-              צרו קשר
+              {pageContent.cta.ctaText}
             </Link>
           </div>
         </Container>

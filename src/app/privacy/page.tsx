@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { cn } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+import { TipTapRenderer } from "@/components/tiptap-renderer";
+
+export const dynamic = "force-dynamic";
 
 /* ---- Metadata ---- */
 
@@ -16,7 +20,28 @@ export const metadata: Metadata = {
   },
 };
 
-/* ---- Privacy Sections Data ---- */
+/* ---- Fetch from DB ---- */
+
+async function getPrivacyContent() {
+  try {
+    const page = await prisma.page.findUnique({
+      where: { slug: "privacy" },
+      select: { content: true },
+    });
+    if (
+      page?.content &&
+      typeof page.content === "object" &&
+      (page.content as Record<string, unknown>).type === "doc"
+    ) {
+      return page.content as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/* ---- Privacy Sections Data (fallback) ---- */
 
 interface PrivacySection {
   readonly id: string;
@@ -144,7 +169,9 @@ const PRIVACY_SECTIONS: readonly PrivacySection[] = [
 
 /* ---- Page Component ---- */
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const tiptapContent = await getPrivacyContent();
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -178,62 +205,71 @@ export default function PrivacyPage() {
             תוכן מדיניות הפרטיות
           </h2>
 
-          {/* Last Updated */}
-          <p className="mb-10 text-sm text-muted">
-            עודכן לאחרונה: ינואר 2025
-          </p>
+          {tiptapContent ? (
+            /* ── DB content (TipTap) ── */
+            <div className="prose-rtl">
+              <TipTapRenderer content={tiptapContent} />
+            </div>
+          ) : (
+            /* ── Hardcoded fallback ── */
+            <>
+              <p className="mb-10 text-sm text-muted">
+                עודכן לאחרונה: ינואר 2025
+              </p>
 
-          <div className="space-y-12">
-            {PRIVACY_SECTIONS.map((section) => (
-              <article
-                key={section.id}
-                id={section.id}
-                aria-labelledby={`privacy-${section.id}-heading`}
-              >
-                <h2
-                  id={`privacy-${section.id}-heading`}
-                  className={cn(
-                    "mb-4 text-2xl font-bold leading-snug text-primary-dark",
-                    "border-b border-border pb-3",
-                  )}
-                >
-                  {section.title}
-                </h2>
-
-                <div className="space-y-3">
-                  {section.content.map((paragraph, i) => (
-                    <p
-                      key={i}
-                      className="text-base leading-relaxed text-foreground"
+              <div className="space-y-12">
+                {PRIVACY_SECTIONS.map((section) => (
+                  <article
+                    key={section.id}
+                    id={section.id}
+                    aria-labelledby={`privacy-${section.id}-heading`}
+                  >
+                    <h2
+                      id={`privacy-${section.id}-heading`}
+                      className={cn(
+                        "mb-4 text-2xl font-bold leading-snug text-primary-dark",
+                        "border-b border-border pb-3",
+                      )}
                     >
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
+                      {section.title}
+                    </h2>
 
-                {section.subsections?.map((sub, subIndex) => (
-                  <div key={subIndex} className="mt-6">
-                    <h3 className="mb-3 text-lg font-bold text-primary-dark">
-                      {sub.title}
-                    </h3>
-                    <ul
-                      className="list-disc space-y-2 pe-0 ps-0"
-                      role="list"
-                    >
-                      {sub.content.map((item, itemIndex) => (
-                        <li
-                          key={itemIndex}
-                          className="me-5 text-base leading-relaxed text-foreground"
+                    <div className="space-y-3">
+                      {section.content.map((paragraph, i) => (
+                        <p
+                          key={i}
+                          className="text-base leading-relaxed text-foreground"
                         >
-                          {item}
-                        </li>
+                          {paragraph}
+                        </p>
                       ))}
-                    </ul>
-                  </div>
+                    </div>
+
+                    {section.subsections?.map((sub, subIndex) => (
+                      <div key={subIndex} className="mt-6">
+                        <h3 className="mb-3 text-lg font-bold text-primary-dark">
+                          {sub.title}
+                        </h3>
+                        <ul
+                          className="list-disc space-y-2 pe-0 ps-0"
+                          role="list"
+                        >
+                          {sub.content.map((item, itemIndex) => (
+                            <li
+                              key={itemIndex}
+                              className="me-5 text-base leading-relaxed text-foreground"
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </article>
                 ))}
-              </article>
-            ))}
-          </div>
+              </div>
+            </>
+          )}
         </Container>
       </section>
     </PublicLayout>

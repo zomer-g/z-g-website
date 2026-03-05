@@ -15,7 +15,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getIcon } from "@/lib/icons";
 import { getPageContent } from "@/lib/content";
-import type { HomePageContent } from "@/types/content";
+import type { HomePageContent, ServicesPageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +49,10 @@ async function getServices() {
 /* ─── Page Component ─── */
 
 export default async function ServicesPage() {
-  const [services, homeContent] = await Promise.all([
+  const [services, homeContent, pageContent] = await Promise.all([
     getServices(),
     getPageContent<HomePageContent>("home"),
+    getPageContent<ServicesPageContent>("services"),
   ]);
   const cta = homeContent.cta;
 
@@ -71,11 +72,10 @@ export default async function ServicesPage() {
             id="services-hero-heading"
             className="text-4xl font-bold leading-snug tracking-tight text-white sm:text-5xl"
           >
-            תחומי עיסוק
+            {pageContent.hero.title}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-            משרד עורכי דין זומר מציע מגוון רחב של שירותים משפטיים, תוך שמירה על
-            מקצועיות, מסירות ויחס אישי לכל לקוח.
+            {pageContent.hero.subtitle}
           </p>
         </Container>
       </section>
@@ -87,15 +87,15 @@ export default async function ServicesPage() {
       >
         <Container>
           <SectionHeading
-            title="השירותים שלנו"
-            subtitle="צוות המשרד מתמחה במגוון תחומי משפט ומעניק ליווי משפטי ברמה הגבוהה ביותר."
+            title={pageContent.grid.title}
+            subtitle={pageContent.grid.subtitle}
             id="services-grid-heading"
           />
 
           {services.length === 0 ? (
             <div className="py-12 text-center">
               <Briefcase className="mx-auto mb-3 h-10 w-10 text-muted" />
-              <p className="text-muted">תחומי העיסוק יתעדכנו בקרוב.</p>
+              <p className="text-muted">{pageContent.grid.emptyState}</p>
             </div>
           ) : (
             <ul
@@ -109,7 +109,7 @@ export default async function ServicesPage() {
                     <Link
                       href={`/services/${service.slug}`}
                       className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
-                      aria-label={`${service.title} — קרא עוד`}
+                      aria-label={`${service.title} — ${pageContent.grid.readMoreText}`}
                     >
                       <Card className="flex h-full flex-col hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
                         <CardHeader>
@@ -128,7 +128,7 @@ export default async function ServicesPage() {
                         </CardContent>
                         <CardFooter>
                           <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
-                            קרא עוד
+                            {pageContent.grid.readMoreText}
                             <ArrowLeft
                               className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
                               aria-hidden="true"

@@ -11,6 +11,11 @@ import { AboutEditors } from "@/components/admin/section-editors/about-editors";
 import { ContactEditors } from "@/components/admin/section-editors/contact-editors";
 import { HeaderEditor } from "@/components/admin/section-editors/header-editor";
 import { FooterEditor } from "@/components/admin/section-editors/footer-editor";
+import { ServicesEditors } from "@/components/admin/section-editors/services-editors";
+import { ArticlesEditors } from "@/components/admin/section-editors/articles-editors";
+import { MediaEditors } from "@/components/admin/section-editors/media-editors";
+import { ArticleDetailEditors } from "@/components/admin/section-editors/article-detail-editors";
+import { ServiceDetailEditors } from "@/components/admin/section-editors/service-detail-editors";
 import {
   ArrowRight,
   Loader2,
@@ -20,7 +25,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -30,6 +35,11 @@ const PAGE_LABELS: Record<string, string> = {
   contact: "צור קשר",
   header: "כותרת עליונה",
   footer: "כותרת תחתונה",
+  services: "תחומי עיסוק",
+  articles: "מאמרים",
+  media: "מדיה",
+  "article-detail": "עמוד מאמר (תבנית)",
+  "service-detail": "עמוד שירות (תבנית)",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -38,6 +48,11 @@ const PAGE_URLS: Record<string, string> = {
   contact: "/contact",
   header: "/",
   footer: "/",
+  services: "/services",
+  articles: "/articles",
+  media: "/media",
+  "article-detail": "/articles",
+  "service-detail": "/services",
 };
 
 /* ─── Page Editor ─── */
@@ -290,6 +305,36 @@ export default function SiteEditorPageEditor({
           {slug === "footer" && (
             <FooterEditor
               content={content as FooterContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "services" && (
+            <ServicesEditors
+              content={content as ServicesPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "articles" && (
+            <ArticlesEditors
+              content={content as ArticlesPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "media" && (
+            <MediaEditors
+              content={content as MediaPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "article-detail" && (
+            <ArticleDetailEditors
+              content={content as ArticleDetailContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "service-detail" && (
+            <ServiceDetailEditors
+              content={content as ServiceDetailContent}
               onChange={setContent}
             />
           )}

@@ -52,12 +52,42 @@ export function ContactEditors({ content, onChange }: ContactEditorsProps) {
       </SectionCard>
 
       <SectionCard title="טופס יצירת קשר" icon={MessageSquare}>
-        <Input
-          label="כותרת הטופס"
-          value={content.form.title}
-          onChange={(e) => update("form", { title: e.target.value })}
-          dir="rtl"
-        />
+        <div className="space-y-3">
+          <Input
+            label="כותרת הטופס"
+            value={content.form.title}
+            onChange={(e) => update("form", { title: e.target.value })}
+            dir="rtl"
+          />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label='תווית "טלפון"'
+              value={content.form.phoneLabel}
+              onChange={(e) => update("form", { phoneLabel: e.target.value })}
+              dir="rtl"
+            />
+            <Input
+              label='תווית "אימייל"'
+              value={content.form.emailLabel}
+              onChange={(e) => update("form", { emailLabel: e.target.value })}
+              dir="rtl"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label='תווית "כתובת"'
+              value={content.form.addressLabel}
+              onChange={(e) => update("form", { addressLabel: e.target.value })}
+              dir="rtl"
+            />
+            <Input
+              label='תווית "שעות פעילות"'
+              value={content.form.hoursLabel}
+              onChange={(e) => update("form", { hoursLabel: e.target.value })}
+              dir="rtl"
+            />
+          </div>
+        </div>
       </SectionCard>
 
       <SectionCard title="פרטי קשר" icon={Phone}>
