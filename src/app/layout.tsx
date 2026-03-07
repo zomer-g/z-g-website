@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Heebo } from "next/font/google";
 import { OrganizationSchema, WebSiteSchema } from "@/components/seo/json-ld";
 import "./globals.css";
+
+const GA_ID = "G-W3B12VYHCK";
 
 const heebo = Heebo({
   subsets: ["hebrew", "latin"],
@@ -42,6 +45,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="he" dir="rtl" className={heebo.variable}>
+      <head>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
+      </head>
       <body className="font-heebo antialiased min-h-screen flex flex-col">
         <OrganizationSchema />
         <WebSiteSchema />
