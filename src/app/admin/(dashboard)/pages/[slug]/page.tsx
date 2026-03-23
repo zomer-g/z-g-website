@@ -28,6 +28,8 @@ const PAGE_LABELS: Record<string, string> = {
   about: "אודות",
   privacy: "מדיניות פרטיות",
   accessibility: "הצהרת נגישות",
+  terms: "תנאי שימוש",
+  projects: "מיזמים",
 };
 
 /* ─── Edit Page Content ─── */

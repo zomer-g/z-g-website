@@ -18,6 +18,10 @@ import {
   Newspaper,
   Tv,
   FileText,
+  Shield,
+  Accessibility,
+  ScrollText,
+  Code2,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -34,13 +38,14 @@ interface SiteEditorCard {
   slug: string;
   label: string;
   icon: React.ElementType;
+  href?: string;
   data: PageData | null;
   error: boolean;
 }
 
 /* ─── Page Definitions ─── */
 
-const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType }[] = [
+const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: string }[] = [
   { slug: "home", label: "דף הבית", icon: Home },
   { slug: "about", label: "אודות", icon: Info },
   { slug: "contact", label: "צור קשר", icon: Phone },
@@ -51,6 +56,10 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType }[] = [
   { slug: "service-detail", label: "עמוד שירות (תבנית)", icon: FileText },
   { slug: "header", label: "כותרת עליונה", icon: PanelTop },
   { slug: "footer", label: "כותרת תחתונה", icon: PanelBottom },
+  { slug: "privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/privacy" },
+  { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
+  { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
+  { slug: "projects", label: "מיזמים", icon: Code2, href: "/admin/pages/projects" },
 ];
 
 /* ─── Site Editor Page ─── */
@@ -76,6 +85,7 @@ export default function SiteEditorPage() {
             slug: def.slug,
             label: def.label,
             icon: def.icon,
+            href: def.href,
             data:
               result.status === "fulfilled" ? result.value : null,
             error: result.status === "rejected",
@@ -90,6 +100,7 @@ export default function SiteEditorPage() {
             slug: def.slug,
             label: def.label,
             icon: def.icon,
+            href: def.href,
             data: null,
             error: true,
           })),
@@ -126,7 +137,7 @@ export default function SiteEditorPage() {
           const isPublished = card.data?.status === "PUBLISHED";
 
           return (
-            <Link key={card.slug} href={`/admin/site-editor/${card.slug}`}>
+            <Link key={card.slug} href={card.href || `/admin/site-editor/${card.slug}`}>
               <Card
                 className={cn(
                   "cursor-pointer transition-all duration-200",
