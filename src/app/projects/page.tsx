@@ -1,10 +1,27 @@
 import type { Metadata } from "next";
-import { ExternalLink, Database, Calendar, Search, Code2, ArrowLeft } from "lucide-react";
+import {
+  ExternalLink,
+  Database,
+  Calendar,
+  Search,
+  Code2,
+  ArrowLeft,
+  Globe,
+  BarChart3,
+  FileSearch,
+  Scale,
+  Eye,
+  type LucideIcon,
+} from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { getPageContent } from "@/lib/content";
+import type { ProjectsPageContent } from "@/types/content";
+
+export const dynamic = "force-dynamic";
 
 /* ─── Metadata ─── */
 
@@ -19,54 +36,30 @@ export const metadata: Metadata = {
   },
 };
 
-/* ─── Project Data ─── */
+/* ─── Icon Resolver ─── */
 
-interface Project {
-  readonly slug: string;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly description: string;
-  readonly url: string;
-  readonly icon: typeof Database;
-  readonly tags: readonly string[];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Database,
+  Calendar,
+  Search,
+  Code2,
+  Globe,
+  BarChart3,
+  FileSearch,
+  Scale,
+  Eye,
+  ExternalLink,
+};
+
+function resolveIcon(name: string): LucideIcon {
+  return ICON_MAP[name] || Code2;
 }
-
-const PROJECTS: readonly Project[] = [
-  {
-    slug: "odata",
-    title: "מידע לעם",
-    subtitle: "פורטל המידע הפתוח הישראלי",
-    description:
-      "פלטפורמה שמנגישה אלפי מאגרי מידע ממשלתיים לציבור. הפרויקט מרכז נתונים מ-49 גופים ציבוריים ומאפשר לכל אזרח לחפש, לעיין ולהוריד מידע ממשלתי — מהיסטוריית טיסות ועד רישומי בנייה ירוקה. שקיפות מידע היא תנאי הכרחי לדמוקרטיה בריאה, והפרויקט הזה מבטיח שהנתונים שלנו באמת שלנו.",
-    url: "https://www.odata.org.il/",
-    icon: Database,
-    tags: ["מידע פתוח", "שקיפות ממשלתית", "CKAN"],
-  },
-  {
-    slug: "ocal",
-    title: "יומן לעם",
-    subtitle: "מעקב אחר פעילות נבחרי ציבור",
-    description:
-      "כלי ציבורי שמאפשר מעקב שוטף אחר יומני הפעילות של נבחרי ציבור בישראל. הפרויקט נולד מתוך תפיסה פשוטה: נציגים שנבחרו לשרת את הציבור צריכים להיות אחראים כלפיו. הפלטפורמה מתעדת ומנגישה מידע על ישיבות, הצבעות ופעילות שוטפת — וכך מחזקת את האחריותיות הדמוקרטית.",
-    url: "https://ocal.org.il/",
-    icon: Calendar,
-    tags: ["אחריותיות", "נבחרי ציבור", "שקיפות"],
-  },
-  {
-    slug: "ocoi",
-    title: "ניגוד עניינים לעם",
-    subtitle: "מאגר הסדרי ניגוד עניינים של נושאי משרה",
-    description:
-      "מנוע חיפוש שמרכז ומנגיש את הסדרי ניגוד העניינים של בעלי תפקידים ציבוריים בישראל. הפלטפורמה מאפשרת לכל אזרח לבדוק אילו זיקות כלכליות ועסקיות קיימות לנושאי המשרה שמקבלים עבורו החלטות — ולמפות את רשת הקשרים ביניהם באמצעות כלי ויזואליזציה אינטראקטיבי.",
-    url: "https://www.ocoi.org.il/",
-    icon: Search,
-    tags: ["ניגוד עניינים", "ויזואליזציה", "מיפוי קשרים"],
-  },
-] as const;
 
 /* ─── Page ─── */
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const content = await getPageContent<ProjectsPageContent>("projects");
+
   return (
     <PublicLayout>
       {/* ── Hero ── */}
@@ -108,11 +101,10 @@ export default function ProjectsPage() {
                 "sm:text-4xl lg:text-5xl",
               )}
             >
-              מיזמים
+              {content.hero.title}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-              פרויקטים אקטיביסטיים בממשקים של דאטה, משפט וטכנולוגיה — כי שקיפות
-              ונגישות מידע הם תנאי בסיסי לדמוקרטיה.
+              {content.hero.subtitle}
             </p>
           </div>
         </Container>
@@ -140,11 +132,11 @@ export default function ProjectsPage() {
           </h2>
 
           <div className="space-y-10">
-            {PROJECTS.map((project, index) => {
-              const Icon = project.icon;
+            {content.projects.map((project, index) => {
+              const Icon = resolveIcon(project.icon);
               return (
                 <Card
-                  key={project.slug}
+                  key={index}
                   className={cn(
                     "group relative overflow-hidden border border-border/60 bg-white transition-shadow duration-300",
                     "hover:shadow-lg hover:shadow-primary/5",
@@ -248,14 +240,14 @@ export default function ProjectsPage() {
               id="projects-cta-heading"
               className="text-2xl font-bold text-white sm:text-3xl"
             >
-              רוצים לשתף פעולה?
+              {content.cta.title}
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-white/80">
-              יש לכם רעיון לפרויקט בתחומי הדאטה, המשפט והטכנולוגיה? אשמח לשמוע.
+              {content.cta.description}
             </p>
             <div className="mt-8">
               <Link
-                href="/contact"
+                href={content.cta.ctaLink}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-lg bg-accent px-7 py-3",
                   "text-base font-bold text-primary-dark transition-colors duration-200",
@@ -263,7 +255,7 @@ export default function ProjectsPage() {
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary",
                 )}
               >
-                <span>צרו קשר</span>
+                <span>{content.cta.ctaText}</span>
                 <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>

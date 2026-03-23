@@ -16,6 +16,7 @@ import { ArticlesEditors } from "@/components/admin/section-editors/articles-edi
 import { MediaEditors } from "@/components/admin/section-editors/media-editors";
 import { ArticleDetailEditors } from "@/components/admin/section-editors/article-detail-editors";
 import { ServiceDetailEditors } from "@/components/admin/section-editors/service-detail-editors";
+import { ProjectsEditors } from "@/components/admin/section-editors/projects-editors";
 import {
   ArrowRight,
   Loader2,
@@ -25,7 +26,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -40,6 +41,7 @@ const PAGE_LABELS: Record<string, string> = {
   media: "מדיה",
   "article-detail": "עמוד מאמר (תבנית)",
   "service-detail": "עמוד שירות (תבנית)",
+  projects: "מיזמים",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -53,6 +55,7 @@ const PAGE_URLS: Record<string, string> = {
   media: "/media",
   "article-detail": "/articles",
   "service-detail": "/services",
+  projects: "/projects",
 };
 
 /* ─── Page Editor ─── */
@@ -335,6 +338,12 @@ export default function SiteEditorPageEditor({
           {slug === "service-detail" && (
             <ServiceDetailEditors
               content={content as ServiceDetailContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "projects" && (
+            <ProjectsEditors
+              content={content as ProjectsPageContent}
               onChange={setContent}
             />
           )}

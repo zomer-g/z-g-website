@@ -281,6 +281,31 @@ export interface ServiceDetailContent {
   strings: ServiceDetailStrings;
 }
 
+// ── Projects Page Content ──
+
+export interface ProjectItem {
+  title: string;
+  subtitle: string;
+  description: string;
+  url: string;
+  icon: string; // lucide icon name
+  tags: string[];
+}
+
+export interface ProjectsPageContent {
+  hero: {
+    title: string;
+    subtitle: string;
+  };
+  projects: ProjectItem[];
+  cta: {
+    title: string;
+    description: string;
+    ctaText: string;
+    ctaLink: string;
+  };
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -294,6 +319,7 @@ export type PageContentMap = {
   media: MediaPageContent;
   "article-detail": ArticleDetailContent;
   "service-detail": ServiceDetailContent;
+  projects: ProjectsPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

@@ -9,6 +9,7 @@ import type {
   MediaPageContent,
   ArticleDetailContent,
   ServiceDetailContent,
+  ProjectsPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -229,6 +230,47 @@ export const DEFAULT_SERVICE_DETAIL_CONTENT: ServiceDetailContent = {
   },
 };
 
+/* ─── Projects Page ─── */
+
+export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
+  hero: {
+    title: "מיזמים",
+    subtitle: "פרויקטים אקטיביסטיים בממשקים של דאטה, משפט וטכנולוגיה — כי שקיפות ונגישות מידע הם תנאי בסיסי לדמוקרטיה.",
+  },
+  projects: [
+    {
+      title: "מידע לעם",
+      subtitle: "פורטל המידע הפתוח הישראלי",
+      description: "פלטפורמה שמנגישה אלפי מאגרי מידע ממשלתיים לציבור. הפרויקט מרכז נתונים מ-49 גופים ציבוריים ומאפשר לכל אזרח לחפש, לעיין ולהוריד מידע ממשלתי — מהיסטוריית טיסות ועד רישומי בנייה ירוקה. שקיפות מידע היא תנאי הכרחי לדמוקרטיה בריאה, והפרויקט הזה מבטיח שהנתונים שלנו באמת שלנו.",
+      url: "https://www.odata.org.il/",
+      icon: "Database",
+      tags: ["מידע פתוח", "שקיפות ממשלתית", "CKAN"],
+    },
+    {
+      title: "יומן לעם",
+      subtitle: "מעקב אחר פעילות נבחרי ציבור",
+      description: "כלי ציבורי שמאפשר מעקב שוטף אחר יומני הפעילות של נבחרי ציבור בישראל. הפרויקט נולד מתוך תפיסה פשוטה: נציגים שנבחרו לשרת את הציבור צריכים להיות אחראים כלפיו. הפלטפורמה מתעדת ומנגישה מידע על ישיבות, הצבעות ופעילות שוטפת — וכך מחזקת את האחריותיות הדמוקרטית.",
+      url: "https://ocal.org.il/",
+      icon: "Calendar",
+      tags: ["אחריותיות", "נבחרי ציבור", "שקיפות"],
+    },
+    {
+      title: "ניגוד עניינים לעם",
+      subtitle: "מאגר הסדרי ניגוד עניינים של נושאי משרה",
+      description: "מנוע חיפוש שמרכז ומנגיש את הסדרי ניגוד העניינים של בעלי תפקידים ציבוריים בישראל. הפלטפורמה מאפשרת לכל אזרח לבדוק אילו זיקות כלכליות ועסקיות קיימות לנושאי המשרה שמקבלים עבורו החלטות — ולמפות את רשת הקשרים ביניהם באמצעות כלי ויזואליזציה אינטראקטיבי.",
+      url: "https://www.ocoi.org.il/",
+      icon: "Search",
+      tags: ["ניגוד עניינים", "ויזואליזציה", "מיפוי קשרים"],
+    },
+  ],
+  cta: {
+    title: "רוצים לשתף פעולה?",
+    description: "יש לכם רעיון לפרויקט בתחומי הדאטה, המשפט והטכנולוגיה? אשמח לשמוע.",
+    ctaText: "צרו קשר",
+    ctaLink: "/contact",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -242,4 +284,5 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   media: DEFAULT_MEDIA_CONTENT,
   "article-detail": DEFAULT_ARTICLE_DETAIL_CONTENT,
   "service-detail": DEFAULT_SERVICE_DETAIL_CONTENT,
+  projects: DEFAULT_PROJECTS_CONTENT,
 };

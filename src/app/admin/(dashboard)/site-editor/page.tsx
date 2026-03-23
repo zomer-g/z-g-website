@@ -59,7 +59,7 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/privacy" },
   { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
   { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
-  { slug: "projects", label: "מיזמים", icon: Code2, href: "/admin/pages/projects" },
+  { slug: "projects", label: "מיזמים", icon: Code2 },
 ];
 
 /* ─── Site Editor Page ─── */
