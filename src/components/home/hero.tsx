@@ -23,10 +23,10 @@ export default function Hero({ content }: HeroProps) {
   const titleAccent = content?.titleAccent ?? "ברמה הגבוהה ביותר";
   const description =
     content?.description ??
-    "משרד עורכי דין זומר מספק ליווי משפטי מקצועי ומקיף לחברות, עסקים ויחידים. עם ניסיון עשיר וגישה אישית, אנו מחויבים להשגת התוצאות הטובות ביותר עבור לקוחותינו.";
+    "עו\"ד זומר מספק ליווי משפטי מקצועי ומקיף לחברות, עסקים ויחידים. עם ניסיון עשיר וגישה אישית, מחויבות מלאה להשגת התוצאות הטובות ביותר עבור כל לקוח.";
   const ctaText = content?.ctaText ?? "לייעוץ ראשוני";
   const ctaLink = content?.ctaLink ?? "/contact";
-  const secondaryCtaText = content?.secondaryCtaText ?? "תחומי העיסוק שלנו";
+  const secondaryCtaText = content?.secondaryCtaText ?? "תחומי העיסוק";
   const secondaryCtaLink = content?.secondaryCtaLink ?? "/services";
 
   return (

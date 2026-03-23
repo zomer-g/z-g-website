@@ -14,11 +14,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "הצהרת נגישות",
   description:
-    "הצהרת הנגישות של אתר משרד עורכי דין זומר. מידע על עמידה בתקני WCAG 2.1 AAA ואמצעי נגישות באתר.",
+    "הצהרת הנגישות של אתר עו\"ד זומר. מידע על עמידה בתקני WCAG 2.1 AAA ואמצעי נגישות באתר.",
   openGraph: {
-    title: "הצהרת נגישות | זומר - משרד עורכי דין",
+    title: "הצהרת נגישות | עו\"ד זומר",
     description:
-      "הצהרת הנגישות של אתר משרד עורכי דין זומר.",
+      "הצהרת הנגישות של אתר עו\"ד זומר.",
   },
 };
 
@@ -137,7 +137,7 @@ export default async function AccessibilityPage() {
               הצהרת נגישות
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-              משרד עורכי דין זומר מחויב להנגשת האתר לכלל המשתמשים, לרבות אנשים
+              עו&quot;ד זומר מחויב להנגשת האתר לכלל המשתמשים, לרבות אנשים
               עם מוגבלויות.
             </p>
           </div>
@@ -175,13 +175,13 @@ export default async function AccessibilityPage() {
                 </h2>
                 <div className="space-y-3">
                   <p className="text-base leading-relaxed text-foreground">
-                    משרד עורכי דין זומר מאמין כי לכל אדם זכות לגישה שוות למידע
-                    ולשירותים. אנו מחויבים להבטיח שאתר האינטרנט שלנו יהיה נגיש
+                    עו&quot;ד זומר מאמין כי לכל אדם זכות לגישה שוות למידע
+                    ולשירותים. מחויבות להבטיח שאתר האינטרנט יהיה נגיש
                     לכלל המשתמשים, לרבות אנשים עם מוגבלויות פיזיות, חושיות,
                     קוגניטיביות או טכנולוגיות.
                   </p>
                   <p className="text-base leading-relaxed text-foreground">
-                    מחויבות זו נובעת מאמונתנו בשוויון ובכבוד האדם, ומעוגנת בחוק
+                    מחויבות זו נובעת מאמונה בשוויון ובכבוד האדם, ומעוגנת בחוק
                     שוויון זכויות לאנשים עם מוגבלות, התשנ&quot;ח-1998,
                     ובתקנות הנגישות לשירותי אינטרנט.
                   </p>
@@ -283,8 +283,8 @@ export default async function AccessibilityPage() {
                 </h2>
                 <div className="space-y-3">
                   <p className="text-base leading-relaxed text-foreground">
-                    אם נתקלתם בבעיית נגישות באתר או שיש לכם הצעות לשיפור, נשמח
-                    לשמוע מכם. אנו מתחייבים לטפל בכל פנייה בנושא נגישות תוך 5
+                    אם נתקלתם בבעיית נגישות באתר או שיש לכם הצעות לשיפור, אשמח
+                    לשמוע מכם. מחויבות לטפל בכל פנייה בנושא נגישות תוך 5
                     ימי עסקים.
                   </p>
 
@@ -355,7 +355,7 @@ export default async function AccessibilityPage() {
                   .
                 </p>
                 <p className="mt-2 text-base leading-relaxed text-foreground">
-                  אנו מבצעים סקירות נגישות תקופתיות ומעדכנים הצהרה זו בהתאם.
+                  מבוצעות סקירות נגישות תקופתיות והצהרה זו מתעדכנת בהתאם.
                 </p>
               </article>
             </div>

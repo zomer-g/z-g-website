@@ -15,19 +15,19 @@ const heebo = Heebo({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
   title: {
-    default: "זומר - משרד עורכי דין",
-    template: "%s | זומר - משרד עורכי דין",
+    default: "עו\"ד זומר",
+    template: "%s | עו\"ד זומר",
   },
   description:
-    "משרד עורכי דין זומר - ייצוג משפטי מקצועי, ליווי עסקי ומשפטי מקיף. מומחיות בדיני חברות, מסחרי, נדל\"ן ועוד.",
-  keywords: ["עורך דין", "משרד עורכי דין", "ייעוץ משפטי", "זומר"],
-  authors: [{ name: "משרד עורכי דין זומר" }],
+    "עו\"ד זומר - ייצוג משפטי מקצועי, ליווי משפטי מקיף. התמחות בדין פלילי, ליווי חשודים ונאשמים בכל הערכאות.",
+  keywords: ["עורך דין", "עורך דין פלילי", "ייעוץ משפטי", "זומר"],
+  authors: [{ name: "עו\"ד גיא זומר" }],
   openGraph: {
     type: "website",
     locale: "he_IL",
-    siteName: "זומר - משרד עורכי דין",
-    title: "זומר - משרד עורכי דין",
-    description: "משרד עורכי דין זומר - ייצוג משפטי מקצועי",
+    siteName: "עו\"ד זומר",
+    title: "עו\"ד זומר",
+    description: "עו\"ד זומר - ייצוג משפטי מקצועי",
   },
   twitter: {
     card: "summary_large_image",

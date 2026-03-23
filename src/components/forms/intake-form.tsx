@@ -116,7 +116,7 @@ export default function IntakeForm() {
       }
 
       setStatus("success");
-      setServerMessage("הפנייה שלך התקבלה בהצלחה! ניצור עמך קשר בהקדם.");
+      setServerMessage("הפנייה שלך התקבלה בהצלחה! אצור עמך קשר בהקדם.");
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
 
       // Focus the status message for screen readers

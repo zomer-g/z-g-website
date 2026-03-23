@@ -23,9 +23,9 @@ export const dynamic = "force-dynamic";
 /* ─── Metadata ─── */
 
 export const metadata: Metadata = {
-  title: "מאמרים | זומר - משרד עורכי דין",
+  title: "מאמרים | עו\"ד זומר",
   description:
-    "מאמרים מקצועיים בתחומי המשפט — דיני חברות, נדל״ן, ליטיגציה, דיני עבודה ועוד. תובנות משפטיות מצוות משרד עורכי דין זומר.",
+    "מאמרים מקצועיים בתחומי המשפט הפלילי. תובנות משפטיות מעו\"ד זומר.",
 };
 
 /* ─── CSS Gradient Patterns for Article Covers ─── */

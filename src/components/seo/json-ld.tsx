@@ -3,12 +3,12 @@
  *
  * Server components that render Schema.org structured data
  * for SEO and LLM optimization. Designed for a Hebrew RTL
- * corporate law firm website.
+ * criminal law attorney website.
  */
 
 const SITE_URL = "https://z-g.co.il";
-const FIRM_NAME_HE = "משרד עורכי דין זומר";
-const FIRM_NAME_EN = "Zomer Law Office";
+const FIRM_NAME_HE = "עו\"ד זומר";
+const FIRM_NAME_EN = "Advocate Zomer";
 const ATTORNEY_NAME_HE = "עו\"ד גיא זומר";
 const ATTORNEY_NAME_EN = "Guy Zomer";
 const PHONE = "+972-3-000-0000";
@@ -42,7 +42,7 @@ export function OrganizationSchema() {
     logo: LOGO_URL,
     image: LOGO_URL,
     description:
-      "משרד עורכי דין זומר - ייצוג משפטי מקצועי, ליווי עסקי ומשפטי מקיף. מומחיות בדיני חברות, מסחרי, נדל\"ן ועוד.",
+      "עו\"ד זומר - ייצוג משפטי מקצועי בתחום הפלילי. התמחות בייעוץ לפני חקירה, ליווי נפגעי עבירה, עבירות אלימות, סמים, רכוש והונאה.",
     telephone: PHONE,
     email: EMAIL,
     foundingDate: "2020",
@@ -74,18 +74,22 @@ export function OrganizationSchema() {
       name: "Israel",
     },
     serviceType: [
-      "דיני חברות",
-      "נדל\"ן ומקרקעין",
-      "ליטיגציה ויישוב סכסוכים",
-      "דיני עבודה",
-      "קניין רוחני",
-      "דיני מסים",
-      "Corporate Law",
-      "Real Estate Law",
-      "Litigation",
-      "Labor Law",
-      "Intellectual Property",
-      "Tax Law",
+      "ייעוץ לפני חקירה",
+      "ליווי נפגעי עבירה",
+      "עתירות חופש מידע",
+      "ייצוג בחקירות סמים",
+      "עבירות אלימות",
+      "עבירות רכוש והונאה",
+      "תיקים מורכבים",
+      "בקשות שינוי עילת סגירת תיק",
+      "עבירות צווארון לבן",
+      "עבירות מין",
+      "Criminal Defense",
+      "Pre-Investigation Consultation",
+      "Crime Victim Representation",
+      "Drug Offenses Defense",
+      "Violence Offenses",
+      "White Collar Crime",
     ],
     knowsLanguage: ["he", "en"],
     sameAs: [],
@@ -97,60 +101,54 @@ export function OrganizationSchema() {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "דיני חברות",
-            description:
-              "ייעוץ וליווי משפטי מקיף לחברות בכל שלבי החיים העסקיים — הקמה, מיזוגים ורכישות, ממשל תאגידי, הסכמי מייסדים והסכמי השקעה.",
-            url: `${SITE_URL}/services/corporate-law`,
+            name: "ייעוץ לפני חקירה",
+            description: "הכנה מקצועית וייעוץ משפטי חיוני לפני מפגש עם רשויות החקירה.",
+            url: `${SITE_URL}/services/preinvestigationadvice`,
           },
         },
         {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "נדל\"ן",
-            description:
-              "ליווי עסקאות נדל\"ן מורכבות, ייצוג בפני רשויות התכנון, הסכמי שכירות מסחריים, פרויקטים של התחדשות עירונית ותמ\"א 38.",
-            url: `${SITE_URL}/services/real-estate`,
+            name: "ליווי נפגעי עבירה",
+            description: "ליווי נפגעי עבירה לרבות עררים על החלטות לסגירת תיק.",
+            url: `${SITE_URL}/services/victims`,
           },
         },
         {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "ליטיגציה",
-            description:
-              "ייצוג בהליכים משפטיים בבתי המשפט בכל הערכאות, גישור ובוררות, סכסוכים מסחריים, תביעות נגזרות ותובענות ייצוגיות.",
-            url: `${SITE_URL}/services/litigation`,
+            name: "עבירות אלימות",
+            description: "הגנה משפטית מקצועית בעבירות אלימות ואלימות במשפחה.",
+            url: `${SITE_URL}/services/violenceoffenses`,
           },
         },
         {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "דיני עבודה",
-            description:
-              "ייעוץ למעסיקים ועובדים בכל היבטי דיני העבודה — חוזי העסקה, סיום יחסי עבודה, הסכמים קיבוציים ומשא ומתן מול ועדי עובדים.",
-            url: `${SITE_URL}/services/labor-law`,
+            name: "חקירת סמים",
+            description: "ייצוג מקצועי בחקירות סמים — הגנה על זכויותיכם מהרגע הראשון.",
+            url: `${SITE_URL}/services/druginvestigation`,
           },
         },
         {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "קניין רוחני",
-            description:
-              "הגנה על פטנטים, סימני מסחר, זכויות יוצרים וסודות מסחריים. ליווי בהסכמי רישיון, הפרות קניין רוחני והגנה על מותגים.",
-            url: `${SITE_URL}/services/intellectual-property`,
+            name: "רכוש והונאה",
+            description: "ייצוג בעבירות גניבה, מעילה ועבירות רכוש נוספות.",
+            url: `${SITE_URL}/services/propertyoffenses`,
           },
         },
         {
           "@type": "Offer",
           itemOffered: {
             "@type": "Service",
-            name: "דיני מסים",
-            description:
-              "תכנון מס אסטרטגי, ייצוג בהליכי שומה, חוות דעת מיסוייות, מיסוי בינלאומי, מיסוי מקרקעין ומיסוי עסקאות מורכבות.",
-            url: `${SITE_URL}/services/tax-law`,
+            name: "תיקים מורכבים",
+            description: "ייעוץ וליווי תיקים מורכבים.",
+            url: `${SITE_URL}/services/complexcases`,
           },
         },
       ],
@@ -169,9 +167,9 @@ export function AttorneySchema() {
     "@id": `${SITE_URL}/#attorney`,
     name: ATTORNEY_NAME_HE,
     alternateName: ATTORNEY_NAME_EN,
-    jobTitle: "עורך דין, מייסד ומנהל המשרד",
+    jobTitle: "עורך דין פלילי",
     description:
-      "עורך הדין גיא זומר הוא מייסד ומנהל משרד עורכי דין זומר. בעל ניסיון עשיר בתחומי המשפט המסחרי, דיני חברות ונדל\"ן.",
+      "עו\"ד גיא זומר, בעל ניסיון עשיר בתחום המשפט הפלילי. מלווה חשודים ונאשמים בכל שלבי ההליך הפלילי.",
     url: `${SITE_URL}/about`,
     image: `${SITE_URL}/images/attorney-guy-zomer.jpg`,
     telephone: PHONE,
@@ -202,15 +200,16 @@ export function AttorneySchema() {
       name: FIRM_NAME_HE,
     },
     knowsAbout: [
-      "דיני חברות",
-      "נדל\"ן ומקרקעין",
-      "ליטיגציה ויישוב סכסוכים",
-      "ממשל תאגידי",
-      "מיזוגים ורכישות",
-      "Corporate Law",
-      "Real Estate Law",
-      "Litigation",
-      "M&A",
+      "משפט פלילי",
+      "ייעוץ לפני חקירה",
+      "ליווי נפגעי עבירה",
+      "עבירות אלימות",
+      "עבירות סמים",
+      "עבירות רכוש",
+      "חופש מידע",
+      "Criminal Defense",
+      "Pre-Investigation Consultation",
+      "Freedom of Information",
     ],
     knowsLanguage: ["he", "en"],
   };
@@ -337,7 +336,7 @@ export function WebSiteSchema() {
     url: SITE_URL,
     inLanguage: "he",
     description:
-      "משרד עורכי דין זומר - ייצוג משפטי מקצועי, ליווי עסקי ומשפטי מקיף. מומחיות בדיני חברות, מסחרי, נדל\"ן ועוד.",
+      "עו\"ד זומר - ייצוג משפטי מקצועי בתחום הפלילי. התמחות בייעוץ לפני חקירה, ליווי נפגעי עבירה, עבירות אלימות, סמים, רכוש והונאה.",
     publisher: {
       "@type": "LegalService",
       "@id": `${SITE_URL}/#organization`,

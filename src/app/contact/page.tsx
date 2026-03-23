@@ -14,7 +14,7 @@ import type { ContactPageContent } from "@/types/content";
 export const metadata: Metadata = {
   title: "צור קשר",
   description:
-    "צרו קשר עם משרד עורכי דין זומר לקביעת פגישת ייעוץ ראשונית. טלפון, אימייל וטופס יצירת קשר מקוון.",
+    "צרו קשר עם עו\"ד זומר לקביעת פגישת ייעוץ ראשונית. טלפון, אימייל וטופס יצירת קשר מקוון.",
 };
 
 /* ─── Page ─── */

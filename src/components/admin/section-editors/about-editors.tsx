@@ -53,7 +53,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
       </SectionCard>
 
       {/* ── Firm Story ── */}
-      <SectionCard title="הסיפור שלנו" icon={BookOpen}>
+      <SectionCard title="הסיפור שלי" icon={BookOpen}>
         <div className="space-y-3">
           <Input
             label="כותרת"
@@ -89,7 +89,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
                       paragraphs[idx] = text;
                       update("firmStory", { paragraphs });
                     }}
-                    fieldLabel="פסקת הסיפור שלנו"
+                    fieldLabel="פסקת הסיפור שלי"
                   />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
       </SectionCard>
 
       {/* ── Values ── */}
-      <SectionCard title="הערכים שלנו" icon={Heart}>
+      <SectionCard title="הערכים" icon={Heart}>
         <div className="space-y-3">
           <Input
             label="כותרת"

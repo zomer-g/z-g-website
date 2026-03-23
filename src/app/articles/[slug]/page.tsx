@@ -23,23 +23,25 @@ export const dynamic = "force-dynamic";
 /* ─── Category Labels ─── */
 
 const CATEGORY_LABELS: Record<string, string> = {
-  "corporate-law": "דיני חברות",
-  "real-estate": 'נדל"ן',
-  litigation: "ליטיגציה",
-  "labor-law": "דיני עבודה",
-  "intellectual-property": "קניין רוחני",
-  "tax-law": "דיני מסים",
+  "זכויות-בחקירה": "זכויות בחקירה",
+  "הליכים-משפטיים": "הליכים משפטיים",
+  "טכנולוגיה-במשפט": "טכנולוגיה במשפט",
+  "criminal-defense": "הגנה פלילית",
+  "pre-investigation": "ייעוץ לפני חקירה",
+  "violence-offenses": "עבירות אלימות",
+  "drug-offenses": "עבירות סמים",
+  "property-offenses": "עבירות רכוש",
 };
 
 /* ─── CSS Gradient for Article Header ─── */
 
 const HEADER_GRADIENTS: Record<string, string> = {
-  "corporate-law": "from-primary via-primary-light to-primary-dark",
-  "real-estate": "from-primary-dark via-primary to-accent/40",
-  litigation: "from-accent/60 via-primary-light to-primary",
-  "labor-law": "from-primary-light via-accent/30 to-primary-dark",
-  "intellectual-property": "from-primary via-accent/20 to-primary-light",
-  "tax-law": "from-primary-dark via-primary-light to-accent/50",
+  "זכויות-בחקירה": "from-primary via-primary-light to-primary-dark",
+  "הליכים-משפטיים": "from-primary-dark via-primary to-accent/40",
+  "טכנולוגיה-במשפט": "from-accent/60 via-primary-light to-primary",
+  "criminal-defense": "from-primary-light via-accent/30 to-primary-dark",
+  "pre-investigation": "from-primary via-accent/20 to-primary-light",
+  "violence-offenses": "from-primary-dark via-primary-light to-accent/50",
 };
 
 /* ─── Fetch article from DB ─── */
@@ -149,7 +151,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     : "";
   const headerGradient =
     HEADER_GRADIENTS[article.category ?? ""] ?? HEADER_GRADIENTS["corporate-law"];
-  const authorName = article.author?.name ?? "צוות משרד זומר";
+  const authorName = article.author?.name ?? "עו\"ד גיא זומר";
 
   /* Build author bio from template */
   const authorBio = categoryLabel
