@@ -150,8 +150,8 @@ export default async function ProjectsPage() {
 
                   <CardContent className="p-6 sm:p-8 lg:p-10">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-10">
-                      {/* Icon + Number */}
-                      <div className="flex shrink-0 items-center gap-4 lg:flex-col lg:items-center lg:gap-2">
+                      {/* Icon */}
+                      <div className="flex shrink-0 items-center gap-4 lg:flex-col lg:items-center">
                         <div
                           className={cn(
                             "flex h-14 w-14 items-center justify-center rounded-xl",
@@ -161,12 +161,6 @@ export default async function ProjectsPage() {
                         >
                           <Icon className="h-7 w-7" aria-hidden="true" />
                         </div>
-                        <span
-                          className="font-mono text-sm font-semibold text-muted/50"
-                          aria-hidden="true"
-                        >
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
                       </div>
 
                       {/* Content */}
