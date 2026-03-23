@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, Calendar } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
@@ -157,19 +158,30 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="relative hidden lg:block" aria-hidden="true">
-              <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-xl">
-                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-xl bg-accent/20" />
-                <div className="absolute -bottom-4 -left-4 h-32 w-32 rounded-xl bg-accent/15" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="mx-auto h-16 w-16 text-white/20">
-                      {(() => { const ScaleIcon = getIcon("Scale"); return <ScaleIcon className="h-16 w-16" />; })()}
-                    </div>
-                    <div className="mt-4 h-0.5 w-24 mx-auto bg-accent/40 rounded-full" />
-                  </div>
-                </div>
+            <div className="relative">
+              <div className="relative aspect-[3/4] max-w-xs sm:max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl">
+                <Image
+                  src="/images/guy-zomer.jpg"
+                  alt="עו״ד גיא זומר – עורך דין פלילי, תמונת פורטרט מקצועית"
+                  fill
+                  className="object-cover object-top"
+                  sizes="(min-width: 1024px) 384px, (min-width: 640px) 384px, 320px"
+                  priority
+                />
+                <div className="absolute -top-4 -right-4 h-24 w-24 rounded-xl bg-accent/20" aria-hidden="true" />
+                <div className="absolute -bottom-4 -left-4 h-32 w-32 rounded-xl bg-accent/15" aria-hidden="true" />
               </div>
+              <p className="mt-3 text-center text-xs text-muted">
+                צילום:{" "}
+                <a
+                  href="https://www.nataliemichelson.co.il/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-primary transition-colors"
+                >
+                  נטלי מיכלסון
+                </a>
+              </p>
             </div>
           </div>
         </Container>
