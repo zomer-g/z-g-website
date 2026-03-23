@@ -11,7 +11,6 @@ const ALLOWED_TYPES = new Set([
   "image/png",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
   "application/pdf",
 ]);
 
@@ -21,6 +20,10 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: NextRequest) {
   try {
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`upload:${getClientIp(req)}`, { limit: 20, windowMs: 60_000 });
+    if (limited) return limited;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(

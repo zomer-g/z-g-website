@@ -59,6 +59,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`submissions:${getClientIp(req)}`, { limit: 5, windowMs: 60_000 });
+    if (limited) return limited;
+
     const body = await req.json();
     const parsed = submissionSchema.safeParse(body);
 

@@ -16,6 +16,10 @@ const draftSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`ai-draft:${getClientIp(req)}`, { limit: 10, windowMs: 60_000 });
+    if (limited) return limited;
+
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
