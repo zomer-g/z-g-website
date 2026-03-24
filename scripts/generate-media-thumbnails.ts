@@ -17,19 +17,20 @@ const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
 
 // Source brand colors
 const SOURCE_COLORS: Record<string, { bg: string; accent: string }> = {
-  TheMarker: { bg: "#1a1a1a", accent: "#f5c518" },
-  "הארץ": { bg: "#1a1a2e", accent: "#e94560" },
-  "גלובס": { bg: "#003366", accent: "#ff6600" },
-  "כלכליסט": { bg: "#c41e3a", accent: "#ffffff" },
-  ICE: { bg: "#0a2463", accent: "#3e92cc" },
-  "שומרים": { bg: "#2d3436", accent: "#00b894" },
-  "רשת 13": { bg: "#1e3799", accent: "#ffffff" },
-  "וואלה": { bg: "#e55039", accent: "#ffffff" },
-  "העין השביעית": { bg: "#2c3e50", accent: "#f39c12" },
-  "רשות הרבים": { bg: "#34495e", accent: "#1abc9c" },
-  "law.co.il": { bg: "#2c3e50", accent: "#3498db" },
-  "המקום הכי חם בגיהנום": { bg: "#c0392b", accent: "#f1c40f" },
-  "התמנון": { bg: "#8e44ad", accent: "#f1c40f" },
+  // Researched from actual site headers/branding
+  TheMarker: { bg: "#028759", accent: "#ffffff" },
+  "הארץ": { bg: "#226EE9", accent: "#ffffff" },
+  "גלובס": { bg: "#97133F", accent: "#ffffff" },
+  "כלכליסט": { bg: "#FF0000", accent: "#ffffff" },
+  ICE: { bg: "#282835", accent: "#0275D8" },
+  "שומרים": { bg: "#293E57", accent: "#107B83" },
+  "רשת 13": { bg: "#011D6B", accent: "#EB0000" },
+  "וואלה": { bg: "#363636", accent: "#066BED" },
+  "העין השביעית": { bg: "#EF2A33", accent: "#ffffff" },
+  "רשות הרבים": { bg: "#150B47", accent: "#D3B574" },
+  "law.co.il": { bg: "#2F3847", accent: "#1779BA" },
+  "המקום הכי חם בגיהנום": { bg: "#212121", accent: "#F70D28" },
+  "התמנון": { bg: "#3F0202", accent: "#AA03C3" },
 };
 
 const DEFAULT_COLORS = { bg: "#1a365d", accent: "#c9a84c" };
@@ -154,8 +155,10 @@ async function main() {
   console.log(`Found ${items.length} media appearances\n`);
 
   let updated = 0;
+  const forceRegenerate = process.argv.includes("--force");
+
   for (const item of items) {
-    if (item.thumbnailUrl) {
+    if (item.thumbnailUrl && !forceRegenerate) {
       console.log(`  Skip: ${item.title} (already has thumbnail)`);
       continue;
     }
