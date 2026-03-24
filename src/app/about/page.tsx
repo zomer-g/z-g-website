@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
+import Image from "next/image";
 import { Users, ArrowLeft } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
@@ -48,16 +49,34 @@ export default async function AboutPage() {
         </div>
 
         <Container className="relative py-20 sm:py-24 lg:py-28">
-          <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
-          <h1
-            id="about-hero-heading"
-            className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
-          >
-            {content.hero.title}
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-            {content.hero.subtitle}
-          </p>
+          <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:gap-16">
+            <div className="flex-1">
+              <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
+              <h1
+                id="about-hero-heading"
+                className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
+              >
+                {content.hero.title}
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
+                {content.hero.subtitle}
+              </p>
+            </div>
+            <div className="relative mx-auto shrink-0 lg:mx-0">
+              <div className="relative h-48 w-48 overflow-hidden rounded-2xl border-2 border-accent/30 shadow-2xl sm:h-56 sm:w-56">
+                <Image
+                  src="/images/guy-zomer.jpg"
+                  alt="עו״ד גיא זומר — תמונת פורטרט"
+                  fill
+                  className="object-cover object-top"
+                  sizes="224px"
+                  priority
+                />
+              </div>
+              <div className="absolute -top-3 -right-3 h-16 w-16 rounded-xl bg-accent/20" aria-hidden="true" />
+              <div className="absolute -bottom-3 -left-3 h-20 w-20 rounded-xl bg-accent/15" aria-hidden="true" />
+            </div>
+          </div>
         </Container>
 
         <div
