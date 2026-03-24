@@ -123,11 +123,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const article = await getArticle(slug);
 
   if (!article) {
-    return { title: "מאמר לא נמצא | זומר - משרד עורכי דין" };
+    return { title: "מאמר לא נמצא | עו"ד זומר" };
   }
 
   return {
-    title: `${article.title} | מאמרים | זומר - משרד עורכי דין`,
+    title: `${article.title} | מאמרים | עו"ד זומר`,
     description: article.excerpt || article.seoDesc || undefined,
   };
 }

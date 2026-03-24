@@ -160,7 +160,7 @@ export default async function ContactPage() {
               "border border-border bg-muted-bg"
             )}
             role="img"
-            aria-label={`מפה המציגה את מיקום משרד עורכי דין זומר ב${content.contactInfo.address}`}
+            aria-label={`מפה המציגה את מיקום עו"ד זומר ב${content.contactInfo.address}`}
           >
             <div className="text-center">
               <MapPin className="mx-auto h-12 w-12 text-muted" aria-hidden="true" />

@@ -61,11 +61,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const service = await getService(slug);
 
   if (!service || !service.isActive) {
-    return { title: "שירות לא נמצא | זומר - משרד עורכי דין" };
+    return { title: "שירות לא נמצא | עו"ד זומר" };
   }
 
   return {
-    title: `${service.seoTitle || service.title} | תחומי עיסוק | זומר - משרד עורכי דין`,
+    title: `${service.seoTitle || service.title} | תחומי עיסוק | עו"ד זומר`,
     description: service.seoDesc || service.description,
   };
 }
