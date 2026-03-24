@@ -49,34 +49,16 @@ export default async function AboutPage() {
         </div>
 
         <Container className="relative py-20 sm:py-24 lg:py-28">
-          <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:gap-16">
-            <div className="flex-1">
-              <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
-              <h1
-                id="about-hero-heading"
-                className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
-              >
-                {content.hero.title}
-              </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-                {content.hero.subtitle}
-              </p>
-            </div>
-            <div className="relative mx-auto shrink-0 lg:mx-0">
-              <div className="relative h-48 w-48 overflow-hidden rounded-2xl border-2 border-accent/30 shadow-2xl sm:h-56 sm:w-56">
-                <Image
-                  src="/images/guy-zomer.jpg"
-                  alt="עו״ד גיא זומר — תמונת פורטרט"
-                  fill
-                  className="object-cover object-top"
-                  sizes="224px"
-                  priority
-                />
-              </div>
-              <div className="absolute -top-3 -right-3 h-16 w-16 rounded-xl bg-accent/20" aria-hidden="true" />
-              <div className="absolute -bottom-3 -left-3 h-20 w-20 rounded-xl bg-accent/15" aria-hidden="true" />
-            </div>
-          </div>
+          <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
+          <h1
+            id="about-hero-heading"
+            className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
+          >
+            {content.hero.title}
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
+            {content.hero.subtitle}
+          </p>
         </Container>
 
         <div
@@ -114,14 +96,31 @@ export default async function AboutPage() {
       >
         <Container>
           <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
-            <div className="relative" aria-hidden="true">
-              <div className="aspect-[3/4] max-w-sm mx-auto rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-xl lg:mx-0">
-                <div className="absolute -top-3 -right-3 h-20 w-20 rounded-xl bg-accent/20" />
-                <div className="absolute -bottom-3 -left-3 h-28 w-28 rounded-xl bg-accent/15" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Users className="h-20 w-20 text-white/15" />
-                </div>
+            <div className="relative">
+              <div className="relative aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl lg:mx-0">
+                <Image
+                  src="/images/guy-zomer.jpg"
+                  alt="עו״ד גיא זומר – עורך דין פלילי, תמונת פורטרט מקצועית"
+                  fill
+                  className="object-cover object-top"
+                  sizes="(min-width: 1024px) 384px, (min-width: 640px) 384px, 320px"
+                  priority
+                />
               </div>
+              <div className="absolute -top-3 -right-3 h-20 w-20 rounded-xl bg-accent/20" aria-hidden="true" />
+              <div className="absolute -bottom-3 -left-3 h-28 w-28 rounded-xl bg-accent/15" aria-hidden="true" />
+              <p className="mt-3 text-center text-xs text-muted">
+                צילום:{" "}
+                <a
+                  href="https://www.nataliemichelson.co.il/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-primary transition-colors"
+                >
+                  נטלי מיכלסון
+                  <span className="sr-only"> (נפתח בחלון חדש)</span>
+                </a>
+              </p>
             </div>
 
             <div>
