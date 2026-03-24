@@ -8,7 +8,7 @@ import { mediaAppearanceSchema } from "@/lib/validations";
 export async function GET() {
   try {
     const appearances = await prisma.mediaAppearance.findMany({
-      orderBy: { order: "asc" },
+      orderBy: { date: "desc" },
     });
 
     return NextResponse.json(appearances);

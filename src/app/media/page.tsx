@@ -40,7 +40,7 @@ async function getMediaAppearances() {
   try {
     return await prisma.mediaAppearance.findMany({
       where: { isActive: true },
-      orderBy: { order: "asc" },
+      orderBy: { date: "desc" },
     });
   } catch {
     return [];
