@@ -4,6 +4,18 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
+  // Redirect uppercase paths to lowercase (old site compat)
+  if (
+    pathname !== pathname.toLowerCase() &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/_next") &&
+    !pathname.startsWith("/admin")
+  ) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.toLowerCase();
+    return NextResponse.redirect(url, 301);
+  }
+
   // Only protect /admin routes (except /admin/login)
   const isAdminRoute =
     pathname.startsWith("/admin") && !pathname.startsWith("/admin/login");
@@ -18,5 +30,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)",
+  ],
 };
