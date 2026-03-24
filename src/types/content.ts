@@ -314,6 +314,25 @@ export interface ProjectsPageContent {
   };
 }
 
+// ── Digital Services Page Content ──
+
+export interface DigitalServiceItem {
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string; // lucide icon name
+  tags: string[];
+}
+
+export interface DigitalServicesPageContent {
+  hero: { title: string; subtitle: string };
+  intro: { title: string; paragraphs: string[] };
+  services: { title: string; subtitle: string };
+  items: DigitalServiceItem[];
+  credentials: { title: string; items: string[] };
+  cta: { title: string; description: string; ctaText: string; ctaLink: string };
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -328,6 +347,7 @@ export type PageContentMap = {
   "article-detail": ArticleDetailContent;
   "service-detail": ServiceDetailContent;
   projects: ProjectsPageContent;
+  "digital-services": DigitalServicesPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

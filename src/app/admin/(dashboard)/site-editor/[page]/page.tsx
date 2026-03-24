@@ -17,6 +17,7 @@ import { MediaEditors } from "@/components/admin/section-editors/media-editors";
 import { ArticleDetailEditors } from "@/components/admin/section-editors/article-detail-editors";
 import { ServiceDetailEditors } from "@/components/admin/section-editors/service-detail-editors";
 import { ProjectsEditors } from "@/components/admin/section-editors/projects-editors";
+import { DigitalServicesEditors } from "@/components/admin/section-editors/digital-services-editors";
 import {
   ArrowRight,
   Loader2,
@@ -26,7 +27,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -42,6 +43,7 @@ const PAGE_LABELS: Record<string, string> = {
   "article-detail": "עמוד מאמר (תבנית)",
   "service-detail": "עמוד שירות (תבנית)",
   projects: "מיזמים",
+  "digital-services": "שירותים דיגיטליים",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -56,6 +58,7 @@ const PAGE_URLS: Record<string, string> = {
   "article-detail": "/articles",
   "service-detail": "/services",
   projects: "/projects",
+  "digital-services": "/digital-services",
 };
 
 /* ─── Page Editor ─── */
@@ -344,6 +347,12 @@ export default function SiteEditorPageEditor({
           {slug === "projects" && (
             <ProjectsEditors
               content={content as ProjectsPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "digital-services" && (
+            <DigitalServicesEditors
+              content={content as DigitalServicesPageContent}
               onChange={setContent}
             />
           )}

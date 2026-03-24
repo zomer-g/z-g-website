@@ -10,6 +10,7 @@ import type {
   ArticleDetailContent,
   ServiceDetailContent,
   ProjectsPageContent,
+  DigitalServicesPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -116,6 +117,7 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "מאמרים", href: "/articles" },
     { label: "מדיה", href: "/media" },
     { label: "מיזמים", href: "/projects" },
+    { label: "שירותים דיגיטליים", href: "/digital-services" },
     { label: "צור קשר", href: "/contact" },
   ],
   ctaText: "ייעוץ ראשוני",
@@ -133,6 +135,7 @@ export const DEFAULT_FOOTER_CONTENT: FooterContent = {
     { label: "מאמרים", href: "/articles" },
     { label: "מדיה", href: "/media" },
     { label: "מיזמים", href: "/projects" },
+    { label: "שירותים דיגיטליים", href: "/digital-services" },
     { label: "צור קשר", href: "/contact" },
   ],
   contactTitle: "צור קשר",
@@ -277,6 +280,71 @@ export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
   },
 };
 
+/* ─── Digital Services Page ─── */
+
+export const DEFAULT_DIGITAL_SERVICES_CONTENT: DigitalServicesPageContent = {
+  hero: {
+    title: "שירותים דיגיטליים",
+    subtitle: "ייעוץ והטמעת טכנולוגיה למשרדי עורכי דין ועסקים",
+  },
+  intro: {
+    title: "טרנספורמציה דיגיטלית בעולם המשפט",
+    paragraphs: [
+      "ענף המשפט בישראל ניצב בפתחה של תקופה שבה הטכנולוגיה מפסיקה להיות כלי עזר שולי והופכת לליבת העיסוק המקצועי. משרד שאינו מאמץ פתרונות טכנולוגיים מתקדמים נותר מאחור — הן מבחינת היכולת לנהל תיקים מרובי מסמכים, והן מבחינת היכולת לספק שירות הולם ללקוחות המצפים לשקיפות ומהירות.",
+      "הטמעת כלים טכנולוגיים אינה מסתכמת ברכישת רישיון לתוכנה. מדובר בשינוי פרדיגמה ארגונית הדורש אפיון מדויק של צרכי המשרד, התאמה לסביבה הרגולטורית הישראלית, ובניית תהליכי עבודה שמבטיחים שהטכנולוגיה תשרת את עורך הדין — ולא תכביד עליו.",
+      "השירותים שלהלן מתמקדים בשלושה עמודי תווך: ניהול קשרים ומידע מול גורמי אכיפה, ויזואליזציה של ניתוח התיק המשפטי, והטמעה של מודלי שפה (LLM) לניהול תכנים מורכבים. פתרון קצה לקצה, מאיסוף הנתונים ועד הצגת הראיות בבית המשפט.",
+    ],
+  },
+  services: {
+    title: "שירותים ופתרונות",
+    subtitle: "פתרונות טכנולוגיים מותאמים לעולם המשפט והעסקים",
+  },
+  items: [
+    {
+      title: "ניהול קשרים מול גורמי אכיפה",
+      subtitle: "CRM משפטי מותאם",
+      description: "מערכת מותאמת למעקב אחר תכתובות, מועדים והתכתבויות עם פרקליטות, משטרה ורשויות. ניהול מרכזי של כל נקודות המגע בתיק, כולל התראות אוטומטיות למועדים קריטיים וארכיון חכם של תכתובות.",
+      icon: "Database",
+      tags: ["CRM", "ניהול תיקים", "אכיפה"],
+    },
+    {
+      title: "ויזואליזציה של תיק משפטי",
+      subtitle: "מיפוי חזותי לניתוח אסטרטגי",
+      description: "מיפוי חזותי של ראיות, עדים, לוחות זמנים וקשרים בין שחקנים בתיק. הכלי מאפשר לזהות דפוסים, סתירות וחולשות בתיק באופן ויזואלי — ולהציג ממצאים בצורה ברורה בבית המשפט.",
+      icon: "Eye",
+      tags: ["ויזואליזציה", "ניתוח ראיות", "מיפוי"],
+    },
+    {
+      title: "הטמעת מודלי שפה (LLM)",
+      subtitle: "AI לניהול מסמכים משפטיים",
+      description: "עיבוד ותמצות מסמכים, הכנת סיכומים אוטומטיים וחיפוש חכם בחומר ראייתי. התאמה לעברית משפטית ולמבנים ייחודיים של מסמכים ישראליים — מכתבי אישום ועד פרוטוקולים.",
+      icon: "FileSearch",
+      tags: ["LLM", "עיבוד מסמכים", "AI"],
+    },
+    {
+      title: "הגנת פרטיות ורגולציה",
+      subtitle: "ייעוץ GDPR וחוק הגנת הפרטיות",
+      description: "ייעוץ ויישום דרישות הגנת הפרטיות — מהטמעת נהלים פנימיים ועד מינוי ממונה הגנת פרטיות חיצוני. התאמה לחוק הגנת הפרטיות הישראלי, ל-GDPR ולדרישות רגולטוריות ספציפיות לענף.",
+      icon: "Scale",
+      tags: ["הגנת פרטיות", "GDPR", "רגולציה"],
+    },
+  ],
+  credentials: {
+    title: "הסמכות ורקע מקצועי",
+    items: [
+      "ממונה הגנת פרטיות מוסמך — אוניברסיטת תל אביב, בחסות הרשות להגנת הפרטיות",
+      "ראש צוות דאטה ואנליסט — סטארטאפ בתחום האלגוריתמיקה של סאונד",
+      "מוביל מיזמי Civic Tech — מידע לעם, יומן לעם, ניגוד עניינים לעם",
+    ],
+  },
+  cta: {
+    title: "מעוניינים בטרנספורמציה דיגיטלית?",
+    description: "אשמח לשמוע על האתגרים הטכנולוגיים של המשרד או העסק שלכם ולהציע פתרונות מותאמים.",
+    ctaText: "צרו קשר",
+    ctaLink: "/contact",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -291,4 +359,5 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "article-detail": DEFAULT_ARTICLE_DETAIL_CONTENT,
   "service-detail": DEFAULT_SERVICE_DETAIL_CONTENT,
   projects: DEFAULT_PROJECTS_CONTENT,
+  "digital-services": DEFAULT_DIGITAL_SERVICES_CONTENT,
 };

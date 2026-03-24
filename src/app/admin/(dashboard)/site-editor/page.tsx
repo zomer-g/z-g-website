@@ -60,6 +60,7 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
   { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
   { slug: "projects", label: "מיזמים", icon: Code2 },
+  { slug: "digital-services", label: "שירותים דיגיטליים", icon: Code2 },
 ];
 
 /* ─── Site Editor Page ─── */
