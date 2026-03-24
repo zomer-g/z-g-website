@@ -13,6 +13,7 @@ function getEditUrl(pathname: string): string {
   if (pathname === "/contact") return "/admin/site-editor/contact";
   if (pathname === "/media") return "/admin/site-editor/media";
   if (pathname === "/projects") return "/admin/site-editor/projects";
+  if (pathname === "/digital-services") return "/admin/site-editor/digital-services";
   if (pathname === "/privacy") return "/admin/pages/privacy";
   if (pathname === "/terms") return "/admin/pages/terms";
   if (pathname === "/accessibility") return "/admin/pages/accessibility";
@@ -29,6 +30,7 @@ function getPageLabel(pathname: string): string {
   if (pathname === "/contact") return "צור קשר";
   if (pathname === "/media") return "מדיה";
   if (pathname === "/projects") return "מיזמים";
+  if (pathname === "/digital-services") return "שירותים דיגיטליים";
   if (pathname === "/privacy") return "מדיניות פרטיות";
   if (pathname === "/terms") return "תנאי שימוש";
   if (pathname === "/accessibility") return "הצהרת נגישות";
