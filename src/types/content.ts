@@ -66,10 +66,18 @@ export interface HomeCtaSection {
   phoneHref: string;
 }
 
+export interface HomeProjectsPreview {
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaLink: string;
+}
+
 export interface HomePageContent {
   hero: HomeHeroContent;
   services: HomeServicesSection;
   aboutPreview: HomeAboutPreview;
+  projectsPreview: HomeProjectsPreview;
   articles: HomeArticlesSection;
   cta: HomeCtaSection;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
-import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2, ExternalLink, Code2 } from "lucide-react";
 import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { HomePageContent } from "@/types/content";
 
@@ -222,6 +222,48 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
             >
               <ExternalLink size={14} />
               עבור לניהול מאמרים
+            </Link>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── Projects Preview Section ── */}
+      <SectionCard title="מיזמים" icon={Code2}>
+        <div className="space-y-3">
+          <Input
+            label="כותרת הסעיף"
+            value={content.projectsPreview?.title ?? ""}
+            onChange={(e) => update("projectsPreview", { title: e.target.value })}
+            dir="rtl"
+          />
+          <Input
+            label="תת-כותרת"
+            value={content.projectsPreview?.subtitle ?? ""}
+            onChange={(e) => update("projectsPreview", { subtitle: e.target.value })}
+            dir="rtl"
+          />
+          <Input
+            label="טקסט כפתור"
+            value={content.projectsPreview?.ctaText ?? ""}
+            onChange={(e) => update("projectsPreview", { ctaText: e.target.value })}
+            dir="rtl"
+          />
+          <Input
+            label="קישור כפתור"
+            value={content.projectsPreview?.ctaLink ?? "/projects"}
+            onChange={(e) => update("projectsPreview", { ctaLink: e.target.value })}
+            dir="ltr"
+          />
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm text-blue-700">
+              המיזמים עצמם מנוהלים בעמוד מיזמים. 3 המיזמים הראשונים יוצגו כאן אוטומטית.
+            </p>
+            <Link
+              href="/admin/site-editor/projects"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              <ExternalLink size={14} />
+              עבור לניהול מיזמים
             </Link>
           </div>
         </div>

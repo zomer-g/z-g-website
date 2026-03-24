@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar } from "lucide-react";
+import { ArrowLeft, Calendar, ExternalLink, Database, Search } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { SectionHeading } from "@/components/ui/section-heading";
@@ -20,22 +20,27 @@ import { getIcon } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { EditableSection } from "@/components/admin/editable-section";
-import type { HomePageContent } from "@/types/content";
+import type { HomePageContent, ProjectsPageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
+
+/* ─── Icon map for projects preview ─── */
+
+const PROJECT_ICONS: Record<string, typeof Database> = { Database, Calendar, Search };
 
 /* ─── Metadata ─── */
 
 export const metadata: Metadata = {
   title: "עמוד הבית",
   description:
-    'עו"ד זומר - ייצוג משפטי מקצועי ברמה הגבוהה ביותר. מומחיות בדיני חברות, נדל"ן, ליטיגציה ועוד. ייעוץ ראשוני ללא התחייבות.',
+    'עו"ד גיא זומר — משפט פלילי עם גישה אנליטית מבוססת דאטה וטכנולוגיה. ייצוג בחקירות, הליכים פליליים וחופש מידע. ייעוץ ראשוני ללא התחייבות.',
 };
 
 /* ─── Page ─── */
 
 export default async function HomePage() {
   const content = await getPageContent<HomePageContent>("home");
+  const projectsContent = await getPageContent<ProjectsPageContent>("projects");
 
   // Fetch services from DB
   let dbServices: { slug: string; title: string; description: string; icon: string | null }[] = [];
@@ -193,6 +198,72 @@ export default async function HomePage() {
         </Container>
       </section>
       </EditableSection>
+
+      {/* ── Projects Preview ── */}
+      {projectsContent.projects.length > 0 && (
+        <EditableSection editHref="/admin/site-editor/projects" editLabel="מיזמים">
+        <section aria-labelledby="projects-preview-heading" className="py-20 lg:py-28">
+          <Container>
+            <SectionHeading
+              id="projects-preview-heading"
+              title={content.projectsPreview.title}
+              subtitle={content.projectsPreview.subtitle}
+            />
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {projectsContent.projects.slice(0, 3).map((project, i) => {
+                const Icon = PROJECT_ICONS[project.icon] || Database;
+                return (
+                  <a
+                    key={i}
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block"
+                  >
+                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
+                      <CardHeader>
+                        <div
+                          className={cn(
+                            "mb-4 inline-flex h-12 w-12 items-center justify-center",
+                            "rounded-lg bg-primary/5 text-primary",
+                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
+                          )}
+                        >
+                          <Icon className="h-6 w-6" aria-hidden="true" />
+                        </div>
+                        <CardTitle className="transition-colors duration-200 group-hover:text-accent">
+                          {project.title}
+                        </CardTitle>
+                        <CardDescription>{project.subtitle}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
+                            "transition-colors duration-200 group-hover:text-accent"
+                          )}
+                        >
+                          לאתר הפרויקט
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              })}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Button href={content.projectsPreview.ctaLink} variant="secondary" size="md">
+                {content.projectsPreview.ctaText}
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </Container>
+        </section>
+        </EditableSection>
+      )}
 
       {/* ── Articles Preview (from DB) ── */}
       {dbArticles.length > 0 && (
