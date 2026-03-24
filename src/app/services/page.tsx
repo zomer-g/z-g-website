@@ -16,6 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { getIcon } from "@/lib/icons";
 import { getPageContent } from "@/lib/content";
 import type { HomePageContent, ServicesPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function ServicesPage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
+      <EditableSection editHref="/admin/site-editor/services" editLabel="באנר">
       <section
         className="bg-primary py-20 sm:py-28"
         aria-labelledby="services-hero-heading"
@@ -79,8 +81,10 @@ export default async function ServicesPage() {
           </p>
         </Container>
       </section>
+      </EditableSection>
 
       {/* Services Grid */}
+      <EditableSection editHref="/admin/services" editLabel="תחומי עיסוק">
       <section
         className="bg-background py-16 sm:py-24"
         aria-labelledby="services-grid-heading"
@@ -144,6 +148,7 @@ export default async function ServicesPage() {
           )}
         </Container>
       </section>
+      </EditableSection>
 
       {/* CTA Section — editable from admin (דף הבית → CTA) */}
       <section

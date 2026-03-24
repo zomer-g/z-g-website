@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { getPageContent } from "@/lib/content";
 import type { MediaPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function MediaPage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
+      <EditableSection editHref="/admin/site-editor/media" editLabel="באנר">
       <section
         aria-labelledby="media-hero-heading"
         className="bg-primary py-16 sm:py-20"
@@ -86,8 +88,10 @@ export default async function MediaPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* Media Grid Section */}
+      <EditableSection editHref="/admin/media-appearances" editLabel="הופעות מדיה">
       <section aria-labelledby="media-grid-heading" className="py-16 sm:py-20">
         <Container>
           <SectionHeading
@@ -210,6 +214,7 @@ export default async function MediaPage() {
           )}
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

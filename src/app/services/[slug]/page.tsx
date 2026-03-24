@@ -13,6 +13,7 @@ import { getIcon } from "@/lib/icons";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
 import { getPageContent } from "@/lib/content";
 import type { HomePageContent, ServiceDetailContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -158,6 +159,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       </section>
 
       {/* Main Content + Sidebar */}
+      <EditableSection editHref="/admin/services" editLabel="תוכן שירות">
       <section className="bg-background py-16 sm:py-24">
         <Container>
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
@@ -229,6 +231,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
           </div>
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

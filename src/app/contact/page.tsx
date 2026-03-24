@@ -8,6 +8,7 @@ import IntakeForm from "@/components/forms/intake-form";
 import { cn } from "@/lib/utils";
 import { getPageContent } from "@/lib/content";
 import type { ContactPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 /* ─── Metadata ─── */
 
@@ -54,6 +55,7 @@ export default async function ContactPage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
+      <EditableSection editHref="/admin/site-editor/contact" editLabel="באנר">
       <section
         aria-labelledby="contact-hero-heading"
         className="bg-primary py-16 sm:py-20"
@@ -75,8 +77,10 @@ export default async function ContactPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* Contact Form & Info Section */}
+      <EditableSection editHref="/admin/site-editor/contact" editLabel="פרטי קשר">
       <section aria-labelledby="contact-form-heading" className="py-16 sm:py-20">
         <Container>
           <h2 id="contact-form-heading" className="sr-only">
@@ -149,6 +153,7 @@ export default async function ContactPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* Map Placeholder */}
       <section aria-labelledby="contact-map-heading" className="pb-16 sm:pb-20">

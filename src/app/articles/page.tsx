@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { getPageContent } from "@/lib/content";
 import type { ArticlesPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,7 @@ export default async function ArticlesPage() {
   return (
     <PublicLayout>
       {/* Hero Section */}
+      <EditableSection editHref="/admin/site-editor/articles" editLabel="באנר">
       <section
         className="bg-primary py-20 sm:py-28"
         aria-labelledby="articles-hero-heading"
@@ -104,8 +106,10 @@ export default async function ArticlesPage() {
           </p>
         </Container>
       </section>
+      </EditableSection>
 
       {/* Articles Grid */}
+      <EditableSection editHref="/admin/posts" editLabel="מאמרים">
       <section
         className="bg-background py-16 sm:py-24"
         aria-labelledby="articles-grid-heading"
@@ -211,8 +215,10 @@ export default async function ArticlesPage() {
           )}
         </Container>
       </section>
+      </EditableSection>
 
       {/* Newsletter CTA */}
+      <EditableSection editHref="/admin/site-editor/articles" editLabel="קריאה לפעולה">
       <section
         className="bg-muted-bg py-16"
         aria-labelledby="articles-cta-heading"
@@ -237,6 +243,7 @@ export default async function ArticlesPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

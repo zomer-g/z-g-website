@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { getPageContent } from "@/lib/content";
 import type { ProjectsPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,7 @@ export default async function ProjectsPage() {
   return (
     <PublicLayout>
       {/* ── Hero ── */}
+      <EditableSection editHref="/admin/site-editor/projects" editLabel="באנר">
       <section
         aria-labelledby="projects-hero-heading"
         className="relative overflow-hidden bg-primary"
@@ -109,8 +111,10 @@ export default async function ProjectsPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── Projects Grid ── */}
+      <EditableSection editHref="/admin/site-editor/projects" editLabel="מיזמים">
       <section
         aria-labelledby="projects-list-heading"
         className="relative py-16 sm:py-20"
@@ -222,8 +226,10 @@ export default async function ProjectsPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── CTA ── */}
+      <EditableSection editHref="/admin/site-editor/projects" editLabel="קריאה לפעולה">
       <section
         aria-labelledby="projects-cta-heading"
         className="bg-primary py-14 sm:py-16"
@@ -256,6 +262,7 @@ export default async function ProjectsPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

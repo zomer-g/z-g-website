@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Heebo } from "next/font/google";
 import { OrganizationSchema, WebSiteSchema } from "@/components/seo/json-ld";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const GA_ID = "G-W3B12VYHCK";
@@ -69,7 +70,7 @@ export default function RootLayout({
         >
           דלג לתוכן הראשי
         </a>
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

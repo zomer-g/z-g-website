@@ -19,6 +19,7 @@ import { getPageContent } from "@/lib/content";
 import { getIcon } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
+import { EditableSection } from "@/components/admin/editable-section";
 import type { HomePageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
@@ -72,10 +73,13 @@ export default async function HomePage() {
   return (
     <PublicLayout>
       {/* ── Hero ── */}
-      <Hero content={content.hero} />
+      <EditableSection editHref="/admin/site-editor/home" editLabel="באנר ראשי">
+        <Hero content={content.hero} />
+      </EditableSection>
 
       {/* ── Services Preview (from DB) ── */}
       {dbServices.length > 0 && (
+        <EditableSection editHref="/admin/services" editLabel="תחומי עיסוק">
         <section aria-labelledby="services-heading" className="py-20 lg:py-28">
           <Container>
             <SectionHeading
@@ -128,9 +132,11 @@ export default async function HomePage() {
             </div>
           </Container>
         </section>
+        </EditableSection>
       )}
 
       {/* ── About Preview ── */}
+      <EditableSection editHref="/admin/site-editor/home" editLabel="אודות">
       <section
         aria-labelledby="about-preview-heading"
         className="bg-muted-bg py-20 lg:py-28"
@@ -186,9 +192,11 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── Articles Preview (from DB) ── */}
       {dbArticles.length > 0 && (
+        <EditableSection editHref="/admin/posts" editLabel="מאמרים">
         <section aria-labelledby="articles-heading" className="py-20 lg:py-28">
           <Container>
             <SectionHeading
@@ -236,9 +244,11 @@ export default async function HomePage() {
             </div>
           </Container>
         </section>
+        </EditableSection>
       )}
 
       {/* ── CTA Section ── */}
+      <EditableSection editHref="/admin/site-editor/home" editLabel="קריאה לפעולה">
       <section
         aria-labelledby="cta-heading"
         className="relative overflow-hidden bg-primary py-20 lg:py-28"
@@ -276,6 +286,7 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { getPageContent } from "@/lib/content";
 import { getIcon } from "@/lib/icons";
 import type { AboutPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 /* ─── Metadata ─── */
 
@@ -32,6 +33,7 @@ export default async function AboutPage() {
   return (
     <PublicLayout>
       {/* ── Hero Banner ── */}
+      <EditableSection editHref="/admin/site-editor/about" editLabel="באנר">
       <section
         aria-labelledby="about-hero-heading"
         className="relative overflow-hidden bg-primary"
@@ -63,8 +65,10 @@ export default async function AboutPage() {
           aria-hidden="true"
         />
       </section>
+      </EditableSection>
 
       {/* ── Firm Story ── */}
+      <EditableSection editHref="/admin/site-editor/about" editLabel="הגישה">
       <section aria-labelledby="firm-story-heading" className="py-20 lg:py-28">
         <Container narrow>
           <SectionHeading
@@ -81,8 +85,10 @@ export default async function AboutPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── Attorney Profile ── */}
+      <EditableSection editHref="/admin/site-editor/about" editLabel="עורך הדין">
       <section
         aria-labelledby="attorney-heading"
         className="bg-muted-bg py-20 lg:py-28"
@@ -132,8 +138,10 @@ export default async function AboutPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── Values ── */}
+      <EditableSection editHref="/admin/site-editor/about" editLabel="ערכים">
       <section aria-labelledby="values-heading" className="py-20 lg:py-28">
         <Container>
           <SectionHeading
@@ -167,8 +175,10 @@ export default async function AboutPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* ── CTA ── */}
+      <EditableSection editHref="/admin/site-editor/about" editLabel="קריאה לפעולה">
       <section
         aria-labelledby="about-cta-heading"
         className="relative overflow-hidden bg-primary py-16 lg:py-20"
@@ -196,6 +206,7 @@ export default async function AboutPage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
     </PublicLayout>
   );
 }

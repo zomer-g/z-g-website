@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import type { HeaderContent } from "@/types/content";
 import { DEFAULT_HEADER_CONTENT } from "@/lib/content-defaults";
 
@@ -17,6 +18,8 @@ export default function Header({ content }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
+  const { isAdmin } = useIsAdmin();
+  const hasAdminBar = isAdmin && !pathname.startsWith("/admin");
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -77,7 +80,8 @@ export default function Header({ content }: HeaderProps) {
     <header
       role="banner"
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
+        "sticky z-50 w-full transition-all duration-300",
+        hasAdminBar ? "top-10" : "top-0",
         "border-b border-border bg-background",
         isScrolled && "shadow-md backdrop-blur-sm bg-background/95"
       )}
@@ -152,7 +156,7 @@ export default function Header({ content }: HeaderProps) {
 
       {isMobileMenuOpen && (
         <>
-          <div className="fixed inset-0 top-20 z-40 bg-foreground/40 lg:hidden" aria-hidden="true" onClick={closeMobileMenu} />
+          <div className={cn("fixed inset-0 z-40 bg-foreground/40 lg:hidden", hasAdminBar ? "top-[7.5rem]" : "top-20")} aria-hidden="true" onClick={closeMobileMenu} />
           <div
             ref={mobileMenuRef}
             id="mobile-navigation"
@@ -160,7 +164,7 @@ export default function Header({ content }: HeaderProps) {
             aria-modal="true"
             aria-label="תפריט ניווט נייד"
             tabIndex={-1}
-            className={cn("fixed inset-x-0 top-20 z-50 lg:hidden", "border-b border-border bg-background shadow-lg")}
+            className={cn("fixed inset-x-0 z-50 lg:hidden", hasAdminBar ? "top-[7.5rem]" : "top-20", "border-b border-border bg-background shadow-lg")}
           >
             <nav role="navigation" aria-label="ניווט ראשי - נייד">
               <ul className="divide-y divide-border px-4 py-2" role="list">

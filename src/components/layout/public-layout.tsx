@@ -1,5 +1,7 @@
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
+import { AdminEditModeProvider } from "@/contexts/admin-bar-context";
+import { AdminBar } from "@/components/admin/admin-bar";
 import { getPageContent } from "@/lib/content";
 import type { HeaderContent, FooterContent } from "@/types/content";
 
@@ -14,12 +16,13 @@ export default async function PublicLayout({ children }: PublicLayoutProps) {
   ]);
 
   return (
-    <>
+    <AdminEditModeProvider>
+      <AdminBar />
       <Header content={headerContent} />
       <main id="main-content" role="main" className="flex-1">
         {children}
       </main>
       <Footer content={footerContent} />
-    </>
+    </AdminEditModeProvider>
   );
 }

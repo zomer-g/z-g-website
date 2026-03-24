@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
 import { getPageContent } from "@/lib/content";
 import type { ArticleDetailContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
 
@@ -243,6 +244,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
       </header>
 
       {/* Article Body + Sidebar */}
+      <EditableSection editHref="/admin/posts" editLabel="תוכן מאמר">
       <section className="bg-background py-16 sm:py-24">
         <Container>
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">
@@ -349,6 +351,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
           </div>
         </Container>
       </section>
+      </EditableSection>
 
       {/* More Articles Section */}
       {relatedArticles.length > 0 && (
