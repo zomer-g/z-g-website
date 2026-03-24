@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+p {
+  text-align: justify;
+}
+
 :root {
   --primary: #1a365d;
   --primary-light: #2a4a7f;
