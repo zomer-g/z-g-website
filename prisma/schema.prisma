@@ -136,8 +136,9 @@ model MediaAppearance {
   type        String   // "video" | "article" | "podcast"
   source      String
   date        String
-  url         String?
-  order       Int      @default(0)
+  url          String?
+  thumbnailUrl String?
+  order        Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
 }

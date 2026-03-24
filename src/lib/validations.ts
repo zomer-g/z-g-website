@@ -47,6 +47,7 @@ export const mediaAppearanceSchema = z.object({
   source: z.string().min(1, "מקור נדרש"),
   date: z.string().min(1, "תאריך נדרש"),
   url: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
   order: z.number().default(0),
   isActive: z.boolean().default(true),
 });

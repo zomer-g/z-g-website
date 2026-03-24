@@ -120,30 +120,41 @@ export default async function MediaPage() {
                       "hover:shadow-md hover:border-accent/30",
                     )}
                   >
-                    {/* Media Thumbnail Placeholder */}
-                    <div
-                      className={cn(
-                        "relative flex h-48 items-center justify-center",
-                        "bg-gradient-to-br from-primary/5 to-primary/15",
-                      )}
-                      aria-hidden="true"
-                    >
+                    {/* Media Thumbnail */}
+                    {item.thumbnailUrl ? (
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={item.thumbnailUrl}
+                          alt={item.title}
+                          className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
                       <div
                         className={cn(
-                          "flex h-16 w-16 items-center justify-center rounded-full",
-                          "bg-white/90 shadow-lg",
-                          "transition-transform duration-200 group-hover:scale-110",
+                          "relative flex h-48 items-center justify-center",
+                          "bg-gradient-to-br from-primary/5 to-primary/15",
                         )}
+                        aria-hidden="true"
                       >
-                        {item.type === "video" ? (
-                          <Play className="h-7 w-7 text-primary ms-1" />
-                        ) : item.type === "article" ? (
-                          <ExternalLink className="h-7 w-7 text-primary" />
-                        ) : (
-                          <Mic className="h-7 w-7 text-primary" />
-                        )}
+                        <div
+                          className={cn(
+                            "flex h-16 w-16 items-center justify-center rounded-full",
+                            "bg-white/90 shadow-lg",
+                            "transition-transform duration-200 group-hover:scale-110",
+                          )}
+                        >
+                          {item.type === "video" ? (
+                            <Play className="h-7 w-7 text-primary ms-1" />
+                          ) : item.type === "article" ? (
+                            <ExternalLink className="h-7 w-7 text-primary" />
+                          ) : (
+                            <Mic className="h-7 w-7 text-primary" />
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <CardContent className="flex flex-1 flex-col">
                       {/* Type Badge & Date */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import {
   Play,
   Newspaper,
   Mic,
+  Upload,
+  ImageIcon,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -32,6 +34,7 @@ interface MediaAppearanceItem {
   source: string;
   date: string;
   url: string | null;
+  thumbnailUrl: string | null;
   order: number;
   isActive: boolean;
 }
@@ -43,6 +46,7 @@ interface MediaAppearanceForm {
   source: string;
   date: string;
   url: string;
+  thumbnailUrl: string;
   order: number;
   isActive: boolean;
 }
@@ -54,6 +58,7 @@ const EMPTY_FORM: MediaAppearanceForm = {
   source: "",
   date: "",
   url: "",
+  thumbnailUrl: "",
   order: 0,
   isActive: true,
 };
@@ -79,6 +84,37 @@ export default function AdminMediaAppearancesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MediaAppearanceForm>(EMPTY_FORM);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
+  const thumbInputRef = useRef<HTMLInputElement>(null);
+
+  /* ── Thumbnail Upload ── */
+
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingThumb(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("alt", form.title || "thumbnail");
+
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("שגיאה בהעלאת התמונה");
+
+      const data = await res.json();
+      setForm((prev) => ({ ...prev, thumbnailUrl: data.url }));
+    } catch {
+      setFeedback({ type: "error", message: "שגיאה בהעלאת התמונה" });
+    } finally {
+      setUploadingThumb(false);
+      if (thumbInputRef.current) thumbInputRef.current.value = "";
+    }
+  };
 
   /* ── Fetch ── */
 
@@ -125,6 +161,7 @@ export default function AdminMediaAppearancesPage() {
       source: item.source,
       date: item.date,
       url: item.url || "",
+      thumbnailUrl: item.thumbnailUrl || "",
       order: item.order,
       isActive: item.isActive,
     });
@@ -165,6 +202,7 @@ export default function AdminMediaAppearancesPage() {
           source: form.source,
           date: form.date,
           url: form.url || undefined,
+          thumbnailUrl: form.thumbnailUrl || undefined,
           order: form.order,
           isActive: form.isActive,
         }),
@@ -406,6 +444,57 @@ export default function AdminMediaAppearancesPage() {
                   {form.isActive ? "פעיל" : "לא פעיל"}
                 </button>
               </div>
+            </div>
+
+            {/* ── Thumbnail Upload ── */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-foreground">
+                תמונה ממוזערת (אופציונלי)
+              </label>
+              {form.thumbnailUrl ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={form.thumbnailUrl}
+                    alt="תצוגה מקדימה"
+                    className="h-20 w-32 rounded-lg border border-border object-cover"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setForm((prev) => ({ ...prev, thumbnailUrl: "" }))}
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <X size={14} />
+                    הסר
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={thumbInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleThumbnailUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="ghost"
+                    onClick={() => thumbInputRef.current?.click()}
+                    disabled={uploadingThumb}
+                    className="border border-dashed border-border"
+                  >
+                    {uploadingThumb ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Upload size={16} />
+                    )}
+                    {uploadingThumb ? "מעלה..." : "העלה תמונה"}
+                  </Button>
+                  <span className="text-xs text-muted">
+                    מומלץ: צילום מסך של כותרת הכתבה + לוגו המקור
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 border-t border-border pt-4">
