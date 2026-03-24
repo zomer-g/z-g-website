@@ -204,6 +204,7 @@ export default async function MediaPage() {
                       className="block"
                     >
                       {cardContent}
+                      <span className="sr-only"> (נפתח בחלון חדש)</span>
                     </a>
                   );
                 }

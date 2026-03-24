@@ -211,6 +211,7 @@ export default async function ProjectsPage() {
                             )}
                           >
                             <span>לאתר הפרויקט</span>
+                            <span className="sr-only"> (נפתח בחלון חדש)</span>
                             <ExternalLink
                               className="h-4 w-4"
                               aria-hidden="true"

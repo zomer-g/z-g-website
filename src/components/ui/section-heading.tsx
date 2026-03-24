@@ -18,6 +18,7 @@ export function SectionHeading({
   title,
   subtitle,
   align = "center",
+  id,
   className,
   ...props
 }: SectionHeadingProps) {
@@ -42,6 +43,7 @@ export function SectionHeading({
       />
 
       <h2
+        id={id}
         className={cn(
           "text-3xl font-bold leading-snug tracking-tight text-primary-dark",
           "sm:text-4xl",

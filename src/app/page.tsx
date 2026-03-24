@@ -191,6 +191,7 @@ export default async function HomePage() {
                   className="underline hover:text-primary transition-colors"
                 >
                   נטלי מיכלסון
+                  <span className="sr-only"> (נפתח בחלון חדש)</span>
                 </a>
               </p>
             </div>
@@ -245,6 +246,7 @@ export default async function HomePage() {
                           )}
                         >
                           לאתר הפרויקט
+                          <span className="sr-only"> (נפתח בחלון חדש)</span>
                           <ExternalLink className="h-4 w-4" aria-hidden="true" />
                         </span>
                       </CardContent>

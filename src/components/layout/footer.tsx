@@ -105,7 +105,7 @@ export default function Footer({ content }: FooterProps) {
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-white/80">
               <span aria-label={`כל הזכויות שמורות ${currentYear}`}>
                 &copy; {currentYear} {data.copyright}
               </span>
@@ -117,7 +117,7 @@ export default function Footer({ content }: FooterProps) {
                     <Link
                       href={link.href}
                       className={cn(
-                        "text-xs text-white/60 transition-colors duration-200",
+                        "text-xs text-white/80 transition-colors duration-200",
                         "hover:text-accent focus-visible:text-accent"
                       )}
                     >

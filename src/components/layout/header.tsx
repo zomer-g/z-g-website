@@ -50,6 +50,23 @@ export default function Header({ content }: HeaderProps) {
       if (event.key === "Escape") {
         setIsMobileMenuOpen(false);
         menuButtonRef.current?.focus();
+        return;
+      }
+      // Focus trap: Tab/Shift+Tab within mobile menu
+      if (event.key === "Tab" && mobileMenuRef.current) {
+        const focusable = mobileMenuRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     }
     document.addEventListener("keydown", handleKeyDown);
