@@ -7,8 +7,8 @@
  */
 
 const SITE_URL = "https://z-g.co.il";
-const FIRM_NAME_HE = "עו\"ד זומר";
-const FIRM_NAME_EN = "Advocate Zomer";
+const FIRM_NAME_HE = "עו\"ד גיא זומר";
+const FIRM_NAME_EN = "Advocate Guy Zomer";
 const ATTORNEY_NAME_HE = "עו\"ד גיא זומר";
 const ATTORNEY_NAME_EN = "Guy Zomer";
 const PHONE = "+972-3-000-0000";

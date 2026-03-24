@@ -15,19 +15,19 @@ const heebo = Heebo({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
   title: {
-    default: "עו\"ד זומר",
-    template: "%s | עו\"ד זומר",
+    default: "עו\"ד גיא זומר - Zomer",
+    template: "%s | עו\"ד גיא זומר",
   },
   description:
-    "עו\"ד זומר - ייצוג משפטי מקצועי, ליווי משפטי מקיף. התמחות בדין פלילי, ליווי חשודים ונאשמים בכל הערכאות.",
-  keywords: ["עורך דין", "עורך דין פלילי", "ייעוץ משפטי", "זומר"],
+    "עו\"ד גיא זומר - עורך דין פלילי. ייצוג משפטי מקצועי, ליווי חשודים ונאשמים בכל הערכאות. משפט פלילי, שקיפות ציבורית וטכנולוגיה.",
+  keywords: ["גיא זומר", "עורך דין גיא זומר", "עורך דין פלילי", "עו\"ד זומר", "ייעוץ משפטי", "זומר", "Guy Zomer"],
   authors: [{ name: "עו\"ד גיא זומר" }],
   openGraph: {
     type: "website",
     locale: "he_IL",
-    siteName: "עו\"ד זומר",
-    title: "עו\"ד זומר",
-    description: "עו\"ד זומר - ייצוג משפטי מקצועי",
+    siteName: "עו\"ד גיא זומר",
+    title: "עו\"ד גיא זומר - Zomer",
+    description: "עו\"ד גיא זומר - עורך דין פלילי. ייצוג משפטי מקצועי עם גישה שמשלבת מקצועיות, טכנולוגיה ואנושיות.",
   },
   twitter: {
     card: "summary_large_image",

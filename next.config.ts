@@ -28,6 +28,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      // Old site used capitalized paths — redirect to lowercase
+      { source: "/About", destination: "/about", permanent: true },
+      { source: "/Contact", destination: "/contact", permanent: true },
+      { source: "/Services", destination: "/services", permanent: true },
+      { source: "/Articles", destination: "/articles", permanent: true },
+      { source: "/Media", destination: "/media", permanent: true },
+      { source: "/Privacy", destination: "/privacy", permanent: true },
+      { source: "/Terms", destination: "/terms", permanent: true },
+      { source: "/Accessibility", destination: "/accessibility", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
