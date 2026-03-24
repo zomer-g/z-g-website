@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const service = await getService(slug);
 
   if (!service || !service.isActive) {
-    return { title: "שירות לא נמצא | עו"ד זומר" };
+    return { title: "שירות לא נמצא | עו\"ד זומר" };
   }
 
   return {

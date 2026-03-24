@@ -123,7 +123,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const article = await getArticle(slug);
 
   if (!article) {
-    return { title: "מאמר לא נמצא | עו"ד זומר" };
+    return { title: "מאמר לא נמצא | עו\"ד זומר" };
   }
 
   return {
