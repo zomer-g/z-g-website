@@ -4,6 +4,15 @@ p {
   text-align: justify;
 }
 
+.text-center p {
+  text-align: center;
+}
+
+.text-start p,
+.text-right p {
+  text-align: right;
+}
+
 :root {
   --primary: #1a365d;
   --primary-light: #2a4a7f;
