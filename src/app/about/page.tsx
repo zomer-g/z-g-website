@@ -37,34 +37,25 @@ export default async function AboutPage() {
       <EditableSection editHref="/admin/site-editor/about" editLabel="באנר">
       <section
         aria-labelledby="about-hero-heading"
-        className="relative overflow-hidden bg-primary"
+        className="bg-primary py-16 sm:py-20"
       >
-        <div
-          className="absolute inset-0 bg-gradient-to-bl from-primary via-primary-dark to-primary-dark/95"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0" aria-hidden="true">
-          <div className="absolute top-0 left-0 h-72 w-72 rounded-full bg-accent/5 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-primary-light/20 blur-3xl" />
-        </div>
-
-        <Container className="relative py-20 sm:py-24 lg:py-28">
-          <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
-          <h1
-            id="about-hero-heading"
-            className="text-3xl font-bold leading-snug tracking-tight text-white sm:text-4xl lg:text-5xl"
-          >
-            {content.hero.title}
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-            {content.hero.subtitle}
-          </p>
+        <Container>
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
+            <h1
+              id="about-hero-heading"
+              className={cn(
+                "text-3xl font-bold leading-snug tracking-tight text-white",
+                "sm:text-4xl lg:text-5xl",
+              )}
+            >
+              {content.hero.title}
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
+              {content.hero.subtitle}
+            </p>
+          </div>
         </Container>
-
-        <div
-          className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-l from-accent via-accent/50 to-transparent"
-          aria-hidden="true"
-        />
       </section>
       </EditableSection>
 

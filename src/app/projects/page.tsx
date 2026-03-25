@@ -67,35 +67,11 @@ export default async function ProjectsPage() {
       <EditableSection editHref="/admin/site-editor/projects" editLabel="באנר">
       <section
         aria-labelledby="projects-hero-heading"
-        className="relative overflow-hidden bg-primary"
+        className="bg-primary py-16 sm:py-20"
       >
-        {/* Decorative grid overlay — tech element */}
-        <div className="absolute inset-0" aria-hidden="true">
-          <div className="absolute inset-0 bg-gradient-to-bl from-primary via-primary-dark to-primary-dark/95" />
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.3) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
-          <div className="absolute top-10 left-10 h-64 w-64 rounded-full bg-accent/5 blur-3xl" />
-          <div className="absolute right-10 bottom-10 h-56 w-56 rounded-full bg-primary-light/15 blur-3xl" />
-        </div>
-
-        <Container className="relative py-20 sm:py-24 lg:py-28">
+        <Container>
           <div className="text-center">
-            <div
-              className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-accent/20"
-              aria-hidden="true"
-            >
-              <Code2 className="h-7 w-7 text-accent" />
-            </div>
-            <div
-              className="mx-auto mb-4 h-1 w-16 rounded-full bg-accent"
-              aria-hidden="true"
-            />
+            <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
             <h1
               id="projects-hero-heading"
               className={cn(
