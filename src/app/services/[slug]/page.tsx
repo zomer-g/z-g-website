@@ -159,7 +159,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
       </section>
 
       {/* Main Content + Sidebar */}
-      <EditableSection editHref="/admin/services" editLabel="תוכן שירות">
+      <EditableSection editHref={`/admin/services?edit=${service.slug}`} editLabel="ערוך שירות">
       <section className="bg-background py-16 sm:py-24">
         <Container>
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-3">

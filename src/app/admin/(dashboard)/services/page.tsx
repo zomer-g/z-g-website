@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -59,6 +60,7 @@ const EMPTY_FORM: ServiceForm = {
 /* ─── Services Management Page ─── */
 
 export default function AdminServicesPage() {
+  const searchParams = useSearchParams();
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,6 +97,18 @@ export default function AdminServicesPage() {
   useEffect(() => {
     fetchServices();
   }, [fetchServices]);
+
+  /* ── Auto-open service from ?edit=slug ── */
+
+  useEffect(() => {
+    const editSlug = searchParams.get("edit");
+    if (editSlug && services.length > 0 && !editingId) {
+      const service = services.find((s) => s.slug === editSlug);
+      if (service) {
+        openEditForm(service);
+      }
+    }
+  }, [searchParams, services]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Auto-generate slug from title ── */
 
