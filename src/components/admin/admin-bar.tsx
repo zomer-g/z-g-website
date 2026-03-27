@@ -18,7 +18,10 @@ function getEditUrl(pathname: string): string {
   if (pathname === "/terms") return "/admin/pages/terms";
   if (pathname === "/accessibility") return "/admin/pages/accessibility";
   if (pathname === "/services") return "/admin/site-editor/services";
-  if (pathname.startsWith("/services/")) return "/admin/services";
+  if (pathname.startsWith("/services/")) {
+    const slug = pathname.replace("/services/", "");
+    return `/admin/services?edit=${slug}`;
+  }
   if (pathname === "/articles") return "/admin/site-editor/articles";
   if (pathname.startsWith("/articles/")) return "/admin/posts";
   return "/admin";
