@@ -904,7 +904,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
 
   // Sync content when initialContent changes after editor init
   useEffect(() => {
-    if (editor && initialContent && editor.isEmpty) {
+    if (editor && initialContent) {
       editor.commands.setContent(initialContent);
     }
   }, [editor, initialContent]);
