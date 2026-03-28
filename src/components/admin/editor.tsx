@@ -870,6 +870,7 @@ function EditorAiWriter({
 
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
+  const contentSetRef = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -902,6 +903,17 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       onChange?.(ed.getJSON() as Record<string, unknown>);
     },
   });
+
+  // Ensure content is set once when editor becomes available
+  useEffect(() => {
+    if (editor && initialContent && !contentSetRef.current) {
+      contentSetRef.current = true;
+      // Small delay to ensure editor is fully initialized
+      queueMicrotask(() => {
+        editor.commands.setContent(initialContent);
+      });
+    }
+  }, [editor, initialContent]);
 
   if (!editor) {
     return (
