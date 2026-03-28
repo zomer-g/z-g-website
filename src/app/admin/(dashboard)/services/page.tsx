@@ -156,7 +156,7 @@ function AdminServicesContent() {
       title: service.title,
       slug: service.slug,
       description: service.description,
-      content: service.content,
+      content: service.content ? JSON.parse(JSON.stringify(service.content)) : null,
       icon: service.icon || "",
       order: service.order,
       isActive: service.isActive,
