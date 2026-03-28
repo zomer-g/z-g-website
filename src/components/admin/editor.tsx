@@ -25,9 +25,15 @@ import {
   BookOpen,
   Plus,
   Trash2,
+  Download,
+  Search,
+  X,
+  ChevronRight,
+  ArrowRight,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 /* ─── Icon names available for info blocks ─── */
 
@@ -229,12 +235,300 @@ interface LawItem {
   url: string;
 }
 
+/* ─── Law Import Modal ─── */
+
+interface LawSection {
+  index: string;
+  number: string;
+  line: string;
+  anchor: string;
+  level: number;
+}
+
+function LawImportModal({
+  isOpen,
+  onClose,
+  onImport,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onImport: (items: LawItem[]) => void;
+}) {
+  const [step, setStep] = useState<"search" | "sections" | "loading-content">("search");
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ title: string; url: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedLaw, setSelectedLaw] = useState<{ title: string; url: string } | null>(null);
+  const [sections, setSections] = useState<LawSection[]>([]);
+  const [selectedSections, setSelectedSections] = useState<Set<string>>(new Set());
+  const [loadingSections, setLoadingSections] = useState(false);
+  const [loadingContent, setLoadingContent] = useState(false);
+  const [error, setError] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen, onClose]);
+
+  // Reset on close
+  useEffect(() => {
+    if (!isOpen) {
+      setStep("search");
+      setQuery("");
+      setSearchResults([]);
+      setSelectedLaw(null);
+      setSections([]);
+      setSelectedSections(new Set());
+      setError("");
+    }
+  }, [isOpen]);
+
+  // Debounced search
+  const handleSearch = useCallback((q: string) => {
+    setQuery(q);
+    setError("");
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!q.trim()) { setSearchResults([]); return; }
+
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/import/law?action=search&q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setSearchResults(data.results || []);
+      } catch {
+        setError("שגיאה בחיפוש");
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+  }, []);
+
+  // Select a law → fetch its sections
+  const handleSelectLaw = useCallback(async (law: { title: string; url: string }) => {
+    setSelectedLaw(law);
+    setLoadingSections(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/import/law?action=sections&page=${encodeURIComponent(law.title)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSections(data.sections || []);
+      setStep("sections");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "שגיאה בטעינת סעיפים");
+    } finally {
+      setLoadingSections(false);
+    }
+  }, []);
+
+  // Toggle section selection
+  const toggleSection = (index: string) => {
+    setSelectedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  // Import selected sections
+  const handleImport = useCallback(async () => {
+    if (!selectedLaw || selectedSections.size === 0) return;
+    setLoadingContent(true);
+    setStep("loading-content");
+    setError("");
+
+    const imported: LawItem[] = [];
+    const selected = sections.filter((s) => selectedSections.has(s.index));
+
+    for (const section of selected) {
+      try {
+        const res = await fetch(
+          `/api/import/law?action=content&page=${encodeURIComponent(selectedLaw.title)}&section=${section.index}`,
+        );
+        const data = await res.json();
+        imported.push({
+          lawName: `${section.line} — ${selectedLaw.title}`,
+          quote: data.text || "",
+          url: `https://he.wikisource.org/wiki/${encodeURIComponent(selectedLaw.title.replace(/ /g, "_"))}#${encodeURIComponent(section.anchor)}`,
+        });
+      } catch {
+        imported.push({
+          lawName: `${section.line} — ${selectedLaw.title}`,
+          quote: "(שגיאה בטעינת תוכן הסעיף)",
+          url: `https://he.wikisource.org/wiki/${encodeURIComponent(selectedLaw.title.replace(/ /g, "_"))}`,
+        });
+      }
+    }
+
+    setLoadingContent(false);
+    onImport(imported);
+    onClose();
+  }, [selectedLaw, selectedSections, sections, onImport, onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      ref={panelRef}
+      className="absolute top-full right-0 z-50 mt-1 w-[420px] max-h-[500px] overflow-hidden rounded-xl border border-border bg-card shadow-xl flex flex-col"
+      dir="rtl"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Download size={16} className="text-indigo-500" />
+          <span className="text-sm font-semibold">ייבוא מספר החוקים הפתוח</span>
+        </div>
+        <button type="button" onClick={onClose} className="text-muted hover:text-foreground transition-colors">
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Search step */}
+      {step === "search" && (
+        <div className="flex flex-col overflow-hidden">
+          <div className="p-4 pb-2">
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="חפשו שם חוק (לדוגמה: חוק הגנת הפרטיות)..."
+                dir="rtl"
+                autoFocus
+                className="w-full rounded-lg border border-border bg-background pr-9 pl-3 py-2 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+              />
+              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted" />
+            </div>
+          </div>
+
+          <div className="overflow-y-auto px-4 pb-4 max-h-[350px]">
+            {searching && (
+              <div className="flex items-center justify-center py-6 text-muted">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="mr-2 text-xs">מחפש...</span>
+              </div>
+            )}
+
+            {!searching && searchResults.length > 0 && (
+              <div className="space-y-1">
+                {searchResults.map((r) => (
+                  <button
+                    key={r.title}
+                    type="button"
+                    onClick={() => handleSelectLaw(r)}
+                    disabled={loadingSections}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-right hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                  >
+                    <span className="font-medium">{r.title}</span>
+                    <ChevronRight size={14} className="text-muted shrink-0 rotate-180" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!searching && query && searchResults.length === 0 && (
+              <p className="py-6 text-center text-xs text-muted">לא נמצאו תוצאות</p>
+            )}
+
+            {loadingSections && (
+              <div className="flex items-center justify-center py-4 text-muted">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="mr-2 text-xs">טוען סעיפים...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Sections step */}
+      {step === "sections" && selectedLaw && (
+        <div className="flex flex-col overflow-hidden">
+          <div className="px-4 py-2 border-b border-border bg-indigo-50/50">
+            <button
+              type="button"
+              onClick={() => { setStep("search"); setSelectedLaw(null); setSections([]); setSelectedSections(new Set()); }}
+              className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 transition-colors mb-1"
+            >
+              <ArrowRight size={12} />
+              חזרה לחיפוש
+            </button>
+            <h4 className="text-sm font-bold text-primary-dark truncate">{selectedLaw.title}</h4>
+            <p className="text-[10px] text-muted">בחרו סעיפים לייבוא ({selectedSections.size} נבחרו)</p>
+          </div>
+
+          <div className="overflow-y-auto px-4 py-2 max-h-[300px]">
+            {sections.length === 0 && (
+              <p className="py-6 text-center text-xs text-muted">לא נמצאו סעיפים</p>
+            )}
+            {sections.map((s) => (
+              <label
+                key={s.index}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm cursor-pointer hover:bg-indigo-50 transition-colors",
+                  s.level > 1 && "pr-6",
+                  s.level > 2 && "pr-10",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedSections.has(s.index)}
+                  onChange={() => toggleSection(s.index)}
+                  className="rounded border-border accent-indigo-600"
+                />
+                <span className={s.level === 1 ? "font-semibold" : ""}>{s.line}</span>
+              </label>
+            ))}
+          </div>
+
+          <div className="border-t border-border px-4 py-3">
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={selectedSections.size === 0}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              <Download size={14} />
+              ייבוא {selectedSections.size} סעיפים
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading content step */}
+      {step === "loading-content" && (
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <Loader2 size={24} className="animate-spin text-indigo-500 mb-3" />
+          <p className="text-sm text-muted">טוען תוכן סעיפים...</p>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="mx-4 mb-4 rounded-lg bg-red-50 p-2.5 text-xs text-red-600">{error}</div>
+      )}
+    </div>
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function LawBlockView(props: any) {
   const { node, updateAttributes } = props as {
     node: { attrs: { title: string; icon: string; disclaimer: string; items: string } };
     updateAttributes: (attrs: Record<string, unknown>) => void;
   };
+  const [showImport, setShowImport] = useState(false);
 
   const items: LawItem[] = (() => {
     try {
@@ -262,6 +556,10 @@ function LawBlockView(props: any) {
     updateItems(items.filter((_, i) => i !== index));
   };
 
+  const handleImport = (imported: LawItem[]) => {
+    updateItems([...items, ...imported]);
+  };
+
   return (
     <NodeViewWrapper
       className="my-4 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/30 p-4"
@@ -278,6 +576,29 @@ function LawBlockView(props: any) {
           contentEditable={false}
           dir="rtl"
         />
+
+        {/* Import button */}
+        <div className="relative" contentEditable={false}>
+          <button
+            type="button"
+            onClick={() => setShowImport(!showImport)}
+            className={cn(
+              "flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors",
+              showImport
+                ? "bg-indigo-100 text-indigo-700"
+                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100",
+            )}
+          >
+            <Download size={12} />
+            ייבוא מחוק
+          </button>
+          <LawImportModal
+            isOpen={showImport}
+            onClose={() => setShowImport(false)}
+            onImport={handleImport}
+          />
+        </div>
+
         <span
           className="text-[10px] text-indigo-500 font-medium whitespace-nowrap"
           contentEditable={false}
