@@ -872,6 +872,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
