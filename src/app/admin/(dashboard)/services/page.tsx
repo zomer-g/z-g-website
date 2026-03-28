@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Editor } from "@/components/admin/editor";
+import dynamic from "next/dynamic";
+const Editor = dynamic(() => import("@/components/admin/editor").then(m => m.Editor), { ssr: false });
 import SitePreview from "@/components/admin/site-preview";
 import {
   Loader2,
