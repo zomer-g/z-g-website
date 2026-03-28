@@ -868,8 +868,26 @@ function EditorAiWriter({
 
 /* ─── Editor Component ─── */
 
+/* ─── Sanitize TipTap content (remove corrupted nodes like __mark_link) ─── */
+
+function sanitizeContent(node: Record<string, unknown>): Record<string, unknown> {
+  if (!node || typeof node !== "object") return node;
+  const content = node.content as Record<string, unknown>[] | undefined;
+  if (!content || !Array.isArray(content)) return node;
+  return {
+    ...node,
+    content: content
+      .filter((child) => {
+        const type = child.type as string;
+        return !type?.startsWith("__");
+      })
+      .map((child) => sanitizeContent(child)),
+  };
+}
+
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
+  const cleanContent = initialContent ? sanitizeContent(initialContent) : undefined;
 
   const editor = useEditor({
     immediatelyRender: true,
@@ -890,7 +908,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       InfoBlock,
       LawBlock,
     ],
-    content: initialContent ?? undefined,
+    content: cleanContent,
     editorProps: {
       attributes: {
         class:
