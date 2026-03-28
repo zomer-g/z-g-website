@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +61,14 @@ const EMPTY_FORM: ServiceForm = {
 /* ─── Services Management Page ─── */
 
 export default function AdminServicesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-muted" /></div>}>
+      <AdminServicesContent />
+    </Suspense>
+  );
+}
+
+function AdminServicesContent() {
   const searchParams = useSearchParams();
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
