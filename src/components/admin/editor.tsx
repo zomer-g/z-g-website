@@ -870,7 +870,9 @@ function EditorAiWriter({
 
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
-  const contentSetRef = useRef(false);
+  // Capture initial content on first render so onUpdate can't overwrite it
+  const savedContent = useRef(initialContent);
+  const contentApplied = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -904,16 +906,13 @@ export function Editor({ initialContent, onChange }: EditorProps) {
     },
   });
 
-  // Ensure content is set once when editor becomes available
+  // Apply saved content once after editor is created
   useEffect(() => {
-    if (editor && initialContent && !contentSetRef.current) {
-      contentSetRef.current = true;
-      // Small delay to ensure editor is fully initialized
-      queueMicrotask(() => {
-        editor.commands.setContent(initialContent);
-      });
+    if (editor && savedContent.current && !contentApplied.current) {
+      contentApplied.current = true;
+      editor.commands.setContent(savedContent.current);
     }
-  }, [editor, initialContent]);
+  }, [editor]);
 
   if (!editor) {
     return (
