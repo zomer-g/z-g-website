@@ -870,11 +870,8 @@ function EditorAiWriter({
 
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
-  // Capture initial content in ref so it survives parent re-renders
-  const savedContent = useRef(initialContent);
 
   const editor = useEditor({
-    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
@@ -892,18 +889,13 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       InfoBlock,
       LawBlock,
     ],
+    content: initialContent ?? undefined,
     editorProps: {
       attributes: {
         class:
           "prose prose-lg max-w-none min-h-[300px] px-4 py-3 focus:outline-none",
         dir: "rtl",
       },
-    },
-    onCreate: ({ editor: ed }) => {
-      // Set content when editor is first created — this fires exactly once
-      if (savedContent.current) {
-        ed.commands.setContent(savedContent.current);
-      }
     },
     onUpdate: ({ editor: ed }) => {
       onChange?.(ed.getJSON() as Record<string, unknown>);

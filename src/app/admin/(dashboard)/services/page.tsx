@@ -391,11 +391,7 @@ function AdminServicesContent() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-foreground">תוכן מפורט</label>
-                  {form.content ? (
-                    <Editor key={editingId ?? "new"} initialContent={form.content} onChange={handleEditorChange} />
-                  ) : (
-                    <Editor key="empty" onChange={handleEditorChange} />
-                  )}
+                  <Editor key={editingId ?? "new"} initialContent={form.content ?? undefined} onChange={handleEditorChange} />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
