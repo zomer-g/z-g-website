@@ -870,9 +870,8 @@ function EditorAiWriter({
 
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
-  // Capture initial content on first render so onUpdate can't overwrite it
+  // Capture initial content in ref so it survives parent re-renders
   const savedContent = useRef(initialContent);
-  const contentApplied = useRef(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -893,7 +892,6 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       InfoBlock,
       LawBlock,
     ],
-    content: initialContent ?? undefined,
     editorProps: {
       attributes: {
         class:
@@ -901,18 +899,16 @@ export function Editor({ initialContent, onChange }: EditorProps) {
         dir: "rtl",
       },
     },
+    onCreate: ({ editor: ed }) => {
+      // Set content when editor is first created — this fires exactly once
+      if (savedContent.current) {
+        ed.commands.setContent(savedContent.current);
+      }
+    },
     onUpdate: ({ editor: ed }) => {
       onChange?.(ed.getJSON() as Record<string, unknown>);
     },
   });
-
-  // Apply saved content once after editor is created
-  useEffect(() => {
-    if (editor && savedContent.current && !contentApplied.current) {
-      contentApplied.current = true;
-      editor.commands.setContent(savedContent.current);
-    }
-  }, [editor]);
 
   if (!editor) {
     return (
