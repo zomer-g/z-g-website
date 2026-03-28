@@ -902,13 +902,6 @@ export function Editor({ initialContent, onChange }: EditorProps) {
     },
   });
 
-  // Sync content when initialContent changes after editor init
-  useEffect(() => {
-    if (editor && initialContent) {
-      editor.commands.setContent(initialContent);
-    }
-  }, [editor, initialContent]);
-
   if (!editor) {
     return (
       <div className="rounded-lg border border-border bg-background p-4">

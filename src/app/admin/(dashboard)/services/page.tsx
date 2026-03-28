@@ -382,7 +382,11 @@ export default function AdminServicesPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-foreground">תוכן מפורט</label>
-                  <Editor key={editingId ?? "new"} initialContent={form.content} onChange={handleEditorChange} />
+                  {form.content ? (
+                    <Editor key={editingId ?? "new"} initialContent={form.content} onChange={handleEditorChange} />
+                  ) : (
+                    <Editor key="empty" onChange={handleEditorChange} />
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
