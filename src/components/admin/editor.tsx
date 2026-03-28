@@ -22,6 +22,9 @@ import {
   Sparkles,
   Loader2,
   ChevronDown,
+  BookOpen,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useCallback } from "react";
@@ -215,6 +218,176 @@ const InfoBlock = Node.create({
   },
 });
 
+/* ─── Law Block Node View (Editor rendering) ─── */
+
+const DEFAULT_LAW_DISCLAIMER =
+  "המידע המוצג אינו מהווה ייעוץ משפטי. רשימה זו אינה ממצה ונועדה לסייע בהתמצאות וחשיבה משפטית בלבד.";
+
+interface LawItem {
+  lawName: string;
+  quote: string;
+  url: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function LawBlockView(props: any) {
+  const { node, updateAttributes } = props as {
+    node: { attrs: { title: string; icon: string; disclaimer: string; items: string } };
+    updateAttributes: (attrs: Record<string, unknown>) => void;
+  };
+
+  const items: LawItem[] = (() => {
+    try {
+      return JSON.parse(node.attrs.items || "[]");
+    } catch {
+      return [];
+    }
+  })();
+
+  const updateItems = (newItems: LawItem[]) => {
+    updateAttributes({ items: JSON.stringify(newItems) });
+  };
+
+  const updateItem = (index: number, field: keyof LawItem, value: string) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [field]: value };
+    updateItems(updated);
+  };
+
+  const addItem = () => {
+    updateItems([...items, { lawName: "", quote: "", url: "" }]);
+  };
+
+  const removeItem = (index: number) => {
+    updateItems(items.filter((_, i) => i !== index));
+  };
+
+  return (
+    <NodeViewWrapper
+      className="my-4 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/30 p-4"
+      data-type="lawBlock"
+    >
+      {/* Header */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          type="text"
+          value={node.attrs.title}
+          onChange={(e) => updateAttributes({ title: e.target.value })}
+          placeholder="כותרת הבלוק..."
+          className="flex-1 min-w-[120px] rounded-lg border border-border bg-background px-3 py-1.5 text-sm font-bold text-primary-dark placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+          contentEditable={false}
+          dir="rtl"
+        />
+        <span
+          className="text-[10px] text-indigo-500 font-medium whitespace-nowrap"
+          contentEditable={false}
+        >
+          בלוק סעיפי חוק
+        </span>
+      </div>
+
+      {/* Disclaimer */}
+      <div className="mb-3" contentEditable={false}>
+        <label className="mb-1 block text-[10px] text-muted font-medium">דיסקליימר (כותרת משנה)</label>
+        <textarea
+          value={node.attrs.disclaimer}
+          onChange={(e) => updateAttributes({ disclaimer: e.target.value })}
+          rows={2}
+          dir="rtl"
+          className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+        />
+      </div>
+
+      {/* Items */}
+      <div className="space-y-3" contentEditable={false}>
+        {items.map((item, i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-indigo-200 bg-white p-3 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium text-indigo-400">סעיף {i + 1}</span>
+              <button
+                type="button"
+                onClick={() => removeItem(i)}
+                className="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={item.lawName}
+              onChange={(e) => updateItem(i, "lawName", e.target.value)}
+              placeholder="שם החוק (לדוגמה: סעיף 2 לחוק הגנת הפרטיות)"
+              dir="rtl"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+            />
+            <textarea
+              value={item.quote}
+              onChange={(e) => updateItem(i, "quote", e.target.value)}
+              placeholder="ציטוט הסעיף..."
+              rows={3}
+              dir="rtl"
+              className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+            />
+            <input
+              type="url"
+              value={item.url}
+              onChange={(e) => updateItem(i, "url", e.target.value)}
+              placeholder="קישור לחוק המקורי (https://...)"
+              dir="ltr"
+              className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted focus-visible:outline-2 focus-visible:outline-indigo-400"
+            />
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addItem}
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-indigo-200 py-2 text-xs font-medium text-indigo-500 hover:bg-indigo-50 transition-colors"
+        >
+          <Plus size={14} />
+          הוסף סעיף חוק
+        </button>
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+/* ─── Law Block Extension ─── */
+
+const LawBlock = Node.create({
+  name: "lawBlock",
+  group: "block",
+  atom: true,
+
+  addAttributes() {
+    return {
+      title: { default: "" },
+      icon: { default: "BookOpen" },
+      disclaimer: { default: DEFAULT_LAW_DISCLAIMER },
+      items: { default: "[]" },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-type="lawBlock"]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, { "data-type": "lawBlock" }),
+      0,
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(LawBlockView);
+  },
+});
+
 /* ─── Types ─── */
 
 interface EditorProps {
@@ -393,6 +566,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
         placeholder: "התחל לכתוב...",
       }),
       InfoBlock,
+      LawBlock,
     ],
     content: initialContent ?? undefined,
     editorProps: {
@@ -457,6 +631,22 @@ export function Editor({ initialContent, onChange }: EditorProps) {
             ],
           },
         ],
+      })
+      .run();
+  };
+
+  const handleInsertLawBlock = () => {
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "lawBlock",
+        attrs: {
+          title: "סעיפי חוק רלוונטיים",
+          icon: "BookOpen",
+          disclaimer: DEFAULT_LAW_DISCLAIMER,
+          items: JSON.stringify([{ lawName: "", quote: "", url: "" }]),
+        },
       })
       .run();
   };
@@ -540,6 +730,13 @@ export function Editor({ initialContent, onChange }: EditorProps) {
           ariaLabel="בלוק מידע"
         >
           <LayoutList size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={handleInsertLawBlock}
+          ariaLabel="בלוק סעיפי חוק"
+        >
+          <BookOpen size={16} />
         </ToolbarButton>
 
         <ToolbarButton

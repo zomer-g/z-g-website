@@ -318,6 +318,72 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
       );
     }
 
+    /* ── Law Block (Custom Node) ── */
+    case "lawBlock": {
+      const lawIconName = (node.attrs?.icon as string) ?? "BookOpen";
+      const lawTitle = (node.attrs?.title as string) ?? "";
+      const disclaimer = (node.attrs?.disclaimer as string) ?? "";
+      const LawIconComponent = getIcon(lawIconName);
+
+      let lawItems: { lawName: string; quote: string; url: string }[] = [];
+      try {
+        const raw = node.attrs?.items;
+        lawItems = typeof raw === "string" ? JSON.parse(raw) : Array.isArray(raw) ? raw : [];
+      } catch {
+        lawItems = [];
+      }
+
+      return (
+        <div key={index} className="my-6">
+          {/* Block title */}
+          {lawTitle && (
+            <div className="mb-1 flex items-center gap-2">
+              <LawIconComponent className="h-5 w-5 text-indigo-600" />
+              <h3 className="text-lg font-bold text-primary-dark">{lawTitle}</h3>
+            </div>
+          )}
+
+          {/* Disclaimer */}
+          {disclaimer && (
+            <p className="mb-4 text-xs text-muted italic">{disclaimer}</p>
+          )}
+
+          {/* Law items */}
+          {lawItems.length > 0 && (
+            <div className="space-y-3">
+              {lawItems.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-lg border border-indigo-200 bg-indigo-50/50 px-5 py-4"
+                >
+                  {item.lawName && (
+                    <h4 className="mb-2 text-sm font-bold text-primary-dark">
+                      {item.lawName}
+                    </h4>
+                  )}
+                  {item.quote && (
+                    <blockquote className="mb-3 border-r-4 border-indigo-300 pr-4 text-sm leading-relaxed text-foreground italic">
+                      &ldquo;{item.quote}&rdquo;
+                    </blockquote>
+                  )}
+                  {item.url && (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 underline underline-offset-2 hover:text-indigo-800 transition-colors"
+                    >
+                      צפייה בחוק המקורי ←
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     default:
       // Fallback: render children if they exist
       if (node.content) {
