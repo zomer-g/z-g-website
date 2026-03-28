@@ -362,8 +362,8 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
                     </h4>
                   )}
                   {item.quote && (
-                    <blockquote className="mb-3 border-r-4 border-indigo-300 pr-4 text-sm leading-relaxed text-foreground italic">
-                      &ldquo;{item.quote}&rdquo;
+                    <blockquote className="mb-3 border-r-4 border-indigo-300 pr-4 text-sm leading-relaxed text-foreground whitespace-pre-wrap">
+                      {item.quote}
                     </blockquote>
                   )}
                   {item.url && (
