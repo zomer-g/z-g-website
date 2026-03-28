@@ -271,7 +271,7 @@ function LawImportModal({
   useEffect(() => {
     if (!isOpen) return;
     function handleClickOutside(e: MouseEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      if (panelRef.current && !panelRef.current.contains(e.target as globalThis.Node)) {
         onClose();
       }
     }
