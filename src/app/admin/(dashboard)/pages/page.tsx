@@ -25,6 +25,11 @@ const PAGE_LABELS: Record<string, string> = {
   about: "אודות",
   privacy: "מדיניות פרטיות",
   accessibility: "הצהרת נגישות",
+  terms: "תנאי שימוש",
+  "legal-tools": "כלים משפטיים (ראשי)",
+  "legal-tools-privacy": "כלים משפטיים — פרטיות",
+  "legal-tools-terms": "כלים משפטיים — תנאי שימוש",
+  "legal-tools-support": "כלים משפטיים — תמיכה",
 };
 
 /* ─── Pages Management Page ─── */

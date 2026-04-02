@@ -22,6 +22,7 @@ import {
   Accessibility,
   ScrollText,
   Code2,
+  Wrench,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -61,6 +62,10 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
   { slug: "projects", label: "מיזמים", icon: Code2 },
   { slug: "digital-services", label: "שירותים דיגיטליים", icon: Code2 },
+  { slug: "legal-tools", label: "כלים משפטיים (ראשי)", icon: Wrench, href: "/admin/pages/legal-tools" },
+  { slug: "legal-tools-privacy", label: "כלים משפטיים — פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
+  { slug: "legal-tools-terms", label: "כלים משפטיים — תנאי שימוש", icon: ScrollText, href: "/admin/pages/legal-tools-terms" },
+  { slug: "legal-tools-support", label: "כלים משפטיים — תמיכה", icon: Phone, href: "/admin/pages/legal-tools-support" },
 ];
 
 /* ─── Site Editor Page ─── */
