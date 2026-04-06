@@ -28,6 +28,12 @@ export async function GET(
       );
     }
 
+    // Unauthenticated users can only see published posts
+    const session = await auth();
+    if (!session?.user?.id && post.status !== "PUBLISHED") {
+      return NextResponse.json({ error: "המאמר לא נמצא" }, { status: 404 });
+    }
+
     return NextResponse.json(post);
   } catch (error) {
     console.error("GET /api/posts/[id] error:", error);

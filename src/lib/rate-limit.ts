@@ -50,9 +50,18 @@ export function rateLimit(
 
 /**
  * Extract client IP from request headers.
+ * Uses x-forwarded-for but only trusts the LAST entry (set by the reverse proxy),
+ * not the first (which can be spoofed by the client).
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
+  if (forwarded) {
+    const ips = forwarded.split(",").map((s) => s.trim());
+    // Last IP is set by the reverse proxy (Render), harder to spoof
+    return ips[ips.length - 1] || ips[0] || "unknown";
+  }
+  // Fallback: Render-specific header
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) return realIp.trim();
   return "unknown";
 }

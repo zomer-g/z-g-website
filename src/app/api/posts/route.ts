@@ -17,7 +17,12 @@ export async function GET(req: NextRequest) {
     );
     const skip = (page - 1) * limit;
 
-    const where = status ? { status } : {};
+    // Unauthenticated requests can only see published posts
+    const session = await auth();
+    const isAdmin = !!session?.user?.id;
+    const where = isAdmin
+      ? (status ? { status } : {})
+      : { status: "PUBLISHED" as PostStatus };
 
     const [posts, total] = await Promise.all([
       prisma.post.findMany({

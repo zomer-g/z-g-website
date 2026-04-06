@@ -16,6 +16,15 @@ const ALLOWED_TYPES = new Set([
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+/* ---- Allowed file extensions (must match MIME type) ---- */
+const MIME_TO_EXT: Record<string, string[]> = {
+  "image/jpeg": [".jpg", ".jpeg"],
+  "image/png": [".png"],
+  "image/webp": [".webp"],
+  "image/gif": [".gif"],
+  "application/pdf": [".pdf"],
+};
+
 /* ---- POST /api/media/upload ---- */
 
 export async function POST(req: NextRequest) {
@@ -60,8 +69,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate file extension matches MIME type
+    const fileExt = path.extname(file.name).toLowerCase();
+    const allowedExts = MIME_TO_EXT[file.type];
+    if (!allowedExts || !allowedExts.includes(fileExt)) {
+      return NextResponse.json(
+        { error: "סיומת הקובץ אינה תואמת את סוג הקובץ" },
+        { status: 400 },
+      );
+    }
+
     // Generate unique filename
-    const ext = path.extname(file.name) || ".bin";
+    const ext = fileExt;
     const timestamp = Date.now();
     const safeName = file.name
       .replace(ext, "")
