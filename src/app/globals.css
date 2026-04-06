@@ -13,6 +13,25 @@ p {
   text-align: right;
 }
 
+/* ── TipTap Editor heading styles ── */
+.ProseMirror h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+.ProseMirror h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
 :root {
   --primary: #1a365d;
   --primary-light: #2a4a7f;
