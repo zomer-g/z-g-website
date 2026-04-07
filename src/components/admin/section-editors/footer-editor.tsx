@@ -2,7 +2,7 @@
 
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
-import { Type, Link2, Phone, Scale, Plus, Trash2 } from "lucide-react";
+import { Type, Link2, Phone, Scale, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { FooterContent } from "@/types/content";
 
@@ -87,6 +87,34 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
                 dir="ltr"
                 className="flex-1"
               />
+              <div className="mb-1 flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  disabled={idx === 0}
+                  onClick={() => {
+                    const quickLinks = [...content.quickLinks];
+                    [quickLinks[idx - 1], quickLinks[idx]] = [quickLinks[idx], quickLinks[idx - 1]];
+                    onChange({ ...content, quickLinks });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למעלה"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  disabled={idx === content.quickLinks.length - 1}
+                  onClick={() => {
+                    const quickLinks = [...content.quickLinks];
+                    [quickLinks[idx], quickLinks[idx + 1]] = [quickLinks[idx + 1], quickLinks[idx]];
+                    onChange({ ...content, quickLinks });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למטה"
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -94,6 +122,7 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
                   onChange({ ...content, quickLinks });
                 }}
                 className="mb-1 text-red-400 hover:text-red-600 transition-colors"
+                title="מחק"
               >
                 <Trash2 size={14} />
               </button>
@@ -182,6 +211,34 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
                 dir="ltr"
                 className="flex-1"
               />
+              <div className="mb-1 flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  disabled={idx === 0}
+                  onClick={() => {
+                    const legalLinks = [...content.legalLinks];
+                    [legalLinks[idx - 1], legalLinks[idx]] = [legalLinks[idx], legalLinks[idx - 1]];
+                    onChange({ ...content, legalLinks });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למעלה"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  disabled={idx === content.legalLinks.length - 1}
+                  onClick={() => {
+                    const legalLinks = [...content.legalLinks];
+                    [legalLinks[idx], legalLinks[idx + 1]] = [legalLinks[idx + 1], legalLinks[idx]];
+                    onChange({ ...content, legalLinks });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למטה"
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -189,6 +246,7 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
                   onChange({ ...content, legalLinks });
                 }}
                 className="mb-1 text-red-400 hover:text-red-600 transition-colors"
+                title="מחק"
               >
                 <Trash2 size={14} />
               </button>

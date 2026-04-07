@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
-import { Type, Navigation, MousePointer, Plus, Trash2 } from "lucide-react";
+import { Type, Navigation, MousePointer, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import type { HeaderContent } from "@/types/content";
 
 interface HeaderEditorProps {
@@ -56,6 +56,34 @@ export function HeaderEditor({ content, onChange }: HeaderEditorProps) {
                 dir="ltr"
                 className="flex-1"
               />
+              <div className="mb-1 flex flex-col gap-0.5">
+                <button
+                  type="button"
+                  disabled={idx === 0}
+                  onClick={() => {
+                    const navItems = [...content.navItems];
+                    [navItems[idx - 1], navItems[idx]] = [navItems[idx], navItems[idx - 1]];
+                    onChange({ ...content, navItems });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למעלה"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  disabled={idx === content.navItems.length - 1}
+                  onClick={() => {
+                    const navItems = [...content.navItems];
+                    [navItems[idx], navItems[idx + 1]] = [navItems[idx + 1], navItems[idx]];
+                    onChange({ ...content, navItems });
+                  }}
+                  className="text-muted hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  title="הזז למטה"
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -63,6 +91,7 @@ export function HeaderEditor({ content, onChange }: HeaderEditorProps) {
                   onChange({ ...content, navItems });
                 }}
                 className="mb-1 text-red-400 hover:text-red-600 transition-colors"
+                title="מחק"
               >
                 <Trash2 size={14} />
               </button>
