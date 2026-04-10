@@ -30,6 +30,9 @@ const PAGE_LABELS: Record<string, string> = {
   "legal-tools-privacy": "כלים משפטיים — פרטיות",
   "legal-tools-terms": "כלים משפטיים — תנאי שימוש",
   "legal-tools-support": "כלים משפטיים — תמיכה",
+  "case-tracker": "איתור אסמכתאות (ראשי)",
+  "case-tracker-privacy": "איתור אסמכתאות — פרטיות",
+  "case-tracker-terms": "איתור אסמכתאות — תנאי שימוש",
 };
 
 /* ─── Pages Management Page ─── */

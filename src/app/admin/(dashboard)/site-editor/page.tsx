@@ -66,6 +66,9 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "legal-tools-privacy", label: "כלים משפטיים — פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
   { slug: "legal-tools-terms", label: "כלים משפטיים — תנאי שימוש", icon: ScrollText, href: "/admin/pages/legal-tools-terms" },
   { slug: "legal-tools-support", label: "כלים משפטיים — תמיכה", icon: Phone, href: "/admin/pages/legal-tools-support" },
+  { slug: "case-tracker", label: "איתור אסמכתאות (ראשי)", icon: Code2, href: "/admin/pages/case-tracker" },
+  { slug: "case-tracker-privacy", label: "איתור אסמכתאות — פרטיות", icon: Shield, href: "/admin/pages/case-tracker-privacy" },
+  { slug: "case-tracker-terms", label: "איתור אסמכתאות — תנאי שימוש", icon: ScrollText, href: "/admin/pages/case-tracker-terms" },
 ];
 
 /* ─── Site Editor Page ─── */
