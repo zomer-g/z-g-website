@@ -168,7 +168,7 @@ export function RulingsClient() {
                         </h3>
 
                         {ruling.title && ruling.title !== ruling.caseName && (
-                          <p className="mt-0.5 text-sm font-medium text-accent">{ruling.title}</p>
+                          <p className="mt-0.5 text-sm font-medium text-accent-text">{ruling.title}</p>
                         )}
 
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">

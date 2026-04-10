@@ -38,6 +38,7 @@ p {
   --primary-dark: #0f2440;
   --accent: #c9a84c;
   --accent-light: #d4b86a;
+  --accent-text: #6d581e;
   --background: #ffffff;
   --foreground: #1a1a2e;
   --muted: #4b5563;
@@ -55,6 +56,7 @@ p {
   --color-primary-dark: var(--primary-dark);
   --color-accent: var(--accent);
   --color-accent-light: var(--accent-light);
+  --color-accent-text: var(--accent-text);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);

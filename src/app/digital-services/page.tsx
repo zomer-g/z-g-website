@@ -160,7 +160,7 @@ export default async function DigitalServicesPage() {
                         <h3 className="text-2xl font-bold leading-snug text-primary-dark">
                           {item.title}
                         </h3>
-                        <p className="mt-1 text-base font-medium text-accent">
+                        <p className="mt-1 text-base font-medium text-accent-text">
                           {item.subtitle}
                         </p>
                         <p className="mt-4 text-base leading-relaxed text-foreground/80">

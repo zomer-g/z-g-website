@@ -122,7 +122,7 @@ export default async function AboutPage() {
               >
                 {content.attorney.name}
               </h2>
-              <p className="mt-2 text-lg font-semibold text-accent">
+              <p className="mt-2 text-lg font-semibold text-accent-text">
                 {content.attorney.role}
               </p>
 
