@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   PieChart, Pie, Cell, ResponsiveContainer, ErrorBar,
@@ -212,6 +212,59 @@ function Disclaimer() {
   );
 }
 
+// ── Multi-select dropdown ──
+
+function MultiDropdown({ label, options, selected, onChange, searchable = false }:
+  { label: string; options: { label: string; value: string }[]; selected: string[];
+    onChange: (vals: string[]) => void; searchable?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = searchable && search
+    ? options.filter(o => o.label.includes(search))
+    : options;
+
+  const toggle = (val: string) => {
+    onChange(selected.includes(val) ? selected.filter(v => v !== val) : [...selected, val]);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(!open)} type="button"
+              className="w-full border rounded-lg p-2 text-sm text-right bg-white flex justify-between items-center gap-2 hover:border-gray-400">
+        <span className="truncate text-gray-500">
+          {selected.length > 0 ? `${selected.length} נבחרו` : "הכל"}
+        </span>
+        <span className="text-xs text-gray-400">{open ? "▲" : "▼"}</span>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" dir="rtl">
+          {searchable && (
+            <input type="text" placeholder="חפש..." value={search} onChange={e => setSearch(e.target.value)}
+                   className="w-full border-b p-2 text-sm outline-none sticky top-0 bg-white" />
+          )}
+          {filtered.slice(0, 100).map(o => (
+            <label key={o.value} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm">
+              <input type="checkbox" checked={selected.includes(o.value)} onChange={() => toggle(o.value)}
+                     className="rounded" />
+              <span>{o.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Filter Panel ──
 
 function FilterPanel({ options, filters, onChange, onClear }: {
@@ -221,40 +274,42 @@ function FilterPanel({ options, filters, onChange, onClear }: {
   onClear: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 mb-4 border-t-3 flex flex-wrap gap-4 items-end"
+    <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-4 items-end"
          style={{ borderTopColor: C_TEAL, borderTopWidth: 3 }}>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold text-primary block mb-1">בית משפט</label>
-        <select multiple className="w-full border rounded p-1.5 text-sm" value={filters.courts || []}
-                onChange={e => onChange("courts", Array.from(e.target.selectedOptions, o => o.value))}>
-          {options.courts.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>בית משפט</label>
+        <MultiDropdown label="בית משפט"
+          options={options.courts.map(c => ({ label: c, value: c }))}
+          selected={filters.courts || []}
+          onChange={vals => onChange("courts", vals)} searchable />
       </div>
-      <div className="flex-[2] min-w-[140px]">
-        <label className="text-xs font-semibold text-primary block mb-1">
+      <div className="flex-[2] min-w-[160px]">
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>
           שנים: {filters.yearMin || options.yearRange[0]}–{filters.yearMax || options.yearRange[1]}
         </label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <span className="text-xs text-gray-400">{options.yearRange[0]}</span>
           <input type="range" min={options.yearRange[0]} max={options.yearRange[1]}
                  value={filters.yearMin || options.yearRange[0]}
                  onChange={e => onChange("yearMin", Number(e.target.value))}
-                 className="flex-1" />
+                 className="flex-1 accent-teal-500" />
           <input type="range" min={options.yearRange[0]} max={options.yearRange[1]}
                  value={filters.yearMax || options.yearRange[1]}
                  onChange={e => onChange("yearMax", Number(e.target.value))}
-                 className="flex-1" />
+                 className="flex-1 accent-teal-500" />
+          <span className="text-xs text-gray-400">{options.yearRange[1]}</span>
         </div>
       </div>
       <div className="flex-[2] min-w-[160px]">
-        <label className="text-xs font-semibold text-primary block mb-1">תוצאת גזר דין</label>
-        <select multiple className="w-full border rounded p-1.5 text-sm" value={filters.verdicts || []}
-                onChange={e => onChange("verdicts", Array.from(e.target.selectedOptions, o => o.value))}>
-          {options.verdicts.map(v => <option key={v} value={v}>{v}</option>)}
-        </select>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>תוצאת גזר דין</label>
+        <MultiDropdown label="תוצאה"
+          options={options.verdicts.map(v => ({ label: v, value: v }))}
+          selected={filters.verdicts || []}
+          onChange={vals => onChange("verdicts", vals)} />
       </div>
       <div className="flex-[1] min-w-[130px]">
-        <label className="text-xs font-semibold text-primary block mb-1">נאשמים</label>
-        <select className="w-full border rounded p-1.5 text-sm" value={filters.sole || "all"}
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>נאשמים</label>
+        <select className="w-full border rounded-lg p-2 text-sm bg-white" value={filters.sole || "all"}
                 onChange={e => onChange("sole", e.target.value)}>
           <option value="all">כולם</option>
           <option value="sole">נאשם יחיד</option>
@@ -262,11 +317,11 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         </select>
       </div>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold text-primary block mb-1">עבירה</label>
-        <select multiple className="w-full border rounded p-1.5 text-sm" value={filters.offenses || []}
-                onChange={e => onChange("offenses", Array.from(e.target.selectedOptions, o => o.value))}>
-          {options.offenses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>עבירה</label>
+        <MultiDropdown label="עבירה"
+          options={options.offenses}
+          selected={filters.offenses || []}
+          onChange={vals => onChange("offenses", vals)} searchable />
       </div>
       <button onClick={onClear}
               className="px-5 py-2 rounded-lg font-bold text-sm cursor-pointer whitespace-nowrap"
@@ -294,17 +349,19 @@ export function SanegoriaDashboard() {
       .catch(e => setError(String(e)));
   }, []);
 
-  // Load data when filters change
-  const loadData = useCallback(async () => {
+  // Load data when filters change (debounced 500ms)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadData = useCallback(async (f: Record<string, any>) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (filters.courts) filters.courts.forEach((c: string) => params.append("court", c));
-      if (filters.yearMin) params.set("yearMin", String(filters.yearMin));
-      if (filters.yearMax) params.set("yearMax", String(filters.yearMax));
-      if (filters.verdicts) filters.verdicts.forEach((v: string) => params.append("verdict", v));
-      if (filters.sole && filters.sole !== "all") params.set("sole", filters.sole);
-      if (filters.offenses) filters.offenses.forEach((o: string) => params.append("offense", o));
+      if (f.courts?.length) f.courts.forEach((c: string) => params.append("court", c));
+      if (f.yearMin) params.set("yearMin", String(f.yearMin));
+      if (f.yearMax) params.set("yearMax", String(f.yearMax));
+      if (f.verdicts?.length) f.verdicts.forEach((v: string) => params.append("verdict", v));
+      if (f.sole && f.sole !== "all") params.set("sole", f.sole);
+      if (f.offenses?.length) f.offenses.forEach((o: string) => params.append("offense", o));
 
       const res = await fetch(`/api/sanegoria?${params}`);
       if (!res.ok) throw new Error(await res.text());
@@ -315,9 +372,13 @@ export function SanegoriaDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => loadData(filters), 500);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [filters, loadData]);
 
   const handleFilterChange = (key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -338,11 +399,23 @@ export function SanegoriaDashboard() {
 
       <Disclaimer />
 
-      {loading && (
-        <div className="text-center py-8 text-muted text-sm">טוען נתונים...</div>
+      {loading && !data && (
+        <div className="text-center py-16 text-muted">
+          <div className="inline-block w-8 h-8 border-3 border-t-teal-500 border-gray-200 rounded-full animate-spin mb-3"></div>
+          <div className="text-sm">טוען נתונים...</div>
+        </div>
       )}
 
       {data && (
+        <>
+        {loading && (
+          <div className="fixed inset-0 bg-white/50 z-40 flex items-center justify-center pointer-events-none">
+            <div className="bg-white rounded-xl shadow-lg px-6 py-4 flex items-center gap-3 pointer-events-auto">
+              <div className="w-5 h-5 border-2 border-t-teal-500 border-gray-200 rounded-full animate-spin"></div>
+              <span className="text-sm text-gray-600">מעדכן...</span>
+            </div>
+          </div>
+        )}
         <>
           {/* Section 1: Cases */}
           <SectionDivider>מקטע 1: תיקים</SectionDivider>
@@ -394,6 +467,7 @@ export function SanegoriaDashboard() {
           <div className="text-center text-muted text-xs mt-3 pb-5">
             נתוני בתי משפט: 2014–{new Date().getFullYear()} | נתוני משטרה: קובץ 474-25
           </div>
+        </>
         </>
       )}
     </div>

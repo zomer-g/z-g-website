@@ -2,6 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { SanegoriaData, SanegoriaFilterOptions, GroupedCount, MetricRow } from "@/types/sanegoria";
 
+// Simple in-memory cache (survives across requests in same worker)
+const cache = new Map<string, { data: any; ts: number }>();
+const CACHE_TTL = 3600_000; // 1 hour
+
+function getCached(key: string) {
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
+  return null;
+}
+function setCache(key: string, data: any) {
+  cache.set(key, { data, ts: Date.now() });
+  // Limit cache size
+  if (cache.size > 200) {
+    const oldest = cache.keys().next().value;
+    if (oldest) cache.delete(oldest);
+  }
+}
+
 const PD = "סניגוריה ציבורית";
 const OTHER = "ללא סניגוריה ציבורית";
 
@@ -78,6 +96,13 @@ export async function GET(req: NextRequest) {
 
   // Build WHERE clause
   const { sql: where, vals } = buildWhere(params);
+  const cacheKey = `data:${where}:${JSON.stringify(vals)}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200", "X-Cache": "HIT" },
+    });
+  }
 
   try {
     // All queries in parallel
@@ -212,6 +237,7 @@ export async function GET(req: NextRequest) {
       offenseCategories: offCats,
     };
 
+    setCache(cacheKey, data);
     return NextResponse.json(data, {
       headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
     });
