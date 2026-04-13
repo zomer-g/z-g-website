@@ -100,11 +100,11 @@ export async function GET(req: NextRequest) {
 
       // Section 2: Hearings
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
-        `SELECT h.is_pd, ROUND(AVG(cnt)::numeric,2) AS avg, ROUND(STDDEV_SAMP(cnt)::numeric,2) AS std,
-                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY cnt)::int AS med, COUNT(*)::int AS n
+        `SELECT sub.is_pd, ROUND(AVG(sub.cnt)::numeric,2) AS avg, ROUND(STDDEV_SAMP(sub.cnt)::numeric,2) AS std,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sub.cnt)::int AS med, COUNT(*)::int AS n
          FROM (SELECT h.case_id, h.is_pd, COUNT(*)::int AS cnt
                FROM sanegoria_hearings h INNER JOIN sanegoria_cases c ON h.case_id = c.case_id
-               WHERE ${where} GROUP BY 1,2) h GROUP BY 1`, ...vals),
+               WHERE ${where} GROUP BY 1,2) sub GROUP BY 1`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
         `WITH fh AS (
            SELECT h.case_id, MIN(h.meeting_date) AS first_date
@@ -127,12 +127,12 @@ export async function GET(req: NextRequest) {
          FROM sanegoria_hearings h INNER JOIN sanegoria_cases c ON h.case_id = c.case_id
          WHERE ${where} GROUP BY 1,2`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
-        `SELECT c.is_pd, ROUND(AVG(d)::numeric) AS avg, ROUND(STDDEV_SAMP(d)::numeric) AS std,
-                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY d)::int AS med, COUNT(*)::int AS n
+        `SELECT sub.is_pd, ROUND(AVG(sub.d)::numeric) AS avg, ROUND(STDDEV_SAMP(sub.d)::numeric) AS std,
+                PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sub.d)::int AS med, COUNT(*)::int AS n
          FROM (SELECT c.is_pd, EXTRACT(DAY FROM (c.closed_date - c.acceptance_date)) AS d
                FROM sanegoria_cases c
                WHERE c.closed_date IS NOT NULL AND c.acceptance_date IS NOT NULL AND ${where}) sub
-         WHERE d BETWEEN 0 AND 10000 GROUP BY 1`, ...vals),
+         WHERE sub.d BETWEEN 0 AND 10000 GROUP BY 1`, ...vals),
 
       // Section 3: Offenses (INNER JOIN only)
       prisma.$queryRawUnsafe<{is_pd:boolean;name:string;n:number}[]>(
