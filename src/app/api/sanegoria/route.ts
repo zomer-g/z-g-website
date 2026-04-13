@@ -121,7 +121,8 @@ export async function GET(req: NextRequest) {
       prisma.$queryRawUnsafe<{is_pd:boolean;v:string;n:number}[]>(
         `SELECT is_pd, verdict AS v, COUNT(*)::int AS n FROM sanegoria_cases c WHERE ${where} AND verdict IS NOT NULL AND verdict != '' GROUP BY 1,2`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;ct:string;n:number}[]>(
-        `SELECT is_pd, court_id AS ct, COUNT(*)::int AS n FROM sanegoria_cases c WHERE ${where} AND court_id IS NOT NULL AND court_id != '' GROUP BY 1,2`, ...vals),
+        `SELECT is_pd, court_id AS ct, COUNT(*)::int AS n FROM sanegoria_cases c WHERE ${where} AND court_id IS NOT NULL AND court_id != ''
+         GROUP BY 1,2 ORDER BY n DESC LIMIT 30`, ...vals),
 
       // Section 2: Hearings
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
@@ -146,11 +147,14 @@ export async function GET(req: NextRequest) {
       prisma.$queryRawUnsafe<{is_pd:boolean;s:string;n:number}[]>(
         `SELECT h.is_pd, h.status AS s, COUNT(*)::int AS n
          FROM sanegoria_hearings h INNER JOIN sanegoria_cases c ON h.case_id = c.case_id
-         WHERE ${where} GROUP BY 1,2`, ...vals),
+         WHERE ${where} AND h.status IS NOT NULL AND h.status != '' GROUP BY 1,2`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;t:string;n:number}[]>(
-        `SELECT h.is_pd, h.type AS t, COUNT(*)::int AS n
-         FROM sanegoria_hearings h INNER JOIN sanegoria_cases c ON h.case_id = c.case_id
-         WHERE ${where} GROUP BY 1,2`, ...vals),
+        `WITH ranked AS (
+           SELECT h.is_pd, h.type AS t, COUNT(*)::int AS n
+           FROM sanegoria_hearings h INNER JOIN sanegoria_cases c ON h.case_id = c.case_id
+           WHERE ${where} AND h.type IS NOT NULL AND h.type != '' GROUP BY 1,2)
+         SELECT * FROM ranked WHERE t IN (
+           SELECT t FROM ranked GROUP BY t ORDER BY SUM(n) DESC LIMIT 8)`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
         `SELECT sub.is_pd, ROUND(AVG(sub.d)::numeric) AS avg, ROUND(STDDEV_SAMP(sub.d)::numeric) AS std,
                 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sub.d)::int AS med, COUNT(*)::int AS n
@@ -161,9 +165,12 @@ export async function GET(req: NextRequest) {
 
       // Section 3: Offenses (INNER JOIN only)
       prisma.$queryRawUnsafe<{is_pd:boolean;name:string;n:number}[]>(
-        `SELECT c.is_pd, o.offense_name AS name, COUNT(DISTINCT o.case_id)::int AS n
-         FROM sanegoria_offenses o INNER JOIN sanegoria_cases c ON o.case_id = c.case_id
-         WHERE ${where} GROUP BY 1,2`, ...vals),
+        `WITH ranked AS (
+           SELECT c.is_pd, o.offense_name AS name, COUNT(DISTINCT o.case_id)::int AS n
+           FROM sanegoria_offenses o INNER JOIN sanegoria_cases c ON o.case_id = c.case_id
+           WHERE ${where} GROUP BY 1,2)
+         SELECT * FROM ranked WHERE name IN (
+           SELECT name FROM ranked GROUP BY name ORDER BY SUM(n) DESC LIMIT 10)`, ...vals),
       prisma.$queryRawUnsafe<{is_pd:boolean;avg:number;std:number;med:number;n:number}[]>(
         `SELECT c.is_pd, ROUND(AVG(cnt)::numeric,2) AS avg, ROUND(STDDEV_SAMP(cnt)::numeric,2) AS std,
                 PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY cnt)::int AS med, COUNT(*)::int AS n

@@ -10,7 +10,7 @@ import type { SanegoriaData, SanegoriaFilterOptions, GroupedCount, MetricRow } f
 const PD = "סניגוריה ציבורית";
 const OTHER = "ללא סניגוריה ציבורית";
 const C_NAVY = "#2C5364";
-const C_TEAL = "#17a2b8";
+const C_BLUE = "#122A49";
 const C_YELLOW = "#ffc107";
 const C_MUTED = "#6c757d";
 
@@ -100,7 +100,7 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <Bar dataKey={PD} fill={C_NAVY} radius={[2, 2, 0, 0]} />
-          <Bar dataKey={OTHER} fill={C_TEAL} radius={[2, 2, 0, 0]} />
+          <Bar dataKey={OTHER} fill={C_BLUE} radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -126,7 +126,7 @@ function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
           <Tooltip />
           <Legend />
           <Bar dataKey={PD} stackId="a" fill={C_NAVY} />
-          <Bar dataKey={OTHER} stackId="a" fill={C_TEAL} />
+          <Bar dataKey={OTHER} stackId="a" fill={C_BLUE} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -163,7 +163,7 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
           <Bar dataKey={PD} fill={C_NAVY} radius={[2, 2, 0, 0]}>
             <ErrorBar dataKey={`${PD}_err`} stroke={C_MUTED} width={6} />
           </Bar>
-          <Bar dataKey={OTHER} fill={C_TEAL} radius={[2, 2, 0, 0]}>
+          <Bar dataKey={OTHER} fill={C_BLUE} radius={[2, 2, 0, 0]}>
             <ErrorBar dataKey={`${OTHER}_err`} stroke={C_MUTED} width={6} />
           </Bar>
         </BarChart>
@@ -188,7 +188,7 @@ function PdPieChart({ pd, other }: { pd: number; other: number }) {
                label={(props: any) => `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(1)}%`}
                labelLine={false}>
             <Cell fill={C_NAVY} />
-            <Cell fill={C_TEAL} />
+            <Cell fill={C_BLUE} />
           </Pie>
           <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
         </PieChart>
@@ -275,7 +275,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
 }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-4 items-end"
-         style={{ borderTopColor: C_TEAL, borderTopWidth: 3 }}>
+         style={{ borderTopColor: C_NAVY, borderTopWidth: 3 }}>
       <div className="flex-[2] min-w-[180px]">
         <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>בית משפט</label>
         <MultiDropdown label="בית משפט"
@@ -287,17 +287,20 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>
           שנים: {filters.yearMin || options.yearRange[0]}–{filters.yearMax || options.yearRange[1]}
         </label>
-        <div className="flex gap-2 items-center">
-          <span className="text-xs text-gray-400">{options.yearRange[0]}</span>
-          <input type="range" min={options.yearRange[0]} max={options.yearRange[1]}
-                 value={filters.yearMin || options.yearRange[0]}
-                 onChange={e => onChange("yearMin", Number(e.target.value))}
-                 className="flex-1 accent-teal-500" />
-          <input type="range" min={options.yearRange[0]} max={options.yearRange[1]}
-                 value={filters.yearMax || options.yearRange[1]}
-                 onChange={e => onChange("yearMax", Number(e.target.value))}
-                 className="flex-1 accent-teal-500" />
-          <span className="text-xs text-gray-400">{options.yearRange[1]}</span>
+        <div className="flex gap-1 items-center">
+          <select className="border rounded-lg p-2 text-sm bg-white w-20"
+                  value={filters.yearMin || options.yearRange[0]}
+                  onChange={e => onChange("yearMin", Number(e.target.value))}>
+            {Array.from({ length: options.yearRange[1] - options.yearRange[0] + 1 }, (_, i) => options.yearRange[0] + i)
+              .map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <span className="text-gray-400 text-xs">עד</span>
+          <select className="border rounded-lg p-2 text-sm bg-white w-20"
+                  value={filters.yearMax || options.yearRange[1]}
+                  onChange={e => onChange("yearMax", Number(e.target.value))}>
+            {Array.from({ length: options.yearRange[1] - options.yearRange[0] + 1 }, (_, i) => options.yearRange[0] + i)
+              .map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
         </div>
       </div>
       <div className="flex-[2] min-w-[160px]">
@@ -421,7 +424,7 @@ export function SanegoriaDashboard() {
           <SectionDivider>מקטע 1: תיקים</SectionDivider>
           <div className="flex gap-4 mb-5 flex-wrap">
             <KpiCard label='סה"כ תיקים' value={data.kpis.totalCases.toLocaleString()} />
-            <KpiCard label="% סניגוריה ציבורית" value={data.kpis.pctPd} color={C_TEAL} />
+            <KpiCard label="% סניגוריה ציבורית" value={data.kpis.pctPd} color={C_BLUE} />
             <KpiCard label="% נאשם יחיד" value={data.kpis.pctSole} />
           </div>
           <div className="flex gap-4 mb-4 flex-wrap">
@@ -434,10 +437,10 @@ export function SanegoriaDashboard() {
           </div>
 
           {/* Section 2: Hearings */}
-          <SectionDivider color={C_TEAL}>מקטע 2: דיונים</SectionDivider>
+          <SectionDivider color={C_BLUE}>מקטע 2: דיונים</SectionDivider>
           <div className="flex gap-4 mb-5 flex-wrap">
             <KpiCard label="ממוצע דיונים לתיק" value={data.kpis.avgHearings} />
-            <KpiCard label="ימים לדיון ראשון" value={data.kpis.avgDaysFirst} color={C_TEAL} />
+            <KpiCard label="ימים לדיון ראשון" value={data.kpis.avgDaysFirst} color={C_BLUE} />
           </div>
           <div className="flex gap-4 mb-4 flex-wrap">
             <div className="flex-1"><GroupedBarChart data={data.hearingTypes} title="סוגי דיונים" topN={6} /></div>
