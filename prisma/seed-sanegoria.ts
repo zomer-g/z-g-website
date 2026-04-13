@@ -63,7 +63,15 @@ async function readLines(filePath: string): Promise<readline.Interface> {
 
 function parseDate(s: string | undefined): Date | null {
   if (!s || s.trim() === "") return null;
-  const d = new Date(s.trim());
+  const v = s.trim();
+  // Handle DD/MM/YYYY HH:MM:SS format
+  const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{2}:\d{2}:\d{2})$/);
+  if (m) {
+    const [, day, month, year, time] = m;
+    return new Date(`${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}T${time}`);
+  }
+  // Handle YYYY-MM-DD or ISO
+  const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
 
@@ -83,7 +91,7 @@ async function main() {
     process.exit(1);
   }
 
-  const pool = new pg.Pool({ connectionString: dbUrl });
+  const pool = new pg.Pool({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
   const client = await pool.connect();
 
   try {
@@ -132,7 +140,7 @@ print('Exported offenses CSV')
     console.log("\nStep 3: Importing cases (2014+)...");
     const tikimLines = await readLines(TIKIM_CSV);
     let tikimFirst = true;
-    let casesBatch: string[][] = [];
+    let casesBatch: (string | null)[][] = [];
     let casesTotal = 0;
     const caseIdSet = new Set<string>(); // track which case_ids are in DB
 
@@ -143,7 +151,7 @@ print('Exported offenses CSV')
       let pi = 1;
       for (const row of casesBatch) {
         values.push(`($${pi},$${pi+1},$${pi+2},$${pi+3},$${pi+4},$${pi+5},$${pi+6},$${pi+7})`);
-        params.push(row[0], row[1], row[2], row[3], row[4], row[5], row[6] === "true", row[7] === "true");
+        params.push(row[0], row[1] || null, row[2] || null, row[3] || null, row[4] || null, row[5] || null, row[6] === "true", row[7] === "true");
         pi += 8;
       }
       await client.query(
@@ -171,11 +179,11 @@ print('Exported offenses CSV')
       caseIdSet.add(caseId);
       casesBatch.push([
         caseId,
-        cols[0]?.trim() || "",
+        cols[0]?.trim() || null,
         acceptDate.toISOString(),
-        parseDate(cols[3])?.toISOString() || "",
-        cols[4]?.trim() || "",
-        cols[5]?.trim() || "",
+        parseDate(cols[3])?.toISOString() || null,
+        cols[4]?.trim() || null,
+        cols[5]?.trim() || null,
         String(isPd),
         String(isSole),
       ]);
@@ -195,7 +203,7 @@ print('Exported offenses CSV')
     console.log("\nStep 4: Importing hearings...");
     const diyunLines = await readLines(DIYUN_CSV);
     let diyunFirst = true;
-    let hearBatch: string[][] = [];
+    let hearBatch: (string | null)[][] = [];
     let hearTotal = 0;
 
     async function flushHearings() {
@@ -205,7 +213,7 @@ print('Exported offenses CSV')
       let pi = 1;
       for (const row of hearBatch) {
         values.push(`($${pi},$${pi+1},$${pi+2},$${pi+3},$${pi+4})`);
-        params.push(row[0], row[1], row[2], row[3], row[4] === "true");
+        params.push(row[0], row[1] || null, row[2] || null, row[3] || null, row[4] === "true");
         pi += 5;
       }
       await client.query(
