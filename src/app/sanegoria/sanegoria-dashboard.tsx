@@ -9,14 +9,17 @@ import type { SanegoriaData, SanegoriaFilterOptions, GroupedCount, MetricRow } f
 
 const PD = "סניגוריה ציבורית";
 const OTHER = "ללא סניגוריה ציבורית";
-const C_NAVY = "#2C5364";
-const C_BLUE = "#122A49";
-const C_YELLOW = "#ffc107";
-const C_MUTED = "#6c757d";
+
+// Site palette
+const C_PRIMARY = "#1a365d";      // כחול כהה — כותרות, טקסט
+const C_ACCENT  = "#c9a84c";      // זהב — הדגשות
+const C_PD      = "#2a6f97";      // כחול-טורקיז — עמודות סניגוריה
+const C_OTHER   = "#e07b54";      // כתום-חום — עמודות ללא סניגוריה
+const C_MUTED   = "#4b5563";      // אפור
 
 // ── Reusable components ──
 
-function KpiCard({ label, value, color = C_NAVY }: { label: string; value: string | number; color?: string }) {
+function KpiCard({ label, value, color = C_PRIMARY }: { label: string; value: string | number; color?: string }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-5 text-center flex-1 min-w-[130px]">
       <div className="text-xs text-muted font-semibold mb-2 tracking-wide">{label}</div>
@@ -27,7 +30,7 @@ function KpiCard({ label, value, color = C_NAVY }: { label: string; value: strin
   );
 }
 
-function SectionDivider({ children, color = C_NAVY }: { children: string; color?: string }) {
+function SectionDivider({ children, color = C_PRIMARY }: { children: string; color?: string }) {
   return (
     <div className="text-sm font-bold text-white rounded-lg px-4 py-2 mb-3 mt-2 tracking-wide"
          style={{ background: color }}>
@@ -99,8 +102,8 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
           <YAxis tick={{ fontSize: 11 }} unit="%" />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Bar dataKey={PD} fill={C_NAVY} radius={[2, 2, 0, 0]} />
-          <Bar dataKey={OTHER} fill={C_BLUE} radius={[2, 2, 0, 0]} />
+          <Bar dataKey={PD} fill={C_PD} radius={[2, 2, 0, 0]} />
+          <Bar dataKey={OTHER} fill={C_OTHER} radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -125,8 +128,8 @@ function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
           <YAxis tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Bar dataKey={PD} stackId="a" fill={C_NAVY} />
-          <Bar dataKey={OTHER} stackId="a" fill={C_BLUE} />
+          <Bar dataKey={PD} stackId="a" fill={C_PD} />
+          <Bar dataKey={OTHER} stackId="a" fill={C_OTHER} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -160,10 +163,10 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
           <YAxis tick={{ fontSize: 11 }} label={ylabel ? { value: ylabel, angle: -90, position: "insideLeft", style: { fontSize: 11 } } : undefined} />
           <Tooltip />
           <Legend />
-          <Bar dataKey={PD} fill={C_NAVY} radius={[2, 2, 0, 0]}>
+          <Bar dataKey={PD} fill={C_PD} radius={[2, 2, 0, 0]}>
             <ErrorBar dataKey={`${PD}_err`} stroke={C_MUTED} width={6} />
           </Bar>
-          <Bar dataKey={OTHER} fill={C_BLUE} radius={[2, 2, 0, 0]}>
+          <Bar dataKey={OTHER} fill={C_OTHER} radius={[2, 2, 0, 0]}>
             <ErrorBar dataKey={`${OTHER}_err`} stroke={C_MUTED} width={6} />
           </Bar>
         </BarChart>
@@ -187,8 +190,8 @@ function PdPieChart({ pd, other }: { pd: number; other: number }) {
                innerRadius={60} outerRadius={110} paddingAngle={2}
                label={(props: any) => `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(1)}%`}
                labelLine={false}>
-            <Cell fill={C_NAVY} />
-            <Cell fill={C_BLUE} />
+            <Cell fill={C_PD} />
+            <Cell fill={C_OTHER} />
           </Pie>
           <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
         </PieChart>
@@ -275,16 +278,16 @@ function FilterPanel({ options, filters, onChange, onClear }: {
 }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-4 items-end"
-         style={{ borderTopColor: C_NAVY, borderTopWidth: 3 }}>
+         style={{ borderTopColor: C_PRIMARY, borderTopWidth: 3 }}>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>בית משפט</label>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>בית משפט</label>
         <MultiDropdown label="בית משפט"
           options={options.courts.map(c => ({ label: c, value: c }))}
           selected={filters.courts || []}
           onChange={vals => onChange("courts", vals)} searchable />
       </div>
       <div className="flex-[2] min-w-[160px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>
           שנים: {filters.yearMin || options.yearRange[0]}–{filters.yearMax || options.yearRange[1]}
         </label>
         <div className="flex gap-1 items-center">
@@ -304,14 +307,14 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         </div>
       </div>
       <div className="flex-[2] min-w-[160px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>תוצאת גזר דין</label>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>תוצאת גזר דין</label>
         <MultiDropdown label="תוצאה"
           options={options.verdicts.map(v => ({ label: v, value: v }))}
           selected={filters.verdicts || []}
           onChange={vals => onChange("verdicts", vals)} />
       </div>
       <div className="flex-[1] min-w-[130px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>נאשמים</label>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>נאשמים</label>
         <select className="w-full border rounded-lg p-2 text-sm bg-white" value={filters.sole || "all"}
                 onChange={e => onChange("sole", e.target.value)}>
           <option value="all">כולם</option>
@@ -320,7 +323,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         </select>
       </div>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_NAVY }}>עבירה</label>
+        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>עבירה</label>
         <MultiDropdown label="עבירה"
           options={options.offenses}
           selected={filters.offenses || []}
@@ -328,7 +331,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
       </div>
       <button onClick={onClear}
               className="px-5 py-2 rounded-lg font-bold text-sm cursor-pointer whitespace-nowrap"
-              style={{ background: C_YELLOW, color: "#212529", border: "none" }}>
+              style={{ background: C_ACCENT, color: "#212529", border: "none" }}>
         נקה פילטרים
       </button>
     </div>
@@ -404,7 +407,7 @@ export function SanegoriaDashboard() {
 
       {loading && !data && (
         <div className="text-center py-16 text-muted">
-          <div className="inline-block w-8 h-8 border-3 border-t-teal-500 border-gray-200 rounded-full animate-spin mb-3"></div>
+          <div className="inline-block w-8 h-8 border-3 border-t-primary border-gray-200 rounded-full animate-spin mb-3"></div>
           <div className="text-sm">טוען נתונים...</div>
         </div>
       )}
@@ -414,7 +417,7 @@ export function SanegoriaDashboard() {
         {loading && (
           <div className="fixed inset-0 bg-white/50 z-40 flex items-center justify-center pointer-events-none">
             <div className="bg-white rounded-xl shadow-lg px-6 py-4 flex items-center gap-3 pointer-events-auto">
-              <div className="w-5 h-5 border-2 border-t-teal-500 border-gray-200 rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-t-primary border-gray-200 rounded-full animate-spin"></div>
               <span className="text-sm text-gray-600">מעדכן...</span>
             </div>
           </div>
@@ -424,7 +427,7 @@ export function SanegoriaDashboard() {
           <SectionDivider>מקטע 1: תיקים</SectionDivider>
           <div className="flex gap-4 mb-5 flex-wrap">
             <KpiCard label='סה"כ תיקים' value={data.kpis.totalCases.toLocaleString()} />
-            <KpiCard label="% סניגוריה ציבורית" value={data.kpis.pctPd} color={C_BLUE} />
+            <KpiCard label="% סניגוריה ציבורית" value={data.kpis.pctPd} color={C_PD} />
             <KpiCard label="% נאשם יחיד" value={data.kpis.pctSole} />
           </div>
           <div className="flex gap-4 mb-4 flex-wrap">
@@ -437,10 +440,10 @@ export function SanegoriaDashboard() {
           </div>
 
           {/* Section 2: Hearings */}
-          <SectionDivider color={C_BLUE}>מקטע 2: דיונים</SectionDivider>
+          <SectionDivider color="#2a4a7f">מקטע 2: דיונים</SectionDivider>
           <div className="flex gap-4 mb-5 flex-wrap">
             <KpiCard label="ממוצע דיונים לתיק" value={data.kpis.avgHearings} />
-            <KpiCard label="ימים לדיון ראשון" value={data.kpis.avgDaysFirst} color={C_BLUE} />
+            <KpiCard label="ימים לדיון ראשון" value={data.kpis.avgDaysFirst} color={C_PD} />
           </div>
           <div className="flex gap-4 mb-4 flex-wrap">
             <div className="flex-1"><GroupedBarChart data={data.hearingTypes} title="סוגי דיונים" topN={6} /></div>
