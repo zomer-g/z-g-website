@@ -18,7 +18,7 @@ export default function SanegoriaPage() {
               ניתוח ייצוג סניגוריה ציבורית
             </h1>
             <p className="text-primary-light/80 text-lg">
-              הליכים פליליים בישראל — 2014 ואילך
+              הליכים פליליים בישראל — 2022 ואילך
             </p>
           </div>
         </Container>

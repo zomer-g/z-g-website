@@ -28,7 +28,7 @@ function grpLabel(isPd: boolean) {
 }
 
 function buildWhere(params: URLSearchParams): { sql: string; vals: any[] } {
-  const clauses: string[] = ["1=1"];
+  const clauses: string[] = ["1=1", "EXTRACT(YEAR FROM c.acceptance_date) >= 2022"];
   const vals: any[] = [];
   let pi = 1;
 
@@ -71,15 +71,15 @@ export async function GET(req: NextRequest) {
   // If requesting filter options only
   if (params.get("filters") === "1") {
     const [courts, verdicts, offenses, yearRange] = await Promise.all([
-      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT court_id AS v FROM sanegoria_cases WHERE court_id IS NOT NULL AND court_id != '' ORDER BY 1`,
-      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT verdict AS v FROM sanegoria_cases WHERE verdict IS NOT NULL AND verdict != '' ORDER BY 1`,
+      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT court_id AS v FROM sanegoria_cases WHERE court_id IS NOT NULL AND court_id != '' AND EXTRACT(YEAR FROM acceptance_date) >= 2022 ORDER BY 1`,
+      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT verdict AS v FROM sanegoria_cases WHERE verdict IS NOT NULL AND verdict != '' AND EXTRACT(YEAR FROM acceptance_date) >= 2022 ORDER BY 1`,
       prisma.$queryRaw<{v:string;n:number}[]>`
         SELECT o.offense_name AS v, COUNT(DISTINCT o.case_id)::int AS n
         FROM sanegoria_offenses o INNER JOIN sanegoria_cases c ON o.case_id = c.case_id
+        WHERE EXTRACT(YEAR FROM c.acceptance_date) >= 2022
         GROUP BY 1 HAVING COUNT(DISTINCT o.case_id) > 0 ORDER BY 2 DESC`,
       prisma.$queryRaw<{mn:number;mx:number}[]>`
-        SELECT MIN(EXTRACT(YEAR FROM acceptance_date))::int AS mn,
-               MAX(EXTRACT(YEAR FROM acceptance_date))::int AS mx
+        SELECT 2022 AS mn, MAX(EXTRACT(YEAR FROM acceptance_date))::int AS mx
         FROM sanegoria_cases WHERE acceptance_date IS NOT NULL`,
     ]);
 
