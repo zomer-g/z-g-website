@@ -1,0 +1,486 @@
+=== index.html ===
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>איתור אסמכתאות משפטיות — תוסף דפדפן | עו"ד גיא זומר</title>
+  <meta name="description" content="תוסף חינמי לדפדפן Chrome המזהה אסמכתאות לתיקים משפטיים ישראליים בדפי אינטרנט ומציג תקצירי פסיקה מתוך מאגר Tag-It.">
+  <meta name="author" content="עו&quot;ד גיא זומר">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="איתור אסמכתאות משפטיות — תוסף דפדפן">
+  <meta property="og:description" content="זיהוי אוטומטי של מספרי תיקים משפטיים ישראליים בדף הנקרא והצגת תקצירי פסיקה">
+  <meta property="og:locale" content="he_IL">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container-full">
+    <a href="https://www.z-g.co.il" class="logo">זומר | עורך דין</a>
+    <ul class="nav-items">
+      <li><a href="https://www.z-g.co.il/">ראשי</a></li>
+      <li><a href="https://www.z-g.co.il/about">אודות</a></li>
+      <li><a href="https://www.z-g.co.il/services">תחומי עיסוק</a></li>
+      <li><a href="https://www.z-g.co.il/projects">מיזמים</a></li>
+      <li><a href="https://www.z-g.co.il/digital-services">שירותים דיגיטליים</a></li>
+      <li><a href="https://www.z-g.co.il/articles">מאמרים</a></li>
+      <li><a href="https://www.z-g.co.il/contact">צור קשר</a></li>
+    </ul>
+    <a href="https://www.z-g.co.il/contact" class="cta-btn">ייעוץ ראשוני</a>
+  </div>
+</header>
+
+<main id="main-content" role="main" style="flex:1;">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container-full">
+      <h1>איתור אסמכתאות משפטיות</h1>
+      <p>תוסף חינמי לדפדפן Chrome לעורכי דין, חוקרים ואנשי מקצוע משפטיים</p>
+      <p class="subtitle" style="color:rgba(255,255,255,0.6); font-size:0.9375rem; margin-top:1rem;">Israeli Legal Case Finder — Chrome Extension</p>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content-section">
+    <div class="container-narrow">
+
+      <h2>מה התוסף עושה?</h2>
+      <p>התוסף סורק דפי אינטרנט שאתם גולשים בהם, מזהה אזכורים של מספרי תיקים משפטיים ישראליים, ושולף ממאגר <strong>Tag-It</strong> תקצירים של פסקי דין והחלטות שניתנו באותם תיקים. הכול מוצג ישירות לצד הדף הנקרא — ללא צורך לעבור בין חלונות.</p>
+
+      <div class="card-grid">
+        <div class="card">
+          <div class="feature-icon">🔍</div>
+          <h3>זיהוי אוטומטי</h3>
+          <p>מזהה עשרות סוגי הליכים — בג"ץ, ע"א, ת"צ, עת"מ, ת"א, רע"א, ע"ע ועוד רבים. תומך בפורמט החדש (2010+) ובפורמט הישן.</p>
+        </div>
+        <div class="card">
+          <div class="feature-icon">📋</div>
+          <h3>תקצירי פסיקה</h3>
+          <p>מציג תקציר, שמות צדדים, בית משפט ותאריך פסיקה. תומך במספר החלטות לתיק, מדורגות לפי רלוונטיות.</p>
+        </div>
+        <div class="card">
+          <div class="feature-icon">🔒</div>
+          <h3>פרטיות ושקיפות</h3>
+          <p>הסריקה מקומית. לשרת נשלחים רק מספרי התיקים. יומן שקיפות מלא בתוך התוסף מציג בדיוק מה יוצא מהדפדפן.</p>
+        </div>
+      </div>
+
+      <h2>יכולות</h2>
+      <ul>
+        <li><strong>הדגשה בדף</strong> — אסמכתאות מודגשות בצבע לזיהוי מהיר</li>
+        <li><strong>חלון מידע צף</strong> — ריחוף מעל אסמכתא מציג תקציר</li>
+        <li><strong>לוח צד</strong> — רשימת כל האסמכתאות שזוהו עם פרטים מלאים</li>
+        <li><strong>חיפוש ידני</strong> — חיפוש לפי מספר תיק מתוך לוח הצד</li>
+        <li><strong>מספר החלטות לתיק</strong> — דירוג לפי רלוונטיות עם אפשרות הרחבה</li>
+        <li><strong>צפייה במסמך המקורי</strong> — קישור ישיר למסמך מאגר הפסיקה</li>
+      </ul>
+
+      <div class="warning-box">
+        <h3 style="margin-top:0; color:#92400e;">הסתייגות לגבי תקצירים מבוססי מודלי שפה (AI)</h3>
+        <p>חלק מהתקצירים מופקים באמצעות מודלי שפה גדולים (LLM). מודלים אלה עלולים לטעות, לבדות ציטוטים, או להציג בצורה שגויה את עמדת בית המשפט. <strong>אין להסתמך על התקצירים כתחליף לקריאת פסק הדין המקורי.</strong></p>
+      </div>
+
+      <div class="warning-box">
+        <h3 style="margin-top:0; color:#92400e;">הסתייגות לגבי מבנה מספרי תיקים</h3>
+        <p>עד שנת 2010 לא היה מספור אחיד — אותו מספר יכול להופיע בתיקים שונים. לגבי פסיקה שקדמה ל-2010, התוסף אינו מבטיח התאמה מהימנה. כמו כן, התוסף אינו תומך בפסיקה של בתי המשפט לתעבורה.</p>
+      </div>
+
+      <h2>התקנה</h2>
+      <div class="btn-row">
+        <a href="#" class="btn-primary">התקנה מחנות Chrome</a>
+        <a href="https://github.com/zomer-g/israeli-legal-case-tracker" class="btn-secondary">קוד מקור (GitHub)</a>
+      </div>
+
+      <h2>אודות המפתח</h2>
+      <p>Guy Zomer — עורך דין ומפתח תוכנה.</p>
+      <p>יצירת קשר: <a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></p>
+
+      <hr>
+
+      <h2>קישורים</h2>
+      <ul>
+        <li><a href="privacy.html">מדיניות פרטיות</a></li>
+        <li><a href="terms.html">תנאי שימוש</a></li>
+      </ul>
+
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer" role="contentinfo">
+  <div class="container-full">
+    <address style="font-style:normal;">
+      <ul class="footer-contact">
+        <li><a href="tel:+972-54-765-0202">054-7650202</a></li>
+        <li><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></li>
+      </ul>
+    </address>
+    <nav aria-label="קישורים משפטיים">
+      <ul class="footer-legal">
+        <li><a href="https://www.z-g.co.il/accessibility">הצהרת נגישות</a></li>
+        <li><a href="privacy.html">מדיניות פרטיות</a></li>
+        <li><a href="terms.html">תנאי שימוש</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
+=== END ===
+=== privacy.html ===
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מדיניות פרטיות — איתור אסמכתאות משפטיות | עו"ד גיא זומר</title>
+  <meta name="description" content="מדיניות פרטיות של תוסף הדפדפן איתור אסמכתאות משפטיות — אילו נתונים נאספים, לאן הם נשלחים, ומה לא נאסף.">
+  <meta name="robots" content="index, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container-full">
+    <a href="https://www.z-g.co.il" class="logo">זומר | עורך דין</a>
+    <ul class="nav-items">
+      <li><a href="https://www.z-g.co.il/">ראשי</a></li>
+      <li><a href="https://www.z-g.co.il/about">אודות</a></li>
+      <li><a href="https://www.z-g.co.il/services">תחומי עיסוק</a></li>
+      <li><a href="https://www.z-g.co.il/projects">מיזמים</a></li>
+      <li><a href="https://www.z-g.co.il/digital-services">שירותים דיגיטליים</a></li>
+      <li><a href="https://www.z-g.co.il/contact">צור קשר</a></li>
+    </ul>
+    <a href="https://www.z-g.co.il/contact" class="cta-btn">ייעוץ ראשוני</a>
+  </div>
+</header>
+
+<main id="main-content" role="main" style="flex:1;">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container-full">
+      <h1>מדיניות פרטיות — איתור אסמכתאות משפטיות</h1>
+      <p>Privacy Policy — Israeli Legal Case Finder</p>
+    </div>
+  </section>
+
+  <!-- Content -->
+  <section class="content-section">
+    <div class="container-narrow prose-rtl">
+
+      <p style="color:var(--muted); font-size:0.875rem;">עדכון אחרון: אפריל 2026</p>
+
+      <h2>1. מהו התוסף ומה מטרתו</h2>
+      <p>התוסף "איתור אסמכתאות משפטיות" סורק דפי אינטרנט שהמשתמש גולש בהם, מזהה אזכורים של מספרי תיקים משפטיים ישראליים (לפי תבניות מספור מוכרות), ושולף ממאגר פסיקה חיצוני תקצירים של פסקי דין והחלטות שניתנו באותם תיקים. מטרתו היחידה היא לסייע לעורכי דין, חוקרים ואזרחים להבין את ההקשר המשפטי שבדף הנקרא.</p>
+
+      <h2>2. אילו נתונים נאספים</h2>
+      <p>כאשר התוסף מזהה אסמכתאות משפטיות בדף, הוא שולח לשרת את הפרטים הבאים:</p>
+      <ul>
+        <li><strong>מספרי התיקים</strong> שזוהו (למשל: בג"ץ 1234/05, ת"א 56789-01-22)</li>
+        <li><strong>קטע טקסט קצר</strong> (כ-200 תווים) סביב כל אסמכתא — לצורך דירוג רלוונטיות בלבד</li>
+        <li><strong>כתובת העמוד (URL)</strong> שבו נמצאו האסמכתאות</li>
+        <li><strong>כותרת העמוד</strong></li>
+      </ul>
+      <p>התוסף <strong>אינו</strong> קורא או שולח:</p>
+      <ul>
+        <li>טפסים, סיסמאות, שדות קלט</li>
+        <li>עוגיות (cookies), אסימוני אימות של אתרים אחרים</li>
+        <li>אימיילים, הודעות, מסמכים פתוחים</li>
+        <li>היסטוריית גלישה כללית — רק עמודים שבהם זוהו אסמכתאות</li>
+        <li>מידע אישי מזהה של המשתמש (למעט חשבון Google לצורך הזדהות — ראו סעיף 5)</li>
+      </ul>
+
+      <h2>3. לאן נשלח המידע</h2>
+      <p>המידע נשלח לשירות <strong>Tag-It</strong> (Smart-DMS) בכתובת <code style="background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:0.9em;">tag-it.biz</code>, המשמש כמאגר פסיקה ישראלי. שירות זה מעבד את מספרי התיקים ומחזיר תקצירים של פסקי דין.</p>
+      <p>חלק מהתקצירים מופקים באמצעות <strong>מודלי שפה גדולים (AI/LLM)</strong> מטעם שירות Tag-It. התוסף עצמו אינו שולח נתונים ישירות לספקי AI; העיבוד מתבצע בצד השרת של Tag-It.</p>
+
+      <h2>4. למה משמש המידע</h2>
+      <p>המידע משמש אך ורק למטרה היחידה של התוסף:</p>
+      <ul>
+        <li>זיהוי מספרי תיקים בדף הנקרא</li>
+        <li>שליפת תקצירים, צדדים, בית משפט ותאריך ההחלטה</li>
+        <li>הצגת המידע למשתמש בלוח צד ובחלון מידע צף</li>
+      </ul>
+      <p>המידע <strong>אינו</strong> משמש ל:</p>
+      <ul>
+        <li>פרסום, שיווק או פרסום ממוקד</li>
+        <li>מכירה או העברה לצדדים שלישיים (למעט שירות Tag-It כמתואר לעיל)</li>
+        <li>מעקב אחר המשתמש או יצירת פרופיל גלישה</li>
+        <li>הערכת אשראי, הלוואות, או כל שימוש שאינו קשור למטרת התוסף</li>
+      </ul>
+
+      <h2>5. אימות משתמש</h2>
+      <p>התוסף מאפשר התחברות באמצעות חשבון Google, לצורך הזדהות מול שירות Tag-It. פרטי ההתחברות (שם, אימייל, תמונת פרופיל) נשמרים מקומית בדפדפן בלבד ואינם נשלחים לשום צד שלישי מעבר לתהליך ההזדהות הסטנדרטי.</p>
+
+      <h2>6. שמירה ומחיקה</h2>
+      <p>תקצירים שנשלפו נשמרים במטמון מקומי בדפדפן למשך 24 שעות. ניתן לנקות את המטמון בכל עת דרך התוסף. מידע שנשלח לשרת Tag-It כפוף למדיניות השמירה של שירות Tag-It.</p>
+
+      <h2>7. שקיפות מלאה</h2>
+      <p>התוסף כולל לשונית "אודות" עם יומן שקיפות מלא המציג את כל הבקשות שנשלחו ואת התגובות שהתקבלו, כולל גוף ה-JSON המלא. המשתמש יכול לאמת בעצמו בדיוק מה יוצא מהדפדפן.</p>
+
+      <h2>8. עמידה במדיניות Chrome Web Store</h2>
+      <div class="warning-box">
+        <p><strong>הצהרת שימוש מוגבל (Limited Use):</strong></p>
+        <ul>
+          <li>השימוש בנתוני המשתמש מוגבל למתן ולשיפור המטרה היחידה של התוסף (סיוע בקריאת אסמכתאות משפטיות).</li>
+          <li>נתוני המשתמש אינם מועברים לצדדים שלישיים, למעט לצורך מתן השירות (שירות Tag-It), עמידה בדרישות חוק, או אבטחה.</li>
+          <li>נתוני המשתמש אינם משמשים לפרסום, לשיווק, או לכל מטרה שאינה קשורה למטרת התוסף.</li>
+          <li>בני אדם אינם קוראים את נתוני המשתמש, למעט בהסכמה מפורשת, לצרכי אבטחה, או לעמידה בדרישות חוק.</li>
+        </ul>
+      </div>
+
+      <h2>9. יצירת קשר</h2>
+      <p>לשאלות, בקשות מחיקת מידע, דיווח על בעיות פרטיות או נגישות:</p>
+      <p><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></p>
+
+      <hr>
+
+      <!-- English -->
+      <div dir="ltr" style="text-align:left;">
+
+        <h2 style="border-bottom:none;">Privacy Policy</h2>
+        <p style="color:var(--muted); font-size:0.875rem;">Last updated: April 2026</p>
+
+        <h3>1. Purpose</h3>
+        <p>The "Israeli Legal Case Finder" extension scans web pages the user visits, identifies references to Israeli court case numbers (by known numbering patterns), and retrieves case summaries from an external legal database. Its sole purpose is to help lawyers, researchers, and citizens understand the legal context in the page they are reading.</p>
+
+        <h3>2. Data Collected</h3>
+        <p>When the extension identifies legal case references on a page, it sends the following to the server:</p>
+        <ul>
+          <li><strong>Case numbers</strong> identified (e.g., HCJ 1234/05)</li>
+          <li>A <strong>short text snippet</strong> (~200 characters) around each reference, for relevance ranking only</li>
+          <li>The <strong>page URL</strong> where references were found</li>
+          <li>The <strong>page title</strong></li>
+        </ul>
+        <p>The extension does <strong>not</strong> read or transmit: forms, passwords, cookies, emails, messages, general browsing history, or personally identifying information (except Google account for authentication).</p>
+
+        <h3>3. Where Data Is Sent</h3>
+        <p>Data is sent to the <strong>Tag-It</strong> (Smart-DMS) service at <code style="background:#f3f4f6; padding:2px 6px; border-radius:4px; font-size:0.9em;">tag-it.biz</code>, an Israeli legal database. Some summaries are generated using large language models (AI/LLM) on the Tag-It server side. The extension itself does not send data directly to AI providers.</p>
+
+        <h3>4. Data Usage</h3>
+        <p>Data is used solely for the extension's single purpose. Data is <strong>not</strong> used for advertising, marketing, profiling, creditworthiness, lending, or any unrelated purpose. Data is not sold or transferred to third parties beyond the Tag-It service.</p>
+
+        <h3>5. Authentication</h3>
+        <p>The extension supports Google sign-in for authentication with Tag-It. Login credentials are stored locally in the browser only.</p>
+
+        <h3>6. Retention &amp; Deletion</h3>
+        <p>Retrieved summaries are cached locally for 24 hours. Users can clear the cache at any time. Server-side data is subject to Tag-It's retention policy.</p>
+
+        <h3>7. Chrome Web Store Limited Use Compliance</h3>
+        <div class="warning-box">
+          <ul>
+            <li>Use of user data is limited to providing and improving the extension's single purpose.</li>
+            <li>User data is not transferred to third parties except as needed to provide the service, comply with the law, or ensure security.</li>
+            <li>User data is not used for advertising or purposes unrelated to the extension's single purpose.</li>
+            <li>Humans do not read user data except with explicit consent, for security, or for legal compliance.</li>
+          </ul>
+        </div>
+
+        <h3>8. Contact</h3>
+        <p>For questions, data deletion requests, privacy or accessibility concerns:<br>
+        <a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></p>
+      </div>
+
+      <hr>
+      <p style="text-align:center;"><a href="index.html">&larr; חזרה לעמוד התוסף</a></p>
+
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer" role="contentinfo">
+  <div class="container-full">
+    <address style="font-style:normal;">
+      <ul class="footer-contact">
+        <li><a href="tel:+972-54-765-0202">054-7650202</a></li>
+        <li><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></li>
+      </ul>
+    </address>
+    <nav aria-label="קישורים משפטיים">
+      <ul class="footer-legal">
+        <li><a href="https://www.z-g.co.il/accessibility">הצהרת נגישות</a></li>
+        <li><a href="privacy.html">מדיניות פרטיות</a></li>
+        <li><a href="terms.html">תנאי שימוש</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
+=== END ===
+=== terms.html ===
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>תנאי שימוש — איתור אסמכתאות משפטיות | עו"ד גיא זומר</title>
+  <meta name="description" content="תנאי שימוש בתוסף הדפדפן איתור אסמכתאות משפטיות.">
+  <meta name="robots" content="index, follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container-full">
+    <a href="https://www.z-g.co.il" class="logo">זומר | עורך דין</a>
+    <ul class="nav-items">
+      <li><a href="https://www.z-g.co.il/">ראשי</a></li>
+      <li><a href="https://www.z-g.co.il/about">אודות</a></li>
+      <li><a href="https://www.z-g.co.il/services">תחומי עיסוק</a></li>
+      <li><a href="https://www.z-g.co.il/projects">מיזמים</a></li>
+      <li><a href="https://www.z-g.co.il/digital-services">שירותים דיגיטליים</a></li>
+      <li><a href="https://www.z-g.co.il/contact">צור קשר</a></li>
+    </ul>
+    <a href="https://www.z-g.co.il/contact" class="cta-btn">ייעוץ ראשוני</a>
+  </div>
+</header>
+
+<main id="main-content" role="main" style="flex:1;">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container-full">
+      <h1>תנאי שימוש — איתור אסמכתאות משפטיות</h1>
+      <p>Terms of Use — Israeli Legal Case Finder</p>
+    </div>
+  </section>
+
+  <!-- Content -->
+  <section class="content-section">
+    <div class="container-narrow prose-rtl">
+
+      <p style="color:var(--muted); font-size:0.875rem;">עדכון אחרון: אפריל 2026</p>
+
+      <h2>1. הגדרות</h2>
+      <p>"<strong>התוסף</strong>" — תוסף הדפדפן "איתור אסמכתאות משפטיות" (Israeli Legal Case Finder) עבור Google Chrome.</p>
+      <p>"<strong>המפתח</strong>" — גיא זומר, עורך דין ומפתח תוכנה.</p>
+      <p>"<strong>המשתמש</strong>" — כל אדם המתקין או משתמש בתוסף.</p>
+      <p>"<strong>השירות</strong>" — שירות Tag-It (Smart-DMS), מאגר פסיקה ישראלי חיצוני שממנו נשלפים תקצירי פסקי דין.</p>
+
+      <h2>2. אישור תנאי השימוש</h2>
+      <p>בהתקנת התוסף ו/או בשימוש בו, המשתמש מאשר כי קרא והבין את תנאי השימוש ואת <a href="privacy.html">מדיניות הפרטיות</a>, ומסכים להם.</p>
+
+      <h2>3. תיאור השירות</h2>
+      <p>התוסף סורק דפי אינטרנט שבהם המשתמש גולש, מזהה אזכורים של מספרי תיקים משפטיים ישראליים, ושולף ממאגר Tag-It תקצירים של פסקי דין והחלטות. התוסף מסופק <strong>חינם</strong> ומיועד לשימוש כ<strong>כלי עזר ראשוני בלבד</strong>.</p>
+
+      <h2>4. הגבלת אחריות</h2>
+
+      <h3>4.1 תקצירים מבוססי מודלי שפה (AI)</h3>
+      <p>חלק מהתקצירים המוצגים בתוסף מופקים באמצעות מודלי שפה גדולים (LLM). מודלים אלה עלולים:</p>
+      <ul>
+        <li>לטעות בפרשנות פסקי דין</li>
+        <li>לבדות ציטוטים שאינם קיימים במקור</li>
+        <li>להחמיץ ניואנסים משפטיים מהותיים</li>
+        <li>להציג בצורה שגויה את עמדת בית המשפט</li>
+      </ul>
+      <div class="warning-box">
+        <p><strong>אין להסתמך על התקצירים כתחליף לקריאת פסק הדין המקורי.</strong> השתמשו בהם ככלי עזר ראשוני בלבד, ותמיד אמתו כל ציטוט או קביעה מול המקור.</p>
+      </div>
+
+      <h3>4.2 מבנה מספרי תיקים</h3>
+      <p>עד שנת 2010 לא הייתה בישראל מערכת מספור אחידה — כל בית משפט הקצה מספרים באופן עצמאי. כתוצאה מכך, לגבי פסיקה שקדמה ל-2010, התוסף אינו יכול להבטיח התאמה מהימנה בין מספר התיק לתוצאה המוצגת.</p>
+      <p>החל משנת 2010 פועלות שתי מערכות מספור מקבילות. התוסף תומך אך ורק במספור של מערכת בתי המשפט הרגילה, ואינו מזהה פסיקה של בתי המשפט לתעבורה.</p>
+
+      <h3>4.3 זמינות השירות</h3>
+      <p>התוסף תלוי בזמינותו של שירות Tag-It. המפתח אינו אחראי לתקלות, עיכובים, או חוסר זמינות של שירות Tag-It או של כל שירות צד שלישי אחר.</p>
+
+      <h2>5. הגבלת אחריות כללית</h2>
+      <p>התוסף מסופק "<strong>כמות שהוא</strong>" (AS IS), ללא אחריות מכל סוג, מפורשת או משתמעת. המפתח אינו אחראי לכל נזק ישיר, עקיף, מקרי, תוצאתי או מיוחד הנובע מהשימוש בתוסף או מחוסר היכולת להשתמש בו, לרבות אך לא רק:</p>
+      <ul>
+        <li>הסתמכות על מידע שגוי שהוצג על ידי התוסף</li>
+        <li>החמצת מידע משפטי רלוונטי</li>
+        <li>כל טענה מקצועית הנובעת מהשימוש בתוסף</li>
+      </ul>
+
+      <h2>6. קניין רוחני</h2>
+      <p>קוד המקור של התוסף זמין ב-<a href="https://github.com/zomer-g/israeli-legal-case-tracker">GitHub</a>. תקצירי פסקי הדין הם רכושו של שירות Tag-It ו/או בעלי הזכויות במסמכי בית המשפט.</p>
+
+      <h2>7. פרטיות</h2>
+      <p>השימוש בתוסף כפוף ל<a href="privacy.html">מדיניות הפרטיות</a>. המפתח מתחייב שלא למכור, לסחור, או להעביר את נתוני המשתמש לצד שלישי שלא לצורך מתן השירות.</p>
+
+      <h2>8. שינויים בתנאים</h2>
+      <p>המפתח רשאי לעדכן תנאים אלה מעת לעת. המשך השימוש בתוסף לאחר עדכון מהווה הסכמה לתנאים המעודכנים. תאריך העדכון האחרון מופיע בראש עמוד זה.</p>
+
+      <h2>9. דין חל וסמכות שיפוט</h2>
+      <p>תנאים אלה כפופים לדין הישראלי. סמכות השיפוט הבלעדית נתונה לבתי המשפט המוסמכים במחוז תל אביב-יפו.</p>
+
+      <h2>10. יצירת קשר</h2>
+      <p>לשאלות בנוגע לתנאי שימוש אלה:</p>
+      <p><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></p>
+
+      <hr>
+
+      <!-- English summary -->
+      <div dir="ltr" style="text-align:left;">
+
+        <h2 style="border-bottom:none;">Terms of Use (Summary)</h2>
+        <p style="color:var(--muted); font-size:0.875rem;">Last updated: April 2026</p>
+
+        <p>By installing or using the "Israeli Legal Case Finder" extension, you agree to these terms.</p>
+
+        <h3>Disclaimer</h3>
+        <p>The extension is provided "AS IS". Some summaries are AI-generated and may contain errors. <strong>Do not rely on summaries as a substitute for reading the original ruling.</strong> The developer is not liable for any damages arising from use of the extension.</p>
+
+        <h3>Case Number Limitations</h3>
+        <p>Pre-2010 case numbers were not uniformly assigned. Results for older cases may be unreliable. Traffic court rulings are not supported.</p>
+
+        <h3>Privacy</h3>
+        <p>See the <a href="privacy.html">Privacy Policy</a> for details on data collection and usage.</p>
+
+        <h3>Governing Law</h3>
+        <p>These terms are governed by Israeli law. Jurisdiction: Tel Aviv-Jaffa courts.</p>
+
+        <h3>Contact</h3>
+        <p><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></p>
+      </div>
+
+      <hr>
+      <p style="text-align:center;"><a href="index.html">&larr; חזרה לעמוד התוסף</a></p>
+
+    </div>
+  </section>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer" role="contentinfo">
+  <div class="container-full">
+    <address style="font-style:normal;">
+      <ul class="footer-contact">
+        <li><a href="tel:+972-54-765-0202">054-7650202</a></li>
+        <li><a href="mailto:guy@z-g.co.il">guy@z-g.co.il</a></li>
+      </ul>
+    </address>
+    <nav aria-label="קישורים משפטיים">
+      <ul class="footer-legal">
+        <li><a href="https://www.z-g.co.il/accessibility">הצהרת נגישות</a></li>
+        <li><a href="privacy.html">מדיניות פרטיות</a></li>
+        <li><a href="terms.html">תנאי שימוש</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+</body>
+</html>
+=== END ===

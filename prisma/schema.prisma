@@ -157,3 +157,46 @@ enum PostStatus {
   PUBLISHED
   ARCHIVED
 }
+
+// ─── Sanegoria Dashboard (Criminal Proceedings Analysis) ───
+
+model SanegoriaCase {
+  id             Int       @id @default(autoincrement())
+  caseId         String    @unique @map("case_id")
+  caseName       String?   @map("case_name")
+  acceptanceDate DateTime? @map("acceptance_date")
+  closedDate     DateTime? @map("closed_date")
+  verdict        String?
+  courtId        String?   @map("court_id")
+  isPd           Boolean   @default(false) @map("is_pd")
+  isSole         Boolean   @default(false) @map("is_sole")
+
+  @@index([isPd])
+  @@index([courtId])
+  @@index([acceptanceDate])
+  @@index([verdict])
+  @@map("sanegoria_cases")
+}
+
+model SanegoriaHearing {
+  id          Int       @id @default(autoincrement())
+  caseId      String    @map("case_id")
+  meetingDate DateTime? @map("meeting_date")
+  status      String?
+  type        String?
+  isPd        Boolean   @default(false) @map("is_pd")
+
+  @@index([caseId])
+  @@index([isPd])
+  @@map("sanegoria_hearings")
+}
+
+model SanegoriaOffense {
+  id          Int     @id @default(autoincrement())
+  caseId      String  @map("case_id")
+  offenseCode String? @map("offense_code")
+  offenseName String? @map("offense_name")
+
+  @@index([caseId])
+  @@map("sanegoria_offenses")
+}
