@@ -206,6 +206,9 @@ function Disclaimer() {
   return (
     <div className="bg-amber-50 border-r-4 border-amber-400 rounded-lg p-4 mb-4 text-sm italic leading-relaxed text-foreground">
       <p className="mb-2">
+        שיוך העבירות מבוסס על נתוני תביעות משטרה בלבד (ללא פרקליטות) לשנים 2022–2025.
+      </p>
+      <p className="mb-2">
         הנתונים והעיבודים בוצעו במאמץ לשקף את המציאות בצורה מדויקת, אולם ייתכנו טעויות ואי-דיוקים, בין היתר לאור הצורך באינטגרציה של מקורות מידע שונים ללא שדות אחידים.
       </p>
       <p>
