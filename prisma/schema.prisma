@@ -175,6 +175,11 @@ model SanegoriaCase {
   @@index([courtId])
   @@index([acceptanceDate])
   @@index([verdict])
+  @@index([isPd, acceptanceDate])
+  @@index([isPd, courtId])
+  @@index([isPd, verdict])
+  @@index([isPd, acceptanceDate, courtId])
+  @@index([isPd, acceptanceDate, verdict])
   @@map("sanegoria_cases")
 }
 
@@ -188,6 +193,8 @@ model SanegoriaHearing {
 
   @@index([caseId])
   @@index([isPd])
+  @@index([caseId, isPd])
+  @@index([isPd, meetingDate])
   @@map("sanegoria_hearings")
 }
 
@@ -198,5 +205,6 @@ model SanegoriaOffense {
   offenseName String? @map("offense_name")
 
   @@index([caseId])
+  @@index([caseId, offenseCode])
   @@map("sanegoria_offenses")
 }

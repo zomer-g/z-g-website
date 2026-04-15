@@ -3,6 +3,8 @@ import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { SanegoriaDashboard } from "./sanegoria-dashboard";
 
+export const revalidate = 3600; // ISR: regenerate every hour
+
 export const metadata: Metadata = {
   title: "דשבורד סניגוריה ציבורית | ניתוח הליכים פליליים",
   description: "ניתוח ייצוג סניגוריה ציבורית בהליכים פליליים בישראל — השוואת תיקים, דיונים ועבירות",
