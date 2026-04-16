@@ -28,7 +28,7 @@ function grpLabel(isPd: boolean) {
 }
 
 function buildWhere(params: URLSearchParams): { sql: string; vals: any[] } {
-  const clauses: string[] = ["1=1", "EXTRACT(YEAR FROM c.acceptance_date) >= 2022"];
+  const clauses: string[] = ["1=1", "c.acceptance_date >= '2022-01-01'"];
   const vals: any[] = [];
   let pi = 1;
 
@@ -41,8 +41,8 @@ function buildWhere(params: URLSearchParams): { sql: string; vals: any[] } {
 
   const yearMin = params.get("yearMin");
   const yearMax = params.get("yearMax");
-  if (yearMin) { clauses.push(`EXTRACT(YEAR FROM c.acceptance_date) >= $${pi}`); vals.push(Number(yearMin)); pi++; }
-  if (yearMax) { clauses.push(`EXTRACT(YEAR FROM c.acceptance_date) <= $${pi}`); vals.push(Number(yearMax)); pi++; }
+  if (yearMin) { clauses.push(`c.acceptance_date >= $${pi}::date`); vals.push(`${yearMin}-01-01`); pi++; }
+  if (yearMax) { clauses.push(`c.acceptance_date < $${pi}::date`); vals.push(`${Number(yearMax) + 1}-01-01`); pi++; }
 
   const verdicts = params.getAll("verdict");
   if (verdicts.length > 0) {
@@ -70,13 +70,22 @@ export async function GET(req: NextRequest) {
 
   // If requesting filter options only
   if (params.get("filters") === "1") {
+    // Use in-memory cache (24h TTL) — filter options rarely change
+    const filterCacheKey = "filter-options";
+    const cachedFilters = getCached(filterCacheKey);
+    if (cachedFilters) {
+      return NextResponse.json(cachedFilters, {
+        headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=172800" },
+      });
+    }
+
     const [courts, verdicts, offenses, yearRange] = await Promise.all([
-      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT court_id AS v FROM sanegoria_cases WHERE court_id IS NOT NULL AND court_id != '' AND EXTRACT(YEAR FROM acceptance_date) >= 2022 ORDER BY 1`,
-      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT verdict AS v FROM sanegoria_cases WHERE verdict IS NOT NULL AND verdict != '' AND EXTRACT(YEAR FROM acceptance_date) >= 2022 ORDER BY 1`,
+      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT court_id AS v FROM sanegoria_cases WHERE court_id IS NOT NULL AND court_id != '' AND acceptance_date >= '2022-01-01' ORDER BY 1`,
+      prisma.$queryRaw<{v:string}[]>`SELECT DISTINCT verdict AS v FROM sanegoria_cases WHERE verdict IS NOT NULL AND verdict != '' AND acceptance_date >= '2022-01-01' ORDER BY 1`,
       prisma.$queryRaw<{v:string;n:number}[]>`
         SELECT o.offense_name AS v, COUNT(DISTINCT o.case_id)::int AS n
         FROM sanegoria_offenses o INNER JOIN sanegoria_cases c ON o.case_id = c.case_id
-        WHERE EXTRACT(YEAR FROM c.acceptance_date) >= 2022
+        WHERE c.acceptance_date >= '2022-01-01'
         GROUP BY 1 HAVING COUNT(DISTINCT o.case_id) > 0 ORDER BY 2 DESC`,
       prisma.$queryRaw<{mn:number;mx:number}[]>`
         SELECT 2022 AS mn, MAX(EXTRACT(YEAR FROM acceptance_date))::int AS mx
@@ -89,6 +98,10 @@ export async function GET(req: NextRequest) {
       offenses: offenses.map(r => ({ label: `${r.v} (${r.n})`, value: r.v })),
       yearRange: [yearRange[0]?.mn || 2014, yearRange[0]?.mx || 2025],
     };
+
+    // Cache for 24 hours
+    cache.set(filterCacheKey, { data: opts, ts: Date.now() });
+
     return NextResponse.json(opts, {
       headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=172800" },
     });
