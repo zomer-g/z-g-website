@@ -4,7 +4,10 @@ import type { SanegoriaData, SanegoriaFilterOptions, GroupedCount, MetricRow } f
 
 // Simple in-memory cache (survives across requests in same worker)
 const cache = new Map<string, { data: any; ts: number }>();
-const CACHE_TTL = 3600_000; // 1 hour
+const CACHE_TTL = 86400_000; // 24 hours
+
+// Prevent duplicate expensive queries while one is already in-flight
+const inflightQueries = new Map<string, Promise<any>>();
 
 function getCached(key: string) {
   const entry = cache.get(key);
@@ -113,9 +116,28 @@ export async function GET(req: NextRequest) {
   const cached = getCached(cacheKey);
   if (cached) {
     return NextResponse.json(cached, {
-      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200", "X-Cache": "HIT" },
+      headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800", "X-Cache": "HIT" },
     });
   }
+
+  // Deduplicate concurrent requests for the same query
+  const inflight = inflightQueries.get(cacheKey);
+  if (inflight) {
+    try {
+      const data = await inflight;
+      return NextResponse.json(data, {
+        headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800", "X-Cache": "COALESCED" },
+      });
+    } catch {
+      // Fall through to retry
+    }
+  }
+
+  // Register promise so concurrent requests wait for this one
+  let resolveInflight: (v: any) => void;
+  let rejectInflight: (e: any) => void;
+  const inflightPromise = new Promise((res, rej) => { resolveInflight = res; rejectInflight = rej; });
+  inflightQueries.set(cacheKey, inflightPromise);
 
   try {
     // All queries in parallel
@@ -258,11 +280,15 @@ export async function GET(req: NextRequest) {
     };
 
     setCache(cacheKey, data);
+    resolveInflight!(data);
+    inflightQueries.delete(cacheKey);
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
+      headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" },
     });
 
   } catch (error) {
+    rejectInflight!(error);
+    inflightQueries.delete(cacheKey);
     console.error("Sanegoria API error:", error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
