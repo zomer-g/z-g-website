@@ -7,8 +7,10 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 minutes
 
-export async function GET(req: NextRequest) {
-  const origin = req.nextUrl.origin;
+export async function GET(_req: NextRequest) {
+  // Always use the public URL for self-calls (internal fetch to localhost
+  // doesn't work reliably inside the Render container)
+  const origin = process.env.SITE_URL || "https://www.z-g.co.il";
   const start = Date.now();
 
   // Common filter combinations that users are likely to hit
@@ -20,7 +22,7 @@ export async function GET(req: NextRequest) {
     "?yearMin=2022&yearMax=2025",   // All years
   ];
 
-  const results: { url: string; ms: number; ok: boolean }[] = [];
+  const results: { url: string; ms: number; ok: boolean; status?: number; error?: string }[] = [];
 
   for (const combo of combos) {
     const t0 = Date.now();
@@ -29,9 +31,14 @@ export async function GET(req: NextRequest) {
         cache: "no-store",
         headers: { "x-cache-warm": "1" },
       });
-      results.push({ url: combo, ms: Date.now() - t0, ok: res.ok });
-    } catch {
-      results.push({ url: combo, ms: Date.now() - t0, ok: false });
+      results.push({ url: combo, ms: Date.now() - t0, ok: res.ok, status: res.status });
+    } catch (err) {
+      results.push({
+        url: combo,
+        ms: Date.now() - t0,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
