@@ -43,7 +43,8 @@ function ChartCard({ title, children }: { title?: string; children: React.ReactN
   return (
     <div className="bg-white rounded-xl shadow-sm p-3 flex-1">
       {title && <h3 className="text-sm font-semibold text-foreground mb-2">{title}</h3>}
-      {children}
+      {/* Force LTR inside chart area so Recharts renders Y-axis on the left correctly */}
+      <div dir="ltr">{children}</div>
     </div>
   );
 }
@@ -213,13 +214,35 @@ function PdPieChart({ pd, other }: { pd: number; other: number }) {
     );
   };
 
+  // Custom label rendering — white text centered inside each slice
+  const renderLabel = (props: any) => {
+    const RADIAN = Math.PI / 180;
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#ffffff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={14}
+        fontWeight={700}
+      >
+        {`${(percent * 100).toFixed(1)}%`}
+      </text>
+    );
+  };
+
   return (
     <ChartCard title={`פילוח תיקים (N=${total.toLocaleString()})`}>
       <ResponsiveContainer width="100%" height={320}>
         <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="45%"
                innerRadius={55} outerRadius={95} paddingAngle={2}
-               label={(props: any) => `${((props.percent ?? 0) * 100).toFixed(1)}%`}
+               label={renderLabel}
                labelLine={false}>
             <Cell fill={C_PD} />
             <Cell fill={C_OTHER} />
