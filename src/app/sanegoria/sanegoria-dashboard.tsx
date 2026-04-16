@@ -96,12 +96,12 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
   return (
     <ChartCard title={`${title} (N=${grand.toLocaleString()})`}>
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={pctRows} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+        <BarChart data={pctRows} margin={{ top: 20, right: 20, left: 40, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="category" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} unit="%" />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
+          <XAxis dataKey="category" tick={{ fontSize: 12, fill: C_PRIMARY }} />
+          <YAxis tick={{ fontSize: 12, fill: C_PRIMARY }} unit="%" width={60} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+          <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
           <Bar dataKey={PD} fill={C_PD} radius={[2, 2, 0, 0]} />
           <Bar dataKey={OTHER} fill={C_OTHER} radius={[2, 2, 0, 0]} />
         </BarChart>
@@ -119,15 +119,30 @@ function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
   const rows = Array.from(catMap.values()).sort((a, b) => Number(a.year) - Number(b.year));
   const grand = rows.reduce((s, r) => s + (r[PD] || 0) + (r[OTHER] || 0), 0);
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const total = payload.reduce((s: number, p: any) => s + (p.value || 0), 0);
+    return (
+      <div className="bg-white border rounded-lg shadow-lg p-3 text-sm" dir="rtl">
+        <div className="font-semibold mb-1">{label} (סה"כ {total.toLocaleString()})</div>
+        {payload.map((p: any) => (
+          <div key={p.dataKey} style={{ color: p.fill }}>
+            {p.dataKey}: {Number(p.value).toLocaleString()} ({total > 0 ? ((p.value / total) * 100).toFixed(1) : 0}%)
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <ChartCard title={`התפלגות שנתית (N=${grand.toLocaleString()})`}>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={rows} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={rows} margin={{ top: 20, right: 20, left: 40, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="year" tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} />
-          <Tooltip />
-          <Legend />
+          <XAxis dataKey="year" tick={{ fontSize: 13, fill: C_PRIMARY }} />
+          <YAxis tick={{ fontSize: 12, fill: C_PRIMARY }} width={60} />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+          <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
           <Bar dataKey={PD} stackId="a" fill={C_PD} />
           <Bar dataKey={OTHER} stackId="a" fill={C_OTHER} />
         </BarChart>
@@ -156,13 +171,17 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
 
   return (
     <ChartCard title={`${title}${totalN ? ` (N=${totalN.toLocaleString()})` : ""}`}>
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={pivoted} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={pivoted} margin={{ top: 20, right: 20, left: 50, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="metric" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 11 }} label={ylabel ? { value: ylabel, angle: -90, position: "insideLeft", style: { fontSize: 11 } } : undefined} />
-          <Tooltip />
-          <Legend />
+          <XAxis dataKey="metric" tick={{ fontSize: 13, fill: C_PRIMARY }} />
+          <YAxis
+            tick={{ fontSize: 12, fill: C_PRIMARY }}
+            width={60}
+            label={ylabel ? { value: ylabel, angle: -90, position: "insideLeft", style: { fontSize: 12, fill: C_PRIMARY }, offset: -5 } : undefined}
+          />
+          <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+          <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
           <Bar dataKey={PD} fill={C_PD} radius={[2, 2, 0, 0]}>
             <ErrorBar dataKey={`${PD}_err`} stroke={C_MUTED} width={6} />
           </Bar>
@@ -177,23 +196,50 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
 
 function PdPieChart({ pd, other }: { pd: number; other: number }) {
   const data = [
-    { name: PD, value: pd },
-    { name: OTHER, value: other },
+    { name: PD, value: pd, color: C_PD },
+    { name: OTHER, value: other, color: C_OTHER },
   ];
   const total = pd + other;
 
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const p = payload[0];
+    const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
+    return (
+      <div className="bg-white border rounded-lg shadow-lg p-3 text-sm" dir="rtl">
+        <div className="font-semibold" style={{ color: p.payload.color }}>{p.name}</div>
+        <div>{Number(p.value).toLocaleString()} ({pct}%)</div>
+      </div>
+    );
+  };
+
   return (
     <ChartCard title={`פילוח תיקים (N=${total.toLocaleString()})`}>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%"
-               innerRadius={60} outerRadius={110} paddingAngle={2}
-               label={(props: any) => `${props.name ?? ""} ${((props.percent ?? 0) * 100).toFixed(1)}%`}
+      <ResponsiveContainer width="100%" height={320}>
+        <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="45%"
+               innerRadius={55} outerRadius={95} paddingAngle={2}
+               label={(props: any) => `${((props.percent ?? 0) * 100).toFixed(1)}%`}
                labelLine={false}>
             <Cell fill={C_PD} />
             <Cell fill={C_OTHER} />
           </Pie>
-          <Tooltip formatter={(val: any) => Number(val).toLocaleString()} />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            verticalAlign="bottom"
+            align="center"
+            iconType="circle"
+            wrapperStyle={{ fontSize: 13, paddingTop: 12 }}
+            formatter={(value, entry: any) => {
+              const item = data.find(d => d.name === value);
+              const pct = total > 0 && item ? ((item.value / total) * 100).toFixed(1) : 0;
+              return (
+                <span style={{ color: entry.color }}>
+                  {value}: {item?.value.toLocaleString()} ({pct}%)
+                </span>
+              );
+            }}
+          />
         </PieChart>
       </ResponsiveContainer>
     </ChartCard>
