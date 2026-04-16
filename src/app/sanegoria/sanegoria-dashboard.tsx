@@ -96,10 +96,17 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
 
   return (
     <ChartCard title={`${title} (N=${grand.toLocaleString()})`}>
-      <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={pctRows} margin={{ top: 20, right: 20, left: 40, bottom: 10 }}>
+      <ResponsiveContainer width="100%" height={height + 80}>
+        <BarChart data={pctRows} margin={{ top: 20, right: 20, left: 40, bottom: 90 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="category" tick={{ fontSize: 12, fill: C_PRIMARY }} />
+          <XAxis
+            dataKey="category"
+            tick={{ fontSize: 11, fill: C_PRIMARY }}
+            angle={-45}
+            textAnchor="end"
+            interval={0}
+            height={80}
+          />
           <YAxis tick={{ fontSize: 12, fill: C_PRIMARY }} unit="%" width={60} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
           <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
@@ -538,7 +545,6 @@ export function SanegoriaDashboard() {
             <div className="flex-[2]"><GroupedBarChart data={data.topOffenses} title="Top 10 עבירות שכיחות" topN={10} /></div>
           </div>
           <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><MetricChart data={data.offensesPerCase} title="עבירות לתיק" ylabel="עבירות" /></div>
             <div className="flex-1"><GroupedBarChart data={data.offenseCategories} title="קטגוריות עבירה" /></div>
           </div>
 
