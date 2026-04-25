@@ -8,7 +8,6 @@ const PAGE_SIZE = 20;
 const C_PRIMARY = "#1a365d";
 const C_PD = "#2a6f97";
 const C_OTHER = "#e07b54";
-const C_MUTED = "#4b5563";
 
 const dateFmt = new Intl.DateTimeFormat("he-IL", {
   year: "numeric",
@@ -78,11 +77,42 @@ function Badge({
   );
 }
 
+// Keys we render explicitly (or that are duplicated as top-level fields). Anything
+// in csv_row that doesn't appear here gets shown generically in the metadata block.
+const CSV_ROW_SKIP = new Set([
+  "_id",
+  "rank",
+]);
+
+function isDisplayableValue(value: unknown): value is string | number | boolean {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "boolean") return true;
+  return false;
+}
+
+function fmtValue(value: unknown): string {
+  if (typeof value === "boolean") return value ? "כן" : "לא";
+  if (typeof value === "number") return value.toLocaleString("he-IL");
+  return String(value);
+}
+
 function GuidelineCard({ doc }: { doc: Guideline }) {
   const [open, setOpen] = useState(false);
   const supersedesText = Array.isArray(doc.supersedes)
     ? doc.supersedes.join(", ")
     : doc.supersedes || "";
+
+  const csvRowEntries = Object.entries(doc.csv_row || {})
+    .filter(([key, value]) => {
+      if (CSV_ROW_SKIP.has(key)) return false;
+      if (!isDisplayableValue(value)) return false;
+      const str = String(value).trim();
+      // Skip giant text fields (likely OCR/text dumps that bloat the card).
+      if (str.length > 600) return false;
+      return true;
+    });
 
   return (
     <article
@@ -100,11 +130,6 @@ function GuidelineCard({ doc }: { doc: Guideline }) {
             הנחיה {doc.directive_number}
           </Badge>
         ) : null}
-        {doc.has_text ? null : (
-          <Badge color={C_MUTED} bg="#eef0f3">
-            ללא טקסט
-          </Badge>
-        )}
       </div>
 
       <h3
@@ -142,10 +167,34 @@ function GuidelineCard({ doc }: { doc: Guideline }) {
               <span className="text-gray-700">{supersedesText}</span>
             </div>
           ) : null}
-          {doc.has_text ? (
-            <div className="text-xs text-gray-500">
-              טקסט ההנחיה כולל {doc.text_chars.toLocaleString("he-IL")} תווים — ניתן
-              לצפייה דרך כפתור &quot;טקסט מקור&quot;.
+
+          {csvRowEntries.length > 0 ? (
+            <div className="border-t border-gray-100 pt-2 mt-2">
+              <div className="text-xs font-semibold text-gray-500 mb-1.5">
+                מטא-דאטה נוספת
+              </div>
+              <dl className="grid grid-cols-1 gap-1">
+                {csvRowEntries.map(([key, value]) => (
+                  <div key={key} className="text-sm">
+                    <dt className="inline font-semibold text-gray-700">{key}:</dt>{" "}
+                    <dd className="inline text-gray-700">{fmtValue(value)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : null}
+
+          {doc.over_collected_at || doc.over_imported_at || doc.over_version_number ? (
+            <div className="border-t border-gray-100 pt-2 mt-2 text-xs text-gray-500 space-y-1">
+              {doc.over_version_number != null ? (
+                <div>גרסת מאגר: {doc.over_version_number}</div>
+              ) : null}
+              {doc.over_collected_at ? (
+                <div>נאסף מאתר הממשלה: {fmtDate(doc.over_collected_at)}</div>
+              ) : null}
+              {doc.over_imported_at ? (
+                <div>יובא למערכת: {fmtDate(doc.over_imported_at)}</div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -161,17 +210,6 @@ function GuidelineCard({ doc }: { doc: Guideline }) {
         >
           פתח PDF
         </a>
-        {doc.has_text ? (
-          <a
-            href={`/api/guidelines/documents/${doc.id}/text`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-semibold rounded-md px-3 py-1.5 border transition"
-            style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
-          >
-            טקסט מקור (MD)
-          </a>
-        ) : null}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
@@ -432,7 +470,7 @@ export function GuidelinesDashboard() {
 
       <p className="text-xs text-gray-500 mt-8 leading-relaxed">
         המידע נשאב מ-over.org.il ומוצג כמות שהוא, ללא עיבוד נוסף. הקישורים מובילים
-        לקובץ ה-PDF המקורי או לטקסט שחולץ ממנו (Markdown).
+        לקובץ ה-PDF המקורי כפי שפורסם.
       </p>
     </div>
   );

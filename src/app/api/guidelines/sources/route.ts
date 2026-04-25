@@ -63,7 +63,6 @@ export async function GET() {
         const rest = { ...(it as unknown as Record<string, unknown>) };
         delete rest.file_url;
         delete rest.text_url;
-        delete rest.csv_row;
         return rest as unknown as Guideline;
       });
       setCached(qs, cleaned, ttlMs);

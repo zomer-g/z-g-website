@@ -94,9 +94,10 @@ export async function GET(req: NextRequest) {
       const json = (await upstream.json()) as UpstreamGuidelinesListResponse;
       const cleanedItems: Guideline[] = (json.items || []).map((it) => {
         const rest = { ...(it as unknown as Record<string, unknown>) };
+        // Strip URLs that embed the upstream API key. csv_row and over_*
+        // provenance fields are kept for the metadata view.
         delete rest.file_url;
         delete rest.text_url;
-        delete rest.csv_row;
         return rest as unknown as Guideline;
       });
 

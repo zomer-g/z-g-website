@@ -12,6 +12,10 @@ export interface Guideline {
   has_text: boolean;
   text_chars: number;
   upload_date: string;
+  over_version_number?: number;
+  over_collected_at?: string;
+  over_imported_at?: string;
+  csv_row?: Record<string, unknown>;
 }
 
 export interface UpstreamGuidelinesListResponse {
