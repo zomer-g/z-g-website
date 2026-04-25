@@ -278,18 +278,15 @@ function PdPieChart({ pd, other }: { pd: number; other: number }) {
 
 // ── Disclaimer ──
 
-function Disclaimer() {
+function Disclaimer({ paragraphs }: { paragraphs: string[] }) {
+  if (paragraphs.length === 0) return null;
   return (
     <div className="bg-amber-50 border-r-4 border-amber-400 rounded-lg p-4 mb-4 text-sm italic leading-relaxed text-foreground">
-      <p className="mb-2">
-        שיוך העבירות מבוסס על נתוני תביעות משטרה בלבד (ללא פרקליטות) לשנים 2022–2025.
-      </p>
-      <p className="mb-2">
-        הנתונים והעיבודים בוצעו במאמץ לשקף את המציאות בצורה מדויקת, אולם ייתכנו טעויות ואי-דיוקים, בין היתר לאור הצורך באינטגרציה של מקורות מידע שונים ללא שדות אחידים.
-      </p>
-      <p>
-        חשוב לציין כי הפער בין תיקים בייצוג סניגוריה ציבורית לבין תיקים שלא בייצוג עשוי לנבוע לא רק מאופי הטיפול ודינמיקת ההליך, אלא גם — ואולי בעיקר — מעצם הניתוב והבחירה בייצוג סניגוריה על בסיס מאפייני התיק והנאשם. לפיכך, ההבדלים המוצגים אינם בהכרח משקפים שוני באופן הטיפול, אלא עשויים לשקף הבדלים מובנים בסוגי התיקים המנותבים לכל ערוץ ייצוג.
-      </p>
+      {paragraphs.map((p, i) => (
+        <p key={i} className={i < paragraphs.length - 1 ? "mb-2" : undefined}>
+          {p}
+        </p>
+      ))}
     </div>
   );
 }
@@ -419,7 +416,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
 
 // ── Main Dashboard ──
 
-export function SanegoriaDashboard() {
+export function SanegoriaDashboard({ disclaimerParagraphs = [] }: { disclaimerParagraphs?: string[] } = {}) {
   const [options, setOptions] = useState<SanegoriaFilterOptions | null>(null);
   const [data, setData] = useState<SanegoriaData | null>(null);
   const [filters, setFilters] = useState<Record<string, any>>({});
@@ -482,7 +479,7 @@ export function SanegoriaDashboard() {
                      onChange={handleFilterChange} onClear={handleClear} />
       )}
 
-      <Disclaimer />
+      <Disclaimer paragraphs={disclaimerParagraphs} />
 
       {loading && !data && (
         <div className="text-center py-16 text-muted">

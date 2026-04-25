@@ -42,7 +42,7 @@ export default async function SanegoriaPage() {
         </section>
       </EditableSection>
       <Container className="py-8">
-        <SanegoriaDashboard />
+        <SanegoriaDashboard disclaimerParagraphs={content.disclaimer.paragraphs} />
       </Container>
     </PublicLayout>
   );

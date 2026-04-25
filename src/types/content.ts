@@ -338,6 +338,7 @@ export interface DigitalServicesPageContent {
 export interface SanegoriaPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
+  disclaimer: { paragraphs: string[] };
 }
 
 // ── Class Actions Dashboard Page Content ──

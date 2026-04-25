@@ -1,13 +1,15 @@
 "use client";
 
 import { Input, Textarea } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { SectionCard } from "./section-card";
-import { Sparkles, Eye, EyeOff } from "lucide-react";
+import { Sparkles, Eye, EyeOff, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
+  disclaimer?: { paragraphs: string[] };
 }
 
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
@@ -20,6 +22,34 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   onChange,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
+  const paragraphs = content.disclaimer?.paragraphs;
+
+  const updateParagraph = (idx: number, value: string) => {
+    if (!paragraphs) return;
+    const next = [...paragraphs];
+    next[idx] = value;
+    onChange({
+      ...content,
+      disclaimer: { ...content.disclaimer, paragraphs: next },
+    });
+  };
+
+  const addParagraph = () => {
+    const next = [...(paragraphs ?? []), ""];
+    onChange({
+      ...content,
+      disclaimer: { ...content.disclaimer, paragraphs: next },
+    });
+  };
+
+  const removeParagraph = (idx: number) => {
+    if (!paragraphs) return;
+    const next = paragraphs.filter((_, i) => i !== idx);
+    onChange({
+      ...content,
+      disclaimer: { ...content.disclaimer, paragraphs: next },
+    });
+  };
 
   return (
     <div className="space-y-3">
@@ -78,6 +108,47 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           />
         </div>
       </SectionCard>
+
+      {paragraphs ? (
+        <SectionCard title="הסתייגות (Disclaimer)" icon={AlertTriangle}>
+          <div className="space-y-3">
+            {paragraphs.map((p, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border border-border bg-muted-bg/30 p-3 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted">
+                    פסקה {idx + 1}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeParagraph(idx)}
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+                <Textarea
+                  value={p}
+                  onChange={(e) => updateParagraph(idx, e.target.value)}
+                  dir="rtl"
+                  rows={3}
+                />
+              </div>
+            ))}
+            <Button
+              variant="ghost"
+              onClick={addParagraph}
+              className="w-full border border-dashed border-border text-sm text-muted hover:bg-muted-bg/50"
+            >
+              <Plus size={16} />
+              הוסף פסקה
+            </Button>
+          </div>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }
