@@ -23,6 +23,8 @@ import {
   ScrollText,
   Code2,
   Wrench,
+  BarChart3,
+  Scale,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -61,6 +63,8 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
   { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
   { slug: "projects", label: "מיזמים", icon: Code2 },
+  { slug: "sanegoria", label: "דשבורד סניגוריה", icon: BarChart3, href: "/sanegoria" },
+  { slug: "class-actions", label: "דשבורד תובענות ייצוגיות", icon: Scale, href: "/class-actions" },
   { slug: "digital-services", label: "שירותים דיגיטליים", icon: Code2 },
   { slug: "legal-tools", label: "כלים משפטיים (ראשי)", icon: Wrench, href: "/admin/pages/legal-tools" },
   { slug: "legal-tools-privacy", label: "כלים משפטיים — פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
