@@ -41,6 +41,15 @@ const CLASS_ACTIONS_DEFAULT = {
   cacheTtlMinutes: 60,
 };
 
+const GUIDELINES_DEFAULT = {
+  isPublic: true,
+  hero: {
+    title: "הנחיות",
+    subtitle: 'מאגר מאוחד של הנחיות יועמ"ש, פרקליט המדינה, משטרה ועוד — חיפוש בתוך הטקסט',
+  },
+  cacheTtlMinutes: 60,
+};
+
 const DASHBOARD_PROJECTS = [
   {
     title: "דשבורד סניגוריה ציבורית",
@@ -59,6 +68,15 @@ const DASHBOARD_PROJECTS = [
     url: "/class-actions",
     icon: "Scale",
     tags: ["תובענות ייצוגיות", "פנקס תובענות", "גישה למידע"],
+  },
+  {
+    title: "מאגר הנחיות",
+    subtitle: 'הנחיות יועמ"ש, פרקליט המדינה ועוד — חיפוש מלא בתוכן',
+    description:
+      'מאגר מאוחד של הנחיות והוראות מטעם רשויות אכיפת החוק והמינהל הציבורי בישראל — היועצת המשפטית לממשלה, פרקליט המדינה, המשטרה ועוד. הכלי מאפשר חיפוש מלא בתוכן ההנחיות (בפורמט Markdown) ולא רק בכותרות, סינון לפי מקור, וצפייה ישירה בקובץ ה-PDF המקורי או בטקסט שחולץ ממנו.',
+    url: "/guidelines",
+    icon: "BookOpen",
+    tags: ["הנחיות", "פרקליטות", 'יועמ"ש', "חיפוש מלא"],
   },
 ];
 
@@ -191,6 +209,7 @@ async function main() {
 
   await ensureDashboardPage("sanegoria", "דשבורד סניגוריה", SANEGORIA_DEFAULT);
   await ensureDashboardPage("class-actions", "דשבורד תובענות ייצוגיות", CLASS_ACTIONS_DEFAULT);
+  await ensureDashboardPage("guidelines", "מאגר הנחיות", GUIDELINES_DEFAULT);
   await ensureProjectsPage();
 
   console.log("Done.");

@@ -349,6 +349,14 @@ export interface ClassActionsPageContent {
   cacheTtlMinutes: number;
 }
 
+// ── Guidelines Dashboard Page Content ──
+
+export interface GuidelinesPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -366,6 +374,7 @@ export type PageContentMap = {
   "digital-services": DigitalServicesPageContent;
   sanegoria: SanegoriaPageContent;
   "class-actions": ClassActionsPageContent;
+  guidelines: GuidelinesPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

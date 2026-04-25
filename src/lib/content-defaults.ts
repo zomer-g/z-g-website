@@ -13,6 +13,7 @@ import type {
   DigitalServicesPageContent,
   SanegoriaPageContent,
   ClassActionsPageContent,
+  GuidelinesPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -268,6 +269,14 @@ export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
       tags: ["תובענות ייצוגיות", "פנקס תובענות", "גישה למידע"],
     },
     {
+      title: "מאגר הנחיות",
+      subtitle: 'הנחיות יועמ"ש, פרקליט המדינה ועוד — חיפוש מלא בתוכן',
+      description: 'מאגר מאוחד של הנחיות והוראות מטעם רשויות אכיפת החוק והמינהל הציבורי בישראל — היועצת המשפטית לממשלה, פרקליט המדינה, המשטרה ועוד. הכלי מאפשר חיפוש מלא בתוכן ההנחיות (בפורמט Markdown) ולא רק בכותרות, סינון לפי מקור, וצפייה ישירה בקובץ ה-PDF המקורי או בטקסט שחולץ ממנו.',
+      url: "/guidelines",
+      icon: "BookOpen",
+      tags: ["הנחיות", "פרקליטות", "יועמ\"ש", "חיפוש מלא"],
+    },
+    {
       title: "מידע לעם",
       subtitle: "פורטל המידע הפתוח הישראלי",
       description: "פלטפורמה שמנגישה אלפי מאגרי מידע ממשלתיים לציבור. הפרויקט מרכז נתונים מ-49 גופים ציבוריים ומאפשר לכל אזרח לחפש, לעיין ולהוריד מידע ממשלתי — מהיסטוריית טיסות ועד רישומי בנייה ירוקה. שקיפות מידע היא תנאי הכרחי לדמוקרטיה בריאה, והפרויקט הזה מבטיח שהנתונים שלנו באמת שלנו.",
@@ -393,6 +402,17 @@ export const DEFAULT_CLASS_ACTIONS_CONTENT: ClassActionsPageContent = {
   cacheTtlMinutes: 60,
 };
 
+/* ─── Guidelines Dashboard Page ─── */
+
+export const DEFAULT_GUIDELINES_CONTENT: GuidelinesPageContent = {
+  isPublic: true,
+  hero: {
+    title: "הנחיות",
+    subtitle: 'מאגר מאוחד של הנחיות יועמ"ש, פרקליט המדינה, משטרה ועוד — חיפוש בתוך הטקסט',
+  },
+  cacheTtlMinutes: 60,
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -410,4 +430,5 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "digital-services": DEFAULT_DIGITAL_SERVICES_CONTENT,
   sanegoria: DEFAULT_SANEGORIA_CONTENT,
   "class-actions": DEFAULT_CLASS_ACTIONS_CONTENT,
+  guidelines: DEFAULT_GUIDELINES_CONTENT,
 };

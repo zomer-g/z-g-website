@@ -11,6 +11,7 @@ import {
   FileSearch,
   Scale,
   Eye,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
@@ -49,6 +50,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   FileSearch,
   Scale,
   Eye,
+  BookOpen,
   ExternalLink,
 };
 

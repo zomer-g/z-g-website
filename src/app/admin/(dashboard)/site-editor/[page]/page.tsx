@@ -28,7 +28,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -47,6 +47,7 @@ const PAGE_LABELS: Record<string, string> = {
   "digital-services": "שירותים דיגיטליים",
   sanegoria: "דשבורד סניגוריה",
   "class-actions": "דשבורד תובענות ייצוגיות",
+  guidelines: "מאגר הנחיות",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -64,6 +65,7 @@ const PAGE_URLS: Record<string, string> = {
   "digital-services": "/digital-services",
   sanegoria: "/sanegoria",
   "class-actions": "/class-actions",
+  guidelines: "/guidelines",
 };
 
 /* ─── Page Editor ─── */
@@ -374,6 +376,18 @@ export default function SiteEditorPageEditor({
               onChange={setContent}
               cacheControls={{
                 refreshEndpoint: "/api/class-actions/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
+            />
+          )}
+          {slug === "guidelines" && (
+            <DashboardPageEditor<GuidelinesPageContent>
+              content={content as GuidelinesPageContent}
+              onChange={setContent}
+              cacheControls={{
+                refreshEndpoint: "/api/guidelines/refresh",
                 ttlField: "cacheTtlMinutes",
                 minMinutes: 1,
                 maxMinutes: 1440,
