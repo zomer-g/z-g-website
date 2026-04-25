@@ -55,8 +55,8 @@ export async function GET(req: NextRequest) {
       skip: Number(json.skip) || 0,
       limit: Number(json.limit) || 0,
       items: (json.items || []).map((it) => {
-        const { ...rest } = it as Record<string, unknown>;
-        delete (rest as Record<string, unknown>).file_url;
+        const rest = { ...(it as unknown as Record<string, unknown>) };
+        delete rest.file_url;
         return rest as unknown as ClassActionListResponse["items"][number];
       }),
     };
