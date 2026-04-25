@@ -15,17 +15,18 @@ interface DashboardPageContent {
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
   content: T;
   onChange: (content: T) => void;
+  showDisclaimer?: boolean;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
   content,
   onChange,
+  showDisclaimer = false,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
-  const paragraphs = content.disclaimer?.paragraphs;
+  const paragraphs = content.disclaimer?.paragraphs ?? [];
 
   const updateParagraph = (idx: number, value: string) => {
-    if (!paragraphs) return;
     const next = [...paragraphs];
     next[idx] = value;
     onChange({
@@ -35,19 +36,19 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   };
 
   const addParagraph = () => {
-    const next = [...(paragraphs ?? []), ""];
     onChange({
       ...content,
-      disclaimer: { ...content.disclaimer, paragraphs: next },
+      disclaimer: { ...content.disclaimer, paragraphs: [...paragraphs, ""] },
     });
   };
 
   const removeParagraph = (idx: number) => {
-    if (!paragraphs) return;
-    const next = paragraphs.filter((_, i) => i !== idx);
     onChange({
       ...content,
-      disclaimer: { ...content.disclaimer, paragraphs: next },
+      disclaimer: {
+        ...content.disclaimer,
+        paragraphs: paragraphs.filter((_, i) => i !== idx),
+      },
     });
   };
 
@@ -109,7 +110,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         </div>
       </SectionCard>
 
-      {paragraphs ? (
+      {showDisclaimer ? (
         <SectionCard title="הסתייגות (Disclaimer)" icon={AlertTriangle}>
           <div className="space-y-3">
             {paragraphs.map((p, idx) => (

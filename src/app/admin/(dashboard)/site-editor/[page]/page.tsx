@@ -365,6 +365,7 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<SanegoriaPageContent>
               content={content as SanegoriaPageContent}
               onChange={setContent}
+              showDisclaimer
             />
           )}
           {slug === "class-actions" && (

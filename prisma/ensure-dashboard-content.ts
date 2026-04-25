@@ -61,25 +61,71 @@ const DASHBOARD_PROJECTS = [
   },
 ];
 
-async function ensureDashboardPage(slug: string, title: string, defaults: unknown) {
+function backfillMissingKeys(
+  defaults: Record<string, unknown>,
+  current: Record<string, unknown> | null,
+): { merged: Record<string, unknown>; added: string[] } {
+  if (!current) return { merged: defaults, added: Object.keys(defaults) };
+  const merged = { ...current };
+  const added: string[] = [];
+  for (const key of Object.keys(defaults)) {
+    if (!(key in merged) || merged[key] === undefined) {
+      merged[key] = defaults[key];
+      added.push(key);
+    }
+  }
+  return { merged, added };
+}
+
+async function ensureDashboardPage(
+  slug: string,
+  title: string,
+  defaults: Record<string, unknown>,
+) {
   const existing = await prisma.page.findUnique({ where: { slug } });
-  if (existing) {
-    console.log(`  · ${slug}: already exists, skipping`);
+
+  if (!existing) {
+    await prisma.page.create({
+      data: {
+        slug,
+        title,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        content: defaults as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        draftContent: defaults as any,
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+    });
+    console.log(`  + ${slug}: created`);
     return;
   }
-  await prisma.page.create({
+
+  const contentRes = backfillMissingKeys(
+    defaults,
+    (existing.content as Record<string, unknown> | null) ?? null,
+  );
+  const draftRes = backfillMissingKeys(
+    defaults,
+    (existing.draftContent as Record<string, unknown> | null) ?? null,
+  );
+
+  if (contentRes.added.length === 0 && draftRes.added.length === 0) {
+    console.log(`  · ${slug}: up to date`);
+    return;
+  }
+
+  await prisma.page.update({
+    where: { slug },
     data: {
-      slug,
-      title,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      content: defaults as any,
+      content: contentRes.merged as any,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      draftContent: defaults as any,
-      status: "PUBLISHED",
-      publishedAt: new Date(),
+      draftContent: draftRes.merged as any,
     },
   });
-  console.log(`  + ${slug}: created`);
+  const added = Array.from(new Set([...contentRes.added, ...draftRes.added]));
+  console.log(`  ~ ${slug}: back-filled ${added.join(", ")}`);
 }
 
 interface ProjectItem {
