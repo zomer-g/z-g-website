@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ClassActionListResponse } from "@/types/class-action";
+import { getCached, setCached } from "@/lib/class-actions-cache";
+import { getPageContent } from "@/lib/content";
+import type { ClassActionsPageContent } from "@/types/content";
 
 const UPSTREAM = "https://tag-it.biz/api/public/class-action/documents";
 
-const cache = new Map<string, { data: ClassActionListResponse; ts: number }>();
-const CACHE_TTL = 3600_000;
-
 const ALLOWED_PARAMS = ["skip", "limit", "date_from", "date_to", "court", "is_appeal"] as const;
+
+const DEFAULT_TTL_MINUTES = 60;
+const MIN_TTL_MINUTES = 1;
+const MAX_TTL_MINUTES = 1440;
 
 function buildQuery(params: URLSearchParams): string {
   const out = new URLSearchParams();
@@ -17,6 +21,18 @@ function buildQuery(params: URLSearchParams): string {
   return out.toString();
 }
 
+async function readTtlMs(): Promise<number> {
+  try {
+    const content = await getPageContent<ClassActionsPageContent>("class-actions");
+    const raw = Number(content?.cacheTtlMinutes);
+    if (!Number.isFinite(raw)) return DEFAULT_TTL_MINUTES * 60_000;
+    const clamped = Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw));
+    return clamped * 60_000;
+  } catch {
+    return DEFAULT_TTL_MINUTES * 60_000;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const apiKey = process.env.CLASS_ACTION_API_KEY;
   if (!apiKey) {
@@ -25,9 +41,9 @@ export async function GET(req: NextRequest) {
 
   const qs = buildQuery(req.nextUrl.searchParams);
   const cacheKey = qs;
-  const entry = cache.get(cacheKey);
-  if (entry && Date.now() - entry.ts < CACHE_TTL) {
-    return NextResponse.json(entry.data, {
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
         "X-Cache": "HIT",
@@ -36,10 +52,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const upstream = await fetch(`${UPSTREAM}${qs ? `?${qs}` : ""}`, {
-      headers: { "X-API-Key": apiKey, Accept: "application/json" },
-      cache: "no-store",
-    });
+    const [upstream, ttlMs] = await Promise.all([
+      fetch(`${UPSTREAM}${qs ? `?${qs}` : ""}`, {
+        headers: { "X-API-Key": apiKey, Accept: "application/json" },
+        cache: "no-store",
+      }),
+      readTtlMs(),
+    ]);
 
     if (!upstream.ok) {
       return NextResponse.json(
@@ -61,11 +80,7 @@ export async function GET(req: NextRequest) {
       }),
     };
 
-    cache.set(cacheKey, { data: cleaned, ts: Date.now() });
-    if (cache.size > 200) {
-      const oldest = cache.keys().next().value;
-      if (oldest) cache.delete(oldest);
-    }
+    setCached(cacheKey, cleaned, ttlMs);
 
     return NextResponse.json(cleaned, {
       headers: {

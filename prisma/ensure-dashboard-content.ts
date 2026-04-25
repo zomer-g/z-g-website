@@ -38,6 +38,7 @@ const CLASS_ACTIONS_DEFAULT = {
     title: "תובענות ייצוגיות — תובענות אחרונות",
     subtitle: "רשימת התובענות הייצוגיות החדשות שנפתחו בפנקס",
   },
+  cacheTtlMinutes: 60,
 };
 
 const DASHBOARD_PROJECTS = [

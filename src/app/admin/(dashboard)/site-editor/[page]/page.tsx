@@ -372,6 +372,12 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<ClassActionsPageContent>
               content={content as ClassActionsPageContent}
               onChange={setContent}
+              cacheControls={{
+                refreshEndpoint: "/api/class-actions/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
             />
           )}
         </div>

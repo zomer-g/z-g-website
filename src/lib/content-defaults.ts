@@ -390,6 +390,7 @@ export const DEFAULT_CLASS_ACTIONS_CONTENT: ClassActionsPageContent = {
     title: "תובענות ייצוגיות — תובענות אחרונות",
     subtitle: "רשימת התובענות הייצוגיות החדשות שנפתחו בפנקס",
   },
+  cacheTtlMinutes: 60,
 };
 
 /* ─── Defaults Map ─── */

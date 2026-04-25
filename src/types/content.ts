@@ -346,6 +346,7 @@ export interface SanegoriaPageContent {
 export interface ClassActionsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
 }
 
 // ── Union type for all page content ──

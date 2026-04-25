@@ -1,30 +1,84 @@
 "use client";
 
+import { useState } from "react";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "./section-card";
-import { Sparkles, Eye, EyeOff, AlertTriangle, Plus, Trash2 } from "lucide-react";
+import {
+  Sparkles,
+  Eye,
+  EyeOff,
+  AlertTriangle,
+  Plus,
+  Trash2,
+  RefreshCcw,
+  Timer,
+  CheckCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   disclaimer?: { paragraphs: string[] };
+  cacheTtlMinutes?: number;
+}
+
+interface CacheControls {
+  refreshEndpoint: string;
+  ttlField: "cacheTtlMinutes";
+  minMinutes?: number;
+  maxMinutes?: number;
 }
 
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
   content: T;
   onChange: (content: T) => void;
   showDisclaimer?: boolean;
+  cacheControls?: CacheControls;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
   content,
   onChange,
   showDisclaimer = false,
+  cacheControls,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
   const paragraphs = content.disclaimer?.paragraphs ?? [];
+
+  const minTtl = cacheControls?.minMinutes ?? 1;
+  const maxTtl = cacheControls?.maxMinutes ?? 1440;
+  const currentTtl = Number(content.cacheTtlMinutes ?? 60);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFeedback, setRefreshFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const handleRefresh = async () => {
+    if (!cacheControls) return;
+    setRefreshing(true);
+    setRefreshFeedback(null);
+    try {
+      const res = await fetch(cacheControls.refreshEndpoint, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "שגיאה בריענון");
+      setRefreshFeedback({
+        type: "success",
+        message: data.message || "הקאש נוקה בהצלחה",
+      });
+    } catch (err) {
+      setRefreshFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "שגיאה בריענון",
+      });
+    } finally {
+      setRefreshing(false);
+      setTimeout(() => setRefreshFeedback(null), 5000);
+    }
+  };
 
   const updateParagraph = (idx: number, value: string) => {
     const next = [...paragraphs];
@@ -109,6 +163,77 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           />
         </div>
       </SectionCard>
+
+      {cacheControls ? (
+        <SectionCard title="עדכון נתונים" icon={Timer} defaultOpen>
+          <div className="space-y-4">
+            <div>
+              <Input
+                label={`קצב עדכון (דקות) — בין ${minTtl} ל-${maxTtl}`}
+                type="number"
+                min={minTtl}
+                max={maxTtl}
+                value={currentTtl}
+                onChange={(e) => {
+                  const raw = Number(e.target.value);
+                  if (!Number.isFinite(raw)) return;
+                  const clamped = Math.max(minTtl, Math.min(maxTtl, Math.round(raw)));
+                  onChange({
+                    ...content,
+                    [cacheControls.ttlField]: clamped,
+                  } as T);
+                }}
+                dir="ltr"
+              />
+              <p className="mt-1.5 text-xs text-muted leading-relaxed">
+                כל בקשה שגילה גדול מהערך הזה תשלוף נתונים טריים מהמקור.
+                שינוי הערך נכנס לתוקף אחרי שמירת טיוטה ופרסום.
+              </p>
+            </div>
+
+            <div className="border-t border-border pt-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">ריענון מיידי</div>
+                  <div className="text-xs text-muted">
+                    ניקוי הקאש המקומי. הבקשה הבאה תשלוף ממקור הנתונים.
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleRefresh}
+                  loading={refreshing}
+                  disabled={refreshing}
+                  variant="ghost"
+                  className="border border-border whitespace-nowrap"
+                >
+                  <RefreshCcw size={16} />
+                  רענן עכשיו
+                </Button>
+              </div>
+
+              {refreshFeedback ? (
+                <div
+                  role="alert"
+                  className={cn(
+                    "mt-3 flex items-start gap-2 rounded-lg border p-2.5 text-xs",
+                    refreshFeedback.type === "success"
+                      ? "border-green-200 bg-green-50 text-green-700"
+                      : "border-red-200 bg-red-50 text-red-700",
+                  )}
+                >
+                  {refreshFeedback.type === "success" ? (
+                    <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  )}
+                  <span className="leading-relaxed">{refreshFeedback.message}</span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </SectionCard>
+      ) : null}
 
       {showDisclaimer ? (
         <SectionCard title="הסתייגות (Disclaimer)" icon={AlertTriangle}>
