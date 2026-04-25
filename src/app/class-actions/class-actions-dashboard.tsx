@@ -34,22 +34,42 @@ function fmtAmount(n: number) {
 }
 
 interface Filters {
+  q: string;
   date_from: string;
   date_to: string;
   court: string;
+  case_number: string;
   is_appeal: "" | "true" | "false";
+  is_attachment: "" | "true" | "false";
+  claim_min: string;
+  claim_max: string;
 }
 
-const EMPTY_FILTERS: Filters = { date_from: "", date_to: "", court: "", is_appeal: "" };
+const EMPTY_FILTERS: Filters = {
+  q: "",
+  date_from: "",
+  date_to: "",
+  court: "",
+  case_number: "",
+  is_appeal: "",
+  is_attachment: "",
+  claim_min: "",
+  claim_max: "",
+};
 
 function buildQs(filters: Filters, skip: number) {
   const p = new URLSearchParams();
   p.set("limit", String(PAGE_SIZE));
   p.set("skip", String(skip));
+  if (filters.q.trim()) p.set("q", filters.q.trim());
   if (filters.date_from) p.set("date_from", filters.date_from);
   if (filters.date_to) p.set("date_to", filters.date_to);
   if (filters.court.trim()) p.set("court", filters.court.trim());
+  if (filters.case_number.trim()) p.set("case_number", filters.case_number.trim());
   if (filters.is_appeal) p.set("is_appeal", filters.is_appeal);
+  if (filters.is_attachment) p.set("is_attachment", filters.is_attachment);
+  if (filters.claim_min) p.set("claim_min", filters.claim_min);
+  if (filters.claim_max) p.set("claim_max", filters.claim_max);
   return p.toString();
 }
 
@@ -227,6 +247,24 @@ export function ClassActionsDashboard() {
     <div dir="rtl">
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        {/* Free-text search row */}
+        <div className="mb-3">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            חיפוש חופשי
+          </label>
+          <input
+            type="text"
+            placeholder="חיפוש בשם תיק, הגדרת קבוצה, שאלה משפטית, סעד מבוקש..."
+            value={draft.q}
+            onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") applyFilters();
+            }}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+
+        {/* Primary filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -252,7 +290,7 @@ export function ClassActionsDashboard() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
-              בית משפט (חיפוש)
+              בית משפט
             </label>
             <input
               type="text"
@@ -262,6 +300,23 @@ export function ClassActionsDashboard() {
               className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
             />
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              מספר תיק
+            </label>
+            <input
+              type="text"
+              placeholder="לדוגמה: 52308-04-26"
+              value={draft.case_number}
+              onChange={(e) => setDraft((d) => ({ ...d, case_number: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              dir="ltr"
+            />
+          </div>
+        </div>
+
+        {/* Secondary filters */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               סוג הליך
@@ -278,7 +333,55 @@ export function ClassActionsDashboard() {
               <option value="true">ערעור</option>
             </select>
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              סוג מסמך
+            </label>
+            <select
+              value={draft.is_attachment}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  is_attachment: e.target.value as Filters["is_attachment"],
+                }))
+              }
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white"
+            >
+              <option value="">הכל</option>
+              <option value="false">מסמך עיקרי</option>
+              <option value="true">נספח</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              סכום תביעה (₪) — מ
+            </label>
+            <input
+              type="number"
+              min={0}
+              placeholder="0"
+              value={draft.claim_min}
+              onChange={(e) => setDraft((d) => ({ ...d, claim_min: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              סכום תביעה (₪) — עד
+            </label>
+            <input
+              type="number"
+              min={0}
+              placeholder="ללא תקרה"
+              value={draft.claim_max}
+              onChange={(e) => setDraft((d) => ({ ...d, claim_max: e.target.value }))}
+              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              dir="ltr"
+            />
+          </div>
         </div>
+
         <div className="flex items-center justify-end gap-2 mt-4">
           <button
             type="button"
