@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { ClassActionDocument, ClassActionListResponse } from "@/types/class-action";
+import type {
+  ClassActionDocument,
+  ClassActionCase,
+  CasesListResponse,
+} from "@/types/class-action";
 
 const PAGE_SIZE = 20;
 
@@ -103,8 +107,82 @@ function Badge({
   );
 }
 
-function CardItem({ doc }: { doc: ClassActionDocument }) {
+function classifyDocs(docs: ClassActionDocument[]): {
+  motion: ClassActionDocument[];
+  claim: ClassActionDocument[];
+  other: ClassActionDocument[];
+} {
+  const motion: ClassActionDocument[] = [];
+  const claim: ClassActionDocument[] = [];
+  const other: ClassActionDocument[] = [];
+  for (const d of docs) {
+    const t = (d.document_title || "").trim();
+    if (t.includes("בקשה לאישור")) motion.push(d);
+    else if (t.includes("כתב תביעה")) claim.push(d);
+    else other.push(d);
+  }
+  return { motion, claim, other };
+}
+
+function DocSlot({
+  label,
+  docs,
+  emptyHint = "אין מסמך זמין",
+  primary = false,
+}: {
+  label: string;
+  docs: ClassActionDocument[];
+  emptyHint?: string;
+  primary?: boolean;
+}) {
+  if (docs.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2">
+        <div className="text-xs font-semibold text-gray-500 mb-0.5">{label}</div>
+        <div className="text-xs text-gray-400">{emptyHint}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md border border-gray-200 bg-white px-3 py-2">
+      <div className="text-xs font-semibold text-gray-600 mb-1.5">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
+        {docs.map((doc) => {
+          const dateLabel = fmtDate(doc.document_date);
+          return (
+            <a
+              key={doc.id}
+              href={`/api/class-actions/documents/${doc.id}/file`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2.5 py-1 transition"
+              style={
+                primary
+                  ? { background: C_PRIMARY, color: "white" }
+                  : { color: C_PRIMARY, border: `1px solid ${C_PRIMARY}` }
+              }
+              title={
+                doc.document_title
+                  ? `${doc.document_title} • ${dateLabel}`
+                  : dateLabel
+              }
+            >
+              <span>פתח PDF</span>
+              {docs.length > 1 ? (
+                <span className="opacity-80">({dateLabel})</span>
+              ) : null}
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
   const [open, setOpen] = useState(false);
+  const slots = classifyDocs(caseItem.documents);
+
   return (
     <article
       className="rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
@@ -112,86 +190,87 @@ function CardItem({ doc }: { doc: ClassActionDocument }) {
     >
       <div className="flex items-start gap-2 mb-2 flex-wrap">
         <Badge color={C_PD} bg="#e1ecf3">
-          {doc.case_number || "—"}
+          {caseItem.case_number || "—"}
         </Badge>
-        {doc.is_appeal ? (
+        {caseItem.is_appeal ? (
           <Badge color={C_OTHER} bg="#fbe9e0">
             ערעור
           </Badge>
         ) : null}
-        {doc.is_attachment ? (
-          <Badge color={C_MUTED} bg="#eef0f3">
-            נספח
-          </Badge>
-        ) : null}
+        <Badge color={C_MUTED} bg="#eef0f3">
+          {caseItem.documents.length === 1
+            ? "מסמך אחד"
+            : `${caseItem.documents.length} מסמכים`}
+        </Badge>
       </div>
 
       <h3
         className="text-base font-bold leading-snug mb-2"
         style={{ color: C_PRIMARY }}
       >
-        {doc.case_name || "ללא שם תיק"}
+        {caseItem.case_name || "ללא שם תיק"}
       </h3>
 
       <div className="text-sm text-gray-700 mb-1">
-        <span className="font-semibold">בית משפט:</span> {doc.court_name || "—"}
-      </div>
-      <div className="text-sm text-gray-700 mb-1">
-        <span className="font-semibold">סוג מסמך:</span>{" "}
-        {doc.document_title || doc.document_type || "—"}
+        <span className="font-semibold">בית משפט:</span> {caseItem.court_name || "—"}
       </div>
       <div className="text-sm text-gray-700 mb-3">
-        <span className="font-semibold">תאריך הגשה:</span> {fmtDate(doc.document_date)}
+        <span className="font-semibold">תאריך הגשה אחרון:</span>{" "}
+        {fmtDate(caseItem.latest_document_date)}
       </div>
 
       {open ? (
         <div className="border-t border-gray-100 pt-3 mt-1 space-y-2 text-sm text-gray-800">
           <div>
             <span className="font-semibold">פתיחת תיק:</span>{" "}
-            {fmtDate(doc.case_open_date)}
+            {fmtDate(caseItem.case_open_date)}
           </div>
           <div>
             <span className="font-semibold">סכום תביעה:</span>{" "}
-            {fmtAmount(doc.claim_amount)}
+            {fmtAmount(caseItem.claim_amount)}
           </div>
-          {doc.class_definition ? (
+          {caseItem.class_definition ? (
             <div>
               <span className="font-semibold">הגדרת קבוצה:</span>{" "}
-              <span className="text-gray-700">{doc.class_definition}</span>
+              <span className="text-gray-700">{caseItem.class_definition}</span>
             </div>
           ) : null}
-          {doc.legal_question ? (
+          {caseItem.legal_question ? (
             <div>
               <span className="font-semibold">שאלה משפטית:</span>{" "}
-              <span className="text-gray-700">{doc.legal_question}</span>
+              <span className="text-gray-700">{caseItem.legal_question}</span>
             </div>
           ) : null}
-          {doc.requested_aid ? (
+          {caseItem.requested_aid ? (
             <div>
               <span className="font-semibold">סעד מבוקש:</span>{" "}
-              <span className="text-gray-700">{doc.requested_aid}</span>
+              <span className="text-gray-700">{caseItem.requested_aid}</span>
             </div>
           ) : null}
         </div>
       ) : null}
 
-      <div className="mt-auto pt-4 flex items-center gap-3">
-        <a
-          href={`/api/class-actions/documents/${doc.id}/file`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm font-semibold rounded-md px-3 py-1.5 text-white transition"
-          style={{ background: C_PRIMARY }}
-        >
-          פתח PDF
-        </a>
+      {/* Document slots */}
+      <div className="mt-3 space-y-2">
+        <DocSlot
+          label="בקשה לאישור תובענה ייצוגית"
+          docs={slots.motion}
+          primary
+        />
+        <DocSlot label="כתב תביעה" docs={slots.claim} primary />
+        {slots.other.length > 0 ? (
+          <DocSlot label="מסמכים נוספים" docs={slots.other} />
+        ) : null}
+      </div>
+
+      <div className="mt-auto pt-4 flex items-center justify-end">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="text-sm font-semibold rounded-md px-3 py-1.5 border transition"
           style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
         >
-          {open ? "צמצם" : "הצג עוד"}
+          {open ? "צמצם" : "פרטים נוספים"}
         </button>
       </div>
     </article>
@@ -202,7 +281,7 @@ export function ClassActionsDashboard() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [skip, setSkip] = useState(0);
-  const [data, setData] = useState<ClassActionListResponse | null>(null);
+  const [data, setData] = useState<CasesListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,7 +291,7 @@ export function ClassActionsDashboard() {
     try {
       const res = await fetch(`/api/class-actions/documents?${buildQs(f, s)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as ClassActionListResponse;
+      const json = (await res.json()) as CasesListResponse;
       setData(json);
     } catch (e) {
       console.error(e);
@@ -411,7 +490,7 @@ export function ClassActionsDashboard() {
           <span>
             {total === 0
               ? "לא נמצאו תובענות בטווח שנבחר"
-              : `מציג ${pageStart}–${pageEnd} מתוך ${total}`}
+              : `מציג תיקים ${pageStart}–${pageEnd} מתוך ${total}`}
           </span>
         )}
       </div>
@@ -420,7 +499,9 @@ export function ClassActionsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : data?.items.map((doc) => <CardItem key={doc.id} doc={doc} />)}
+          : data?.cases.map((c) => (
+              <CaseCard key={c.case_number} caseItem={c} />
+            ))}
       </div>
 
       {/* Pagination */}
