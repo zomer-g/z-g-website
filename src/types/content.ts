@@ -333,6 +333,20 @@ export interface DigitalServicesPageContent {
   cta: { title: string; description: string; ctaText: string; ctaLink: string };
 }
 
+// ── Sanegoria Dashboard Page Content ──
+
+export interface SanegoriaPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+}
+
+// ── Class Actions Dashboard Page Content ──
+
+export interface ClassActionsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -348,6 +362,8 @@ export type PageContentMap = {
   "service-detail": ServiceDetailContent;
   projects: ProjectsPageContent;
   "digital-services": DigitalServicesPageContent;
+  sanegoria: SanegoriaPageContent;
+  "class-actions": ClassActionsPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

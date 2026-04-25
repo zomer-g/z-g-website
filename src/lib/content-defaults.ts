@@ -11,6 +11,8 @@ import type {
   ServiceDetailContent,
   ProjectsPageContent,
   DigitalServicesPageContent,
+  SanegoriaPageContent,
+  ClassActionsPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -363,6 +365,26 @@ export const DEFAULT_DIGITAL_SERVICES_CONTENT: DigitalServicesPageContent = {
   },
 };
 
+/* ─── Sanegoria Dashboard Page ─── */
+
+export const DEFAULT_SANEGORIA_CONTENT: SanegoriaPageContent = {
+  isPublic: true,
+  hero: {
+    title: "ניתוח ייצוג סניגוריה ציבורית",
+    subtitle: "הליכים פליליים בישראל — 2022 ואילך",
+  },
+};
+
+/* ─── Class Actions Dashboard Page ─── */
+
+export const DEFAULT_CLASS_ACTIONS_CONTENT: ClassActionsPageContent = {
+  isPublic: true,
+  hero: {
+    title: "תובענות ייצוגיות — תובענות אחרונות",
+    subtitle: "רשימת התובענות הייצוגיות החדשות שנפתחו בפנקס",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -378,4 +400,6 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "service-detail": DEFAULT_SERVICE_DETAIL_CONTENT,
   projects: DEFAULT_PROJECTS_CONTENT,
   "digital-services": DEFAULT_DIGITAL_SERVICES_CONTENT,
+  sanegoria: DEFAULT_SANEGORIA_CONTENT,
+  "class-actions": DEFAULT_CLASS_ACTIONS_CONTENT,
 };

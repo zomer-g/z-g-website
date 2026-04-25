@@ -18,6 +18,7 @@ import { ArticleDetailEditors } from "@/components/admin/section-editors/article
 import { ServiceDetailEditors } from "@/components/admin/section-editors/service-detail-editors";
 import { ProjectsEditors } from "@/components/admin/section-editors/projects-editors";
 import { DigitalServicesEditors } from "@/components/admin/section-editors/digital-services-editors";
+import { DashboardPageEditor } from "@/components/admin/section-editors/dashboard-page-editor";
 import {
   ArrowRight,
   Loader2,
@@ -27,7 +28,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -44,6 +45,8 @@ const PAGE_LABELS: Record<string, string> = {
   "service-detail": "עמוד שירות (תבנית)",
   projects: "מיזמים",
   "digital-services": "שירותים דיגיטליים",
+  sanegoria: "דשבורד סניגוריה",
+  "class-actions": "דשבורד תובענות ייצוגיות",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -59,6 +62,8 @@ const PAGE_URLS: Record<string, string> = {
   "service-detail": "/services",
   projects: "/projects",
   "digital-services": "/digital-services",
+  sanegoria: "/sanegoria",
+  "class-actions": "/class-actions",
 };
 
 /* ─── Page Editor ─── */
@@ -353,6 +358,18 @@ export default function SiteEditorPageEditor({
           {slug === "digital-services" && (
             <DigitalServicesEditors
               content={content as DigitalServicesPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "sanegoria" && (
+            <DashboardPageEditor<SanegoriaPageContent>
+              content={content as SanegoriaPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "class-actions" && (
+            <DashboardPageEditor<ClassActionsPageContent>
+              content={content as ClassActionsPageContent}
               onChange={setContent}
             />
           )}
