@@ -392,6 +392,7 @@ export default function SiteEditorPageEditor({
                 minMinutes: 1,
                 maxMinutes: 1440,
               }}
+              embedAction={{ endpoint: "/api/guidelines/embed" }}
             />
           )}
         </div>

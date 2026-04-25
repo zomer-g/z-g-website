@@ -14,6 +14,7 @@ import {
   RefreshCcw,
   Timer,
   CheckCircle,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -31,11 +32,16 @@ interface CacheControls {
   maxMinutes?: number;
 }
 
+interface EmbedAction {
+  endpoint: string;
+}
+
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
   content: T;
   onChange: (content: T) => void;
   showDisclaimer?: boolean;
   cacheControls?: CacheControls;
+  embedAction?: EmbedAction;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
@@ -43,6 +49,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   onChange,
   showDisclaimer = false,
   cacheControls,
+  embedAction,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
   const paragraphs = content.disclaimer?.paragraphs ?? [];
@@ -77,6 +84,44 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
     } finally {
       setRefreshing(false);
       setTimeout(() => setRefreshFeedback(null), 5000);
+    }
+  };
+
+  const [embedding, setEmbedding] = useState(false);
+  const [embedForce, setEmbedForce] = useState(false);
+  const [embedFeedback, setEmbedFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const handleEmbed = async () => {
+    if (!embedAction) return;
+    setEmbedding(true);
+    setEmbedFeedback(null);
+    try {
+      const url = embedForce
+        ? `${embedAction.endpoint}?force=1`
+        : embedAction.endpoint;
+      const res = await fetch(url, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
+      const seconds = Math.round((data.durationMs ?? 0) / 1000);
+      const parts = [
+        `סה"כ ${data.total ?? 0} מסמכים`,
+        `אומבדו: ${data.embedded ?? 0}`,
+        `דולגו: ${data.skipped ?? 0}`,
+      ];
+      if ((data.failed ?? 0) > 0) parts.push(`כשלים: ${data.failed}`);
+      parts.push(`זמן: ${seconds} שניות`);
+      setEmbedFeedback({ type: "success", message: parts.join(" • ") });
+    } catch (err) {
+      setEmbedFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "שגיאה בבניית האינדקס",
+      });
+    } finally {
+      setEmbedding(false);
+      setTimeout(() => setEmbedFeedback(null), 15000);
     }
   };
 
@@ -231,6 +276,60 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
                 </div>
               ) : null}
             </div>
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {embedAction ? (
+        <SectionCard title="חיפוש סמנטי (AI)" icon={Brain}>
+          <div className="space-y-3">
+            <p className="text-xs text-muted leading-relaxed">
+              בניית אינדקס embeddings על כל המסמכים מאפשרת חיפוש לפי משמעות
+              במקום לפי מחרוזת. בניה ראשונה לוקחת מספר דקות; ריצות חוזרות
+              מדלגות על מסמכים שלא השתנו.
+            </p>
+
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                onClick={handleEmbed}
+                loading={embedding}
+                disabled={embedding}
+                variant="ghost"
+                className="border border-border whitespace-nowrap"
+              >
+                <Brain size={16} />
+                {embedForce ? "בנה הכל מחדש" : "עדכן אינדקס"}
+              </Button>
+              <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={embedForce}
+                  onChange={(e) => setEmbedForce(e.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                <span>אילוץ בנייה מלאה (מתעלם מהאש)</span>
+              </label>
+            </div>
+
+            {embedFeedback ? (
+              <div
+                role="alert"
+                className={cn(
+                  "flex items-start gap-2 rounded-lg border p-2.5 text-xs",
+                  embedFeedback.type === "success"
+                    ? "border-green-200 bg-green-50 text-green-700"
+                    : "border-red-200 bg-red-50 text-red-700",
+                )}
+              >
+                {embedFeedback.type === "success" ? (
+                  <CheckCircle size={14} className="shrink-0 mt-0.5" />
+                ) : (
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                )}
+                <span className="leading-relaxed">{embedFeedback.message}</span>
+              </div>
+            ) : null}
           </div>
         </SectionCard>
       ) : null}

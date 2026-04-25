@@ -27,6 +27,7 @@ interface Filters {
   date_from: string;
   date_to: string;
   sources: string[];
+  semantic: boolean;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -34,6 +35,7 @@ const EMPTY_FILTERS: Filters = {
   date_from: "",
   date_to: "",
   sources: [],
+  semantic: false,
 };
 
 function buildQs(filters: Filters, skip: number) {
@@ -253,7 +255,13 @@ export function GuidelinesDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/guidelines/documents?${buildQs(f, s)}`);
+      // Semantic search needs a query; without one, fall back to the
+      // standard documents endpoint so the page is never blank.
+      const useSemantic = f.semantic && f.q.trim().length > 0;
+      const url = useSemantic
+        ? `/api/guidelines/search?${buildQs(f, s)}`
+        : `/api/guidelines/documents?${buildQs(f, s)}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as GuidelinesListResponse;
       setData(json);
@@ -302,12 +310,29 @@ export function GuidelinesDashboard() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         {/* Free-text search */}
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            חיפוש חופשי
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-semibold text-gray-600">
+              חיפוש חופשי
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={draft.semantic}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, semantic: e.target.checked }))
+                }
+                className="h-3.5 w-3.5"
+              />
+              <span className="font-semibold">חיפוש סמנטי (AI)</span>
+            </label>
+          </div>
           <input
             type="text"
-            placeholder="חיפוש בכותרת ובתוכן ההנחיות..."
+            placeholder={
+              draft.semantic
+                ? "תארו במילים שלכם מה אתם מחפשים — לא חייב להיות ציטוט מדויק"
+                : "חיפוש בכותרת ובתוכן ההנחיות..."
+            }
             value={draft.q}
             onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
             onKeyDown={(e) => {
@@ -315,6 +340,12 @@ export function GuidelinesDashboard() {
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
+          {draft.semantic ? (
+            <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+              חיפוש לפי משמעות. דוגמה: &quot;סמכות שוטר לעצור אדם בלי צו&quot;
+              ימצא הנחיות על מעצר ללא צו שיפוטי גם אם המילים אינן מופיעות בדיוק.
+            </p>
+          ) : null}
         </div>
 
         {/* Date range */}

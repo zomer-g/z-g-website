@@ -208,3 +208,22 @@ model SanegoriaOffense {
   @@index([caseId, offenseCode])
   @@map("sanegoria_offenses")
 }
+
+// ─── Guideline Semantic Embeddings ───
+//
+// One row per Smart-DMS guideline document. The `embedding` column stores the
+// OpenAI text-embedding-3-small vector (1536 floats) as a JSON array. We hash
+// the text used for the embedding so the daily rebuild job can skip docs
+// whose text hasn't changed.
+
+model GuidelineEmbedding {
+  id          Int      @id // matches Smart-DMS doc id
+  contentHash String   @map("content_hash")
+  embedding   Json
+  model       String
+  textChars   Int      @map("text_chars")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("guideline_embeddings")
+}
