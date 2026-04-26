@@ -55,6 +55,59 @@ export async function embedText(input: string): Promise<number[]> {
   return v;
 }
 
+// Per-process LRU for query embeddings. Repeated queries — including the
+// natural case of paginating through the same search — skip the OpenAI call
+// entirely. Identical queries are very common (each page click re-runs).
+const QUERY_CACHE_MAX = 256;
+const QUERY_CACHE_TTL_MS = 60 * 60_000; // 1 hour
+
+interface QueryCacheEntry {
+  vector: number[];
+  ts: number;
+}
+
+const queryCache = new Map<string, QueryCacheEntry>();
+let inflightQueryEmbeds = new Map<string, Promise<number[]>>();
+
+export async function embedQuery(query: string): Promise<number[]> {
+  const key = query.trim();
+  if (!key) return embedText(key);
+
+  const hit = queryCache.get(key);
+  if (hit && Date.now() - hit.ts < QUERY_CACHE_TTL_MS) {
+    // LRU touch — re-insert so it's the newest entry.
+    queryCache.delete(key);
+    queryCache.set(key, hit);
+    return hit.vector;
+  }
+
+  // Coalesce concurrent identical queries onto a single in-flight request.
+  const existing = inflightQueryEmbeds.get(key);
+  if (existing) return existing;
+
+  const p = embedText(key)
+    .then((vector) => {
+      queryCache.set(key, { vector, ts: Date.now() });
+      while (queryCache.size > QUERY_CACHE_MAX) {
+        const oldest = queryCache.keys().next().value;
+        if (oldest === undefined) break;
+        queryCache.delete(oldest);
+      }
+      return vector;
+    })
+    .finally(() => {
+      inflightQueryEmbeds.delete(key);
+    });
+
+  inflightQueryEmbeds.set(key, p);
+  return p;
+}
+
+export function clearQueryEmbeddingCache() {
+  queryCache.clear();
+  inflightQueryEmbeds = new Map();
+}
+
 // Deterministic hash for the input text — used to skip re-embedding when
 // nothing about a document has changed since the last build.
 export async function hashText(text: string): Promise<string> {

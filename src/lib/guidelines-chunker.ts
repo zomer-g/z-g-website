@@ -37,6 +37,21 @@ function splitOnSentences(text: string): string[] {
   return parts.map((s) => s.trim()).filter(Boolean);
 }
 
+// PDF extraction sometimes produces chunks that are mostly punctuation/dots
+// (table-of-contents leaders, page-number bands, ASCII boxes). Embeddings of
+// these chunks become "average" vectors that score moderately against random
+// short queries — exactly the noise we don't want. Drop them at index time.
+function isMostlyJunk(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < 80) return false; // headers / short titles are fine
+  let real = 0;
+  for (const ch of trimmed) {
+    // Letter or digit in any script (Hebrew, Latin, Arabic numerals, ...).
+    if (/[\p{L}\p{N}]/u.test(ch)) real++;
+  }
+  return real / trimmed.length < 0.5;
+}
+
 // Split a piece of text greedily into windows ≤ MAX_CHARS, ≥ MIN_CHARS where
 // possible, with up to OVERLAP_CHARS of overlap between consecutive windows
 // (helps semantic search when a sentence straddles a boundary).
@@ -108,7 +123,9 @@ export function chunkGuideline(doc: ChunkInputDoc): BuiltChunk[] {
   if (current) grouped.push(current);
 
   // Expand any oversized groups into windowed sub-chunks.
-  const finalChunks: string[] = grouped.flatMap(splitOversizedBlock);
+  const finalChunks: string[] = grouped
+    .flatMap(splitOversizedBlock)
+    .filter((c) => !isMostlyJunk(c));
 
   for (let i = 0; i < finalChunks.length; i++) {
     const chunkText = finalChunks[i];

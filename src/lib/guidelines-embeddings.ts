@@ -1,13 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { EMBED_DIMS } from "@/lib/openai-embeddings";
+import { evaluateQuery, type QueryNode } from "@/lib/guidelines-query";
 
 // In-memory cache: one entry per chunk. Vectors are L2-normalized at load
 // time so cosine similarity becomes a single dot product per scoring call.
+// normalizedText is also computed up-front so substring search doesn't pay
+// a normalization cost per query × per chunk.
 interface CachedChunk {
   docId: number;
   chunkIdx: number;
   text: string;
+  normalizedText: string;
   vector: Float32Array; // length EMBED_DIMS, L2-normalized
 }
 
@@ -40,6 +44,7 @@ async function loadFromDb(): Promise<CachedChunk[]> {
       docId: r.docId,
       chunkIdx: r.chunkIdx,
       text: r.text,
+      normalizedText: normalizeHebrew(r.text),
       vector: normalize(arr as number[]),
     });
   }
@@ -77,10 +82,18 @@ export interface ChunkHit {
   score: number;
 }
 
-// Returns top-K chunks across the whole corpus.
+// Cosine similarity below this is treated as noise. text-embedding-3-small on
+// Hebrew legal text typically scores 0.4-0.7 for genuinely related content;
+// anything under ~0.30 tends to be a junk chunk (OCR garbage, page numbers)
+// that just happens to live in the same vector neighborhood.
+export const SEMANTIC_MIN_SCORE = 0.3;
+
+// Returns top-K chunks across the whole corpus, dropping anything below the
+// minimum similarity floor.
 export async function semanticChunkSearch(
   queryVector: number[],
   topK: number,
+  minScore = SEMANTIC_MIN_SCORE,
 ): Promise<ChunkHit[]> {
   const items = await getCachedChunks();
   if (items.length === 0) return [];
@@ -88,36 +101,32 @@ export async function semanticChunkSearch(
   const qLen = Math.sqrt(queryVector.reduce((s, v) => s + v * v, 0));
   const qNorm: number[] = qLen === 0 ? queryVector : queryVector.map((v) => v / qLen);
 
-  const scored: ChunkHit[] = items.map((it) => ({
-    docId: it.docId,
-    chunkIdx: it.chunkIdx,
-    text: it.text,
-    score: dot(it.vector, qNorm),
-  }));
+  const scored: ChunkHit[] = [];
+  for (const it of items) {
+    const score = dot(it.vector, qNorm);
+    if (score < minScore) continue;
+    scored.push({
+      docId: it.docId,
+      chunkIdx: it.chunkIdx,
+      text: it.text,
+      score,
+    });
+  }
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
 }
 
-// Local substring search over the chunk text. Cheap, deterministic, and Hebrew
-// prefix-aware (strips ה/ב/ל/מ/ש/ו/כ from query terms so "הפגנה" finds
-// "פגנה" / "פגנות"). Returns chunk hits with the same shape as semantic.
-const HEB_PREFIX_RE = /^[הבלמשוכ]+/;
-
+// Local substring search over the chunk text. Evaluates a parsed boolean
+// query (AND/OR/phrase/parentheses) with Hebrew prefix-stripping for bare
+// words. Each chunk's normalized text is computed once at load time, so the
+// per-search cost is just walking the AST against an already-prepared string.
 function normalizeHebrew(s: string): string {
   return s
     .toLocaleLowerCase("he-IL")
-    // Strip Hebrew diacritics (niqqud + cantillation).
-    .replace(/[֑-ׇ]/g, "")
-    .replace(/[״"']/g, "")
+    .replace(/[֑-ׇ]/g, "") // niqqud + cantillation
+    .replace(/[״'׳]/g, "")
     .replace(/\s+/g, " ")
     .trim();
-}
-
-function expandHebrewTerm(term: string): string[] {
-  const variants = new Set<string>([term]);
-  const stripped = term.replace(HEB_PREFIX_RE, "");
-  if (stripped.length >= 2) variants.add(stripped);
-  return Array.from(variants);
 }
 
 export interface SubstringHit {
@@ -128,63 +137,27 @@ export interface SubstringHit {
 }
 
 export async function substringChunkSearch(
-  q: string,
+  query: QueryNode,
   topK: number,
 ): Promise<SubstringHit[]> {
   const items = await getCachedChunks();
   if (items.length === 0) return [];
 
-  const normalized = normalizeHebrew(q);
-  if (!normalized) return [];
-
-  // Treat each whitespace-separated token as a required term (AND), but allow
-  // any prefix-stripped variant of the term to satisfy it.
-  const terms = normalized.split(" ").filter((t) => t.length >= 2);
-  if (terms.length === 0) return [];
-  const termVariants = terms.map(expandHebrewTerm);
-
   const hits: SubstringHit[] = [];
   for (const it of items) {
-    const haystack = normalizeHebrew(it.text);
-    let totalMatches = 0;
-    let allTermsFound = true;
-    for (const variants of termVariants) {
-      let bestForTerm = 0;
-      for (const v of variants) {
-        const c = countOccurrences(haystack, v);
-        if (c > bestForTerm) bestForTerm = c;
-      }
-      if (bestForTerm === 0) {
-        allTermsFound = false;
-        break;
-      }
-      totalMatches += bestForTerm;
-    }
-    if (allTermsFound) {
+    const r = evaluateQuery(query, it.normalizedText, normalizeHebrew);
+    if (r.matched) {
       hits.push({
         docId: it.docId,
         chunkIdx: it.chunkIdx,
         text: it.text,
-        matchCount: totalMatches,
+        matchCount: r.matchCount,
       });
     }
   }
 
   hits.sort((a, b) => b.matchCount - a.matchCount);
   return hits.slice(0, topK);
-}
-
-function countOccurrences(haystack: string, needle: string): number {
-  if (!needle) return 0;
-  let count = 0;
-  let idx = 0;
-  while (true) {
-    const pos = haystack.indexOf(needle, idx);
-    if (pos === -1) break;
-    count += 1;
-    idx = pos + needle.length;
-  }
-  return count;
 }
 
 // Reciprocal Rank Fusion across two ranked lists. The intuition: a doc that
@@ -276,4 +249,4 @@ export function fuseRankings(
     }));
 }
 
-export { normalizeHebrew, expandHebrewTerm };
+export { normalizeHebrew };

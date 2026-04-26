@@ -9,7 +9,7 @@ import {
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
 import {
-  embedText,
+  embedQuery,
   OpenAIEmbeddingsError,
 } from "@/lib/openai-embeddings";
 import {
@@ -18,6 +18,12 @@ import {
   fuseRankings,
   getCachedChunks,
 } from "@/lib/guidelines-embeddings";
+import {
+  parseQuery,
+  flattenForEmbedding,
+  collectTerms,
+  isBareSingleWord,
+} from "@/lib/guidelines-query";
 import {
   fetchAllUpstreamGuidelines,
   getGuidelinesApiKey,
@@ -120,13 +126,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Parse the query once; the substring leg evaluates the AST directly while
+  // the semantic leg gets a flattened version (the embedding model doesn't
+  // understand operators).
+  const parsed = parseQuery(q);
+  if (!parsed) {
+    return NextResponse.json({ error: "Empty query" }, { status: 400 });
+  }
+  const flatForEmbed = flattenForEmbedding(parsed);
+  const bareSingle = isBareSingleWord(parsed);
+
   // Run substring + (optional) semantic in parallel.
   const semanticEnabled = !!process.env.OPENAI_API_KEY;
-  const substringPromise = substringChunkSearch(q, TOPK_PER_METHOD);
-  const semanticPromise: Promise<typeof chunks extends never ? never : Awaited<ReturnType<typeof semanticChunkSearch>>> = (async () => {
+  const substringPromise = substringChunkSearch(parsed, TOPK_PER_METHOD);
+  const semanticPromise: Promise<Awaited<ReturnType<typeof semanticChunkSearch>>> = (async () => {
     if (!semanticEnabled) return [];
     try {
-      const queryVec = await embedText(q);
+      const queryVec = await embedQuery(flatForEmbed);
       return await semanticChunkSearch(queryVec, TOPK_PER_METHOD);
     } catch (err) {
       if (err instanceof OpenAIEmbeddingsError) {
@@ -138,10 +154,16 @@ export async function GET(req: NextRequest) {
     }
   })();
 
-  const [substringHits, semanticHits] = await Promise.all([
+  const [substringHits, semanticHitsRaw] = await Promise.all([
     substringPromise,
     semanticPromise,
   ]);
+
+  // For a single bare word with zero substring hits, semantic results are
+  // almost always noise (cosine similarity to a single Hebrew word picks up
+  // OCR-garbage chunks more than meaningful matches). Suppress them.
+  const semanticHits =
+    bareSingle && substringHits.length === 0 ? [] : semanticHitsRaw;
 
   // Reciprocal Rank Fusion → ranked list of doc ids with snippets.
   const fused = fuseRankings(semanticHits, substringHits);
@@ -171,7 +193,7 @@ export async function GET(req: NextRequest) {
   // Apply optional filters in score order. We compute source facets from the
   // result set BEFORE the source filter is applied, so the user always sees
   // the full set of sources their other filters yield.
-  const queryTerms = q.split(/\s+/).filter(Boolean);
+  const queryTerms = collectTerms(parsed);
   const ranked: { doc: Guideline; snippet: string; score: number }[] = [];
   const facetCounts = new Map<string, number>();
   for (const hit of fused) {

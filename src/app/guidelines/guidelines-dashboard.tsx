@@ -389,11 +389,22 @@ export function GuidelinesDashboard() {
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
           {draft.smart ? (
-            <p className="mt-1 text-xs text-gray-500 leading-relaxed">
-              חיפוש משלב משמעות (vector embeddings) ומילולי (BM25-like על
-              חלקי טקסט) באמצעות Reciprocal Rank Fusion. מטפל גם בקידומות
-              עבריות (ה/ב/ל/מ/ש/ו/כ).
-            </p>
+            <div className="mt-1 text-xs text-gray-500 leading-relaxed space-y-1">
+              <p>
+                חיפוש משלב משמעות (vector embeddings) ומילולי (BM25-like על
+                חלקי טקסט) באמצעות Reciprocal Rank Fusion, וטיפול אוטומטי
+                בקידומות עבריות (ה/ב/ל/מ/ש/ו/כ).
+              </p>
+              <p>
+                <span className="font-semibold text-gray-700">אופרטורים: </span>
+                <code className="text-[10px] bg-gray-100 px-1 rounded">&quot;ביטוי מדויק&quot;</code>{" "}
+                לציטוט מילולי,{" "}
+                <code className="text-[10px] bg-gray-100 px-1 rounded">A OR B</code>{" "}
+                (או <code className="text-[10px] bg-gray-100 px-1 rounded">A או B</code>) לבחירה,
+                ו-<code className="text-[10px] bg-gray-100 px-1 rounded">(A OR B) C</code>{" "}
+                לקיבוץ עם סוגריים.
+              </p>
+            </div>
           ) : null}
         </div>
 
