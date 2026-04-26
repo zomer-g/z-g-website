@@ -147,13 +147,62 @@ function groupByCase(docs: ClassActionDocument[]): ClassActionCase[] {
     });
   }
 
-  cases.sort((a, b) => {
-    if (b.latest_document_date < a.latest_document_date) return -1;
-    if (b.latest_document_date > a.latest_document_date) return 1;
-    return 0;
-  });
-
   return cases;
+}
+
+export type SortOrder =
+  | "date_desc"
+  | "date_asc"
+  | "amount_desc"
+  | "amount_asc"
+  | "case_name_asc"
+  | "case_name_desc";
+
+const VALID_SORTS: ReadonlySet<SortOrder> = new Set([
+  "date_desc",
+  "date_asc",
+  "amount_desc",
+  "amount_asc",
+  "case_name_asc",
+  "case_name_desc",
+]);
+
+function sortCases(cases: ClassActionCase[], order: SortOrder): ClassActionCase[] {
+  const arr = [...cases];
+  switch (order) {
+    case "date_asc":
+      arr.sort((a, b) =>
+        (a.latest_document_date || "").localeCompare(b.latest_document_date || ""),
+      );
+      break;
+    case "amount_desc":
+      // Cases with claim_amount = 0 ("not specified") drop to the bottom.
+      arr.sort((a, b) => {
+        const ax = a.claim_amount > 0 ? a.claim_amount : -Infinity;
+        const bx = b.claim_amount > 0 ? b.claim_amount : -Infinity;
+        return bx - ax;
+      });
+      break;
+    case "amount_asc":
+      arr.sort((a, b) => {
+        const ax = a.claim_amount > 0 ? a.claim_amount : Infinity;
+        const bx = b.claim_amount > 0 ? b.claim_amount : Infinity;
+        return ax - bx;
+      });
+      break;
+    case "case_name_asc":
+      arr.sort((a, b) => (a.case_name || "").localeCompare(b.case_name || "", "he"));
+      break;
+    case "case_name_desc":
+      arr.sort((a, b) => (b.case_name || "").localeCompare(a.case_name || "", "he"));
+      break;
+    case "date_desc":
+    default:
+      arr.sort((a, b) =>
+        (b.latest_document_date || "").localeCompare(a.latest_document_date || ""),
+      );
+  }
+  return arr;
 }
 
 export async function GET(req: NextRequest) {
@@ -206,7 +255,10 @@ export async function GET(req: NextRequest) {
   }
 
   const filtered = applyPostFilters(allItems, params);
-  const cases = groupByCase(filtered);
+  const grouped = groupByCase(filtered);
+  const sortParam = params.get("sort") as SortOrder | null;
+  const sortOrder: SortOrder = sortParam && VALID_SORTS.has(sortParam) ? sortParam : "date_desc";
+  const cases = sortCases(grouped, sortOrder);
   const page = cases.slice(skip, skip + limit);
 
   const body: CasesListResponse = {
@@ -218,7 +270,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(body, {
     headers: {
-      "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       "X-Cache": cacheStatus,
     },
   });

@@ -37,6 +37,23 @@ function fmtAmount(n: number) {
   return ilsFmt.format(n);
 }
 
+type SortOrder =
+  | "date_desc"
+  | "date_asc"
+  | "amount_desc"
+  | "amount_asc"
+  | "case_name_asc"
+  | "case_name_desc";
+
+const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
+  { value: "date_desc", label: "מהחדש לישן" },
+  { value: "date_asc", label: "מהישן לחדש" },
+  { value: "amount_desc", label: "סכום תביעה — גבוה לנמוך" },
+  { value: "amount_asc", label: "סכום תביעה — נמוך לגבוה" },
+  { value: "case_name_asc", label: "שם תיק — א׳-ת׳" },
+  { value: "case_name_desc", label: "שם תיק — ת׳-א׳" },
+];
+
 interface Filters {
   q: string;
   date_from: string;
@@ -61,10 +78,11 @@ const EMPTY_FILTERS: Filters = {
   claim_max: "",
 };
 
-function buildQs(filters: Filters, skip: number) {
+function buildQs(filters: Filters, skip: number, sort: SortOrder) {
   const p = new URLSearchParams();
   p.set("limit", String(PAGE_SIZE));
   p.set("skip", String(skip));
+  p.set("sort", sort);
   if (filters.q.trim()) p.set("q", filters.q.trim());
   if (filters.date_from) p.set("date_from", filters.date_from);
   if (filters.date_to) p.set("date_to", filters.date_to);
@@ -281,30 +299,34 @@ export function ClassActionsDashboard() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [skip, setSkip] = useState(0);
+  const [sort, setSort] = useState<SortOrder>("date_desc");
   const [data, setData] = useState<CasesListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (f: Filters, s: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/class-actions/documents?${buildQs(f, s)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as CasesListResponse;
-      setData(json);
-    } catch (e) {
-      console.error(e);
-      setError("שגיאה בטעינת התובענות. נסו שוב מאוחר יותר.");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchData = useCallback(
+    async (f: Filters, s: number, ord: SortOrder) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/class-actions/documents?${buildQs(f, s, ord)}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as CasesListResponse;
+        setData(json);
+      } catch (e) {
+        console.error(e);
+        setError("שגיאה בטעינת התובענות. נסו שוב מאוחר יותר.");
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    fetchData(filters, skip);
-  }, [fetchData, filters, skip]);
+    fetchData(filters, skip, sort);
+  }, [fetchData, filters, skip, sort]);
 
   const applyFilters = () => {
     setSkip(0);
@@ -481,18 +503,40 @@ export function ClassActionsDashboard() {
       </div>
 
       {/* Results header */}
-      <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
-        {loading ? (
-          <span>טוען…</span>
-        ) : error ? (
-          <span className="text-red-600">{error}</span>
-        ) : (
-          <span>
-            {total === 0
-              ? "לא נמצאו תובענות בטווח שנבחר"
-              : `מציג תיקים ${pageStart}–${pageEnd} מתוך ${total}`}
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
+        <div>
+          {loading ? (
+            <span>טוען…</span>
+          ) : error ? (
+            <span className="text-red-600">{error}</span>
+          ) : (
+            <span>
+              {total === 0
+                ? "לא נמצאו תובענות בטווח שנבחר"
+                : `מציג תיקים ${pageStart}–${pageEnd} מתוך ${total}`}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <label htmlFor="ca-sort" className="text-xs text-gray-600">
+            סדר:
+          </label>
+          <select
+            id="ca-sort"
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as SortOrder);
+              setSkip(0);
+            }}
+            className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Cards grid */}

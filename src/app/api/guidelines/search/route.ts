@@ -186,16 +186,24 @@ export async function GET(req: NextRequest) {
 
   const page = ranked.slice(skip, skip + limit);
 
-  return NextResponse.json({
-    total: ranked.length,
-    skip,
-    limit,
-    items: page.map((r) => r.doc),
-    snippets: page.map((r) => r.snippet),
-    scores: page.map((r) => Number(r.score.toFixed(4))),
-    methods: {
-      semantic: semanticEnabled && semanticHits.length > 0,
-      substring: substringHits.length > 0,
+  return NextResponse.json(
+    {
+      total: ranked.length,
+      skip,
+      limit,
+      items: page.map((r) => r.doc),
+      snippets: page.map((r) => r.snippet),
+      scores: page.map((r) => Number(r.score.toFixed(4))),
+      methods: {
+        semantic: semanticEnabled && semanticHits.length > 0,
+        substring: substringHits.length > 0,
+      },
     },
-  });
+    {
+      headers: {
+        // User-specific query — never cache at the CDN.
+        "Cache-Control": "private, no-store",
+      },
+    },
+  );
 }
