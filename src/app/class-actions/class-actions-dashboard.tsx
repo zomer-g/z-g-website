@@ -156,8 +156,8 @@ function DocSlot({
   if (docs.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-gray-200 bg-gray-50 px-3 py-2">
-        <div className="text-xs font-semibold text-gray-500 mb-0.5">{label}</div>
-        <div className="text-xs text-gray-400">{emptyHint}</div>
+        <div className="text-xs font-semibold text-gray-700 mb-0.5">{label}</div>
+        <div className="text-xs text-gray-700">{emptyHint}</div>
       </div>
     );
   }
@@ -576,7 +576,7 @@ export function ClassActionsDashboard() {
         </div>
       ) : null}
 
-      <p className="text-xs text-gray-500 mt-8 leading-relaxed">
+      <p className="text-xs text-gray-700 mt-8 leading-relaxed">
         המידע נשאב מפנקס תובענות ייצוגיות ומוצג כמות שהוא, ללא סינון או עיבוד נוסף.
         הקישור לכתבי הטענות הוא לקובץ ה-PDF המקורי כפי שהתפרסם בפנקס.
       </p>

@@ -36,7 +36,7 @@ export default async function SanegoriaPage() {
               <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
                 {content.hero.title}
               </h1>
-              <p className="text-primary-light/80 text-lg">{content.hero.subtitle}</p>
+              <p className="text-white text-lg">{content.hero.subtitle}</p>
             </div>
           </Container>
         </section>

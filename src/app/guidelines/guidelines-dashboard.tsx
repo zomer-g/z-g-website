@@ -27,7 +27,6 @@ interface Filters {
   date_from: string;
   date_to: string;
   sources: string[];
-  smart: boolean;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -35,7 +34,6 @@ const EMPTY_FILTERS: Filters = {
   date_from: "",
   date_to: "",
   sources: [],
-  smart: true, // Hybrid AI is the new default — gives much better results.
 };
 
 interface SourceFacet {
@@ -142,15 +140,17 @@ function HighlightedSnippet({ text, query }: { text: string; query: string }) {
   );
 }
 
+// Tier colors are tuned for AAA (>= 7:1 contrast vs. white text), not the
+// brighter Tailwind defaults that fail at smaller sizes.
 function relevanceTier(score: number): {
   bg: string;
   text: string;
   label: string;
 } {
-  if (score >= 75) return { bg: "#16a34a", text: "white", label: "התאמה גבוהה" };
-  if (score >= 55) return { bg: "#65a30d", text: "white", label: "התאמה טובה" };
-  if (score >= 35) return { bg: "#ca8a04", text: "white", label: "התאמה בינונית" };
-  return { bg: "#94a3b8", text: "white", label: "התאמה חלשה" };
+  if (score >= 75) return { bg: "#14532d", text: "#ffffff", label: "התאמה גבוהה" };
+  if (score >= 55) return { bg: "#166534", text: "#ffffff", label: "התאמה טובה" };
+  if (score >= 35) return { bg: "#92400e", text: "#ffffff", label: "התאמה בינונית" };
+  return { bg: "#374151", text: "#ffffff", label: "התאמה חלשה" };
 }
 
 function GuidelineCard({
@@ -259,7 +259,7 @@ function GuidelineCard({
 
           {csvRowEntries.length > 0 ? (
             <div className="border-t border-gray-100 pt-2 mt-2">
-              <div className="text-xs font-semibold text-gray-500 mb-1.5">
+              <div className="text-xs font-semibold text-gray-700 mb-1.5">
                 מטא-דאטה נוספת
               </div>
               <dl className="grid grid-cols-1 gap-1">
@@ -274,7 +274,7 @@ function GuidelineCard({
           ) : null}
 
           {doc.over_collected_at || doc.over_imported_at || doc.over_version_number ? (
-            <div className="border-t border-gray-100 pt-2 mt-2 text-xs text-gray-500 space-y-1">
+            <div className="border-t border-gray-100 pt-2 mt-2 text-xs text-gray-700 space-y-1">
               {doc.over_version_number != null ? (
                 <div>גרסת מאגר: {doc.over_version_number}</div>
               ) : null}
@@ -323,10 +323,10 @@ export function GuidelinesDashboard() {
     setLoading(true);
     setError(null);
     try {
-      // Smart search needs a query; without one, fall back to the standard
-      // documents endpoint so the page lists everything.
-      const useSmart = f.smart && f.q.trim().length > 0;
-      const url = useSmart
+      // Hybrid search whenever the user typed a query; fall back to the
+      // straight listing when the search box is empty.
+      const hasQuery = f.q.trim().length > 0;
+      const url = hasQuery
         ? `/api/guidelines/search?${buildQs(f, s)}`
         : `/api/guidelines/documents?${buildQs(f, s)}`;
       const res = await fetch(url);
@@ -389,27 +389,16 @@ export function GuidelinesDashboard() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         {/* Free-text search */}
         <div className="mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-xs font-semibold text-gray-600">
-              חיפוש חופשי
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={draft.smart}
-                onChange={(e) => setDraft((d) => ({ ...d, smart: e.target.checked }))}
-                className="h-3.5 w-3.5"
-              />
-              <span className="font-semibold">חיפוש חכם (Hybrid AI)</span>
-            </label>
-          </div>
+          <label
+            htmlFor="guidelines-q"
+            className="block text-xs font-semibold text-gray-700 mb-1"
+          >
+            חיפוש חופשי
+          </label>
           <input
+            id="guidelines-q"
             type="text"
-            placeholder={
-              draft.smart
-                ? "תארו במילים שלכם מה אתם מחפשים — שילוב סמנטי + מילולי, סובלני לעברית"
-                : "חיפוש מילולי בלבד בכותרת ובתוכן..."
-            }
+            placeholder="חיפוש בכותרת ובתוכן ההנחיות"
             value={draft.q}
             onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
             onKeyDown={(e) => {
@@ -417,24 +406,6 @@ export function GuidelinesDashboard() {
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
-          {draft.smart ? (
-            <div className="mt-1 text-xs text-gray-500 leading-relaxed space-y-1">
-              <p>
-                חיפוש משלב משמעות (vector embeddings) ומילולי (BM25-like על
-                חלקי טקסט) באמצעות Reciprocal Rank Fusion, וטיפול אוטומטי
-                בקידומות עבריות (ה/ב/ל/מ/ש/ו/כ).
-              </p>
-              <p>
-                <span className="font-semibold text-gray-700">אופרטורים: </span>
-                <code className="text-[10px] bg-gray-100 px-1 rounded">&quot;ביטוי מדויק&quot;</code>{" "}
-                לציטוט מילולי,{" "}
-                <code className="text-[10px] bg-gray-100 px-1 rounded">A OR B</code>{" "}
-                (או <code className="text-[10px] bg-gray-100 px-1 rounded">A או B</code>) לבחירה,
-                ו-<code className="text-[10px] bg-gray-100 px-1 rounded">(A OR B) C</code>{" "}
-                לקיבוץ עם סוגריים.
-              </p>
-            </div>
-          ) : null}
         </div>
 
         {/* Date range */}
@@ -626,7 +597,7 @@ export function GuidelinesDashboard() {
         </div>
       ) : null}
 
-      <p className="text-xs text-gray-500 mt-8 leading-relaxed">
+      <p className="text-xs text-gray-700 mt-8 leading-relaxed">
         המידע נשאב מ-over.org.il ומוצג כמות שהוא, ללא עיבוד נוסף. הקישורים מובילים
         לקובץ ה-PDF המקורי כפי שפורסם.
       </p>

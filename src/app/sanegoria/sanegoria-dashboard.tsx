@@ -320,10 +320,10 @@ function MultiDropdown({ label, options, selected, onChange, searchable = false 
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(!open)} type="button"
               className="w-full border rounded-lg p-2 text-sm text-right bg-white flex justify-between items-center gap-2 hover:border-gray-400">
-        <span className="truncate text-gray-500">
+        <span className="truncate text-gray-700">
           {selected.length > 0 ? `${selected.length} נבחרו` : "הכל"}
         </span>
-        <span className="text-xs text-gray-400">{open ? "▲" : "▼"}</span>
+        <span className="text-xs text-gray-700">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" dir="rtl">
@@ -373,7 +373,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
             {Array.from({ length: options.yearRange[1] - options.yearRange[0] + 1 }, (_, i) => options.yearRange[0] + i)
               .map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <span className="text-gray-400 text-xs">עד</span>
+          <span className="text-gray-700 text-xs">עד</span>
           <select className="border rounded-lg p-2 text-sm bg-white w-20"
                   value={filters.yearMax || options.yearRange[1]}
                   onChange={e => onChange("yearMax", Number(e.target.value))}>
