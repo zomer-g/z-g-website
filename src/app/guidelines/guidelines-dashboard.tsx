@@ -38,12 +38,18 @@ const EMPTY_FILTERS: Filters = {
   smart: true, // Hybrid AI is the new default — gives much better results.
 };
 
+interface SourceFacet {
+  label: string;
+  count: number;
+}
+
 interface SearchResponse {
   total: number;
   skip: number;
   limit: number;
   items: Guideline[];
   snippets?: string[];
+  facets?: { sources: SourceFacet[] };
 }
 
 function buildQs(filters: Filters, skip: number) {
@@ -283,25 +289,6 @@ export function GuidelinesDashboard() {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [allSources, setAllSources] = useState<string[]>([]);
-
-  // Load list of distinct sources once.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/guidelines/sources");
-        if (!res.ok) return;
-        const json = (await res.json()) as { sources: string[] };
-        if (!cancelled) setAllSources(json.sources || []);
-      } catch {
-        // ignore — pills just won't render
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const fetchData = useCallback(async (f: Filters, s: number) => {
     setLoading(true);
@@ -343,15 +330,23 @@ export function GuidelinesDashboard() {
     setFilters(EMPTY_FILTERS);
   };
 
-  const toggleSource = (s: string) => {
-    setDraft((d) =>
-      d.sources.includes(s)
-        ? { ...d, sources: d.sources.filter((x) => x !== s) }
-        : { ...d, sources: [...d.sources, s] },
-    );
+  // Source pills are an "active" filter — toggling applies immediately and
+  // resets pagination, no need to press "סנן".
+  const toggleSourceImmediate = (s: string) => {
+    const next = filters.sources.includes(s)
+      ? filters.sources.filter((x) => x !== s)
+      : [...filters.sources, s];
+    setSkip(0);
+    setFilters((f) => ({ ...f, sources: next }));
+    setDraft((d) => ({ ...d, sources: next }));
   };
-  const selectAllSources = () => setDraft((d) => ({ ...d, sources: [...allSources] }));
-  const clearAllSources = () => setDraft((d) => ({ ...d, sources: [] }));
+  const clearAllSourcesImmediate = () => {
+    setSkip(0);
+    setFilters((f) => ({ ...f, sources: [] }));
+    setDraft((d) => ({ ...d, sources: [] }));
+  };
+
+  const facetSources: SourceFacet[] = data?.facets?.sources ?? [];
 
   const total = data?.total ?? 0;
   const pageStart = total === 0 ? 0 : skip + 1;
@@ -428,40 +423,33 @@ export function GuidelinesDashboard() {
           </div>
         </div>
 
-        {/* Source pills */}
-        {allSources.length > 0 ? (
+        {/* Source facet pills — derived from current results, applied instantly. */}
+        {facetSources.length > 0 || filters.sources.length > 0 ? (
           <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
               <label className="block text-xs font-semibold text-gray-600">
-                מקורות (סמן אחד או יותר; ללא בחירה = הכל)
+                מקורות בתוצאות הנוכחיות (לחיצה מסננת מיד)
               </label>
-              <div className="flex items-center gap-3 text-xs">
+              {filters.sources.length > 0 ? (
                 <button
                   type="button"
-                  onClick={selectAllSources}
-                  className="font-semibold text-blue-700 hover:underline"
+                  onClick={clearAllSourcesImmediate}
+                  className="text-xs font-semibold text-gray-600 hover:underline"
                 >
-                  סמן הכל
+                  נקה סינון מקור
                 </button>
-                <button
-                  type="button"
-                  onClick={clearAllSources}
-                  className="font-semibold text-gray-600 hover:underline"
-                >
-                  נקה הכל
-                </button>
-              </div>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              {allSources.map((s) => {
-                const active = draft.sources.includes(s);
+              {facetSources.map((f) => {
+                const active = filters.sources.includes(f.label);
                 return (
                   <button
-                    key={s}
+                    key={f.label}
                     type="button"
-                    onClick={() => toggleSource(s)}
+                    onClick={() => toggleSourceImmediate(f.label)}
                     aria-pressed={active}
-                    className="text-xs font-semibold rounded-full px-3 py-1 border transition"
+                    className="text-xs font-semibold rounded-full px-3 py-1 border transition inline-flex items-center gap-1.5"
                     style={
                       active
                         ? {
@@ -476,10 +464,47 @@ export function GuidelinesDashboard() {
                           }
                     }
                   >
-                    {s}
+                    <span>{f.label}</span>
+                    <span
+                      className="rounded-full px-1.5 text-[10px] tabular-nums"
+                      style={
+                        active
+                          ? { background: "rgba(255,255,255,0.2)" }
+                          : { background: "#eef2f7" }
+                      }
+                    >
+                      {f.count}
+                    </span>
                   </button>
                 );
               })}
+              {/* Selected sources that aren't in facets (e.g. result for that
+                  source is now zero) — keep them visible as a "stuck" toggle
+                  so the user understands why results are empty. */}
+              {filters.sources
+                .filter((s) => !facetSources.some((f) => f.label === s))
+                .map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleSourceImmediate(label)}
+                    aria-pressed
+                    className="text-xs font-semibold rounded-full px-3 py-1 border transition inline-flex items-center gap-1.5"
+                    style={{
+                      background: C_PRIMARY,
+                      color: "white",
+                      borderColor: C_PRIMARY,
+                    }}
+                  >
+                    <span>{label}</span>
+                    <span
+                      className="rounded-full px-1.5 text-[10px] tabular-nums"
+                      style={{ background: "rgba(255,255,255,0.2)" }}
+                    >
+                      0
+                    </span>
+                  </button>
+                ))}
             </div>
           </div>
         ) : null}

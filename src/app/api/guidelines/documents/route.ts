@@ -60,6 +60,26 @@ function applySourceFilter(items: Guideline[], params: URLSearchParams): Guideli
   return items.filter((it) => set.has(it.source_label));
 }
 
+interface SourceFacet {
+  label: string;
+  count: number;
+}
+
+// Drilldown-style facet: counts reflect what's left after every filter EXCEPT
+// the source filter — so the user can see "if I add source X on top of my
+// current filters, I'd get N results".
+function computeSourceFacets(items: Guideline[]): SourceFacet[] {
+  const counts = new Map<string, number>();
+  for (const it of items) {
+    const label = (it.source_label || "").trim();
+    if (!label) continue;
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "he"));
+}
+
 export async function GET(req: NextRequest) {
   const apiKey = getGuidelinesApiKey();
   if (!apiKey) {
@@ -98,14 +118,19 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Compute facets BEFORE applying the source filter so the pills always
+  // reflect what's available given the user's other filters.
+  const facets = { sources: computeSourceFacets(allItems) };
+
   const filtered = applySourceFilter(allItems, params);
   const page = filtered.slice(skip, skip + limit);
 
-  const body: GuidelinesListResponse = {
+  const body: GuidelinesListResponse & { facets: typeof facets } = {
     total: filtered.length,
     skip,
     limit,
     items: page,
+    facets,
   };
 
   return NextResponse.json(body, {

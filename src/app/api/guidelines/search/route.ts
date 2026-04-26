@@ -147,7 +147,14 @@ export async function GET(req: NextRequest) {
   const fused = fuseRankings(semanticHits, substringHits);
 
   if (fused.length === 0) {
-    return NextResponse.json({ total: 0, skip, limit, items: [], snippets: [] });
+    return NextResponse.json({
+      total: 0,
+      skip,
+      limit,
+      items: [],
+      snippets: [],
+      facets: { sources: [] },
+    });
   }
 
   // Pull metadata for those ids from the documents cache.
@@ -161,20 +168,33 @@ export async function GET(req: NextRequest) {
   const byId = new Map<number, Guideline>();
   for (const it of allItems) byId.set(it.id, it);
 
-  // Apply optional filters in score order.
+  // Apply optional filters in score order. We compute source facets from the
+  // result set BEFORE the source filter is applied, so the user always sees
+  // the full set of sources their other filters yield.
   const queryTerms = q.split(/\s+/).filter(Boolean);
   const ranked: { doc: Guideline; snippet: string; score: number }[] = [];
+  const facetCounts = new Map<string, number>();
   for (const hit of fused) {
     const doc = byId.get(hit.docId);
     if (!doc) continue;
-    if (sourceFilter.size > 0 && !sourceFilter.has(doc.source_label)) continue;
     if (!dateInRange(doc.document_date, dateFrom, dateTo)) continue;
+
+    const label = (doc.source_label || "").trim();
+    if (label) facetCounts.set(label, (facetCounts.get(label) ?? 0) + 1);
+
+    if (sourceFilter.size > 0 && !sourceFilter.has(doc.source_label)) continue;
     ranked.push({
       doc,
       snippet: buildSnippet(hit.snippet, queryTerms),
       score: hit.rrfScore,
     });
   }
+
+  const facets = {
+    sources: Array.from(facetCounts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "he")),
+  };
 
   const page = ranked.slice(skip, skip + limit);
 
@@ -186,6 +206,7 @@ export async function GET(req: NextRequest) {
       items: page.map((r) => r.doc),
       snippets: page.map((r) => r.snippet),
       scores: page.map((r) => Number(r.score.toFixed(4))),
+      facets,
       methods: {
         semantic: semanticEnabled && semanticHits.length > 0,
         substring: substringHits.length > 0,
