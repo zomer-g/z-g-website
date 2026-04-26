@@ -148,6 +148,18 @@ export function isBareSingleWord(node: QueryNode): boolean {
   return node.type === "word";
 }
 
+// True when the query contains any quoted phrase. The user used quotes to
+// demand a literal substring; semantic matches that don't contain that
+// literal phrase would just be noise, so the search route suppresses the
+// semantic leg in that case.
+export function hasPhrase(node: QueryNode): boolean {
+  if (node.type === "phrase") return true;
+  if (node.type === "and" || node.type === "or") {
+    return node.children.some(hasPhrase);
+  }
+  return false;
+}
+
 function expandPrefixes(term: string): string[] {
   const variants = new Set<string>([term]);
   const stripped = term.replace(HEB_PREFIX_RE, "");

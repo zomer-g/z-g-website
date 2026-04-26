@@ -17,12 +17,15 @@ import {
   substringChunkSearch,
   fuseRankings,
   getCachedChunks,
+  computeRelevance,
+  type RankedDoc,
 } from "@/lib/guidelines-embeddings";
 import {
   parseQuery,
   flattenForEmbedding,
   collectTerms,
   isBareSingleWord,
+  hasPhrase,
 } from "@/lib/guidelines-query";
 import {
   fetchAllUpstreamGuidelines,
@@ -135,9 +138,12 @@ export async function GET(req: NextRequest) {
   }
   const flatForEmbed = flattenForEmbedding(parsed);
   const bareSingle = isBareSingleWord(parsed);
+  const phraseMode = hasPhrase(parsed);
 
-  // Run substring + (optional) semantic in parallel.
-  const semanticEnabled = !!process.env.OPENAI_API_KEY;
+  // Quoted phrases mean "literal text only" — semantic results that don't
+  // contain the literal phrase would just be noise, so we skip the embedding
+  // call entirely for these queries.
+  const semanticEnabled = !!process.env.OPENAI_API_KEY && !phraseMode;
   const substringPromise = substringChunkSearch(parsed, TOPK_PER_METHOD);
   const semanticPromise: Promise<Awaited<ReturnType<typeof semanticChunkSearch>>> = (async () => {
     if (!semanticEnabled) return [];
@@ -194,7 +200,13 @@ export async function GET(req: NextRequest) {
   // result set BEFORE the source filter is applied, so the user always sees
   // the full set of sources their other filters yield.
   const queryTerms = collectTerms(parsed);
-  const ranked: { doc: Guideline; snippet: string; score: number }[] = [];
+  const ranked: {
+    doc: Guideline;
+    snippet: string;
+    rrf: number;
+    relevance: number;
+    hit: RankedDoc;
+  }[] = [];
   const facetCounts = new Map<string, number>();
   for (const hit of fused) {
     const doc = byId.get(hit.docId);
@@ -208,9 +220,16 @@ export async function GET(req: NextRequest) {
     ranked.push({
       doc,
       snippet: buildSnippet(hit.snippet, queryTerms),
-      score: hit.rrfScore,
+      rrf: hit.rrfScore,
+      relevance: computeRelevance(hit),
+      hit,
     });
   }
+
+  // Sort primarily by the user-facing relevance score. RRF is the tiebreaker
+  // since two docs with the same rounded relevance can still differ slightly
+  // in the underlying retrieval quality.
+  ranked.sort((a, b) => b.relevance - a.relevance || b.rrf - a.rrf);
 
   const facets = {
     sources: Array.from(facetCounts.entries())
@@ -227,7 +246,8 @@ export async function GET(req: NextRequest) {
       limit,
       items: page.map((r) => r.doc),
       snippets: page.map((r) => r.snippet),
-      scores: page.map((r) => Number(r.score.toFixed(4))),
+      scores: page.map((r) => Number(r.rrf.toFixed(4))),
+      relevance: page.map((r) => r.relevance),
       facets,
       methods: {
         semantic: semanticEnabled && semanticHits.length > 0,

@@ -172,6 +172,8 @@ interface DocAggregate {
   bestSnippet: string;
   semanticScore?: number;
   matchCount?: number;
+  semanticChunks: number;
+  substringChunks: number;
 }
 
 function bestPerDoc<T extends { docId: number; chunkIdx: number; text: string }>(
@@ -195,6 +197,8 @@ export interface RankedDoc {
   snippet: string;
   semanticScore?: number;
   substringMatches?: number;
+  semanticChunks: number;
+  substringChunks: number;
 }
 
 export function fuseRankings(
@@ -203,6 +207,18 @@ export function fuseRankings(
 ): RankedDoc[] {
   const semanticDocs = bestPerDoc(semantic);
   const substringDocs = bestPerDoc(substring);
+
+  // Pre-count how many distinct chunks each doc had in each ranking. Used
+  // by the relevance score: a doc with multiple matching chunks is a much
+  // stronger signal than a doc with one weak match.
+  const semChunkCount = new Map<number, number>();
+  for (const c of semantic) {
+    semChunkCount.set(c.docId, (semChunkCount.get(c.docId) ?? 0) + 1);
+  }
+  const subChunkCount = new Map<number, number>();
+  for (const c of substring) {
+    subChunkCount.set(c.docId, (subChunkCount.get(c.docId) ?? 0) + 1);
+  }
 
   const aggregates = new Map<number, DocAggregate>();
 
@@ -213,6 +229,8 @@ export function fuseRankings(
       bestChunkIdx: doc.chunkIdx,
       bestSnippet: doc.text,
       semanticScore: doc.score,
+      semanticChunks: semChunkCount.get(doc.docId) ?? 0,
+      substringChunks: 0,
     });
   });
 
@@ -226,10 +244,13 @@ export function fuseRankings(
         bestChunkIdx: doc.chunkIdx,
         bestSnippet: doc.text,
         matchCount: doc.matchCount,
+        semanticChunks: 0,
+        substringChunks: subChunkCount.get(doc.docId) ?? 0,
       });
     } else {
       existing.rrfScore += score;
       existing.matchCount = doc.matchCount;
+      existing.substringChunks = subChunkCount.get(doc.docId) ?? 0;
       // Prefer the substring snippet when available — it has the literal
       // query term in it, which is more useful as visual feedback.
       existing.bestSnippet = doc.text;
@@ -246,7 +267,32 @@ export function fuseRankings(
       snippet: a.bestSnippet,
       semanticScore: a.semanticScore,
       substringMatches: a.matchCount,
+      semanticChunks: a.semanticChunks,
+      substringChunks: a.substringChunks,
     }));
+}
+
+// Composite 0–100 relevance score derived from the underlying signals.
+// Easier for users to read than the tiny RRF score, and correlates well
+// with how strongly a doc actually matched the query.
+//
+// Calibration assumes SEMANTIC_MIN_SCORE = 0.30 floor on cosine. A doc with
+// cosine 1.0 alone tops out around 80; matching chunks across both lists
+// (or matching multiple distinct chunks) push it past 90.
+export function computeRelevance(d: RankedDoc): number {
+  const sem =
+    d.semanticScore != null
+      ? Math.max(0, Math.min(80, ((d.semanticScore - 0.30) / 0.70) * 80))
+      : 0;
+  const sub =
+    d.substringMatches && d.substringMatches > 0
+      ? 25 + Math.min(15, Math.log2(1 + d.substringMatches) * 5)
+      : 0;
+  const multi = Math.min(15, (d.semanticChunks + d.substringChunks) * 2);
+  // When semantic missed entirely (e.g. phrase mode), substring carries the
+  // full weight rather than being a minor topper.
+  const base = sem > 0 ? sem : 0;
+  return Math.round(Math.min(100, base + sub + multi));
 }
 
 export { normalizeHebrew };

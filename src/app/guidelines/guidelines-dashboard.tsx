@@ -49,6 +49,7 @@ interface SearchResponse {
   limit: number;
   items: Guideline[];
   snippets?: string[];
+  relevance?: number[];
   facets?: { sources: SourceFacet[] };
 }
 
@@ -141,14 +142,27 @@ function HighlightedSnippet({ text, query }: { text: string; query: string }) {
   );
 }
 
+function relevanceTier(score: number): {
+  bg: string;
+  text: string;
+  label: string;
+} {
+  if (score >= 75) return { bg: "#16a34a", text: "white", label: "התאמה גבוהה" };
+  if (score >= 55) return { bg: "#65a30d", text: "white", label: "התאמה טובה" };
+  if (score >= 35) return { bg: "#ca8a04", text: "white", label: "התאמה בינונית" };
+  return { bg: "#94a3b8", text: "white", label: "התאמה חלשה" };
+}
+
 function GuidelineCard({
   doc,
   snippet,
   query,
+  relevance,
 }: {
   doc: Guideline;
   snippet?: string;
   query?: string;
+  relevance?: number;
 }) {
   const [open, setOpen] = useState(false);
   const supersedesText = Array.isArray(doc.supersedes)
@@ -180,6 +194,21 @@ function GuidelineCard({
           <Badge color={C_OTHER} bg="#fbe9e0">
             הנחיה {doc.directive_number}
           </Badge>
+        ) : null}
+        {typeof relevance === "number" ? (
+          (() => {
+            const tier = relevanceTier(relevance);
+            return (
+              <span
+                className="inline-flex items-center gap-1 text-xs font-semibold rounded-md px-2 py-0.5 mr-auto"
+                style={{ background: tier.bg, color: tier.text }}
+                title={`${tier.label} — ${relevance}/100`}
+              >
+                <span>{tier.label}</span>
+                <span className="opacity-80">{relevance}</span>
+              </span>
+            );
+          })()
         ) : null}
       </div>
 
@@ -564,6 +593,7 @@ export function GuidelinesDashboard() {
                 doc={doc}
                 snippet={data.snippets?.[i]}
                 query={filters.q}
+                relevance={data.relevance?.[i]}
               />
             ))}
       </div>
