@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Guideline, GuidelinesListResponse } from "@/types/guideline";
+import type { Guideline } from "@/types/guideline";
 
 const PAGE_SIZE = 20;
 
@@ -27,7 +27,7 @@ interface Filters {
   date_from: string;
   date_to: string;
   sources: string[];
-  semantic: boolean;
+  smart: boolean;
 }
 
 const EMPTY_FILTERS: Filters = {
@@ -35,8 +35,16 @@ const EMPTY_FILTERS: Filters = {
   date_from: "",
   date_to: "",
   sources: [],
-  semantic: false,
+  smart: true, // Hybrid AI is the new default — gives much better results.
 };
+
+interface SearchResponse {
+  total: number;
+  skip: number;
+  limit: number;
+  items: Guideline[];
+  snippets?: string[];
+}
 
 function buildQs(filters: Filters, skip: number) {
   const p = new URLSearchParams();
@@ -100,7 +108,42 @@ function fmtValue(value: unknown): string {
   return String(value);
 }
 
-function GuidelineCard({ doc }: { doc: Guideline }) {
+// Wrap each query term inside the snippet with a highlight span so the user
+// sees why this card was returned. Falls back to a plain text node when there
+// are no terms to highlight.
+function HighlightedSnippet({ text, query }: { text: string; query: string }) {
+  if (!text) return null;
+  const terms = query
+    .split(/\s+/)
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .filter((t) => t.length >= 2);
+  if (terms.length === 0) return <>{text}</>;
+  const re = new RegExp(`(${terms.join("|")})`, "gi");
+  const parts = text.split(re);
+  return (
+    <>
+      {parts.map((part, i) =>
+        re.test(part) ? (
+          <mark key={i} className="bg-yellow-100 text-inherit px-0.5 rounded">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function GuidelineCard({
+  doc,
+  snippet,
+  query,
+}: {
+  doc: Guideline;
+  snippet?: string;
+  query?: string;
+}) {
   const [open, setOpen] = useState(false);
   const supersedesText = Array.isArray(doc.supersedes)
     ? doc.supersedes.join(", ")
@@ -153,6 +196,15 @@ function GuidelineCard({ doc }: { doc: Guideline }) {
         <p className="text-sm text-gray-600 leading-relaxed mt-2 line-clamp-3">
           {doc.summary}
         </p>
+      ) : null}
+
+      {snippet ? (
+        <div className="mt-3 rounded-md bg-amber-50 border-r-2 border-amber-300 px-3 py-2 text-xs leading-relaxed text-gray-800">
+          <div className="text-[10px] font-semibold text-amber-700 mb-1 uppercase tracking-wide">
+            התאמה בטקסט
+          </div>
+          <HighlightedSnippet text={snippet} query={query ?? ""} />
+        </div>
       ) : null}
 
       {open ? (
@@ -228,7 +280,7 @@ export function GuidelinesDashboard() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
   const [skip, setSkip] = useState(0);
-  const [data, setData] = useState<GuidelinesListResponse | null>(null);
+  const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allSources, setAllSources] = useState<string[]>([]);
@@ -255,19 +307,22 @@ export function GuidelinesDashboard() {
     setLoading(true);
     setError(null);
     try {
-      // Semantic search needs a query; without one, fall back to the
-      // standard documents endpoint so the page is never blank.
-      const useSemantic = f.semantic && f.q.trim().length > 0;
-      const url = useSemantic
+      // Smart search needs a query; without one, fall back to the standard
+      // documents endpoint so the page lists everything.
+      const useSmart = f.smart && f.q.trim().length > 0;
+      const url = useSmart
         ? `/api/guidelines/search?${buildQs(f, s)}`
         : `/api/guidelines/documents?${buildQs(f, s)}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as GuidelinesListResponse;
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as SearchResponse;
       setData(json);
     } catch (e) {
       console.error(e);
-      setError("שגיאה בטעינת ההנחיות. נסו שוב מאוחר יותר.");
+      setError(e instanceof Error ? e.message : "שגיאה בטעינת ההנחיות.");
       setData(null);
     } finally {
       setLoading(false);
@@ -317,21 +372,19 @@ export function GuidelinesDashboard() {
             <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
               <input
                 type="checkbox"
-                checked={draft.semantic}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, semantic: e.target.checked }))
-                }
+                checked={draft.smart}
+                onChange={(e) => setDraft((d) => ({ ...d, smart: e.target.checked }))}
                 className="h-3.5 w-3.5"
               />
-              <span className="font-semibold">חיפוש סמנטי (AI)</span>
+              <span className="font-semibold">חיפוש חכם (Hybrid AI)</span>
             </label>
           </div>
           <input
             type="text"
             placeholder={
-              draft.semantic
-                ? "תארו במילים שלכם מה אתם מחפשים — לא חייב להיות ציטוט מדויק"
-                : "חיפוש בכותרת ובתוכן ההנחיות..."
+              draft.smart
+                ? "תארו במילים שלכם מה אתם מחפשים — שילוב סמנטי + מילולי, סובלני לעברית"
+                : "חיפוש מילולי בלבד בכותרת ובתוכן..."
             }
             value={draft.q}
             onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
@@ -340,10 +393,11 @@ export function GuidelinesDashboard() {
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
-          {draft.semantic ? (
+          {draft.smart ? (
             <p className="mt-1 text-xs text-gray-500 leading-relaxed">
-              חיפוש לפי משמעות. דוגמה: &quot;סמכות שוטר לעצור אדם בלי צו&quot;
-              ימצא הנחיות על מעצר ללא צו שיפוטי גם אם המילים אינן מופיעות בדיוק.
+              חיפוש משלב משמעות (vector embeddings) ומילולי (BM25-like על
+              חלקי טקסט) באמצעות Reciprocal Rank Fusion. מטפל גם בקידומות
+              עבריות (ה/ב/ל/מ/ש/ו/כ).
             </p>
           ) : null}
         </div>
@@ -468,7 +522,14 @@ export function GuidelinesDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : data?.items.map((doc) => <GuidelineCard key={doc.id} doc={doc} />)}
+          : data?.items.map((doc, i) => (
+              <GuidelineCard
+                key={doc.id}
+                doc={doc}
+                snippet={data.snippets?.[i]}
+                query={filters.q}
+              />
+            ))}
       </div>
 
       {/* Pagination */}

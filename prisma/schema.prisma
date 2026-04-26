@@ -216,14 +216,32 @@ model SanegoriaOffense {
 // the text used for the embedding so the daily rebuild job can skip docs
 // whose text hasn't changed.
 
+// Tracks which Smart-DMS guideline docs have been chunked + embedded, so the
+// daily rebuild can skip docs whose source text hasn't changed.
 model GuidelineEmbedding {
   id          Int      @id // matches Smart-DMS doc id
   contentHash String   @map("content_hash")
-  embedding   Json
   model       String
   textChars   Int      @map("text_chars")
+  chunkCount  Int      @default(0) @map("chunk_count")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("guideline_embeddings")
+}
+
+// One row per chunk of a guideline document. We embed paragraph-sized
+// windows so semantic search can match a specific section instead of an
+// averaged-out vector for the whole 20K-char document.
+model GuidelineChunk {
+  id        Int    @id @default(autoincrement())
+  docId     Int    @map("doc_id")
+  chunkIdx  Int    @map("chunk_idx")
+  text      String
+  embedding Json
+  model     String
+
+  @@unique([docId, chunkIdx])
+  @@index([docId])
+  @@map("guideline_chunks")
 }

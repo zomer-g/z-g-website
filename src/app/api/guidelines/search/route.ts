@@ -7,11 +7,17 @@ import {
   embedText,
   OpenAIEmbeddingsError,
 } from "@/lib/openai-embeddings";
-import { semanticSearch } from "@/lib/guidelines-embeddings";
+import {
+  semanticChunkSearch,
+  substringChunkSearch,
+  fuseRankings,
+  getCachedChunks,
+} from "@/lib/guidelines-embeddings";
 
 const UPSTREAM = "https://tag-it.biz/api/public/over-guidelines/documents";
 const UPSTREAM_LIMIT = 500;
-const TOPK_SEMANTIC = 100;
+
+const TOPK_PER_METHOD = 200;
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;
@@ -75,11 +81,28 @@ function dateInRange(s: string | null | undefined, from: string | null, to: stri
   return true;
 }
 
-export async function GET(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json({ error: "Semantic search not configured" }, { status: 503 });
+// Build a short snippet around the first match of any query term inside the
+// chunk text. Falls back to the start of the chunk when no term matches.
+function buildSnippet(text: string, queryTerms: string[], maxLen = 280): string {
+  if (!text) return "";
+  if (text.length <= maxLen) return text;
+
+  const lower = text.toLocaleLowerCase("he-IL");
+  let firstMatch = -1;
+  for (const term of queryTerms) {
+    if (term.length < 2) continue;
+    const idx = lower.indexOf(term.toLocaleLowerCase("he-IL"));
+    if (idx !== -1 && (firstMatch === -1 || idx < firstMatch)) firstMatch = idx;
   }
 
+  if (firstMatch === -1) return text.slice(0, maxLen).trim() + "…";
+  const start = Math.max(0, firstMatch - 60);
+  const end = Math.min(text.length, start + maxLen);
+  const slice = text.slice(start, end).trim();
+  return (start > 0 ? "…" : "") + slice + (end < text.length ? "…" : "");
+}
+
+export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const q = params.get("q")?.trim() ?? "";
   if (!q) {
@@ -92,27 +115,50 @@ export async function GET(req: NextRequest) {
   const dateTo = params.get("date_to") || null;
   const sourceFilter = new Set(params.getAll("source").filter(Boolean));
 
-  // 1. Embed the query.
-  let queryVector: number[];
-  try {
-    queryVector = await embedText(q);
-  } catch (err) {
-    if (err instanceof OpenAIEmbeddingsError) {
-      return NextResponse.json(
-        { error: "Embedding failed" },
-        { status: err.status === 401 || err.status === 503 ? 503 : 502 },
-      );
+  // Confirm we actually have a chunk index — without it semantic + substring
+  // both return nothing meaningful.
+  const chunks = await getCachedChunks();
+  if (chunks.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "האינדקס הסמנטי טרם נבנה. היכנס ל-/admin/site-editor/guidelines וגש לסקציית 'חיפוש סמנטי (AI)' כדי לבנות אותו.",
+      },
+      { status: 503 },
+    );
+  }
+
+  // Run substring + (optional) semantic in parallel.
+  const semanticEnabled = !!process.env.OPENAI_API_KEY;
+  const substringPromise = substringChunkSearch(q, TOPK_PER_METHOD);
+  const semanticPromise: Promise<typeof chunks extends never ? never : Awaited<ReturnType<typeof semanticChunkSearch>>> = (async () => {
+    if (!semanticEnabled) return [];
+    try {
+      const queryVec = await embedText(q);
+      return await semanticChunkSearch(queryVec, TOPK_PER_METHOD);
+    } catch (err) {
+      if (err instanceof OpenAIEmbeddingsError) {
+        console.error("Semantic search failed:", err.status, err.message);
+      } else {
+        console.error("Semantic search failed:", err);
+      }
+      return [];
     }
-    return NextResponse.json({ error: "Embedding failed" }, { status: 502 });
+  })();
+
+  const [substringHits, semanticHits] = await Promise.all([
+    substringPromise,
+    semanticPromise,
+  ]);
+
+  // Reciprocal Rank Fusion → ranked list of doc ids with snippets.
+  const fused = fuseRankings(semanticHits, substringHits);
+
+  if (fused.length === 0) {
+    return NextResponse.json({ total: 0, skip, limit, items: [], snippets: [] });
   }
 
-  // 2. Top-K by cosine similarity over the cached embedding set.
-  const hits = await semanticSearch(queryVector, TOPK_SEMANTIC);
-  if (hits.length === 0) {
-    return NextResponse.json({ total: 0, skip, limit, items: [], scores: [] });
-  }
-
-  // 3. Pull metadata for those ids from the documents cache (warm it if needed).
+  // Pull metadata for those ids from the documents cache.
   const allItems = await ensureItemsCache();
   if (!allItems) {
     return NextResponse.json(
@@ -123,14 +169,19 @@ export async function GET(req: NextRequest) {
   const byId = new Map<number, Guideline>();
   for (const it of allItems) byId.set(it.id, it);
 
-  // 4. Build the ranked list, applying the optional filters in score order.
-  const ranked: { doc: Guideline; score: number }[] = [];
-  for (const hit of hits) {
-    const doc = byId.get(hit.id);
+  // Apply optional filters in score order.
+  const queryTerms = q.split(/\s+/).filter(Boolean);
+  const ranked: { doc: Guideline; snippet: string; score: number }[] = [];
+  for (const hit of fused) {
+    const doc = byId.get(hit.docId);
     if (!doc) continue;
     if (sourceFilter.size > 0 && !sourceFilter.has(doc.source_label)) continue;
     if (!dateInRange(doc.document_date, dateFrom, dateTo)) continue;
-    ranked.push({ doc, score: hit.score });
+    ranked.push({
+      doc,
+      snippet: buildSnippet(hit.snippet, queryTerms),
+      score: hit.rrfScore,
+    });
   }
 
   const page = ranked.slice(skip, skip + limit);
@@ -140,6 +191,11 @@ export async function GET(req: NextRequest) {
     skip,
     limit,
     items: page.map((r) => r.doc),
+    snippets: page.map((r) => r.snippet),
     scores: page.map((r) => Number(r.score.toFixed(4))),
+    methods: {
+      semantic: semanticEnabled && semanticHits.length > 0,
+      substring: substringHits.length > 0,
+    },
   });
 }

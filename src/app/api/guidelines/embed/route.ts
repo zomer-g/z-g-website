@@ -4,31 +4,30 @@ import { prisma } from "@/lib/prisma";
 import {
   embedTexts,
   hashText,
-  truncateForEmbedding,
   EMBED_MODEL,
   OpenAIEmbeddingsError,
 } from "@/lib/openai-embeddings";
 import { invalidateEmbeddingsCache } from "@/lib/guidelines-embeddings";
+import { chunkGuideline } from "@/lib/guidelines-chunker";
 
 const UPSTREAM_BASE = "https://tag-it.biz/api/public/over-guidelines/documents";
 const UPSTREAM_LIMIT = 500;
 
-// Tune for OpenAI request-size limits and our own memory ceiling.
-const EMBED_BATCH = 32;
+const EMBED_BATCH = 64;
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 interface UpstreamListItem {
   id: number;
+}
+
+interface UpstreamSingleDoc {
+  id: number;
   document_title?: string;
   topic?: string | null;
   summary?: string | null;
-}
-
-interface UpstreamSingleDoc extends UpstreamListItem {
   content_text?: string | null;
-  has_text?: boolean;
 }
 
 function getUpstreamApiKey(): string | undefined {
@@ -38,21 +37,16 @@ function getUpstreamApiKey(): string | undefined {
 async function isAuthorized(req: NextRequest): Promise<boolean> {
   const session = await auth();
   if (session?.user?.id) return true;
-
-  // Cron / unattended path: shared secret in header.
   const expected = process.env.CRON_SECRET;
   if (expected && req.headers.get("x-cron-secret") === expected) return true;
-
   return false;
 }
 
-function buildEmbeddingInput(doc: UpstreamSingleDoc): string {
-  const parts: string[] = [];
-  if (doc.document_title) parts.push(doc.document_title);
-  if (doc.topic) parts.push(doc.topic);
-  if (doc.summary) parts.push(doc.summary);
-  if (doc.content_text) parts.push(doc.content_text);
-  return truncateForEmbedding(parts.filter(Boolean).join("\n\n"));
+interface PendingEmbed {
+  docId: number;
+  chunkIdx: number;
+  text: string;
+  embeddingInput: string;
 }
 
 export async function POST(req: NextRequest) {
@@ -89,31 +83,33 @@ export async function POST(req: NextRequest) {
     );
   }
   const listJson = (await listRes.json()) as { items?: UpstreamListItem[] };
-  const items = listJson.items || [];
-  const ids = items.map((it) => it.id);
+  const ids = (listJson.items || []).map((it) => it.id);
 
-  // 2. Load existing hashes so we can skip unchanged docs unless force=1.
+  // 2. Load existing per-doc state to short-circuit unchanged docs.
   const existingRows = await prisma.guidelineEmbedding.findMany({
     where: { id: { in: ids } },
     select: { id: true, contentHash: true },
   });
   const existingHash = new Map(existingRows.map((r) => [r.id, r.contentHash]));
 
-  // 3. Fetch full text for each doc, decide which need re-embedding.
-  // 8 parallel upstream calls keeps us polite while staying well under the 5-min budget.
-  const PARALLEL = 8;
-  type Pending = { id: number; hash: string; input: string };
-  const pending: Pending[] = [];
   const stats = {
     total: ids.length,
     skipped: 0,
     fetched: 0,
-    needsEmbedding: 0,
-    embedded: 0,
+    docsRebuilt: 0,
+    chunksCreated: 0,
+    chunksDeleted: 0,
     embeddingBatches: 0,
     failed: 0,
     failedIds: [] as number[],
   };
+
+  // 3. Walk each doc. We process one doc fully (fetch → chunk → embed → upsert)
+  // before moving on, but fetch in parallel slices to keep within the 5-min
+  // budget without slamming the upstream.
+  const PARALLEL = 6;
+  const pendingByDoc = new Map<number, PendingEmbed[]>();
+  const docState = new Map<number, { hash: string; textChars: number }>();
 
   for (let i = 0; i < ids.length; i += PARALLEL) {
     const slice = ids.slice(i, i + PARALLEL);
@@ -131,17 +127,40 @@ export async function POST(req: NextRequest) {
           }
           stats.fetched += 1;
           const doc = (await res.json()) as UpstreamSingleDoc;
-          const input = buildEmbeddingInput(doc);
-          if (input.trim().length === 0) {
+          const chunks = chunkGuideline({
+            title: doc.document_title,
+            topic: doc.topic ?? undefined,
+            summary: doc.summary ?? undefined,
+            content_text: doc.content_text,
+          });
+          if (chunks.length === 0) {
             stats.skipped += 1;
             return;
           }
-          const h = await hashText(`${EMBED_MODEL}\n${input}`);
-          if (!force && existingHash.get(id) === h) {
+
+          // Hash the embedding inputs together so any change to body/title
+          // triggers a rebuild for the whole doc.
+          const docHash = await hashText(
+            `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
+          );
+          if (!force && existingHash.get(id) === docHash) {
             stats.skipped += 1;
             return;
           }
-          pending.push({ id, hash: h, input });
+
+          docState.set(id, {
+            hash: docHash,
+            textChars: chunks.reduce((s, c) => s + c.text.length, 0),
+          });
+          pendingByDoc.set(
+            id,
+            chunks.map((c) => ({
+              docId: id,
+              chunkIdx: c.index,
+              text: c.text,
+              embeddingInput: c.embeddingInput,
+            })),
+          );
         } catch {
           stats.failed += 1;
           stats.failedIds.push(id);
@@ -150,47 +169,82 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  stats.needsEmbedding = pending.length;
+  // 4. Flatten pending into one big list and embed in batches.
+  const flat: PendingEmbed[] = [];
+  for (const arr of pendingByDoc.values()) flat.push(...arr);
 
-  // 4. Batch the OpenAI calls.
-  for (let i = 0; i < pending.length; i += EMBED_BATCH) {
-    const batch = pending.slice(i, i + EMBED_BATCH);
+  const embeddedByKey = new Map<string, number[]>(); // `${docId}:${chunkIdx}` → vec
+
+  for (let i = 0; i < flat.length; i += EMBED_BATCH) {
+    const batch = flat.slice(i, i + EMBED_BATCH);
     try {
-      const vectors = await embedTexts(batch.map((b) => b.input));
+      const vectors = await embedTexts(batch.map((b) => b.embeddingInput));
       stats.embeddingBatches += 1;
-      // 5. Upsert into Postgres.
-      await Promise.all(
-        batch.map((b, idx) =>
-          prisma.guidelineEmbedding.upsert({
-            where: { id: b.id },
-            update: {
-              contentHash: b.hash,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              embedding: vectors[idx] as any,
-              model: EMBED_MODEL,
-              textChars: b.input.length,
-            },
-            create: {
-              id: b.id,
-              contentHash: b.hash,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              embedding: vectors[idx] as any,
-              model: EMBED_MODEL,
-              textChars: b.input.length,
-            },
-          }),
-        ),
-      );
-      stats.embedded += batch.length;
+      batch.forEach((b, idx) => {
+        embeddedByKey.set(`${b.docId}:${b.chunkIdx}`, vectors[idx]);
+      });
     } catch (err) {
       stats.failed += batch.length;
-      stats.failedIds.push(...batch.map((b) => b.id));
+      stats.failedIds.push(...batch.map((b) => b.docId));
       if (err instanceof OpenAIEmbeddingsError) {
         console.error("OpenAI embedding failed:", err.status, err.message);
       } else {
         console.error("Embedding batch failed:", err);
       }
-      // Keep going with next batches.
+    }
+  }
+
+  // 5. Per doc: replace all chunks atomically, then upsert the per-doc state.
+  for (const [docId, chunks] of pendingByDoc) {
+    const state = docState.get(docId);
+    if (!state) continue;
+    const allEmbedded = chunks.every((c) =>
+      embeddedByKey.has(`${docId}:${c.chunkIdx}`),
+    );
+    if (!allEmbedded) {
+      // A batch failed — leave existing chunks alone so the next run retries.
+      stats.failed += 1;
+      stats.failedIds.push(docId);
+      continue;
+    }
+
+    try {
+      const result = await prisma.$transaction([
+        prisma.guidelineChunk.deleteMany({ where: { docId } }),
+        prisma.guidelineChunk.createMany({
+          data: chunks.map((c) => ({
+            docId: c.docId,
+            chunkIdx: c.chunkIdx,
+            text: c.text,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            embedding: embeddedByKey.get(`${docId}:${c.chunkIdx}`) as any,
+            model: EMBED_MODEL,
+          })),
+        }),
+        prisma.guidelineEmbedding.upsert({
+          where: { id: docId },
+          update: {
+            contentHash: state.hash,
+            model: EMBED_MODEL,
+            textChars: state.textChars,
+            chunkCount: chunks.length,
+          },
+          create: {
+            id: docId,
+            contentHash: state.hash,
+            model: EMBED_MODEL,
+            textChars: state.textChars,
+            chunkCount: chunks.length,
+          },
+        }),
+      ]);
+      stats.docsRebuilt += 1;
+      stats.chunksDeleted += result[0].count;
+      stats.chunksCreated += result[1].count;
+    } catch (err) {
+      stats.failed += 1;
+      stats.failedIds.push(docId);
+      console.error(`Failed to write chunks for doc ${docId}:`, err);
     }
   }
 
