@@ -1,19 +1,22 @@
 import { NextResponse } from "next/server";
-import type { Guideline, UpstreamGuidelinesListResponse } from "@/types/guideline";
-import { getCached, setCached, findUnfilteredKey } from "@/lib/guidelines-cache";
+import type { Guideline } from "@/types/guideline";
+import {
+  getCached,
+  setCached,
+  findUnfilteredKey,
+  UNFILTERED_KEY,
+} from "@/lib/guidelines-cache";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
-
-const UPSTREAM = "https://tag-it.biz/api/public/over-guidelines/documents";
-const UPSTREAM_LIMIT = 500;
+import {
+  fetchAllUpstreamGuidelines,
+  getGuidelinesApiKey,
+  stripUrls,
+} from "@/lib/guidelines-upstream";
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;
 const MAX_TTL_MINUTES = 1440;
-
-function getApiKey(): string | undefined {
-  return process.env.GUIDELINES_API_KEY || process.env.CLASS_ACTION_API_KEY;
-}
 
 async function readTtlMs(): Promise<number> {
   try {
@@ -28,44 +31,29 @@ async function readTtlMs(): Promise<number> {
 }
 
 export async function GET() {
-  const apiKey = getApiKey();
+  const apiKey = getGuidelinesApiKey();
   if (!apiKey) {
     return NextResponse.json({ error: "API not configured" }, { status: 503 });
   }
 
-  // Try to reuse the unfiltered cached fetch if present.
+  // Reuse the unfiltered cache populated by /documents if present.
   const unfilteredKey = findUnfilteredKey();
   let items: Guideline[] | null = unfilteredKey ? getCached(unfilteredKey) : null;
 
   if (!items) {
     try {
-      const qs = new URLSearchParams({
-        limit: String(UPSTREAM_LIMIT),
-        skip: "0",
-      }).toString();
-      const [upstream, ttlMs] = await Promise.all([
-        fetch(`${UPSTREAM}?${qs}`, {
-          headers: { "X-API-Key": apiKey, Accept: "application/json" },
-          cache: "no-store",
-        }),
+      const [rawItems, ttlMs] = await Promise.all([
+        fetchAllUpstreamGuidelines(),
         readTtlMs(),
       ]);
-
-      if (!upstream.ok) {
+      if (rawItems === null) {
         return NextResponse.json(
-          { error: "Upstream error" },
-          { status: upstream.status === 401 ? 502 : upstream.status }
+          { error: "Upstream fetch failed" },
+          { status: 502 },
         );
       }
-
-      const json = (await upstream.json()) as UpstreamGuidelinesListResponse;
-      const cleaned: Guideline[] = (json.items || []).map((it) => {
-        const rest = { ...(it as unknown as Record<string, unknown>) };
-        delete rest.file_url;
-        delete rest.text_url;
-        return rest as unknown as Guideline;
-      });
-      setCached(qs, cleaned, ttlMs);
+      const cleaned = stripUrls(rawItems);
+      setCached(UNFILTERED_KEY, cleaned, ttlMs);
       items = cleaned;
     } catch (err) {
       console.error("guidelines sources error:", err);
@@ -74,7 +62,11 @@ export async function GET() {
   }
 
   const sources = Array.from(
-    new Set(items.map((it) => it.source_label).filter((s): s is string => !!s && s.trim() !== "")),
+    new Set(
+      items
+        .map((it) => it.source_label)
+        .filter((s): s is string => !!s && s.trim() !== ""),
+    ),
   ).sort((a, b) => a.localeCompare(b, "he"));
 
   return NextResponse.json(

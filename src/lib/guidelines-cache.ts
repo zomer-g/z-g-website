@@ -36,20 +36,9 @@ export function getCacheSize(): number {
   return cache.size;
 }
 
-// Latest unfiltered cache key — useful for the /sources endpoint to find the
-// broadest set of source_labels seen so far.
+// Cache key for "no upstream filters". The full corpus lives at this key.
+export const UNFILTERED_KEY = "";
+
 export function findUnfilteredKey(): string | null {
-  // The unfiltered upstream call has only limit=500 and skip=0 in its query.
-  for (const key of cache.keys()) {
-    const params = new URLSearchParams(key);
-    let onlyDefaults = true;
-    for (const [k] of params) {
-      if (k !== "limit" && k !== "skip") {
-        onlyDefaults = false;
-        break;
-      }
-    }
-    if (onlyDefaults) return key;
-  }
-  return null;
+  return cache.has(UNFILTERED_KEY) ? UNFILTERED_KEY : null;
 }

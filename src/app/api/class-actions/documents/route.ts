@@ -3,31 +3,37 @@ import type {
   ClassActionDocument,
   ClassActionCase,
   CasesListResponse,
-  UpstreamListResponse,
 } from "@/types/class-action";
 import { getCached, setCached } from "@/lib/class-actions-cache";
 import { getPageContent } from "@/lib/content";
 import type { ClassActionsPageContent } from "@/types/content";
-
-const UPSTREAM = "https://tag-it.biz/api/public/class-action/documents";
+import {
+  fetchAllUpstreamClassActions,
+  stripClassActionUrls,
+} from "@/lib/class-actions-upstream";
 
 const UPSTREAM_PARAMS = ["date_from", "date_to", "court", "is_appeal", "case_number"] as const;
-
-const UPSTREAM_LIMIT = 500;
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;
 const MAX_TTL_MINUTES = 1440;
 
-function buildUpstreamQuery(params: URLSearchParams): string {
+function buildCacheKey(params: URLSearchParams): string {
   const out = new URLSearchParams();
   for (const k of UPSTREAM_PARAMS) {
     const v = params.get(k);
     if (v != null && v !== "") out.set(k, v);
   }
-  out.set("limit", String(UPSTREAM_LIMIT));
-  out.set("skip", "0");
   return out.toString();
+}
+
+function buildUpstreamFilters(params: URLSearchParams): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of UPSTREAM_PARAMS) {
+    const v = params.get(k);
+    if (v != null && v !== "") out[k] = v;
+  }
+  return out;
 }
 
 async function readTtlMs(): Promise<number> {
@@ -215,36 +221,25 @@ export async function GET(req: NextRequest) {
   const skip = clampInt(params.get("skip"), 0, 0);
   const limit = Math.min(100, Math.max(1, clampInt(params.get("limit"), 1, 20)));
 
-  const upstreamQs = buildUpstreamQuery(params);
-  const cacheKey = upstreamQs;
-
+  const cacheKey = buildCacheKey(params);
   let allItems = getCached(cacheKey);
   let cacheStatus = allItems ? "HIT" : "MISS";
 
   if (!allItems) {
     try {
-      const [upstream, ttlMs] = await Promise.all([
-        fetch(`${UPSTREAM}?${upstreamQs}`, {
-          headers: { "X-API-Key": apiKey, Accept: "application/json" },
-          cache: "no-store",
-        }),
+      const [rawItems, ttlMs] = await Promise.all([
+        fetchAllUpstreamClassActions({ filters: buildUpstreamFilters(params) }),
         readTtlMs(),
       ]);
 
-      if (!upstream.ok) {
+      if (rawItems === null) {
         return NextResponse.json(
-          { error: "Upstream error" },
-          { status: upstream.status === 401 ? 502 : upstream.status }
+          { error: "Upstream fetch failed" },
+          { status: 502 },
         );
       }
 
-      const json = (await upstream.json()) as UpstreamListResponse;
-      const cleanedItems: ClassActionDocument[] = (json.items || []).map((it) => {
-        const rest = { ...(it as unknown as Record<string, unknown>) };
-        delete rest.file_url;
-        return rest as unknown as ClassActionDocument;
-      });
-
+      const cleanedItems = stripClassActionUrls(rawItems);
       setCached(cacheKey, cleanedItems, ttlMs);
       allItems = cleanedItems;
       cacheStatus = "MISS";

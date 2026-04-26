@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { Guideline, UpstreamGuidelinesListResponse } from "@/types/guideline";
-import { getCached, setCached, findUnfilteredKey } from "@/lib/guidelines-cache";
+import type { Guideline } from "@/types/guideline";
+import {
+  getCached,
+  setCached,
+  findUnfilteredKey,
+  UNFILTERED_KEY,
+} from "@/lib/guidelines-cache";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
 import {
@@ -13,19 +18,17 @@ import {
   fuseRankings,
   getCachedChunks,
 } from "@/lib/guidelines-embeddings";
-
-const UPSTREAM = "https://tag-it.biz/api/public/over-guidelines/documents";
-const UPSTREAM_LIMIT = 500;
+import {
+  fetchAllUpstreamGuidelines,
+  getGuidelinesApiKey,
+  stripUrls,
+} from "@/lib/guidelines-upstream";
 
 const TOPK_PER_METHOD = 200;
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;
 const MAX_TTL_MINUTES = 1440;
-
-function getApiKey(): string | undefined {
-  return process.env.GUIDELINES_API_KEY || process.env.CLASS_ACTION_API_KEY;
-}
 
 async function readTtlMs(): Promise<number> {
   try {
@@ -39,8 +42,7 @@ async function readTtlMs(): Promise<number> {
 }
 
 async function ensureItemsCache(): Promise<Guideline[] | null> {
-  const apiKey = getApiKey();
-  if (!apiKey) return null;
+  if (!getGuidelinesApiKey()) return null;
 
   const existingKey = findUnfilteredKey();
   if (existingKey) {
@@ -48,23 +50,13 @@ async function ensureItemsCache(): Promise<Guideline[] | null> {
     if (cached) return cached;
   }
 
-  const qs = new URLSearchParams({ limit: String(UPSTREAM_LIMIT), skip: "0" }).toString();
-  const [upstream, ttlMs] = await Promise.all([
-    fetch(`${UPSTREAM}?${qs}`, {
-      headers: { "X-API-Key": apiKey, Accept: "application/json" },
-      cache: "no-store",
-    }),
+  const [rawItems, ttlMs] = await Promise.all([
+    fetchAllUpstreamGuidelines(),
     readTtlMs(),
   ]);
-  if (!upstream.ok) return null;
-  const json = (await upstream.json()) as UpstreamGuidelinesListResponse;
-  const cleaned: Guideline[] = (json.items || []).map((it) => {
-    const rest = { ...(it as unknown as Record<string, unknown>) };
-    delete rest.file_url;
-    delete rest.text_url;
-    return rest as unknown as Guideline;
-  });
-  setCached(qs, cleaned, ttlMs);
+  if (rawItems === null) return null;
+  const cleaned = stripUrls(rawItems);
+  setCached(UNFILTERED_KEY, cleaned, ttlMs);
   return cleaned;
 }
 

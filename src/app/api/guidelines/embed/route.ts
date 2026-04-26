@@ -9,18 +9,14 @@ import {
 } from "@/lib/openai-embeddings";
 import { invalidateEmbeddingsCache } from "@/lib/guidelines-embeddings";
 import { chunkGuideline } from "@/lib/guidelines-chunker";
+import { fetchAllUpstreamGuidelines } from "@/lib/guidelines-upstream";
 
 const UPSTREAM_BASE = "https://tag-it.biz/api/public/over-guidelines/documents";
-const UPSTREAM_LIMIT = 500;
 
 const EMBED_BATCH = 64;
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-interface UpstreamListItem {
-  id: number;
-}
 
 interface UpstreamSingleDoc {
   id: number;
@@ -71,19 +67,15 @@ export async function POST(req: NextRequest) {
   const force = req.nextUrl.searchParams.get("force") === "1";
   const startedAt = Date.now();
 
-  // 1. List all guideline ids.
-  const listRes = await fetch(`${UPSTREAM_BASE}?limit=${UPSTREAM_LIMIT}&skip=0`, {
-    headers: { "X-API-Key": apiKey, Accept: "application/json" },
-    cache: "no-store",
-  });
-  if (!listRes.ok) {
+  // 1. List every guideline id by walking all upstream pages.
+  const allItems = await fetchAllUpstreamGuidelines();
+  if (allItems === null) {
     return NextResponse.json(
-      { error: `Upstream list failed: ${listRes.status}` },
+      { error: "Upstream list failed" },
       { status: 502 },
     );
   }
-  const listJson = (await listRes.json()) as { items?: UpstreamListItem[] };
-  const ids = (listJson.items || []).map((it) => it.id);
+  const ids = allItems.map((it) => it.id);
 
   // 2. Load existing per-doc state to short-circuit unchanged docs.
   const existingRows = await prisma.guidelineEmbedding.findMany({
