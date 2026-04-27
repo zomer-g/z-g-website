@@ -6,6 +6,7 @@ import type {
   ClassActionCase,
   CasesListResponse,
 } from "@/types/class-action";
+import { DateInputIL } from "@/components/ui/date-input-il";
 
 const PAGE_SIZE = 20;
 
@@ -368,24 +369,24 @@ export function ClassActionsDashboard() {
         {/* Primary filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-date-from" className="block text-xs font-semibold text-gray-700 mb-1">
               מתאריך
             </label>
-            <input
-              type="date"
+            <DateInputIL
+              id="ca-date-from"
               value={draft.date_from}
-              onChange={(e) => setDraft((d) => ({ ...d, date_from: e.target.value }))}
+              onChange={(iso) => setDraft((d) => ({ ...d, date_from: iso }))}
               className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-date-to" className="block text-xs font-semibold text-gray-700 mb-1">
               עד תאריך
             </label>
-            <input
-              type="date"
+            <DateInputIL
+              id="ca-date-to"
               value={draft.date_to}
-              onChange={(e) => setDraft((d) => ({ ...d, date_to: e.target.value }))}
+              onChange={(iso) => setDraft((d) => ({ ...d, date_to: iso }))}
               className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
             />
           </div>
