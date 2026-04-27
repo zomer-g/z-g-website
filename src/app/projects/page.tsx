@@ -167,7 +167,7 @@ export default async function ProjectsPage() {
                               key={tag}
                               className={cn(
                                 "inline-block rounded-full border border-primary/10 bg-primary/5 px-3 py-1",
-                                "font-mono text-xs font-medium text-primary-dark/70",
+                                "font-mono text-xs font-medium text-primary-dark",
                               )}
                             >
                               {tag}

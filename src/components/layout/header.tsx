@@ -127,7 +127,7 @@ export default function Header({ content }: HeaderProps) {
                     className={cn(
                       "relative inline-block rounded-md px-4 py-2 text-sm font-medium",
                       "transition-colors duration-200",
-                      isActive(item.href) ? "text-accent" : "text-primary hover:text-accent hover:bg-muted-bg"
+                      isActive(item.href) ? "text-accent-text" : "text-primary hover:text-accent-text hover:bg-muted-bg"
                     )}
                     aria-current={isActive(item.href) ? "page" : undefined}
                   >
@@ -192,7 +192,7 @@ export default function Header({ content }: HeaderProps) {
                       onClick={closeMobileMenu}
                       className={cn(
                         "block px-4 py-4 text-base font-medium transition-colors duration-200",
-                        isActive(item.href) ? "text-accent bg-muted-bg" : "text-primary hover:text-accent hover:bg-muted-bg"
+                        isActive(item.href) ? "text-accent-text bg-muted-bg" : "text-primary hover:text-accent-text hover:bg-muted-bg"
                       )}
                       aria-current={isActive(item.href) ? "page" : undefined}
                     >
