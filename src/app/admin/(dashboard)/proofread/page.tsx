@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,9 @@ import {
   Copy,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
+  Wand2,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -68,14 +72,171 @@ function groupKey(source: string): string {
   return dotIdx === -1 ? `${prefix}:${rest}` : `${prefix}:${rest.slice(0, dotIdx)}`;
 }
 
+interface IssueState {
+  status: "pending" | "applying" | "applied" | "error";
+  error?: string;
+  contextLoading?: boolean;
+  context?: { before: string; after: string };
+  editUrl?: string | null;
+  editLabel?: string | null;
+  applicable?: boolean;
+  contextOpen?: boolean;
+}
+
+function IssueRow({
+  issue,
+  state,
+  onApply,
+  onLoadContext,
+  onToggleContext,
+}: {
+  issue: ProofreadIssue;
+  state: IssueState;
+  onApply: () => void;
+  onLoadContext: () => void;
+  onToggleContext: () => void;
+}) {
+  return (
+    <li
+      className={cn(
+        "p-4 space-y-2 transition-opacity",
+        state.status === "applied" && "opacity-50",
+      )}
+    >
+      <div className="text-xs font-mono text-gray-700 break-all">
+        {issue.source}
+      </div>
+      <div className="text-sm">
+        <span className="font-semibold text-gray-700">מקורי:</span>{" "}
+        <span className="bg-red-50 px-1 rounded">{issue.original}</span>
+      </div>
+      <div className="text-sm flex items-center flex-wrap gap-2">
+        <span className="font-semibold text-gray-700">הצעה:</span>
+        <span className="bg-green-50 px-1 rounded">{issue.suggestion}</span>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard.writeText(issue.suggestion).catch(() => {})}
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+          title="העתק את ההצעה"
+        >
+          <Copy size={12} />
+        </button>
+      </div>
+      <div className="text-xs text-gray-700 leading-relaxed">
+        <span className="font-semibold">סיבה:</span> {issue.reason}
+      </div>
+
+      {/* Context view */}
+      {state.contextOpen ? (
+        <div className="mt-2 rounded-lg border border-border bg-muted-bg/40 p-3 text-sm leading-relaxed">
+          {state.contextLoading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-700">
+              <Loader2 size={14} className="animate-spin" />
+              טוען הקשר...
+            </div>
+          ) : state.context ? (
+            <div className="space-y-1">
+              {state.context.before ? (
+                <div className="text-xs text-gray-700 italic">
+                  …{state.context.before}
+                </div>
+              ) : null}
+              <div className="font-semibold">
+                <span className="bg-yellow-100 px-1 rounded">{issue.original}</span>
+              </div>
+              {state.context.after ? (
+                <div className="text-xs text-gray-700 italic">
+                  {state.context.after}…
+                </div>
+              ) : null}
+              {!state.context.before && !state.context.after ? (
+                <div className="text-xs text-gray-700">
+                  אין טקסט סמוך זמין (זה השדה היחיד בקטע).
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-700">לא ניתן לטעון הקשר.</div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Action row */}
+      <div className="flex items-center gap-2 flex-wrap pt-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="border border-border"
+          onClick={() => {
+            if (!state.context && !state.contextLoading) onLoadContext();
+            onToggleContext();
+          }}
+        >
+          <FileText size={14} />
+          {state.contextOpen ? "סגור הקשר" : "הצג בהקשר"}
+        </Button>
+        {state.editUrl ? (
+          <Link href={state.editUrl} target="_blank" rel="noopener noreferrer">
+            <Button type="button" size="sm" variant="ghost" className="border border-border">
+              <ExternalLink size={14} />
+              {state.editLabel ?? "פתח לעריכה"}
+            </Button>
+          </Link>
+        ) : null}
+        {state.applicable === false ? (
+          <span className="inline-flex items-center gap-1 text-xs text-gray-700">
+            <AlertTriangle size={14} />
+            תיקון אוטומטי לא אפשרי (ערך בקוד)
+          </span>
+        ) : (
+          <Button
+            type="button"
+            size="sm"
+            onClick={onApply}
+            disabled={state.status === "applying" || state.status === "applied"}
+          >
+            {state.status === "applying" ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : state.status === "applied" ? (
+              <CheckCircle size={14} />
+            ) : (
+              <Wand2 size={14} />
+            )}
+            {state.status === "applied" ? "הוחל" : "החל תיקון"}
+          </Button>
+        )}
+        {state.status === "error" && state.error ? (
+          <span className="inline-flex items-center gap-1 text-xs text-red-700">
+            <AlertTriangle size={14} />
+            {state.error}
+          </span>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
 function GroupSection({
   title,
   issues,
+  states,
+  onApply,
+  onLoadContext,
+  onToggleContext,
+  keyOf,
 }: {
   title: string;
   issues: ProofreadIssue[];
+  states: Map<string, IssueState>;
+  onApply: (key: string) => void;
+  onLoadContext: (key: string) => void;
+  onToggleContext: (key: string) => void;
+  keyOf: (iss: ProofreadIssue, idx: number) => string;
 }) {
   const [open, setOpen] = useState(true);
+  const remaining = issues.filter((iss, i) => states.get(keyOf(iss, i))?.status !== "applied").length;
+
   return (
     <Card>
       <button
@@ -86,7 +247,7 @@ function GroupSection({
         <div className="flex items-center gap-3">
           <span className="text-sm font-semibold text-foreground">{title}</span>
           <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-semibold">
-            {issues.length}
+            {remaining}/{issues.length}
           </span>
         </div>
         {open ? (
@@ -98,36 +259,20 @@ function GroupSection({
       {open ? (
         <CardContent className="border-t border-border p-0">
           <ul className="divide-y divide-border">
-            {issues.map((iss, i) => (
-              <li key={i} className="p-4 space-y-2">
-                <div className="text-xs font-mono text-gray-700">
-                  {iss.source}
-                </div>
-                <div className="text-sm">
-                  <span className="font-semibold text-gray-700">מקורי:</span>{" "}
-                  <span className="bg-red-50 px-1 rounded">{iss.original}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-semibold text-gray-700">הצעה:</span>{" "}
-                  <span className="bg-green-50 px-1 rounded">
-                    {iss.suggestion}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(iss.suggestion).catch(() => {});
-                    }}
-                    className="mr-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                    title="העתק את ההצעה"
-                  >
-                    <Copy size={12} />
-                  </button>
-                </div>
-                <div className="text-xs text-gray-700 leading-relaxed">
-                  <span className="font-semibold">סיבה:</span> {iss.reason}
-                </div>
-              </li>
-            ))}
+            {issues.map((iss, i) => {
+              const k = keyOf(iss, i);
+              const st: IssueState = states.get(k) ?? { status: "pending" };
+              return (
+                <IssueRow
+                  key={k}
+                  issue={iss}
+                  state={st}
+                  onApply={() => onApply(k)}
+                  onLoadContext={() => onLoadContext(k)}
+                  onToggleContext={() => onToggleContext(k)}
+                />
+              );
+            })}
           </ul>
         </CardContent>
       ) : null}
@@ -141,10 +286,122 @@ export default function ProofreadAdminPage() {
   const [running, setRunning] = useState(false);
   const [collected, setCollected] = useState(false);
 
+  // Per-issue state for actions: applied / context loaded / context open / etc.
+  const [issueStates, setIssueStates] = useState<Map<string, IssueState>>(
+    new Map(),
+  );
+
+  const issueKey = useCallback(
+    (iss: ProofreadIssue) => `${iss.source}|${iss.original}|${iss.suggestion}`,
+    [],
+  );
+
+  const updateIssueState = useCallback(
+    (key: string, patch: Partial<IssueState>) => {
+      setIssueStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(key) ?? { status: "pending" as const };
+        next.set(key, { ...cur, ...patch });
+        return next;
+      });
+    },
+    [],
+  );
+
+  const findIssueByKey = useCallback(
+    (key: string): ProofreadIssue | null => {
+      const all = run?.issues ?? [];
+      for (const iss of all) {
+        if (issueKey(iss) === key) return iss;
+      }
+      return null;
+    },
+    [run, issueKey],
+  );
+
+  const onLoadContext = useCallback(
+    async (key: string) => {
+      const iss = findIssueByKey(key);
+      if (!iss) return;
+      updateIssueState(key, { contextLoading: true });
+      try {
+        const res = await fetch("/api/admin/proofread/context", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: iss.source }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as {
+          before: string;
+          after: string;
+          editUrl: string | null;
+          editLabel: string | null;
+          applicable: boolean;
+        };
+        updateIssueState(key, {
+          contextLoading: false,
+          context: { before: data.before, after: data.after },
+          editUrl: data.editUrl,
+          editLabel: data.editLabel,
+          applicable: data.applicable,
+        });
+      } catch {
+        updateIssueState(key, {
+          contextLoading: false,
+          context: { before: "", after: "" },
+        });
+      }
+    },
+    [findIssueByKey, updateIssueState],
+  );
+
+  const onToggleContext = useCallback(
+    (key: string) => {
+      setIssueStates((prev) => {
+        const next = new Map(prev);
+        const cur = next.get(key) ?? { status: "pending" as const };
+        next.set(key, { ...cur, contextOpen: !cur.contextOpen });
+        return next;
+      });
+    },
+    [],
+  );
+
+  const onApply = useCallback(
+    async (key: string) => {
+      const iss = findIssueByKey(key);
+      if (!iss) return;
+      updateIssueState(key, { status: "applying", error: undefined });
+      try {
+        const res = await fetch("/api/admin/proofread/apply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            source: iss.source,
+            original: iss.original,
+            suggestion: iss.suggestion,
+          }),
+        });
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        if (!res.ok) {
+          throw new Error(body?.error ?? `HTTP ${res.status}`);
+        }
+        updateIssueState(key, { status: "applied" });
+      } catch (err) {
+        updateIssueState(key, {
+          status: "error",
+          error: err instanceof Error ? err.message : "שגיאה",
+        });
+      }
+    },
+    [findIssueByKey, updateIssueState],
+  );
+
   const start = useCallback(async () => {
     setError(null);
     setRunning(true);
     setCollected(false);
+    setIssueStates(new Map());
 
     const abort = new AbortController();
     let state: RunState = {
@@ -222,6 +479,7 @@ export default function ProofreadAdminPage() {
     setRun(null);
     setError(null);
     setCollected(false);
+    setIssueStates(new Map());
   }, []);
 
   const total = run?.total ?? 0;
@@ -345,7 +603,16 @@ export default function ProofreadAdminPage() {
       {issues.length > 0 ? (
         <div className="space-y-4">
           {groups.map(([key, list]) => (
-            <GroupSection key={key} title={key} issues={list} />
+            <GroupSection
+              key={key}
+              title={key}
+              issues={list}
+              states={issueStates}
+              onApply={onApply}
+              onLoadContext={onLoadContext}
+              onToggleContext={onToggleContext}
+              keyOf={(iss) => issueKey(iss)}
+            />
           ))}
         </div>
       ) : finished && !error ? (

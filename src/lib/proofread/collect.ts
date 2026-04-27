@@ -41,19 +41,6 @@ function walkValue(value: unknown, pathPrefix: string, out: ContentItem[]) {
   }
 }
 
-// Tiptap content trees: yield each text leaf separately so the LLM can
-// proofread paragraph by paragraph rather than wrestling with the whole tree.
-function walkTiptap(node: unknown, pathPrefix: string, out: ContentItem[]) {
-  if (!node || typeof node !== "object") return;
-  const n = node as Record<string, unknown>;
-  if (typeof n.text === "string" && isHebrewish(n.text)) {
-    out.push({ source: pathPrefix, text: (n.text as string).trim() });
-  }
-  if (Array.isArray(n.content)) {
-    n.content.forEach((child, i) => walkTiptap(child, `${pathPrefix}[${i}]`, out));
-  }
-}
-
 async function collectFromDefaults(): Promise<ContentItem[]> {
   const out: ContentItem[] = [];
   for (const [slug, defaults] of Object.entries(CONTENT_DEFAULTS)) {
@@ -94,7 +81,7 @@ async function collectFromPosts(): Promise<ContentItem[]> {
     if (p.excerpt) out.push({ source: `db:Post[${p.slug}]:excerpt`, text: p.excerpt });
     if (p.seoTitle) out.push({ source: `db:Post[${p.slug}]:seoTitle`, text: p.seoTitle });
     if (p.seoDesc) out.push({ source: `db:Post[${p.slug}]:seoDesc`, text: p.seoDesc });
-    if (p.content) walkTiptap(p.content, `db:Post[${p.slug}]:content`, out);
+    if (p.content) walkValue(p.content, `db:Post[${p.slug}]:content`, out);
   }
   return out.filter((i) => isHebrewish(i.text));
 }
