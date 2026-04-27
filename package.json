@@ -7,6 +7,7 @@
     "build": "prisma db push && npx tsx prisma/ensure-dashboard-content.ts && next build",
     "db:seed-content": "npx tsx prisma/seed-content.ts",
     "db:ensure-dashboards": "npx tsx prisma/ensure-dashboard-content.ts",
+    "proofread": "npx tsx scripts/proofread.ts",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
