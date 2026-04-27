@@ -108,11 +108,12 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
       const seconds = Math.round((data.durationMs ?? 0) / 1000);
       const parts = [
         `סה"כ ${data.total ?? 0} מסמכים`,
-        `אומבדו: ${data.embedded ?? 0}`,
+        `אומבדו: ${data.docsRebuilt ?? data.embedded ?? 0}`,
         `דולגו: ${data.skipped ?? 0}`,
       ];
       if ((data.failed ?? 0) > 0) parts.push(`כשלים: ${data.failed}`);
       parts.push(`זמן: ${seconds} שניות`);
+      if (data.stoppedEarly) parts.push("נעצר מוקדם — הרץ שוב כדי להמשיך");
       setEmbedFeedback({ type: "success", message: parts.join(" • ") });
     } catch (err) {
       setEmbedFeedback({

@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       { status: 502 },
     );
   }
-  const ids = allItems.map((it) => it.id);
+  const allIds = allItems.map((it) => it.id);
   // Index csv_row alongside body text so directive names that live only in
   // CSV fields (e.g. "Data.Name" on Israel Police directives) become
   // searchable. The list endpoint already returns csv_row — no extra fetch.
@@ -116,10 +116,20 @@ export async function POST(req: NextRequest) {
 
   // 2. Load existing per-doc state to short-circuit unchanged docs.
   const existingRows = await prisma.guidelineEmbedding.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: allIds } },
     select: { id: true, contentHash: true },
   });
   const existingHash = new Map(existingRows.map((r) => [r.id, r.contentHash]));
+
+  // Render kills the request after maxDuration (~5 min). With ~800 docs, a
+  // forced rebuild can't finish in one shot. Process docs that are MISSING
+  // from the index first — that way new directives (e.g. "נוהל מצלמות גוף")
+  // get indexed even if the run is killed mid-way. Existing docs that just
+  // need a hash-bump come after.
+  const ids = [
+    ...allIds.filter((id) => !existingHash.has(id)),
+    ...allIds.filter((id) => existingHash.has(id)),
+  ];
 
   const stats = {
     total: ids.length,
@@ -133,148 +143,161 @@ export async function POST(req: NextRequest) {
     failedIds: [] as number[],
   };
 
-  // 3. Walk each doc. We process one doc fully (fetch → chunk → embed → upsert)
-  // before moving on, but fetch in parallel slices to keep within the 5-min
-  // budget without slamming the upstream.
+  // 3. Process docs in waves. Each wave is fully atomic: fetch → chunk →
+  // embed → DB write. If the Render 5-min timeout kills us mid-run, every
+  // wave that completed before the kill is already persisted; only the
+  // current in-flight wave is lost. This is what makes incremental progress
+  // possible across multiple invocations.
   const PARALLEL = 6;
-  const pendingByDoc = new Map<number, PendingEmbed[]>();
-  const docState = new Map<number, { hash: string; textChars: number }>();
+  const WAVE_SIZE = 40;
 
-  for (let i = 0; i < ids.length; i += PARALLEL) {
-    const slice = ids.slice(i, i + PARALLEL);
-    await Promise.all(
-      slice.map(async (id) => {
-        try {
-          const res = await fetch(`${UPSTREAM_BASE}/${id}`, {
-            headers: { "X-API-Key": apiKey, Accept: "application/json" },
-            cache: "no-store",
-          });
-          if (!res.ok) {
+  // Soft budget so we leave time for the current wave's embed + DB write
+  // before Render kills us at 300s. Stop accepting new waves at ~250s.
+  const SOFT_DEADLINE_MS = 250_000;
+  let stoppedEarly = false;
+
+  for (let waveStart = 0; waveStart < ids.length; waveStart += WAVE_SIZE) {
+    if (Date.now() - startedAt > SOFT_DEADLINE_MS) {
+      stoppedEarly = true;
+      break;
+    }
+    const waveIds = ids.slice(waveStart, waveStart + WAVE_SIZE);
+    const pendingByDoc = new Map<number, PendingEmbed[]>();
+    const docState = new Map<number, { hash: string; textChars: number }>();
+
+    // 3a. Fetch + chunk + hash for this wave (parallel slices).
+    for (let i = 0; i < waveIds.length; i += PARALLEL) {
+      const slice = waveIds.slice(i, i + PARALLEL);
+      await Promise.all(
+        slice.map(async (id) => {
+          try {
+            const res = await fetch(`${UPSTREAM_BASE}/${id}`, {
+              headers: { "X-API-Key": apiKey, Accept: "application/json" },
+              cache: "no-store",
+            });
+            if (!res.ok) {
+              stats.failed += 1;
+              stats.failedIds.push(id);
+              return;
+            }
+            stats.fetched += 1;
+            const doc = (await res.json()) as UpstreamSingleDoc;
+            const chunks = chunkGuideline({
+              title: doc.document_title,
+              topic: doc.topic ?? undefined,
+              summary: doc.summary ?? undefined,
+              content_text: doc.content_text,
+              metadata: metadataById.get(id),
+            });
+            if (chunks.length === 0) {
+              stats.skipped += 1;
+              return;
+            }
+
+            const docHash = await hashText(
+              `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
+            );
+            if (!force && existingHash.get(id) === docHash) {
+              stats.skipped += 1;
+              return;
+            }
+
+            docState.set(id, {
+              hash: docHash,
+              textChars: chunks.reduce((s, c) => s + c.text.length, 0),
+            });
+            pendingByDoc.set(
+              id,
+              chunks.map((c) => ({
+                docId: id,
+                chunkIdx: c.index,
+                text: c.text,
+                embeddingInput: c.embeddingInput,
+              })),
+            );
+          } catch {
             stats.failed += 1;
             stats.failedIds.push(id);
-            return;
           }
-          stats.fetched += 1;
-          const doc = (await res.json()) as UpstreamSingleDoc;
-          const chunks = chunkGuideline({
-            title: doc.document_title,
-            topic: doc.topic ?? undefined,
-            summary: doc.summary ?? undefined,
-            content_text: doc.content_text,
-            metadata: metadataById.get(id),
-          });
-          if (chunks.length === 0) {
-            stats.skipped += 1;
-            return;
-          }
+        }),
+      );
+    }
 
-          // Hash the embedding inputs together so any change to body/title
-          // triggers a rebuild for the whole doc.
-          const docHash = await hashText(
-            `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
-          );
-          if (!force && existingHash.get(id) === docHash) {
-            stats.skipped += 1;
-            return;
-          }
+    if (pendingByDoc.size === 0) continue;
 
-          docState.set(id, {
-            hash: docHash,
-            textChars: chunks.reduce((s, c) => s + c.text.length, 0),
-          });
-          pendingByDoc.set(
-            id,
-            chunks.map((c) => ({
-              docId: id,
-              chunkIdx: c.index,
-              text: c.text,
-              embeddingInput: c.embeddingInput,
-            })),
-          );
-        } catch {
-          stats.failed += 1;
-          stats.failedIds.push(id);
+    // 3b. Embed this wave's chunks.
+    const flat: PendingEmbed[] = [];
+    for (const arr of pendingByDoc.values()) flat.push(...arr);
+    const embeddedByKey = new Map<string, number[]>();
+    for (let i = 0; i < flat.length; i += EMBED_BATCH) {
+      const batch = flat.slice(i, i + EMBED_BATCH);
+      try {
+        const vectors = await embedTexts(batch.map((b) => b.embeddingInput));
+        stats.embeddingBatches += 1;
+        batch.forEach((b, idx) => {
+          embeddedByKey.set(`${b.docId}:${b.chunkIdx}`, vectors[idx]);
+        });
+      } catch (err) {
+        stats.failed += batch.length;
+        stats.failedIds.push(...batch.map((b) => b.docId));
+        if (err instanceof OpenAIEmbeddingsError) {
+          console.error("OpenAI embedding failed:", err.status, err.message);
+        } else {
+          console.error("Embedding batch failed:", err);
         }
-      }),
-    );
-  }
-
-  // 4. Flatten pending into one big list and embed in batches.
-  const flat: PendingEmbed[] = [];
-  for (const arr of pendingByDoc.values()) flat.push(...arr);
-
-  const embeddedByKey = new Map<string, number[]>(); // `${docId}:${chunkIdx}` → vec
-
-  for (let i = 0; i < flat.length; i += EMBED_BATCH) {
-    const batch = flat.slice(i, i + EMBED_BATCH);
-    try {
-      const vectors = await embedTexts(batch.map((b) => b.embeddingInput));
-      stats.embeddingBatches += 1;
-      batch.forEach((b, idx) => {
-        embeddedByKey.set(`${b.docId}:${b.chunkIdx}`, vectors[idx]);
-      });
-    } catch (err) {
-      stats.failed += batch.length;
-      stats.failedIds.push(...batch.map((b) => b.docId));
-      if (err instanceof OpenAIEmbeddingsError) {
-        console.error("OpenAI embedding failed:", err.status, err.message);
-      } else {
-        console.error("Embedding batch failed:", err);
       }
     }
-  }
 
-  // 5. Per doc: replace all chunks atomically, then upsert the per-doc state.
-  for (const [docId, chunks] of pendingByDoc) {
-    const state = docState.get(docId);
-    if (!state) continue;
-    const allEmbedded = chunks.every((c) =>
-      embeddedByKey.has(`${docId}:${c.chunkIdx}`),
-    );
-    if (!allEmbedded) {
-      // A batch failed — leave existing chunks alone so the next run retries.
-      stats.failed += 1;
-      stats.failedIds.push(docId);
-      continue;
-    }
-
-    try {
-      const result = await prisma.$transaction([
-        prisma.guidelineChunk.deleteMany({ where: { docId } }),
-        prisma.guidelineChunk.createMany({
-          data: chunks.map((c) => ({
-            docId: c.docId,
-            chunkIdx: c.chunkIdx,
-            text: c.text,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            embedding: embeddedByKey.get(`${docId}:${c.chunkIdx}`) as any,
-            model: EMBED_MODEL,
-          })),
-        }),
-        prisma.guidelineEmbedding.upsert({
-          where: { id: docId },
-          update: {
-            contentHash: state.hash,
-            model: EMBED_MODEL,
-            textChars: state.textChars,
-            chunkCount: chunks.length,
-          },
-          create: {
-            id: docId,
-            contentHash: state.hash,
-            model: EMBED_MODEL,
-            textChars: state.textChars,
-            chunkCount: chunks.length,
-          },
-        }),
-      ]);
-      stats.docsRebuilt += 1;
-      stats.chunksDeleted += result[0].count;
-      stats.chunksCreated += result[1].count;
-    } catch (err) {
-      stats.failed += 1;
-      stats.failedIds.push(docId);
-      console.error(`Failed to write chunks for doc ${docId}:`, err);
+    // 3c. Write each fully-embedded doc in this wave.
+    for (const [docId, chunks] of pendingByDoc) {
+      const state = docState.get(docId);
+      if (!state) continue;
+      const allEmbedded = chunks.every((c) =>
+        embeddedByKey.has(`${docId}:${c.chunkIdx}`),
+      );
+      if (!allEmbedded) {
+        stats.failed += 1;
+        stats.failedIds.push(docId);
+        continue;
+      }
+      try {
+        const result = await prisma.$transaction([
+          prisma.guidelineChunk.deleteMany({ where: { docId } }),
+          prisma.guidelineChunk.createMany({
+            data: chunks.map((c) => ({
+              docId: c.docId,
+              chunkIdx: c.chunkIdx,
+              text: c.text,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              embedding: embeddedByKey.get(`${docId}:${c.chunkIdx}`) as any,
+              model: EMBED_MODEL,
+            })),
+          }),
+          prisma.guidelineEmbedding.upsert({
+            where: { id: docId },
+            update: {
+              contentHash: state.hash,
+              model: EMBED_MODEL,
+              textChars: state.textChars,
+              chunkCount: chunks.length,
+            },
+            create: {
+              id: docId,
+              contentHash: state.hash,
+              model: EMBED_MODEL,
+              textChars: state.textChars,
+              chunkCount: chunks.length,
+            },
+          }),
+        ]);
+        stats.docsRebuilt += 1;
+        stats.chunksDeleted += result[0].count;
+        stats.chunksCreated += result[1].count;
+      } catch (err) {
+        stats.failed += 1;
+        stats.failedIds.push(docId);
+        console.error(`Failed to write chunks for doc ${docId}:`, err);
+      }
     }
   }
 
@@ -284,5 +307,9 @@ export async function POST(req: NextRequest) {
     ...stats,
     durationMs: Date.now() - startedAt,
     forced: force,
+    stoppedEarly,
+    note: stoppedEarly
+      ? "הריצה נעצרה על-ידי בודק הזמן הרך כדי לא להיהרג ב-Render. הרץ שוב כדי להמשיך מהמקום שנעצרה."
+      : undefined,
   });
 }
