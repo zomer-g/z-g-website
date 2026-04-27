@@ -16,6 +16,10 @@ interface ChunkInputDoc {
   topic?: string;
   summary?: string;
   content_text?: string | null;
+  // Free-form metadata (e.g. csv_row) — rendered as "label: value" lines into
+  // the header chunk so directive names that live only in CSV fields (like
+  // הנחיות משטרת ישראל's Data.Name) become searchable.
+  metadata?: Record<string, string>;
 }
 
 export interface BuiltChunk {
@@ -95,6 +99,15 @@ export function chunkGuideline(doc: ChunkInputDoc): BuiltChunk[] {
   if (title) headerParts.push(title);
   if (topic) headerParts.push(`תחום: ${topic}`);
   if (summary) headerParts.push(summary);
+  const metadataLines: string[] = [];
+  if (doc.metadata) {
+    for (const [k, v] of Object.entries(doc.metadata)) {
+      const value = (v ?? "").toString().trim();
+      if (!value) continue;
+      metadataLines.push(`${k}: ${value}`);
+    }
+  }
+  if (metadataLines.length > 0) headerParts.push(metadataLines.join("\n"));
   const headerText = headerParts.join("\n\n");
 
   const chunks: BuiltChunk[] = [];

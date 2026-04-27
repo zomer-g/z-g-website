@@ -125,6 +125,13 @@ function normalizeHebrew(s: string): string {
     .toLocaleLowerCase("he-IL")
     .replace(/[֑-ׇ]/g, "") // niqqud + cantillation
     .replace(/[״'׳]/g, "")
+    // Invisible characters that PDF extraction / OCR routinely sprinkle into
+    // Hebrew text and that silently break literal-substring matches: BIDI
+    // marks (LRM/RLM, embeds, isolates), zero-width joiners, soft hyphens,
+    // word joiner, BOM. Without this, a query like "מצלמות גוף" misses any
+    // chunk where an invisible RLM sits between the two words.
+    .replace(/[­​-‏‪-‮⁠⁦-⁩﻿]/g, "")
+    .replace(/ /g, " ") // NBSP → regular space (some \s flavors miss it)
     .replace(/\s+/g, " ")
     .trim();
 }

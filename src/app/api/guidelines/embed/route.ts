@@ -26,6 +26,33 @@ interface UpstreamSingleDoc {
   content_text?: string | null;
 }
 
+// Fields in csv_row that are internal/noise — never feed to the indexer.
+const CSV_METADATA_SKIP = new Set(["_id", "rank", "Data.File Data"]);
+// Keep short text fields only; OCR text dumps and the like bloat the header.
+const CSV_METADATA_MAX_LEN = 300;
+
+function buildMetadataFromCsvRow(
+  csvRow: Record<string, unknown> | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!csvRow) return out;
+  for (const [k, v] of Object.entries(csvRow)) {
+    if (CSV_METADATA_SKIP.has(k)) continue;
+    if (v == null) continue;
+    const str =
+      typeof v === "string"
+        ? v
+        : typeof v === "number" || typeof v === "boolean"
+          ? String(v)
+          : "";
+    const trimmed = str.trim();
+    if (!trimmed) continue;
+    if (trimmed.length > CSV_METADATA_MAX_LEN) continue;
+    out[k] = trimmed;
+  }
+  return out;
+}
+
 function getUpstreamApiKey(): string | undefined {
   return process.env.GUIDELINES_API_KEY || process.env.CLASS_ACTION_API_KEY;
 }
@@ -76,6 +103,16 @@ export async function POST(req: NextRequest) {
     );
   }
   const ids = allItems.map((it) => it.id);
+  // Index csv_row alongside body text so directive names that live only in
+  // CSV fields (e.g. "Data.Name" on Israel Police directives) become
+  // searchable. The list endpoint already returns csv_row — no extra fetch.
+  const metadataById = new Map<number, Record<string, string>>();
+  for (const it of allItems) {
+    metadataById.set(
+      it.id,
+      buildMetadataFromCsvRow(it.csv_row as Record<string, unknown> | undefined),
+    );
+  }
 
   // 2. Load existing per-doc state to short-circuit unchanged docs.
   const existingRows = await prisma.guidelineEmbedding.findMany({
@@ -124,6 +161,7 @@ export async function POST(req: NextRequest) {
             topic: doc.topic ?? undefined,
             summary: doc.summary ?? undefined,
             content_text: doc.content_text,
+            metadata: metadataById.get(id),
           });
           if (chunks.length === 0) {
             stats.skipped += 1;

@@ -172,7 +172,19 @@ export async function GET(req: NextRequest) {
     bareSingle && substringHits.length === 0 ? [] : semanticHitsRaw;
 
   // Reciprocal Rank Fusion → ranked list of doc ids with snippets.
-  const fused = fuseRankings(semanticHits, substringHits);
+  const fusedRaw = fuseRankings(semanticHits, substringHits);
+
+  // For multi-word AND queries, the user typed several specific terms — they
+  // expect documents that actually contain those words, not "topically near"
+  // documents the embedding model considers similar. When substring already
+  // returned results, drop semantic-only docs entirely; they're the source of
+  // the "too many irrelevant results" complaints. Semantic still re-ranks
+  // docs that ALSO appear in substring (the overlap boost in RRF survives).
+  const multiTerm = !bareSingle && !phraseMode && collectTerms(parsed).length >= 2;
+  const fused =
+    multiTerm && substringHits.length > 0
+      ? fusedRaw.filter((d) => d.substringChunks > 0)
+      : fusedRaw;
 
   if (fused.length === 0) {
     return NextResponse.json({
