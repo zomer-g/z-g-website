@@ -19,6 +19,7 @@ import {
   X,
   PenTool,
   Tv,
+  SpellCheck,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
@@ -32,6 +33,7 @@ const navItems = [
   { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
   { label: "העלאת קבצים", href: "/admin/media", icon: Image },
   { label: "פניות", href: "/admin/submissions", icon: Inbox },
+  { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
   { label: "הגדרות", href: "/admin/settings", icon: Settings },
 ] as const;
 
