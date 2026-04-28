@@ -3,16 +3,15 @@ import type { Prisma } from "@/generated/prisma/client";
 import { EMBED_DIMS } from "@/lib/openai-embeddings";
 import { evaluateQuery, type QueryNode } from "@/lib/guidelines-query";
 
-// In-memory cache: one entry per chunk. Vectors are L2-normalized at load
-// time so cosine similarity becomes a single dot product per scoring call.
-// normalizedText is also computed up-front so substring search doesn't pay
-// a normalization cost per query × per chunk.
+// Text-only cache. We deliberately do NOT cache embedding vectors here —
+// 12k chunks × 1536 floats balloons to ~75 MB which the previous design
+// crashed Render Starter (512 MB) with SIGABRT under any concurrent load.
+// Vectors are streamed from DB per query instead.
 interface CachedChunk {
   docId: number;
   chunkIdx: number;
   text: string;
   normalizedText: string;
-  vector: Float32Array; // length EMBED_DIMS, L2-normalized
 }
 
 let cache: CachedChunk[] | null = null;
@@ -21,32 +20,19 @@ let inflight: Promise<CachedChunk[]> | null = null;
 
 const CACHE_TTL_MS = 5 * 60_000;
 
-function normalize(v: number[]): Float32Array {
-  let sum = 0;
-  for (let i = 0; i < v.length; i++) sum += v[i] * v[i];
-  const norm = Math.sqrt(sum);
-  const out = new Float32Array(v.length);
-  if (norm === 0) return out;
-  const inv = 1 / norm;
-  for (let i = 0; i < v.length; i++) out[i] = v[i] * inv;
-  return out;
-}
-
 async function loadFromDb(): Promise<CachedChunk[]> {
   const rows = await prisma.guidelineChunk.findMany({
-    select: { docId: true, chunkIdx: true, text: true, embedding: true },
+    select: { docId: true, chunkIdx: true, text: true },
   });
-  const out: CachedChunk[] = [];
-  for (const r of rows) {
-    const arr = r.embedding as Prisma.JsonValue;
-    if (!Array.isArray(arr) || arr.length !== EMBED_DIMS) continue;
-    out.push({
+  const out: CachedChunk[] = new Array(rows.length);
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    out[i] = {
       docId: r.docId,
       chunkIdx: r.chunkIdx,
       text: r.text,
       normalizedText: normalizeHebrew(r.text),
-      vector: normalize(arr as number[]),
-    });
+    };
   }
   return out;
 }
@@ -69,12 +55,6 @@ export function invalidateEmbeddingsCache() {
   cacheLoadedAt = 0;
 }
 
-function dot(a: Float32Array, b: number[]): number {
-  let s = 0;
-  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-  return s;
-}
-
 export interface ChunkHit {
   docId: number;
   chunkIdx: number;
@@ -88,30 +68,72 @@ export interface ChunkHit {
 // that just happens to live in the same vector neighborhood.
 export const SEMANTIC_MIN_SCORE = 0.3;
 
+// Page size for streamed semantic search. A page of 500 × 1536-dim vectors
+// is ~6 MB — tiny enough to stay well under the 512 MB instance budget even
+// under concurrent search/embed load.
+const SEMANTIC_PAGE = 500;
+
 // Returns top-K chunks across the whole corpus, dropping anything below the
-// minimum similarity floor.
+// minimum similarity floor. Streams chunks page-by-page from DB so memory
+// usage stays bounded by SEMANTIC_PAGE rather than scaling with corpus size.
 export async function semanticChunkSearch(
   queryVector: number[],
   topK: number,
   minScore = SEMANTIC_MIN_SCORE,
 ): Promise<ChunkHit[]> {
-  const items = await getCachedChunks();
-  if (items.length === 0) return [];
-
   const qLen = Math.sqrt(queryVector.reduce((s, v) => s + v * v, 0));
-  const qNorm: number[] = qLen === 0 ? queryVector : queryVector.map((v) => v / qLen);
+  if (qLen === 0) return [];
+  const qNorm = new Array<number>(queryVector.length);
+  for (let i = 0; i < queryVector.length; i++) qNorm[i] = queryVector[i] / qLen;
 
-  const scored: ChunkHit[] = [];
-  for (const it of items) {
-    const score = dot(it.vector, qNorm);
-    if (score < minScore) continue;
-    scored.push({
-      docId: it.docId,
-      chunkIdx: it.chunkIdx,
-      text: it.text,
-      score,
+  // Keep a running top-N (= 4 × topK) buffer; trim periodically. A proper
+  // heap would be faster but topK is small (~200) so a sort-and-trim works.
+  const TRIM_AT = topK * 4;
+  let scored: ChunkHit[] = [];
+
+  let skip = 0;
+  while (true) {
+    const rows = await prisma.guidelineChunk.findMany({
+      select: { docId: true, chunkIdx: true, text: true, embedding: true },
+      skip,
+      take: SEMANTIC_PAGE,
+      orderBy: [{ docId: "asc" }, { chunkIdx: "asc" }],
     });
+    if (rows.length === 0) break;
+
+    for (const r of rows) {
+      const arr = r.embedding as Prisma.JsonValue;
+      if (!Array.isArray(arr) || arr.length !== EMBED_DIMS) continue;
+      const vec = arr as number[];
+
+      let dot = 0;
+      let len = 0;
+      for (let i = 0; i < vec.length; i++) {
+        const v = vec[i];
+        dot += v * qNorm[i];
+        len += v * v;
+      }
+      if (len === 0) continue;
+      const score = dot / Math.sqrt(len);
+      if (score < minScore) continue;
+
+      scored.push({
+        docId: r.docId,
+        chunkIdx: r.chunkIdx,
+        text: r.text,
+        score,
+      });
+    }
+
+    if (scored.length > TRIM_AT) {
+      scored.sort((a, b) => b.score - a.score);
+      scored = scored.slice(0, topK);
+    }
+
+    if (rows.length < SEMANTIC_PAGE) break;
+    skip += SEMANTIC_PAGE;
   }
+
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
 }
