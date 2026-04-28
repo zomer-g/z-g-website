@@ -151,9 +151,11 @@ export async function POST(req: NextRequest) {
   const PARALLEL = 6;
   const WAVE_SIZE = 40;
 
-  // Soft budget so we leave time for the current wave's embed + DB write
-  // before Render kills us at 300s. Stop accepting new waves at ~250s.
-  const SOFT_DEADLINE_MS = 250_000;
+  // Render's HTTP gateway times out client requests at ~100s and returns 502
+  // even though the worker may still be running. Stop accepting new waves at
+  // ~75s so the in-flight wave can finish writing and we can return a clean
+  // response with stoppedEarly=true. The admin re-clicks "build" to continue.
+  const SOFT_DEADLINE_MS = 75_000;
   let stoppedEarly = false;
 
   for (let waveStart = 0; waveStart < ids.length; waveStart += WAVE_SIZE) {
