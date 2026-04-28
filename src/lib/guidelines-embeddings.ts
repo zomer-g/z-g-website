@@ -3,56 +3,26 @@ import type { Prisma } from "@/generated/prisma/client";
 import { EMBED_DIMS } from "@/lib/openai-embeddings";
 import { evaluateQuery, type QueryNode } from "@/lib/guidelines-query";
 
-// Text-only cache. We deliberately do NOT cache embedding vectors here —
-// 12k chunks × 1536 floats balloons to ~75 MB which the previous design
-// crashed Render Starter (512 MB) with SIGABRT under any concurrent load.
-// Vectors are streamed from DB per query instead.
-interface CachedChunk {
-  docId: number;
-  chunkIdx: number;
-  text: string;
-  normalizedText: string;
-}
+// No in-memory chunk cache. The previous design held all chunk text +
+// normalized text (~70 MB) plus all 1536-dim vectors (~75 MB) in process
+// memory, which OOM'd Render Starter (~256 MB Node heap on a 512 MB
+// instance) on cold start of any request. Both substring and semantic
+// search now stream chunks from Postgres in pages, so peak memory stays
+// bounded by SEARCH_PAGE regardless of corpus size.
 
-let cache: CachedChunk[] | null = null;
-let cacheLoadedAt = 0;
-let inflight: Promise<CachedChunk[]> | null = null;
-
-const CACHE_TTL_MS = 5 * 60_000;
-
-async function loadFromDb(): Promise<CachedChunk[]> {
-  const rows = await prisma.guidelineChunk.findMany({
-    select: { docId: true, chunkIdx: true, text: true },
-  });
-  const out: CachedChunk[] = new Array(rows.length);
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    out[i] = {
-      docId: r.docId,
-      chunkIdx: r.chunkIdx,
-      text: r.text,
-      normalizedText: normalizeHebrew(r.text),
-    };
-  }
-  return out;
-}
-
-export async function getCachedChunks(): Promise<CachedChunk[]> {
-  if (cache && Date.now() - cacheLoadedAt < CACHE_TTL_MS) return cache;
-  if (inflight) return inflight;
-  inflight = (async () => {
-    const loaded = await loadFromDb();
-    cache = loaded;
-    cacheLoadedAt = Date.now();
-    inflight = null;
-    return loaded;
-  })();
-  return inflight;
-}
-
+// invalidateEmbeddingsCache stays as a no-op so existing callers (the
+// embed pipeline) still compile and don't need to change. It used to
+// reset the in-memory cache after a rebuild.
 export function invalidateEmbeddingsCache() {
-  cache = null;
-  cacheLoadedAt = 0;
+  // No-op: there's no in-memory cache to invalidate anymore.
+}
+
+// Returns just the count of indexed chunks (cheap, no full table scan).
+// The search route uses this to decide whether the index has been built
+// at all yet.
+export async function getCachedChunks(): Promise<{ length: number }> {
+  const length = await prisma.guidelineChunk.count();
+  return { length };
 }
 
 export interface ChunkHit {
@@ -68,11 +38,12 @@ export interface ChunkHit {
 // that just happens to live in the same vector neighborhood.
 export const SEMANTIC_MIN_SCORE = 0.3;
 
-// Page size for streamed semantic search. Larger = fewer roundtrips to
-// Postgres but more memory per page. 2000 × 1536 floats ≈ 24 MB per page
-// — comfortably under the 512 MB instance budget while keeping the total
-// number of pages small (~6 for a 12k-chunk corpus).
-const SEMANTIC_PAGE = 2000;
+// Page size for streamed search. Smaller = lower peak memory, more
+// roundtrips. Sized so that one page of vectors (PAGE × 1536 floats ≈
+// 6 MB) plus the JSON-parse intermediate (~3×) stays comfortably under
+// the ~256 MB Node heap on Render Starter.
+const SEARCH_PAGE = 500;
+const SEMANTIC_PAGE = SEARCH_PAGE;
 
 // Returns top-K chunks across the whole corpus, dropping anything below the
 // minimum similarity floor. Streams chunks via cursor-on-id pagination so
@@ -170,20 +141,35 @@ export async function substringChunkSearch(
   query: QueryNode,
   topK: number,
 ): Promise<SubstringHit[]> {
-  const items = await getCachedChunks();
-  if (items.length === 0) return [];
-
+  // Stream chunk text from DB in pages — never materialize the whole
+  // corpus in memory. Normalization runs per-chunk inside the loop and
+  // discarded immediately after the match decision so heap stays bounded.
   const hits: SubstringHit[] = [];
-  for (const it of items) {
-    const r = evaluateQuery(query, it.normalizedText, normalizeHebrew);
-    if (r.matched) {
-      hits.push({
-        docId: it.docId,
-        chunkIdx: it.chunkIdx,
-        text: it.text,
-        matchCount: r.matchCount,
-      });
+  let cursorId = 0;
+  while (true) {
+    const rows = await prisma.guidelineChunk.findMany({
+      select: { id: true, docId: true, chunkIdx: true, text: true },
+      where: { id: { gt: cursorId } },
+      take: SEARCH_PAGE,
+      orderBy: { id: "asc" },
+    });
+    if (rows.length === 0) break;
+
+    for (const r of rows) {
+      const normalized = normalizeHebrew(r.text);
+      const result = evaluateQuery(query, normalized, normalizeHebrew);
+      if (result.matched) {
+        hits.push({
+          docId: r.docId,
+          chunkIdx: r.chunkIdx,
+          text: r.text,
+          matchCount: result.matchCount,
+        });
+      }
     }
+
+    cursorId = rows[rows.length - 1].id;
+    if (rows.length < SEARCH_PAGE) break;
   }
 
   hits.sort((a, b) => b.matchCount - a.matchCount);
