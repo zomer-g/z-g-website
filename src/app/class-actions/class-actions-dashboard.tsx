@@ -8,7 +8,9 @@ import type {
 } from "@/types/class-action";
 import { DateInputIL } from "@/components/ui/date-input-il";
 
-const PAGE_SIZE = 20;
+// 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
+// 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
+const PAGE_SIZE = 24;
 
 const C_PRIMARY = "#1a365d";
 const C_PD = "#2a6f97";
