@@ -68,14 +68,15 @@ export interface ChunkHit {
 // that just happens to live in the same vector neighborhood.
 export const SEMANTIC_MIN_SCORE = 0.3;
 
-// Page size for streamed semantic search. A page of 500 × 1536-dim vectors
-// is ~6 MB — tiny enough to stay well under the 512 MB instance budget even
-// under concurrent search/embed load.
-const SEMANTIC_PAGE = 500;
+// Page size for streamed semantic search. Larger = fewer roundtrips to
+// Postgres but more memory per page. 2000 × 1536 floats ≈ 24 MB per page
+// — comfortably under the 512 MB instance budget while keeping the total
+// number of pages small (~6 for a 12k-chunk corpus).
+const SEMANTIC_PAGE = 2000;
 
 // Returns top-K chunks across the whole corpus, dropping anything below the
-// minimum similarity floor. Streams chunks page-by-page from DB so memory
-// usage stays bounded by SEMANTIC_PAGE rather than scaling with corpus size.
+// minimum similarity floor. Streams chunks via cursor-on-id pagination so
+// each page is an O(PAGE) index seek rather than O(N) sort+offset.
 export async function semanticChunkSearch(
   queryVector: number[],
   topK: number,
@@ -91,13 +92,13 @@ export async function semanticChunkSearch(
   const TRIM_AT = topK * 4;
   let scored: ChunkHit[] = [];
 
-  let skip = 0;
+  let cursorId = 0;
   while (true) {
     const rows = await prisma.guidelineChunk.findMany({
-      select: { docId: true, chunkIdx: true, text: true, embedding: true },
-      skip,
+      select: { id: true, docId: true, chunkIdx: true, text: true, embedding: true },
+      where: { id: { gt: cursorId } },
       take: SEMANTIC_PAGE,
-      orderBy: [{ docId: "asc" }, { chunkIdx: "asc" }],
+      orderBy: { id: "asc" },
     });
     if (rows.length === 0) break;
 
@@ -130,8 +131,8 @@ export async function semanticChunkSearch(
       scored = scored.slice(0, topK);
     }
 
+    cursorId = rows[rows.length - 1].id;
     if (rows.length < SEMANTIC_PAGE) break;
-    skip += SEMANTIC_PAGE;
   }
 
   scored.sort((a, b) => b.score - a.score);
