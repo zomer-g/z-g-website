@@ -155,12 +155,14 @@ export async function GET(req: NextRequest) {
   //   * Phrase mode (already handled by semanticEnabled).
   //   * Multi-term AND query that already has substring hits — the post-RRF
   //     filter drops semantic-only docs anyway, so the call is pure waste.
-  //   * Single bare word with zero substring hits — semantic on a lone
-  //     Hebrew word is mostly OCR noise.
+  //   * Any single bare Hebrew word — substring already does prefix
+  //     expansion (ה/ב/ל/מ/ש/ו/כ stripping), and semantic on one Hebrew
+  //     token mostly surfaces OCR-noise chunks. Skipping shaves ~70 s off
+  //     "הפגנה"-style queries on Render Starter.
   const skipSemantic =
     !semanticEnabled ||
-    (multiTerm && substringHits.length > 0) ||
-    (bareSingle && substringHits.length === 0);
+    bareSingle ||
+    (multiTerm && substringHits.length > 0);
 
   let semanticHits: Awaited<ReturnType<typeof semanticChunkSearch>> = [];
   if (!skipSemantic) {
