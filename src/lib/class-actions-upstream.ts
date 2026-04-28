@@ -45,8 +45,14 @@ export async function fetchAllUpstreamClassActions(
   const total = Number(first.total) || all.length;
   if (all.length >= total) return all;
 
+  // TAG-IT silently caps `limit` for some collections (class-action returns
+  // ~200 per page even when we ask for 500). Advance offsets by the actual
+  // page size we got, not the size we requested — otherwise we skip whole
+  // ranges of items and return a truncated set.
+  const actualPageSize = (first.items?.length ?? 0) || PAGE_SIZE;
+
   const offsets: number[] = [];
-  for (let skip = PAGE_SIZE; skip < total; skip += PAGE_SIZE) offsets.push(skip);
+  for (let skip = actualPageSize; skip < total; skip += actualPageSize) offsets.push(skip);
 
   for (let i = 0; i < offsets.length; i += PARALLEL) {
     const batch = offsets.slice(i, i + PARALLEL);

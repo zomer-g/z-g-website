@@ -50,8 +50,13 @@ export async function fetchAllUpstreamGuidelines(
   const total = Number(first.total) || all.length;
   if (all.length >= total) return all;
 
+  // TAG-IT silently caps `limit` per collection — advance by the actual
+  // page size returned, not the size we asked for, so we don't skip
+  // whole ranges of items and end up with a truncated corpus.
+  const actualPageSize = (first.items?.length ?? 0) || PAGE_SIZE;
+
   const offsets: number[] = [];
-  for (let skip = PAGE_SIZE; skip < total; skip += PAGE_SIZE) offsets.push(skip);
+  for (let skip = actualPageSize; skip < total; skip += actualPageSize) offsets.push(skip);
 
   for (let i = 0; i < offsets.length; i += PARALLEL) {
     const batch = offsets.slice(i, i + PARALLEL);
