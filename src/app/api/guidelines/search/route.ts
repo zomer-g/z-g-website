@@ -144,47 +144,43 @@ export async function GET(req: NextRequest) {
   // contain the literal phrase would just be noise, so we skip the embedding
   // call entirely for these queries.
   const semanticEnabled = !!process.env.OPENAI_API_KEY && !phraseMode;
-  const substringPromise = substringChunkSearch(parsed, TOPK_PER_METHOD);
-  const semanticPromise: Promise<Awaited<ReturnType<typeof semanticChunkSearch>>> = (async () => {
-    if (!semanticEnabled) return [];
+  const multiTerm = !bareSingle && !phraseMode && collectTerms(parsed).length >= 2;
+
+  // Run substring first (in-memory cache, milliseconds). Decide whether to
+  // bother running the semantic leg afterwards — for many queries it would
+  // do nothing useful but costs an OpenAI call and 12k vector dot products.
+  const substringHits = await substringChunkSearch(parsed, TOPK_PER_METHOD);
+
+  // Skip the semantic leg entirely when:
+  //   * Phrase mode (already handled by semanticEnabled).
+  //   * Multi-term AND query that already has substring hits — the post-RRF
+  //     filter drops semantic-only docs anyway, so the call is pure waste.
+  //   * Single bare word with zero substring hits — semantic on a lone
+  //     Hebrew word is mostly OCR noise.
+  const skipSemantic =
+    !semanticEnabled ||
+    (multiTerm && substringHits.length > 0) ||
+    (bareSingle && substringHits.length === 0);
+
+  let semanticHits: Awaited<ReturnType<typeof semanticChunkSearch>> = [];
+  if (!skipSemantic) {
     try {
       const queryVec = await embedQuery(flatForEmbed);
-      return await semanticChunkSearch(queryVec, TOPK_PER_METHOD);
+      semanticHits = await semanticChunkSearch(queryVec, TOPK_PER_METHOD);
     } catch (err) {
       if (err instanceof OpenAIEmbeddingsError) {
         console.error("Semantic search failed:", err.status, err.message);
       } else {
         console.error("Semantic search failed:", err);
       }
-      return [];
     }
-  })();
+  }
 
-  const [substringHits, semanticHitsRaw] = await Promise.all([
-    substringPromise,
-    semanticPromise,
-  ]);
-
-  // For a single bare word with zero substring hits, semantic results are
-  // almost always noise (cosine similarity to a single Hebrew word picks up
-  // OCR-garbage chunks more than meaningful matches). Suppress them.
-  const semanticHits =
-    bareSingle && substringHits.length === 0 ? [] : semanticHitsRaw;
-
-  // Reciprocal Rank Fusion → ranked list of doc ids with snippets.
-  const fusedRaw = fuseRankings(semanticHits, substringHits);
-
-  // For multi-word AND queries, the user typed several specific terms — they
-  // expect documents that actually contain those words, not "topically near"
-  // documents the embedding model considers similar. When substring already
-  // returned results, drop semantic-only docs entirely; they're the source of
-  // the "too many irrelevant results" complaints. Semantic still re-ranks
-  // docs that ALSO appear in substring (the overlap boost in RRF survives).
-  const multiTerm = !bareSingle && !phraseMode && collectTerms(parsed).length >= 2;
-  const fused =
-    multiTerm && substringHits.length > 0
-      ? fusedRaw.filter((d) => d.substringChunks > 0)
-      : fusedRaw;
+  // Reciprocal Rank Fusion → ranked list of doc ids with snippets. The
+  // skipSemantic gate above already guarantees the semantic leg isn't run
+  // when its results would be filtered out anyway, so no post-fusion
+  // filter is needed here.
+  const fused = fuseRankings(semanticHits, substringHits);
 
   if (fused.length === 0) {
     return NextResponse.json({
