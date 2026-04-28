@@ -98,23 +98,51 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
     if (!embedAction) return;
     setEmbedding(true);
     setEmbedFeedback(null);
+    const url = embedForce
+      ? `${embedAction.endpoint}?force=1`
+      : embedAction.endpoint;
+    let totalRebuilt = 0;
+    let totalSkipped = 0;
+    let totalFailed = 0;
+    let totalSeconds = 0;
+    let runs = 0;
+    let totalDocs = 0;
     try {
-      const url = embedForce
-        ? `${embedAction.endpoint}?force=1`
-        : embedAction.endpoint;
-      const res = await fetch(url, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
-      const seconds = Math.round((data.durationMs ?? 0) / 1000);
-      const parts = [
-        `סה"כ ${data.total ?? 0} מסמכים`,
-        `אומבדו: ${data.docsRebuilt ?? data.embedded ?? 0}`,
-        `דולגו: ${data.skipped ?? 0}`,
+      // Each invocation processes one wave-set bounded by the server's soft
+      // deadline, then returns stoppedEarly=true if more work remains. Loop
+      // here client-side so the user clicks once and we drive the run to
+      // completion automatically (rather than asking for ~12 manual clicks
+      // for 2500-doc force rebuilds).
+      while (true) {
+        const res = await fetch(url, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
+        runs += 1;
+        totalRebuilt += data.docsRebuilt ?? data.embedded ?? 0;
+        totalSkipped += data.skipped ?? 0;
+        totalFailed += data.failed ?? 0;
+        totalSeconds += Math.round((data.durationMs ?? 0) / 1000);
+        totalDocs = data.total ?? totalDocs;
+
+        // Surface live progress between iterations.
+        const liveParts = [
+          `סבב ${runs}`,
+          `אומבדו: ${totalRebuilt}/${totalDocs}`,
+        ];
+        if (totalFailed > 0) liveParts.push(`כשלים: ${totalFailed}`);
+        if (data.stoppedEarly) liveParts.push("ממשיך אוטומטית…");
+        setEmbedFeedback({ type: "success", message: liveParts.join(" • ") });
+
+        if (!data.stoppedEarly) break;
+      }
+      const finalParts = [
+        `הושלם בעבור ${runs} סבבים`,
+        `אומבדו: ${totalRebuilt}/${totalDocs}`,
+        `דולגו: ${totalSkipped}`,
       ];
-      if ((data.failed ?? 0) > 0) parts.push(`כשלים: ${data.failed}`);
-      parts.push(`זמן: ${seconds} שניות`);
-      if (data.stoppedEarly) parts.push("נעצר מוקדם — הרץ שוב כדי להמשיך");
-      setEmbedFeedback({ type: "success", message: parts.join(" • ") });
+      if (totalFailed > 0) finalParts.push(`כשלים: ${totalFailed}`);
+      finalParts.push(`זמן כולל: ${totalSeconds} שניות`);
+      setEmbedFeedback({ type: "success", message: finalParts.join(" • ") });
     } catch (err) {
       setEmbedFeedback({
         type: "error",
@@ -122,7 +150,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
       });
     } finally {
       setEmbedding(false);
-      setTimeout(() => setEmbedFeedback(null), 15000);
+      setTimeout(() => setEmbedFeedback(null), 30000);
     }
   };
 
