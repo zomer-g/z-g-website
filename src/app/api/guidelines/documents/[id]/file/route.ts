@@ -39,7 +39,17 @@ export async function GET(
     const cd = upstream.headers.get("content-disposition");
     const cl = upstream.headers.get("content-length");
     if (ct) headers.set("Content-Type", ct);
-    if (cd) headers.set("Content-Disposition", cd);
+    // Force `inline` disposition so the PDF renders inside an <iframe> on the
+    // detail page (the upstream sometimes sends `attachment`, which makes
+    // browsers download instead of render). The original filename — when the
+    // upstream supplied one — is preserved so a manual "Save as" still uses it.
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+      const filenamePart = filenameMatch ? `; filename="${filenameMatch[1]}"` : "";
+      headers.set("Content-Disposition", `inline${filenamePart}`);
+    } else {
+      headers.set("Content-Disposition", "inline");
+    }
     if (cl) headers.set("Content-Length", cl);
     headers.set("Cache-Control", "private, no-store");
 

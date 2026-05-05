@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { Guideline } from "@/types/guideline";
 import { DateInputIL } from "@/components/ui/date-input-il";
+import { ShareLinkButton } from "@/components/ui/share-link-button";
 
 // 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -182,12 +184,24 @@ function GuidelineCard({
       return true;
     });
 
+  const detailHref = `/guidelines/${doc.id}`;
+
   return (
     <article
-      className="rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
+      className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
       dir="rtl"
     >
-      <div className="flex items-start gap-2 mb-2 flex-wrap">
+      {/* Stretched link: covers the whole card, navigates to the dedicated
+          detail page. Inner interactive elements (PDF button, expand toggle,
+          share button) carry `relative z-10` so they stay clickable above. */}
+      <Link
+        href={detailHref}
+        aria-label={`פתח פרטי הנחיה: ${doc.document_title || doc.filename || "ללא כותרת"}`}
+        className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        style={{ outlineColor: C_PRIMARY }}
+      />
+
+      <div className="relative z-10 flex items-start gap-2 mb-2 flex-wrap">
         {doc.source_label ? (
           <Badge color={C_PD} bg="#e1ecf3">
             {doc.source_label}
@@ -203,7 +217,7 @@ function GuidelineCard({
             const tier = relevanceTier(relevance);
             return (
               <span
-                className="inline-flex items-center gap-1 text-xs font-semibold rounded-md px-2 py-0.5 mr-auto"
+                className="inline-flex items-center gap-1 text-xs font-semibold rounded-md px-2 py-0.5"
                 style={{ background: tier.bg, color: tier.text }}
                 title={`${tier.label} — ${relevance}/100`}
               >
@@ -213,31 +227,42 @@ function GuidelineCard({
             );
           })()
         ) : null}
+        <ShareLinkButton
+          url={detailHref}
+          title={doc.document_title || doc.filename || "הנחיה"}
+          text={
+            doc.document_title
+              ? `הנחיה: ${doc.document_title}`
+              : undefined
+          }
+          compact
+          className="ms-auto"
+        />
       </div>
 
       <h3
-        className="text-base font-bold leading-snug mb-2"
+        className="relative z-10 text-base font-bold leading-snug mb-2 pointer-events-none"
         style={{ color: C_PRIMARY }}
       >
         {doc.document_title || doc.filename || "ללא כותרת"}
       </h3>
 
-      <div className="text-sm text-gray-700 mb-1">
+      <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
         <span className="font-semibold">תאריך פרסום:</span> {fmtDate(doc.document_date)}
       </div>
       {doc.topic ? (
-        <div className="text-sm text-gray-700 mb-1">
+        <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
           <span className="font-semibold">תחום:</span> {doc.topic}
         </div>
       ) : null}
       {doc.summary ? (
-        <p className="text-sm text-gray-600 leading-relaxed mt-2 line-clamp-3">
+        <p className="relative z-10 text-sm text-gray-600 leading-relaxed mt-2 line-clamp-3 pointer-events-none">
           {doc.summary}
         </p>
       ) : null}
 
       {snippet ? (
-        <div className="mt-3 rounded-md bg-amber-50 border-r-2 border-amber-300 px-3 py-2 text-xs leading-relaxed text-gray-800">
+        <div className="relative z-10 mt-3 rounded-md bg-amber-50 border-r-2 border-amber-300 px-3 py-2 text-xs leading-relaxed text-gray-800 pointer-events-none">
           <div className="text-[10px] font-semibold text-amber-700 mb-1 uppercase tracking-wide">
             התאמה בטקסט
           </div>
@@ -246,7 +271,7 @@ function GuidelineCard({
       ) : null}
 
       {open ? (
-        <div className="border-t border-gray-100 pt-3 mt-3 space-y-2 text-sm text-gray-800">
+        <div className="relative z-10 border-t border-gray-100 pt-3 mt-3 space-y-2 text-sm text-gray-800 pointer-events-none">
           {doc.effective_date ? (
             <div>
               <span className="font-semibold">תחילת תוקף:</span>{" "}
@@ -292,11 +317,12 @@ function GuidelineCard({
         </div>
       ) : null}
 
-      <div className="mt-auto pt-4 flex items-center gap-3 flex-wrap">
+      <div className="relative z-10 mt-auto pt-4 flex items-center gap-3 flex-wrap">
         <a
           href={`/api/guidelines/documents/${doc.id}/file`}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
           className="text-sm font-semibold rounded-md px-3 py-1.5 text-white transition"
           style={{ background: C_PRIMARY }}
         >
@@ -304,7 +330,11 @@ function GuidelineCard({
         </a>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
           className="text-sm font-semibold rounded-md px-3 py-1.5 text-gray-600 hover:text-gray-900 transition mr-auto"
         >
           {open ? "צמצם" : "פרטים נוספים"}

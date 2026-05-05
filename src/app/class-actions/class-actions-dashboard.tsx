@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type {
   ClassActionDocument,
   ClassActionCase,
   CasesListResponse,
 } from "@/types/class-action";
 import { DateInputIL } from "@/components/ui/date-input-il";
+import { ShareLinkButton } from "@/components/ui/share-link-button";
 
 // 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -171,12 +173,15 @@ function DocSlot({
         {docs.map((doc) => {
           const dateLabel = fmtDate(doc.document_date);
           return (
+            // relative z-10 keeps these clickable above the stretched link
+            // that covers the whole card.
             <a
               key={doc.id}
               href={`/api/class-actions/documents/${doc.id}/file`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2.5 py-1 transition"
+              onClick={(e) => e.stopPropagation()}
+              className="relative z-10 inline-flex items-center gap-1.5 text-xs font-semibold rounded-md px-2.5 py-1 transition"
               style={
                 primary
                   ? { background: C_PRIMARY, color: "white" }
@@ -204,12 +209,31 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
   const [open, setOpen] = useState(false);
   const slots = classifyDocs(caseItem.documents);
 
+  // Cases without a case_number aren't addressable as a standalone page
+  // (the route key is the case_number) — fall back to a non-clickable card.
+  const hasCaseNumber = !!caseItem.case_number?.trim();
+  const detailHref = hasCaseNumber
+    ? `/class-actions/${encodeURIComponent(caseItem.case_number.trim())}`
+    : null;
+
   return (
     <article
-      className="rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
+      className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
       dir="rtl"
     >
-      <div className="flex items-start gap-2 mb-2 flex-wrap">
+      {/* Stretched link: covers the whole card, navigates to the dedicated
+          detail page when clicked. Inner interactive elements use
+          `relative z-10` so they stay clickable above this. */}
+      {detailHref ? (
+        <Link
+          href={detailHref}
+          aria-label={`פתח פרטי תיק: ${caseItem.case_name || caseItem.case_number}`}
+          className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          style={{ outlineColor: C_PRIMARY }}
+        />
+      ) : null}
+
+      <div className="relative z-10 flex items-start gap-2 mb-2 flex-wrap">
         <Badge color={C_PD} bg="#e1ecf3">
           {caseItem.case_number || "—"}
         </Badge>
@@ -223,25 +247,39 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
             ? "מסמך אחד"
             : `${caseItem.documents.length} מסמכים`}
         </Badge>
+        {/* Push the share button to the end of the badge row. */}
+        {detailHref ? (
+          <ShareLinkButton
+            url={detailHref}
+            title={caseItem.case_name || `תובענה ${caseItem.case_number}`}
+            text={
+              caseItem.case_name
+                ? `תובענה ייצוגית: ${caseItem.case_name}`
+                : undefined
+            }
+            compact
+            className="ms-auto"
+          />
+        ) : null}
       </div>
 
       <h3
-        className="text-base font-bold leading-snug mb-2"
+        className="relative z-10 text-base font-bold leading-snug mb-2 pointer-events-none"
         style={{ color: C_PRIMARY }}
       >
         {caseItem.case_name || "ללא שם תיק"}
       </h3>
 
-      <div className="text-sm text-gray-700 mb-1">
+      <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
         <span className="font-semibold">בית משפט:</span> {caseItem.court_name || "—"}
       </div>
-      <div className="text-sm text-gray-700 mb-3">
+      <div className="relative z-10 text-sm text-gray-700 mb-3 pointer-events-none">
         <span className="font-semibold">תאריך הגשה אחרון:</span>{" "}
         {fmtDate(caseItem.latest_document_date)}
       </div>
 
       {open ? (
-        <div className="border-t border-gray-100 pt-3 mt-1 space-y-2 text-sm text-gray-800">
+        <div className="relative z-10 border-t border-gray-100 pt-3 mt-1 space-y-2 text-sm text-gray-800 pointer-events-none">
           <div>
             <span className="font-semibold">פתיחת תיק:</span>{" "}
             {fmtDate(caseItem.case_open_date)}
@@ -271,23 +309,38 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
         </div>
       ) : null}
 
-      {/* Document slots */}
-      <div className="mt-3 space-y-2">
-        <DocSlot
-          label="בקשה לאישור תובענה ייצוגית"
-          docs={slots.motion}
-          primary
-        />
-        <DocSlot label="כתב תביעה" docs={slots.claim} primary />
+      {/* Document slots — `<a>` children inside DocSlot are relative z-10 so
+          PDF clicks don't trigger the stretched link. */}
+      <div className="relative z-10 mt-3 space-y-2 pointer-events-none">
+        {/* The wrappers stay non-interactive; only the <a> buttons inside
+            re-enable pointer events via `relative z-10` (which also gets
+            pointer-events: auto from default browser styling on z-positioned
+            elements with `relative`). */}
+        <div className="pointer-events-auto">
+          <DocSlot
+            label="בקשה לאישור תובענה ייצוגית"
+            docs={slots.motion}
+            primary
+          />
+        </div>
+        <div className="pointer-events-auto">
+          <DocSlot label="כתב תביעה" docs={slots.claim} primary />
+        </div>
         {slots.other.length > 0 ? (
-          <DocSlot label="מסמכים נוספים" docs={slots.other} />
+          <div className="pointer-events-auto">
+            <DocSlot label="מסמכים נוספים" docs={slots.other} />
+          </div>
         ) : null}
       </div>
 
-      <div className="mt-auto pt-4 flex items-center justify-end">
+      <div className="relative z-10 mt-auto pt-4 flex items-center justify-end">
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setOpen((v) => !v);
+          }}
           className="text-sm font-semibold rounded-md px-3 py-1.5 border transition"
           style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
         >
