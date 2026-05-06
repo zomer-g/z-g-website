@@ -61,16 +61,20 @@ export async function GET() {
     }
   }
 
-  const sources = Array.from(
-    new Set(
-      items
-        .map((it) => it.source_label)
-        .filter((s): s is string => !!s && s.trim() !== ""),
-    ),
-  ).sort((a, b) => a.localeCompare(b, "he"));
+  const counts: Record<string, number> = {};
+  for (const it of items) {
+    const label = it.source_label;
+    if (!label || !label.trim()) continue;
+    counts[label] = (counts[label] ?? 0) + 1;
+  }
+  const sources = Object.keys(counts).sort((a, b) => a.localeCompare(b, "he"));
+  // sourceCounts is additive — existing public callers reading `sources`
+  // keep working unchanged. The admin "ייבוא לפי מקור" panel uses the counts
+  // to show "(N מסמכים)" next to each source button.
+  const sourceCounts = sources.map((label) => ({ label, count: counts[label] }));
 
   return NextResponse.json(
-    { sources },
+    { sources, sourceCounts },
     {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",

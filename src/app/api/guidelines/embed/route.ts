@@ -92,14 +92,28 @@ export async function POST(req: NextRequest) {
   }
 
   const force = req.nextUrl.searchParams.get("force") === "1";
+  const sourceParam = req.nextUrl.searchParams.get("source")?.trim() || null;
   const startedAt = Date.now();
 
   // 1. List every guideline id by walking all upstream pages.
-  const allItems = await fetchAllUpstreamGuidelines();
-  if (allItems === null) {
+  const upstreamAll = await fetchAllUpstreamGuidelines();
+  if (upstreamAll === null) {
     return NextResponse.json(
       { error: "Upstream list failed" },
       { status: 502 },
+    );
+  }
+  // Optional per-source scoping. Lets the operator re-import / re-embed only
+  // the docs from a single source_label (e.g. "פרקליט המדינה") when they
+  // know upstream changed only that ministry's directives — much faster and
+  // recoverable than rebuilding all 2,000+ docs.
+  const allItems = sourceParam
+    ? upstreamAll.filter((it) => it.source_label === sourceParam)
+    : upstreamAll;
+  if (sourceParam && allItems.length === 0) {
+    return NextResponse.json(
+      { error: `No documents found for source "${sourceParam}"` },
+      { status: 404 },
     );
   }
   const allIds = allItems.map((it) => it.id);
@@ -319,6 +333,7 @@ export async function POST(req: NextRequest) {
     ...stats,
     durationMs: Date.now() - startedAt,
     forced: force,
+    source: sourceParam,
     stoppedEarly,
     note: stoppedEarly
       ? "הריצה נעצרה על-ידי בודק הזמן הרך כדי לא להיהרג ב-Render. הרץ שוב כדי להמשיך מהמקום שנעצרה."

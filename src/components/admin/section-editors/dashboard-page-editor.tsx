@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "./section-card";
@@ -15,8 +15,78 @@ import {
   Timer,
   CheckCircle,
   Brain,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type EmbedFeedback = { type: "success" | "error"; message: string };
+
+interface SourceCount {
+  label: string;
+  count: number;
+}
+
+// Drives the server-side embed/import loop for one target (all docs or one
+// source). Each server invocation returns stoppedEarly=true when a soft
+// deadline was hit; we keep posting until the run is genuinely done. The
+// caller gets live progress via onProgress so multiple buttons (global +
+// per-source) can render their own feedback strips.
+async function runEmbedLoop(
+  url: string,
+  onProgress: (feedback: EmbedFeedback) => void,
+): Promise<EmbedFeedback> {
+  let totalRebuilt = 0;
+  let totalSkipped = 0;
+  let totalFailed = 0;
+  let totalSeconds = 0;
+  let runs = 0;
+  let totalDocs = 0;
+
+  while (true) {
+    const res = await fetch(url, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
+    runs += 1;
+    totalRebuilt += data.docsRebuilt ?? data.embedded ?? 0;
+    totalSkipped += data.skipped ?? 0;
+    totalFailed += data.failed ?? 0;
+    totalSeconds += Math.round((data.durationMs ?? 0) / 1000);
+    totalDocs = data.total ?? totalDocs;
+
+    const liveParts = [`סבב ${runs}`, `אומבדו: ${totalRebuilt}/${totalDocs}`];
+    if (totalFailed > 0) liveParts.push(`כשלים: ${totalFailed}`);
+    if (data.firstError) {
+      const errLabel = data.firstError.status
+        ? `שגיאה (${data.firstError.stage} ${data.firstError.status}): ${data.firstError.message}`
+        : `שגיאה (${data.firstError.stage}): ${data.firstError.message}`;
+      liveParts.push(errLabel);
+    }
+    if (data.stoppedEarly) liveParts.push("ממשיך אוטומטית…");
+    onProgress({
+      type: data.firstError && totalRebuilt === 0 ? "error" : "success",
+      message: liveParts.join(" • "),
+    });
+
+    // Bail when every wave is failing — re-running won't help if the
+    // underlying call is broken (bad API key, quota exhausted, etc.).
+    if (data.firstError && totalRebuilt === 0) {
+      return {
+        type: "error",
+        message: liveParts.join(" • "),
+      };
+    }
+    if (!data.stoppedEarly) break;
+  }
+
+  const finalParts = [
+    `הושלם בעבור ${runs} סבבים`,
+    `אומבדו: ${totalRebuilt}/${totalDocs}`,
+    `דולגו: ${totalSkipped}`,
+  ];
+  if (totalFailed > 0) finalParts.push(`כשלים: ${totalFailed}`);
+  finalParts.push(`זמן כולל: ${totalSeconds} שניות`);
+  return { type: "success", message: finalParts.join(" • ") };
+}
 
 interface DashboardPageContent {
   isPublic: boolean;
@@ -89,10 +159,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
 
   const [embedding, setEmbedding] = useState(false);
   const [embedForce, setEmbedForce] = useState(false);
-  const [embedFeedback, setEmbedFeedback] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+  const [embedFeedback, setEmbedFeedback] = useState<EmbedFeedback | null>(null);
 
   const handleEmbed = async () => {
     if (!embedAction) return;
@@ -101,61 +168,9 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
     const url = embedForce
       ? `${embedAction.endpoint}?force=1`
       : embedAction.endpoint;
-    let totalRebuilt = 0;
-    let totalSkipped = 0;
-    let totalFailed = 0;
-    let totalSeconds = 0;
-    let runs = 0;
-    let totalDocs = 0;
     try {
-      // Each invocation processes one wave-set bounded by the server's soft
-      // deadline, then returns stoppedEarly=true if more work remains. Loop
-      // here client-side so the user clicks once and we drive the run to
-      // completion automatically (rather than asking for ~12 manual clicks
-      // for 2500-doc force rebuilds).
-      while (true) {
-        const res = await fetch(url, { method: "POST" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
-        runs += 1;
-        totalRebuilt += data.docsRebuilt ?? data.embedded ?? 0;
-        totalSkipped += data.skipped ?? 0;
-        totalFailed += data.failed ?? 0;
-        totalSeconds += Math.round((data.durationMs ?? 0) / 1000);
-        totalDocs = data.total ?? totalDocs;
-
-        // Surface live progress between iterations.
-        const liveParts = [
-          `סבב ${runs}`,
-          `אומבדו: ${totalRebuilt}/${totalDocs}`,
-        ];
-        if (totalFailed > 0) liveParts.push(`כשלים: ${totalFailed}`);
-        if (data.firstError) {
-          const errLabel = data.firstError.status
-            ? `שגיאה (${data.firstError.stage} ${data.firstError.status}): ${data.firstError.message}`
-            : `שגיאה (${data.firstError.stage}): ${data.firstError.message}`;
-          liveParts.push(errLabel);
-        }
-        if (data.stoppedEarly) liveParts.push("ממשיך אוטומטית…");
-        setEmbedFeedback({
-          type: data.firstError && totalRebuilt === 0 ? "error" : "success",
-          message: liveParts.join(" • "),
-        });
-
-        // Bail out of the auto-loop when every wave is failing — re-running
-        // won't help if the underlying call is broken (bad API key, quota
-        // exhausted, etc.). Surface the error and let the operator fix it.
-        if (data.firstError && totalRebuilt === 0) break;
-        if (!data.stoppedEarly) break;
-      }
-      const finalParts = [
-        `הושלם בעבור ${runs} סבבים`,
-        `אומבדו: ${totalRebuilt}/${totalDocs}`,
-        `דולגו: ${totalSkipped}`,
-      ];
-      if (totalFailed > 0) finalParts.push(`כשלים: ${totalFailed}`);
-      finalParts.push(`זמן כולל: ${totalSeconds} שניות`);
-      setEmbedFeedback({ type: "success", message: finalParts.join(" • ") });
+      const final = await runEmbedLoop(url, setEmbedFeedback);
+      setEmbedFeedback(final);
     } catch (err) {
       setEmbedFeedback({
         type: "error",
@@ -164,6 +179,74 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
     } finally {
       setEmbedding(false);
       setTimeout(() => setEmbedFeedback(null), 30000);
+    }
+  };
+
+  // Per-source list state. Lazily fetched on mount when the embed panel is
+  // available. Tracks one running source at a time + per-source feedback so
+  // each row can render its own progress strip.
+  const [sources, setSources] = useState<SourceCount[] | null>(null);
+  const [sourcesError, setSourcesError] = useState<string | null>(null);
+  const [sourcesLoading, setSourcesLoading] = useState(false);
+  const [runningSource, setRunningSource] = useState<string | null>(null);
+  const [sourceFeedback, setSourceFeedback] = useState<
+    Record<string, EmbedFeedback | undefined>
+  >({});
+
+  const loadSources = async () => {
+    setSourcesLoading(true);
+    setSourcesError(null);
+    try {
+      const res = await fetch("/api/guidelines/sources");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "שגיאה בטעינת מקורות");
+      const list: SourceCount[] = Array.isArray(data.sourceCounts)
+        ? data.sourceCounts
+        : Array.isArray(data.sources)
+          ? data.sources.map((label: string) => ({ label, count: 0 }))
+          : [];
+      setSources(list);
+    } catch (err) {
+      setSourcesError(err instanceof Error ? err.message : "שגיאה בטעינת מקורות");
+    } finally {
+      setSourcesLoading(false);
+    }
+  };
+
+  // Auto-load sources once when the embed panel is rendered (guidelines page
+  // only). Refresh button below also triggers loadSources.
+  useEffect(() => {
+    if (!embedAction) return;
+    if (sources !== null || sourcesLoading) return;
+    void loadSources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedAction]);
+
+  const handleEmbedSource = async (label: string) => {
+    if (!embedAction) return;
+    if (runningSource) return;
+    setRunningSource(label);
+    setSourceFeedback((prev) => ({ ...prev, [label]: undefined }));
+    const url = `${embedAction.endpoint}?force=1&source=${encodeURIComponent(label)}`;
+    try {
+      const final = await runEmbedLoop(url, (f) =>
+        setSourceFeedback((prev) => ({ ...prev, [label]: f })),
+      );
+      setSourceFeedback((prev) => ({ ...prev, [label]: final }));
+    } catch (err) {
+      setSourceFeedback((prev) => ({
+        ...prev,
+        [label]: {
+          type: "error",
+          message: err instanceof Error ? err.message : "שגיאה בייבוא המקור",
+        },
+      }));
+    } finally {
+      setRunningSource(null);
+      setTimeout(
+        () => setSourceFeedback((prev) => ({ ...prev, [label]: undefined })),
+        30000,
+      );
     }
   };
 
@@ -371,6 +454,101 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
                 )}
                 <span className="leading-relaxed">{embedFeedback.message}</span>
               </div>
+            ) : null}
+          </div>
+        </SectionCard>
+      ) : null}
+
+      {embedAction ? (
+        <SectionCard title="ייבוא לפי מקור" icon={Database}>
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-muted leading-relaxed">
+                כל לחיצה על &quot;ייבא מחדש&quot; שולפת את המסמכים של אותו
+                מקור מהמערכת המקורית, מחלקת לקטעים ובונה אינדקס סמנטי.
+                שימושי כשעדכנו רק מקור מסוים — הרבה יותר מהיר מבנייה מלאה.
+              </p>
+              <Button
+                type="button"
+                onClick={loadSources}
+                loading={sourcesLoading}
+                disabled={sourcesLoading}
+                variant="ghost"
+                size="sm"
+                className="border border-border whitespace-nowrap"
+              >
+                <RefreshCcw size={14} />
+                רענן רשימה
+              </Button>
+            </div>
+
+            {sourcesError ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700"
+              >
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{sourcesError}</span>
+              </div>
+            ) : null}
+
+            {sources && sources.length === 0 && !sourcesLoading ? (
+              <p className="text-xs text-muted">אין מקורות זמינים.</p>
+            ) : null}
+
+            {sources && sources.length > 0 ? (
+              <ul className="divide-y divide-border rounded-lg border border-border">
+                {sources.map((s) => {
+                  const fb = sourceFeedback[s.label];
+                  const isThisRunning = runningSource === s.label;
+                  const isOtherRunning =
+                    runningSource !== null && runningSource !== s.label;
+                  return (
+                    <li key={s.label} className="p-3 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground truncate">
+                            {s.label}
+                          </div>
+                          <div className="text-xs text-muted">
+                            {s.count} מסמכים
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => handleEmbedSource(s.label)}
+                          loading={isThisRunning}
+                          disabled={isThisRunning || isOtherRunning}
+                          variant="ghost"
+                          size="sm"
+                          className="border border-border whitespace-nowrap"
+                        >
+                          <Brain size={14} />
+                          ייבא מחדש
+                        </Button>
+                      </div>
+                      {fb ? (
+                        <div
+                          role="alert"
+                          className={cn(
+                            "flex items-start gap-2 rounded-lg border p-2 text-xs",
+                            fb.type === "success"
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : "border-red-200 bg-red-50 text-red-700",
+                          )}
+                        >
+                          {fb.type === "success" ? (
+                            <CheckCircle size={12} className="shrink-0 mt-0.5" />
+                          ) : (
+                            <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                          )}
+                          <span className="leading-relaxed">{fb.message}</span>
+                        </div>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : null}
           </div>
         </SectionCard>
