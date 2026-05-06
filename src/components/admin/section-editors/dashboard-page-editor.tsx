@@ -24,6 +24,33 @@ type EmbedFeedback = { type: "success" | "error"; message: string };
 interface SourceCount {
   label: string;
   count: number;
+  indexed?: number;
+  lastIndexedAt?: string | null;
+}
+
+// Hebrew relative-time. Used to surface "אונדקס לאחרונה: לפני 3 שעות"
+// per source so the operator can see at a glance which sources need
+// re-indexing after a catalog change. Falls back to a date string for
+// anything older than 30 days (longer back is rarely meaningful).
+function formatRelativeHebrew(iso: string | null | undefined): string {
+  if (!iso) return "טרם אונדקס";
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return "טרם אונדקס";
+  const diffSec = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (diffSec < 60) return "לפני פחות מדקה";
+  if (diffSec < 3600) {
+    const m = Math.round(diffSec / 60);
+    return `לפני ${m} ${m === 1 ? "דקה" : "דקות"}`;
+  }
+  if (diffSec < 86400) {
+    const h = Math.round(diffSec / 3600);
+    return `לפני ${h} ${h === 1 ? "שעה" : "שעות"}`;
+  }
+  if (diffSec < 86400 * 30) {
+    const d = Math.round(diffSec / 86400);
+    return `לפני ${d} ${d === 1 ? "יום" : "ימים"}`;
+  }
+  return new Date(iso).toLocaleDateString("he-IL");
 }
 
 interface EmbedResponse {
@@ -261,12 +288,16 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         setSourceFeedback((prev) => ({ ...prev, [label]: f })),
       );
       setSourceFeedback((prev) => ({ ...prev, [label]: final }));
+      // Successful embed → fresh updatedAt → reload the list so the
+      // "אונדקס לאחרונה" badge refreshes immediately. Don't await; the
+      // current row's feedback strip is already showing the final summary.
+      void loadSources();
     } catch (err) {
       setSourceFeedback((prev) => ({
         ...prev,
         [label]: {
           type: "error",
-          message: err instanceof Error ? err.message : "שגיאה בייבוא המקור",
+          message: err instanceof Error ? err.message : "שגיאה באינדוקס המקור",
         },
       }));
     } finally {
@@ -274,6 +305,51 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
       setTimeout(
         () => setSourceFeedback((prev) => ({ ...prev, [label]: undefined })),
         30000,
+      );
+    }
+  };
+
+  // Per-source data import. Distinct from "אנדקס": this just refreshes the
+  // upstream cache so the public listing reflects catalog changes
+  // immediately, without spending OpenAI credit. Designed for the workflow
+  // where you re-categorize a source at tag-it.biz, click ייבא to verify
+  // the changes show up, then אנדקס when you're ready to spend embedding
+  // budget. Independent of runningSource: importing one source while
+  // another is being indexed is fine — they don't contend.
+  const [importingSource, setImportingSource] = useState<string | null>(null);
+
+  const handleImportSource = async (label: string) => {
+    if (!cacheControls) return;
+    if (importingSource) return;
+    setImportingSource(label);
+    setSourceFeedback((prev) => ({ ...prev, [label]: undefined }));
+    try {
+      const res = await fetch(
+        `${cacheControls.refreshEndpoint}?source=${encodeURIComponent(label)}`,
+        { method: "POST" },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "שגיאה בייבוא");
+      setSourceFeedback((prev) => ({
+        ...prev,
+        [label]: { type: "success", message: data.message || "הייבוא הסתיים." },
+      }));
+      // Counts may have shifted upstream; refresh the list so the row
+      // shows the new total alongside the old "אונדקס לאחרונה" badge.
+      void loadSources();
+    } catch (err) {
+      setSourceFeedback((prev) => ({
+        ...prev,
+        [label]: {
+          type: "error",
+          message: err instanceof Error ? err.message : "שגיאה בייבוא",
+        },
+      }));
+    } finally {
+      setImportingSource(null);
+      setTimeout(
+        () => setSourceFeedback((prev) => ({ ...prev, [label]: undefined })),
+        15000,
       );
     }
   };
@@ -488,13 +564,16 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
       ) : null}
 
       {embedAction ? (
-        <SectionCard title="ייבוא לפי מקור" icon={Database}>
+        <SectionCard title="ייבוא ואינדוקס לפי מקור" icon={Database}>
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-muted leading-relaxed">
-                כל לחיצה על &quot;ייבא מחדש&quot; שולפת את המסמכים של אותו
-                מקור מהמערכת המקורית, מחלקת לקטעים ובונה אינדקס סמנטי.
-                שימושי כשעדכנו רק מקור מסוים — הרבה יותר מהיר מבנייה מלאה.
+                <strong>ייבא</strong> = שליפת המידע העדכני מהמערכת המקורית
+                (מהיר, ללא עלות). השתמשי בזה אחרי שינוי קטלוג.
+                {" "}
+                <strong>אנדקס</strong> = בנייה מחדש של אינדקס החיפוש
+                הסמנטי לאותו מקור (איטי יותר, צורך OpenAI). הסטטוס
+                ליד כל מקור מראה מתי אונדקס לאחרונה.
               </p>
               <Button
                 type="button"
@@ -528,32 +607,58 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
               <ul className="divide-y divide-border rounded-lg border border-border">
                 {sources.map((s) => {
                   const fb = sourceFeedback[s.label];
-                  const isThisRunning = runningSource === s.label;
-                  const isOtherRunning =
+                  const isEmbedding = runningSource === s.label;
+                  const isImporting = importingSource === s.label;
+                  const otherEmbedding =
                     runningSource !== null && runningSource !== s.label;
+                  const indexed = s.indexed ?? 0;
+                  const indexCoverage =
+                    s.count > 0 ? Math.round((indexed / s.count) * 100) : 0;
+                  const indexedNote =
+                    indexed === 0
+                      ? "טרם אונדקס"
+                      : indexed === s.count
+                        ? `אונדקס: ${formatRelativeHebrew(s.lastIndexedAt)}`
+                        : `אונדקס חלקית (${indexed}/${s.count}, ${indexCoverage}%) · ${formatRelativeHebrew(s.lastIndexedAt)}`;
                   return (
                     <li key={s.label} className="p-3 space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-foreground truncate">
                             {s.label}
                           </div>
                           <div className="text-xs text-muted">
-                            {s.count} מסמכים
+                            {s.count} מסמכים · {indexedNote}
                           </div>
                         </div>
-                        <Button
-                          type="button"
-                          onClick={() => handleEmbedSource(s.label)}
-                          loading={isThisRunning}
-                          disabled={isThisRunning || isOtherRunning}
-                          variant="ghost"
-                          size="sm"
-                          className="border border-border whitespace-nowrap"
-                        >
-                          <Brain size={14} />
-                          ייבא מחדש
-                        </Button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            type="button"
+                            onClick={() => handleImportSource(s.label)}
+                            loading={isImporting}
+                            disabled={isImporting || isEmbedding}
+                            variant="ghost"
+                            size="sm"
+                            className="border border-border whitespace-nowrap"
+                            title="שליפת המידע העדכני מהמערכת המקורית. לא צורך OpenAI."
+                          >
+                            <Database size={14} />
+                            ייבא
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={() => handleEmbedSource(s.label)}
+                            loading={isEmbedding}
+                            disabled={isEmbedding || otherEmbedding || isImporting}
+                            variant="ghost"
+                            size="sm"
+                            className="border border-border whitespace-nowrap"
+                            title="בנייה מחדש של אינדקס החיפוש הסמנטי לכל המסמכים של המקור. כרוך בקריאות ל-OpenAI."
+                          >
+                            <Brain size={14} />
+                            אנדקס
+                          </Button>
+                        </div>
                       </div>
                       {fb ? (
                         <div

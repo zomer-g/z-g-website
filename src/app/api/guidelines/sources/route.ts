@@ -13,6 +13,7 @@ import {
   getGuidelinesApiKey,
   stripUrls,
 } from "@/lib/guidelines-upstream";
+import { prisma } from "@/lib/prisma";
 
 const DEFAULT_TTL_MINUTES = 60;
 const MIN_TTL_MINUTES = 1;
@@ -62,22 +63,66 @@ export async function GET() {
   }
 
   const counts: Record<string, number> = {};
+  const idsBySource = new Map<string, number[]>();
   for (const it of items) {
     const label = it.source_label;
     if (!label || !label.trim()) continue;
     counts[label] = (counts[label] ?? 0) + 1;
+    const arr = idsBySource.get(label) ?? [];
+    arr.push(it.id);
+    idsBySource.set(label, arr);
   }
   const sources = Object.keys(counts).sort((a, b) => a.localeCompare(b, "he"));
+
+  // Per-source last-indexed timestamp + indexed count. Lets the admin
+  // panel show "אונדקס לאחרונה: לפני 3 שעות" so the operator knows
+  // which sources need re-indexing after a catalog change. We pull all
+  // embedding (id, updatedAt) rows in one query and bucket them by source.
+  let indexedCounts: Record<string, number> = {};
+  let lastIndexedAt: Record<string, string | null> = {};
+  try {
+    const rows = await prisma.guidelineEmbedding.findMany({
+      select: { id: true, updatedAt: true },
+    });
+    const byId = new Map(rows.map((r) => [r.id, r.updatedAt]));
+    for (const label of sources) {
+      const ids = idsBySource.get(label) ?? [];
+      let count = 0;
+      let newest: Date | null = null;
+      for (const id of ids) {
+        const ua = byId.get(id);
+        if (!ua) continue;
+        count += 1;
+        if (!newest || ua.getTime() > newest.getTime()) newest = ua;
+      }
+      indexedCounts[label] = count;
+      lastIndexedAt[label] = newest ? newest.toISOString() : null;
+    }
+  } catch (err) {
+    console.error("guidelines sources index stats error:", err);
+    // Leave the maps empty — UI will fall back to "לא ידוע".
+    indexedCounts = {};
+    lastIndexedAt = {};
+  }
+
   // sourceCounts is additive — existing public callers reading `sources`
-  // keep working unchanged. The admin "ייבוא לפי מקור" panel uses the counts
-  // to show "(N מסמכים)" next to each source button.
-  const sourceCounts = sources.map((label) => ({ label, count: counts[label] }));
+  // keep working unchanged. The admin "ייבוא לפי מקור" panel uses the
+  // detail fields (indexed, lastIndexedAt) to render the freshness UI.
+  const sourceCounts = sources.map((label) => ({
+    label,
+    count: counts[label],
+    indexed: indexedCounts[label] ?? 0,
+    lastIndexedAt: lastIndexedAt[label] ?? null,
+  }));
 
   return NextResponse.json(
     { sources, sourceCounts },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
+        // Bypass CDN cache — the admin panel needs current numbers, and
+        // these queries are cheap. Public callers (the user-facing
+        // facet pills) can still rely on their own caching layer.
+        "Cache-Control": "no-store",
       },
     },
   );
