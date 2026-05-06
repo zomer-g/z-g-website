@@ -130,9 +130,22 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           `אומבדו: ${totalRebuilt}/${totalDocs}`,
         ];
         if (totalFailed > 0) liveParts.push(`כשלים: ${totalFailed}`);
+        if (data.firstError) {
+          const errLabel = data.firstError.status
+            ? `שגיאה (${data.firstError.stage} ${data.firstError.status}): ${data.firstError.message}`
+            : `שגיאה (${data.firstError.stage}): ${data.firstError.message}`;
+          liveParts.push(errLabel);
+        }
         if (data.stoppedEarly) liveParts.push("ממשיך אוטומטית…");
-        setEmbedFeedback({ type: "success", message: liveParts.join(" • ") });
+        setEmbedFeedback({
+          type: data.firstError && totalRebuilt === 0 ? "error" : "success",
+          message: liveParts.join(" • "),
+        });
 
+        // Bail out of the auto-loop when every wave is failing — re-running
+        // won't help if the underlying call is broken (bad API key, quota
+        // exhausted, etc.). Surface the error and let the operator fix it.
+        if (data.firstError && totalRebuilt === 0) break;
         if (!data.stoppedEarly) break;
       }
       const finalParts = [

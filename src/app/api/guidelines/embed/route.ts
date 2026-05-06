@@ -141,6 +141,7 @@ export async function POST(req: NextRequest) {
     embeddingBatches: 0,
     failed: 0,
     failedIds: [] as number[],
+    firstError: null as { stage: string; status?: number; message: string } | null,
   };
 
   // 3. Process docs in waves. Each wave is fully atomic: fetch → chunk →
@@ -244,8 +245,17 @@ export async function POST(req: NextRequest) {
         stats.failedIds.push(...batch.map((b) => b.docId));
         if (err instanceof OpenAIEmbeddingsError) {
           console.error("OpenAI embedding failed:", err.status, err.message);
+          if (!stats.firstError) {
+            stats.firstError = { stage: "openai", status: err.status, message: err.message };
+          }
         } else {
           console.error("Embedding batch failed:", err);
+          if (!stats.firstError) {
+            stats.firstError = {
+              stage: "embed",
+              message: err instanceof Error ? err.message : String(err),
+            };
+          }
         }
       }
     }
