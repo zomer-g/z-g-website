@@ -50,6 +50,24 @@ const GUIDELINES_DEFAULT = {
   cacheTtlMinutes: 60,
 };
 
+const DEFAMATION_RULINGS_DEFAULT = {
+  isPublic: false,
+  hero: {
+    title: "פסקי דין בלשון הרע",
+    subtitle: "פסקי דין אחרונים בעניין לשון הרע",
+  },
+  cacheTtlMinutes: 60,
+};
+
+const FOI_RULINGS_DEFAULT = {
+  isPublic: false,
+  hero: {
+    title: "פסקי דין בעתירות חופש מידע",
+    subtitle: "פסקי דין אחרונים בעתירות לפי חוק חופש המידע",
+  },
+  cacheTtlMinutes: 60,
+};
+
 const DASHBOARD_PROJECTS = [
   {
     title: "דשבורד סניגוריה ציבורית",
@@ -210,6 +228,16 @@ async function main() {
   await ensureDashboardPage("sanegoria", "דשבורד סניגוריה", SANEGORIA_DEFAULT);
   await ensureDashboardPage("class-actions", "דשבורד תובענות ייצוגיות", CLASS_ACTIONS_DEFAULT);
   await ensureDashboardPage("guidelines", "מאגר הנחיות", GUIDELINES_DEFAULT);
+  await ensureDashboardPage(
+    "defamation-rulings",
+    "פסקי דין בלשון הרע",
+    DEFAMATION_RULINGS_DEFAULT,
+  );
+  await ensureDashboardPage(
+    "foi-rulings",
+    "פסקי דין בעתירות חופש מידע",
+    FOI_RULINGS_DEFAULT,
+  );
   await ensureProjectsPage();
 
   console.log("Done.");

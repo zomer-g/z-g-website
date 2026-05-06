@@ -14,6 +14,8 @@ import type {
   SanegoriaPageContent,
   ClassActionsPageContent,
   GuidelinesPageContent,
+  DefamationRulingsPageContent,
+  FoiRulingsPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -421,6 +423,28 @@ export const DEFAULT_GUIDELINES_CONTENT: GuidelinesPageContent = {
   cacheTtlMinutes: 60,
 };
 
+/* ─── Defamation Rulings Dashboard Page ─── */
+
+export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = {
+  isPublic: false,
+  hero: {
+    title: "פסקי דין בלשון הרע",
+    subtitle: "פסקי דין אחרונים בעניין לשון הרע",
+  },
+  cacheTtlMinutes: 60,
+};
+
+/* ─── FOI Petitions Rulings Dashboard Page ─── */
+
+export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
+  isPublic: false,
+  hero: {
+    title: "פסקי דין בעתירות חופש מידע",
+    subtitle: "פסקי דין אחרונים בעתירות לפי חוק חופש המידע",
+  },
+  cacheTtlMinutes: 60,
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -439,4 +463,6 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   sanegoria: DEFAULT_SANEGORIA_CONTENT,
   "class-actions": DEFAULT_CLASS_ACTIONS_CONTENT,
   guidelines: DEFAULT_GUIDELINES_CONTENT,
+  "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
+  "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
 };

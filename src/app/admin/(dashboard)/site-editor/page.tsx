@@ -67,6 +67,8 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "sanegoria", label: "דשבורד סניגוריה", icon: BarChart3 },
   { slug: "class-actions", label: "דשבורד תובענות ייצוגיות", icon: Scale },
   { slug: "guidelines", label: "מאגר הנחיות", icon: BookOpen },
+  { slug: "defamation-rulings", label: "פסקי דין בלשון הרע", icon: Scale },
+  { slug: "foi-rulings", label: "פסקי דין בעתירות חופש מידע", icon: Scale },
   { slug: "digital-services", label: "שירותים דיגיטליים", icon: Code2 },
   { slug: "legal-tools", label: "כלים משפטיים (ראשי)", icon: Wrench, href: "/admin/pages/legal-tools" },
   { slug: "legal-tools-privacy", label: "כלים משפטיים — פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },

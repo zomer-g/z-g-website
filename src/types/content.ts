@@ -357,6 +357,22 @@ export interface GuidelinesPageContent {
   cacheTtlMinutes: number;
 }
 
+// ── Defamation Rulings Dashboard Page Content ──
+
+export interface DefamationRulingsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+}
+
+// ── FOI Petitions Rulings Dashboard Page Content ──
+
+export interface FoiRulingsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -375,6 +391,8 @@ export type PageContentMap = {
   sanegoria: SanegoriaPageContent;
   "class-actions": ClassActionsPageContent;
   guidelines: GuidelinesPageContent;
+  "defamation-rulings": DefamationRulingsPageContent;
+  "foi-rulings": FoiRulingsPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

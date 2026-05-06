@@ -28,7 +28,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -48,6 +48,8 @@ const PAGE_LABELS: Record<string, string> = {
   sanegoria: "דשבורד סניגוריה",
   "class-actions": "דשבורד תובענות ייצוגיות",
   guidelines: "מאגר הנחיות",
+  "defamation-rulings": "פסקי דין בלשון הרע",
+  "foi-rulings": "פסקי דין בעתירות חופש מידע",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -66,6 +68,8 @@ const PAGE_URLS: Record<string, string> = {
   sanegoria: "/sanegoria",
   "class-actions": "/class-actions",
   guidelines: "/guidelines",
+  "defamation-rulings": "/defamation-rulings",
+  "foi-rulings": "/foi-rulings",
 };
 
 /* ─── Page Editor ─── */
@@ -393,6 +397,18 @@ export default function SiteEditorPageEditor({
                 maxMinutes: 1440,
               }}
               embedAction={{ endpoint: "/api/guidelines/embed" }}
+            />
+          )}
+          {slug === "defamation-rulings" && (
+            <DashboardPageEditor<DefamationRulingsPageContent>
+              content={content as DefamationRulingsPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "foi-rulings" && (
+            <DashboardPageEditor<FoiRulingsPageContent>
+              content={content as FoiRulingsPageContent}
+              onChange={setContent}
             />
           )}
         </div>
