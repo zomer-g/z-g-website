@@ -93,6 +93,14 @@ export async function POST(req: NextRequest) {
 
   const force = req.nextUrl.searchParams.get("force") === "1";
   const sourceParam = req.nextUrl.searchParams.get("source")?.trim() || null;
+  // Continuation cookie. When the soft deadline trips, the client retries
+  // and passes back the `runStartedAt` we returned. Used to skip docs
+  // already rebuilt during this run so a 2,466-doc force rebuild doesn't
+  // restart from id #1 each round (which is how 24 rounds turned into
+  // "3040/2466 embedded" in production).
+  const sinceParam = req.nextUrl.searchParams.get("since");
+  const since = sinceParam ? new Date(sinceParam) : null;
+  const sinceValid = since && !Number.isNaN(since.getTime()) ? since : null;
   const startedAt = Date.now();
 
   // 1. List every guideline id by walking all upstream pages.
@@ -131,18 +139,31 @@ export async function POST(req: NextRequest) {
   // 2. Load existing per-doc state to short-circuit unchanged docs.
   const existingRows = await prisma.guidelineEmbedding.findMany({
     where: { id: { in: allIds } },
-    select: { id: true, contentHash: true },
+    select: { id: true, contentHash: true, updatedAt: true },
   });
   const existingHash = new Map(existingRows.map((r) => [r.id, r.contentHash]));
+  const existingUpdatedAt = new Map(
+    existingRows.map((r) => [r.id, r.updatedAt]),
+  );
+
+  // Helper: was this doc already rebuilt during the current run?
+  // Detected by updatedAt > the run's start timestamp (passed back via
+  // ?since). `since` strictly less-than because updatedAt for a fresh
+  // rebuild is always after the run started.
+  const alreadyRebuiltThisRun = (id: number): boolean => {
+    if (!sinceValid) return false;
+    const ua = existingUpdatedAt.get(id);
+    return ua ? ua.getTime() >= sinceValid.getTime() : false;
+  };
 
   // Render kills the request after maxDuration (~5 min). With ~800 docs, a
-  // forced rebuild can't finish in one shot. Process docs that are MISSING
-  // from the index first — that way new directives (e.g. "נוהל מצלמות גוף")
-  // get indexed even if the run is killed mid-way. Existing docs that just
-  // need a hash-bump come after.
+  // forced rebuild can't finish in one shot. Order so the next wave hits
+  // un-rebuilt docs first: missing-from-index, then never-rebuilt-this-run,
+  // then already-rebuilt-this-run (which will be cheaply skipped).
   const ids = [
     ...allIds.filter((id) => !existingHash.has(id)),
-    ...allIds.filter((id) => existingHash.has(id)),
+    ...allIds.filter((id) => existingHash.has(id) && !alreadyRebuiltThisRun(id)),
+    ...allIds.filter((id) => existingHash.has(id) && alreadyRebuiltThisRun(id)),
   ];
 
   const stats = {
@@ -187,6 +208,13 @@ export async function POST(req: NextRequest) {
       const slice = waveIds.slice(i, i + PARALLEL);
       await Promise.all(
         slice.map(async (id) => {
+          // Cheap pre-check before the upstream fetch: if we already
+          // rebuilt this doc during the current run (continuation rounds),
+          // skip without touching tag-it.biz or OpenAI.
+          if (alreadyRebuiltThisRun(id)) {
+            stats.skipped += 1;
+            return;
+          }
           try {
             const res = await fetch(`${UPSTREAM_BASE}/${id}`, {
               headers: { "X-API-Key": apiKey, Accept: "application/json" },
@@ -335,6 +363,14 @@ export async function POST(req: NextRequest) {
     forced: force,
     source: sourceParam,
     stoppedEarly,
+    // Anchor for continuation rounds. The client passes this back as
+    // ?since=<runStartedAt> so the server can skip docs whose updatedAt
+    // is at or after this timestamp — i.e. docs we already rebuilt this
+    // run. We echo back the caller's `since` if they sent one (so the
+    // anchor stays fixed across all rounds), otherwise we mint a new one.
+    runStartedAt: sinceValid
+      ? sinceValid.toISOString()
+      : new Date(startedAt).toISOString(),
     note: stoppedEarly
       ? "הריצה נעצרה על-ידי בודק הזמן הרך כדי לא להיהרג ב-Render. הרץ שוב כדי להמשיך מהמקום שנעצרה."
       : undefined,

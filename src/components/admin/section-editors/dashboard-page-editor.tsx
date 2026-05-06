@@ -26,6 +26,19 @@ interface SourceCount {
   count: number;
 }
 
+interface EmbedResponse {
+  total?: number;
+  docsRebuilt?: number;
+  embedded?: number;
+  skipped?: number;
+  failed?: number;
+  durationMs?: number;
+  stoppedEarly?: boolean;
+  runStartedAt?: string;
+  firstError?: { stage: string; status?: number; message: string };
+  error?: string;
+}
+
 // Drives the server-side embed/import loop for one target (all docs or one
 // source). Each server invocation returns stoppedEarly=true when a soft
 // deadline was hit; we keep posting until the run is genuinely done. The
@@ -41,11 +54,23 @@ async function runEmbedLoop(
   let totalSeconds = 0;
   let runs = 0;
   let totalDocs = 0;
+  // Anchor returned by the server on round 1; passed back as ?since= in
+  // every subsequent round so the server skips docs already rebuilt in
+  // this run. Without this, a force rebuild restarts from doc #1 each
+  // round and burns OpenAI credit re-embedding the same first batch.
+  let runStartedAt: string | null = null;
 
   while (true) {
-    const res = await fetch(url, { method: "POST" });
-    const data = await res.json();
+    const sep: string = url.includes("?") ? "&" : "?";
+    const fullUrl: string = runStartedAt
+      ? `${url}${sep}since=${encodeURIComponent(runStartedAt)}`
+      : url;
+    const res: Response = await fetch(fullUrl, { method: "POST" });
+    const data: EmbedResponse = (await res.json()) as EmbedResponse;
     if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
+    if (typeof data.runStartedAt === "string" && !runStartedAt) {
+      runStartedAt = data.runStartedAt;
+    }
     runs += 1;
     totalRebuilt += data.docsRebuilt ?? data.embedded ?? 0;
     totalSkipped += data.skipped ?? 0;
