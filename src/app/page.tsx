@@ -82,24 +82,26 @@ export default async function HomePage() {
         <Hero content={content.hero} />
       </EditableSection>
 
-      {/* ── Services Preview (from DB) ── */}
-      {dbServices.length > 0 && (
-        <EditableSection editHref="/admin/services" editLabel="תחומי עיסוק">
-        <section aria-labelledby="services-heading" className="py-20 lg:py-28">
+      {/* ── Projects Preview ── */}
+      {projectsContent.projects.length > 0 && (
+        <EditableSection editHref="/admin/site-editor/projects" editLabel="מיזמים">
+        <section aria-labelledby="projects-preview-heading" className="py-20 lg:py-28">
           <Container>
             <SectionHeading
-              id="services-heading"
-              title={content.services.title}
-              subtitle={content.services.subtitle}
+              id="projects-preview-heading"
+              title={content.projectsPreview.title}
+              subtitle={content.projectsPreview.subtitle}
             />
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {dbServices.map((service) => {
-                const Icon = getIcon(service.icon ?? "briefcase");
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {projectsContent.projects.slice(0, 6).map((project, i) => {
+                const Icon = PROJECT_ICONS[project.icon] || Database;
                 return (
-                  <Link
-                    key={service.slug}
-                    href={`/services/${service.slug}`}
+                  <a
+                    key={i}
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="group block"
                   >
                     <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
@@ -113,10 +115,75 @@ export default async function HomePage() {
                         >
                           <Icon className="h-6 w-6" aria-hidden="true" />
                         </div>
-                        <CardTitle>{service.title}</CardTitle>
-                        <CardDescription>{service.description}</CardDescription>
+                        <CardTitle className="transition-colors duration-200 group-hover:text-accent">
+                          {project.title}
+                        </CardTitle>
+                        <CardDescription>{project.subtitle}</CardDescription>
                       </CardHeader>
                       <CardContent>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
+                            "transition-colors duration-200 group-hover:text-accent"
+                          )}
+                        >
+                          לאתר הפרויקט
+                          <span className="sr-only"> (נפתח בחלון חדש)</span>
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </a>
+                );
+              })}
+            </div>
+
+            <div className="mt-12 text-center">
+              <Button href={content.projectsPreview.ctaLink} variant="secondary" size="md">
+                {content.projectsPreview.ctaText}
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
+          </Container>
+        </section>
+        </EditableSection>
+      )}
+
+      {/* ── Services Preview (from DB) ── */}
+      {dbServices.length > 0 && (
+        <EditableSection editHref="/admin/services" editLabel="תחומי עיסוק">
+        <section aria-labelledby="services-heading" className="bg-muted-bg py-12 lg:py-16">
+          <Container>
+            <SectionHeading
+              id="services-heading"
+              title={content.services.title}
+              subtitle={content.services.subtitle}
+            />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {dbServices.slice(0, 3).map((service) => {
+                const Icon = getIcon(service.icon ?? "briefcase");
+                return (
+                  <Link
+                    key={service.slug}
+                    href={`/services/${service.slug}`}
+                    className="group block"
+                  >
+                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
+                      <CardHeader className="p-5">
+                        <div
+                          className={cn(
+                            "mb-3 inline-flex h-10 w-10 items-center justify-center",
+                            "rounded-lg bg-primary/5 text-primary",
+                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
+                          )}
+                        >
+                          <Icon className="h-5 w-5" aria-hidden="true" />
+                        </div>
+                        <CardTitle className="text-lg">{service.title}</CardTitle>
+                        <CardDescription className="line-clamp-2 text-sm">{service.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="px-5 pb-5 pt-0">
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
@@ -199,73 +266,6 @@ export default async function HomePage() {
         </Container>
       </section>
       </EditableSection>
-
-      {/* ── Projects Preview ── */}
-      {projectsContent.projects.length > 0 && (
-        <EditableSection editHref="/admin/site-editor/projects" editLabel="מיזמים">
-        <section aria-labelledby="projects-preview-heading" className="py-20 lg:py-28">
-          <Container>
-            <SectionHeading
-              id="projects-preview-heading"
-              title={content.projectsPreview.title}
-              subtitle={content.projectsPreview.subtitle}
-            />
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              {projectsContent.projects.slice(0, 3).map((project, i) => {
-                const Icon = PROJECT_ICONS[project.icon] || Database;
-                return (
-                  <a
-                    key={i}
-                    href={project.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group block"
-                  >
-                    <Card className="h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/30">
-                      <CardHeader>
-                        <div
-                          className={cn(
-                            "mb-4 inline-flex h-12 w-12 items-center justify-center",
-                            "rounded-lg bg-primary/5 text-primary",
-                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
-                          )}
-                        >
-                          <Icon className="h-6 w-6" aria-hidden="true" />
-                        </div>
-                        <CardTitle className="transition-colors duration-200 group-hover:text-accent">
-                          {project.title}
-                        </CardTitle>
-                        <CardDescription>{project.subtitle}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                            "transition-colors duration-200 group-hover:text-accent"
-                          )}
-                        >
-                          לאתר הפרויקט
-                          <span className="sr-only"> (נפתח בחלון חדש)</span>
-                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                        </span>
-                      </CardContent>
-                    </Card>
-                  </a>
-                );
-              })}
-            </div>
-
-            <div className="mt-12 text-center">
-              <Button href={content.projectsPreview.ctaLink} variant="secondary" size="md">
-                {content.projectsPreview.ctaText}
-                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </div>
-          </Container>
-        </section>
-        </EditableSection>
-      )}
 
       {/* ── Articles Preview (from DB) ── */}
       {dbArticles.length > 0 && (
