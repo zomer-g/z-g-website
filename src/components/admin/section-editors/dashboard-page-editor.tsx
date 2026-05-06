@@ -61,15 +61,18 @@ async function runEmbedLoop(
         : `שגיאה (${data.firstError.stage}): ${data.firstError.message}`;
       liveParts.push(errLabel);
     }
-    if (data.stoppedEarly) liveParts.push("ממשיך אוטומטית…");
+    // Bail when every wave is failing — re-running won't help if the
+    // underlying call is broken (bad API key, quota exhausted, etc.).
+    // Decided BEFORE we tag "ממשיך אוטומטית…" so the final message doesn't
+    // claim we're continuing when we just stopped.
+    const fatalFailure = data.firstError && totalRebuilt === 0;
+    if (data.stoppedEarly && !fatalFailure) liveParts.push("ממשיך אוטומטית…");
     onProgress({
-      type: data.firstError && totalRebuilt === 0 ? "error" : "success",
+      type: fatalFailure ? "error" : "success",
       message: liveParts.join(" • "),
     });
 
-    // Bail when every wave is failing — re-running won't help if the
-    // underlying call is broken (bad API key, quota exhausted, etc.).
-    if (data.firstError && totalRebuilt === 0) {
+    if (fatalFailure) {
       return {
         type: "error",
         message: liveParts.join(" • "),
