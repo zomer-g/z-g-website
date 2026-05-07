@@ -14,6 +14,7 @@ interface PageItem {
   slug: string;
   title: string;
   updatedAt: string;
+  status?: "DRAFT" | "PUBLISHED";
   seoTitle?: string | null;
   seoDesc?: string | null;
 }
@@ -33,6 +34,12 @@ const PAGE_LABELS: Record<string, string> = {
   "case-tracker": "איתור אסמכתאות (ראשי)",
   "case-tracker-privacy": "איתור אסמכתאות — פרטיות",
   "case-tracker-terms": "איתור אסמכתאות — תנאי שימוש",
+  ocal: "Ocal — תוסף נבחרי ציבור (ראשי)",
+  "ocal-privacy": "Ocal — מדיניות פרטיות",
+  "ocal-terms": "Ocal — תנאי שימוש",
+  "ocoi-extension": "OCOI — תוסף ניגוד עניינים (ראשי)",
+  "ocoi-extension-privacy": "OCOI — מדיניות פרטיות",
+  "ocoi-extension-terms": "OCOI — תנאי שימוש",
 };
 
 /* ─── Pages Management Page ─── */
@@ -115,7 +122,18 @@ export default function AdminPagesPage() {
                     </div>
                   </div>
 
-                  <ChevronLeft size={20} className="text-muted shrink-0" />
+                  <div className="flex items-center gap-3">
+                    {page.status === "PUBLISHED" ? (
+                      <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">
+                        מפורסם
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
+                        מוסתר
+                      </span>
+                    )}
+                    <ChevronLeft size={20} className="text-muted shrink-0" />
+                  </div>
                 </CardContent>
               </Card>
             </Link>

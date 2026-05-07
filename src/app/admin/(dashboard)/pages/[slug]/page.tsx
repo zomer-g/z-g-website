@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Editor } from "@/components/admin/editor";
-import { ArrowRight, Loader2, Save, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowRight, Loader2, Save, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -18,6 +18,7 @@ interface PageData {
   content: Record<string, unknown> | null;
   seoTitle: string | null;
   seoDesc: string | null;
+  status: "DRAFT" | "PUBLISHED";
   updatedAt: string;
 }
 
@@ -45,6 +46,7 @@ export default function EditPagePage({
   const [content, setContent] = useState<Record<string, unknown> | null>(null);
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDesc, setSeoDesc] = useState("");
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -69,6 +71,7 @@ export default function EditPagePage({
         setContent(found.content);
         setSeoTitle(found.seoTitle || "");
         setSeoDesc(found.seoDesc || "");
+        setStatus(found.status ?? "DRAFT");
       } catch (err) {
         setFeedback({
           type: "error",
@@ -104,6 +107,7 @@ export default function EditPagePage({
           content,
           seoTitle: seoTitle || undefined,
           seoDesc: seoDesc || undefined,
+          status,
         }),
       });
 
@@ -212,6 +216,46 @@ export default function EditPagePage({
             initialContent={pageData.content}
             onChange={handleEditorChange}
           />
+        </CardContent>
+      </Card>
+
+      {/* ── Publish Status ── */}
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <h2 className="text-lg font-semibold text-foreground">סטטוס פרסום</h2>
+          <p className="text-sm text-muted">
+            דף בסטטוס &quot;מוסתר&quot; מחזיר 404 לציבור (ועדיין נראה לך כמנהל לצורך תצוגה מקדימה).
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setStatus("PUBLISHED")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors",
+                status === "PUBLISHED"
+                  ? "border-green-300 bg-green-50 text-green-700"
+                  : "border-border bg-card text-muted hover:bg-muted-bg",
+              )}
+              aria-pressed={status === "PUBLISHED"}
+            >
+              <Eye size={16} />
+              מפורסם
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus("DRAFT")}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors",
+                status === "DRAFT"
+                  ? "border-amber-300 bg-amber-50 text-amber-700"
+                  : "border-border bg-card text-muted hover:bg-muted-bg",
+              )}
+              aria-pressed={status === "DRAFT"}
+            >
+              <EyeOff size={16} />
+              מוסתר (טיוטה)
+            </button>
+          </div>
         </CardContent>
       </Card>
 

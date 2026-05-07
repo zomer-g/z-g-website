@@ -60,9 +60,20 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    // When transitioning from DRAFT → PUBLISHED, stamp publishedAt the first
+    // time it goes live. Subsequent edits keep the existing publishedAt.
+    const data: typeof parsed.data & { publishedAt?: Date } = { ...parsed.data };
+    if (
+      parsed.data.status === "PUBLISHED" &&
+      existing.status !== "PUBLISHED" &&
+      !existing.publishedAt
+    ) {
+      data.publishedAt = new Date();
+    }
+
     const page = await prisma.page.update({
       where: { slug },
-      data: parsed.data,
+      data,
     });
 
     return NextResponse.json(page);

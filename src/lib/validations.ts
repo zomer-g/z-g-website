@@ -38,6 +38,7 @@ export const pageSchema = z.object({
   content: z.any(),
   seoTitle: z.string().optional(),
   seoDesc: z.string().optional(),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
 });
 
 export const mediaAppearanceSchema = z.object({
