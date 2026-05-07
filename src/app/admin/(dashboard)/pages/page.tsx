@@ -1,145 +1,15 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { formatDate } from "@/lib/utils";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Layers, ChevronLeft } from "lucide-react";
-
-/* ─── Types ─── */
-
-interface PageItem {
-  id: string;
-  slug: string;
-  title: string;
-  updatedAt: string;
-  status?: "DRAFT" | "PUBLISHED";
-  seoTitle?: string | null;
-  seoDesc?: string | null;
-}
-
-/* ─── Page Label Map ─── */
-
-const PAGE_LABELS: Record<string, string> = {
-  home: "עמוד הבית",
-  about: "אודות",
-  privacy: "מדיניות פרטיות",
-  accessibility: "הצהרת נגישות",
-  terms: "תנאי שימוש",
-  "legal-tools": "כלים משפטיים (ראשי)",
-  "legal-tools-privacy": "כלים משפטיים — פרטיות",
-  "legal-tools-terms": "כלים משפטיים — תנאי שימוש",
-  "legal-tools-support": "כלים משפטיים — תמיכה",
-  "case-tracker": "איתור אסמכתאות (ראשי)",
-  "case-tracker-privacy": "איתור אסמכתאות — פרטיות",
-  "case-tracker-terms": "איתור אסמכתאות — תנאי שימוש",
-  ocal: "Ocal — תוסף נבחרי ציבור (ראשי)",
-  "ocal-privacy": "Ocal — מדיניות פרטיות",
-  "ocal-terms": "Ocal — תנאי שימוש",
-  "ocoi-extension": "OCOI — תוסף ניגוד עניינים (ראשי)",
-  "ocoi-extension-privacy": "OCOI — מדיניות פרטיות",
-  "ocoi-extension-terms": "OCOI — תנאי שימוש",
-};
-
-/* ─── Pages Management Page ─── */
-
-export default function AdminPagesPage() {
-  const [pages, setPages] = useState<PageItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchPages() {
-      try {
-        const res = await fetch("/api/pages");
-        if (!res.ok) throw new Error("שגיאה בטעינת העמודים");
-        const data = await res.json();
-        setPages(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "שגיאה בטעינת העמודים");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPages();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-red-700">
-        {error}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* ── Page Header ── */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary-dark">ניהול עמודים</h1>
-      </div>
-
-      {/* ── Pages List ── */}
-      {pages.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Layers className="mx-auto mb-3 h-10 w-10 text-muted" />
-            <p className="text-muted">לא נמצאו עמודים במערכת</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {pages.map((page) => (
-            <Link key={page.id} href={`/admin/pages/${page.slug}`}>
-              <Card
-                className={cn(
-                  "cursor-pointer transition-all duration-200",
-                  "hover:shadow-md hover:border-primary/30",
-                )}
-              >
-                <CardContent className="flex items-center justify-between p-5">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <Layers size={20} className="text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">
-                        {PAGE_LABELS[page.slug] || page.title}
-                      </h3>
-                      <p className="text-sm text-muted">
-                        /{page.slug} &middot; עודכן {formatDate(page.updatedAt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    {page.status === "PUBLISHED" ? (
-                      <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                        מפורסם
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">
-                        מוסתר
-                      </span>
-                    )}
-                    <ChevronLeft size={20} className="text-muted shrink-0" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+/**
+ * The standalone "עמודים" listing was a redundant secondary index of the
+ * same Page rows that "עורך האתר" already lists. We unified the two —
+ * /admin/site-editor is now the single canonical entry point. This file
+ * exists only so old bookmarks / external links keep working.
+ *
+ * The per-slug TipTap editor at /admin/pages/[slug] stays exactly where
+ * it was; "עורך האתר" links straight to it via the `href` field on each
+ * card for TipTap-style pages.
+ */
+export default function AdminPagesIndexRedirect() {
+  redirect("/admin/site-editor");
 }

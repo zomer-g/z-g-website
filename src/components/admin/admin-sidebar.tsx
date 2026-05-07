@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   FileText,
-  Layers,
   Briefcase,
   Image,
   Inbox,
@@ -28,7 +27,6 @@ const navItems = [
   { label: "לוח בקרה", href: "/admin", icon: LayoutDashboard },
   { label: "עורך האתר", href: "/admin/site-editor", icon: PenTool },
   { label: "מאמרים", href: "/admin/posts", icon: FileText },
-  { label: "עמודים", href: "/admin/pages", icon: Layers },
   { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
   { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
   { label: "העלאת קבצים", href: "/admin/media", icon: Image },

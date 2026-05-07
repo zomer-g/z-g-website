@@ -77,6 +77,12 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "case-tracker", label: "איתור אסמכתאות (ראשי)", icon: Code2, href: "/admin/pages/case-tracker" },
   { slug: "case-tracker-privacy", label: "איתור אסמכתאות — פרטיות", icon: Shield, href: "/admin/pages/case-tracker-privacy" },
   { slug: "case-tracker-terms", label: "איתור אסמכתאות — תנאי שימוש", icon: ScrollText, href: "/admin/pages/case-tracker-terms" },
+  { slug: "ocal", label: "Ocal — תוסף נבחרי ציבור (ראשי)", icon: Code2, href: "/admin/pages/ocal" },
+  { slug: "ocal-privacy", label: "Ocal — מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocal-privacy" },
+  { slug: "ocal-terms", label: "Ocal — תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocal-terms" },
+  { slug: "ocoi-extension", label: "OCOI — תוסף ניגוד עניינים (ראשי)", icon: Code2, href: "/admin/pages/ocoi-extension" },
+  { slug: "ocoi-extension-privacy", label: "OCOI — מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocoi-extension-privacy" },
+  { slug: "ocoi-extension-terms", label: "OCOI — תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocoi-extension-terms" },
 ];
 
 /* ─── Site Editor Page ─── */
