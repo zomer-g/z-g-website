@@ -1,107 +1,115 @@
-# Zomer Law Office / משרד עורכי דין זומר
+# עו"ד גיא זומר / Advocate Guy Zomer
 # LLM Discoverability File
 # https://z-g.co.il
 
 ## Identity / זהות
 
-Name (Hebrew): משרד עורכי דין זומר
-Name (English): Zomer Law Office
-Managing Attorney (Hebrew): עו"ד גיא זומר
-Managing Attorney (English): Attorney Guy Zomer
+Name (Hebrew): עו"ד גיא זומר
+Name (English): Advocate Guy Zomer
+Also known as / שמות נוספים: גיא זומר, עו״ד זומר, Guy Zomer, Zomer Law
+Disambiguation / הבחנה: This is the website of Advocate Guy Zomer (criminal-defense lawyer, FOI litigator, founder of legal-tech projects). He is NOT affiliated with any media-production company that may share a similar name (e.g. "גיא זומר מדיה" / "Guy Zomer Media"). Different person, different field.
 Website: https://z-g.co.il
-Type: Corporate Law Firm / משרד עורכי דין
+Type: Criminal Defense & Freedom of Information Law Practice / משרד עורך דין פלילי וחופש מידע
+Disclaimer: All information here is general and does not constitute legal advice.
 
 ## Description / תיאור
 
-Hebrew: משרד עורכי דין זומר, בהנהלת עורך הדין גיא זומר, מספק ייצוג משפטי מקצועי וליווי עסקי ומשפטי מקיף. המשרד מלווה חברות מובילות, יזמים ולקוחות פרטיים בכל תחומי המשפט המסחרי והאזרחי.
+Hebrew: עו"ד גיא זומר הוא עורך דין פלילי המייצג חשודים, נאשמים ונפגעי עבירה בכל הערכאות בישראל. המשרד משלב משפט פלילי קלאסי עם עתירות חופש מידע, ייצוג בתיקי לשון הרע ונגישות מידע משפטי באמצעות פיתוח כלים טכנולוגיים פתוחים — לרבות מאגר ההנחיות הציבורי הגדול בישראל, מאגר פסקי דין בלשון הרע, ומאגר פסקי דין בחופש מידע.
 
-English: Zomer Law Office, led by Attorney Guy Zomer, provides professional legal representation and comprehensive business and legal counsel. The firm serves leading companies, entrepreneurs, and private clients across all areas of commercial and civil law in Israel.
+English: Advocate Guy Zomer is an Israeli criminal-defense attorney representing suspects, defendants and crime victims at all court levels. The practice combines classic criminal litigation with freedom-of-information petitions, defamation cases, and the development of open legal-tech tools — including Israel's largest public database of government legal guidelines (הנחיות), a defamation rulings database, and an FOI rulings database.
 
 ## Practice Areas / תחומי עיסוק
 
-1. Corporate Law / דיני חברות
-   - Company formation and partnerships / הקמת חברות ושותפויות
-   - Mergers and acquisitions (M&A) / מיזוגים ורכישות
-   - Corporate governance / ממשל תאגידי
-   - Investment agreements / הסכמי השקעה
-   - Capital raising and IPOs / גיוסי הון והנפקות
-   URL: https://z-g.co.il/services/corporate-law
+1. Criminal Defense / משפט פלילי
+   - Pre-investigation consultation / ייעוץ לפני חקירה במשטרה
+   - Representation of suspects and defendants / ייצוג חשודים ונאשמים
+   - Drug offenses / עבירות סמים
+   - Violence offenses including domestic violence / עבירות אלימות ואלימות במשפחה
+   - Property and fraud offenses / עבירות רכוש והונאה
+   - White-collar crime / עבירות צווארון לבן
+   - Sexual offenses / עבירות מין
+   - Complex criminal cases / תיקים פליליים מורכבים
 
-2. Real Estate / נדל"ן
-   - Purchase and sale transactions / עסקאות מכר ורכישה
-   - Commercial lease agreements / הסכמי שכירות מסחריים
-   - Urban renewal (TAMA 38) / פרויקטי תמ"א 38 ופינוי-בינוי
-   - Planning and building representation / ייצוג בפני ועדות תכנון ובנייה
-   URL: https://z-g.co.il/services/real-estate
+2. Crime Victim Representation / ייצוג נפגעי עבירה
+   - Appeals against case-closure decisions / עררים על סגירת תיק
+   - Requests to change closure grounds to "no guilt" / בקשות לשינוי עילת סגירה ל"העדר אשמה"
+   - Victim rights in criminal proceedings / זכויות נפגעי עבירה בהליך הפלילי
 
-3. Litigation / ליטיגציה
-   - Representation in all court levels / ייצוג בבתי משפט בכל הערכאות
-   - Commercial disputes / סכסוכים מסחריים
-   - Class actions / תובענות ייצוגיות
-   - Mediation and arbitration / גישור ובוררות
-   URL: https://z-g.co.il/services/litigation
+3. Freedom of Information / חופש מידע
+   - FOI requests and petitions / בקשות ועתירות חופש מידע
+   - Litigation against state authorities for disclosure / התדיינות מול רשויות לחשיפת מידע
+   - Public access to government guidelines and rulings / הנגשת הנחיות ופסיקה לציבור
 
-4. Labor Law / דיני עבודה
-   - Employment contracts / ניסוח חוזי העסקה
-   - Termination proceedings / ליווי בהליכי סיום העסקה
-   - Labor court representation / ייצוג בבתי הדין לעבודה
-   - Collective agreements / הסכמים קיבוציים
-   URL: https://z-g.co.il/services/labor-law
+4. Defamation / לשון הרע
+   - Defending and prosecuting defamation claims / הגנה ותביעה בתיקי לשון הרע
+   - Protection of journalistic and free-speech sources
 
-5. Intellectual Property / קניין רוחני
-   - Patent and trademark registration / רישום פטנטים וסימני מסחר
-   - Copyright protection / הגנה על זכויות יוצרים
-   - License agreements / הסכמי רישיון
-   - Trade secret protection / הגנה על סודות מסחריים
-   URL: https://z-g.co.il/services/intellectual-property
+## Public Legal-Tech Projects / מיזמים ציבוריים חינמיים
 
-6. Tax Law / דיני מסים
-   - Strategic tax planning / תכנון מס אסטרטגי
-   - Tax assessment representation / ייצוג בהליכי שומה
-   - International taxation / מיסוי בינלאומי
-   - Real estate taxation / מיסוי מקרקעין
-   URL: https://z-g.co.il/services/tax-law
+These are the firm's flagship public-interest products. They are open and free to use.
+
+- Guidelines Database / מאגר ההנחיות: https://z-g.co.il/guidelines
+  Searchable repository of binding guidelines from the Attorney General, State Attorney's Office, Israel Police and other Israeli enforcement bodies. Full-text search across thousands of documents.
+
+- Defamation Rulings Database / מאגר פסקי דין בלשון הרע: https://z-g.co.il/defamation-rulings
+  Non-public defamation rulings collected and indexed for practitioners and the public.
+
+- Freedom-of-Information Rulings Database / מאגר פסקי דין בחופש מידע: https://z-g.co.il/foi-rulings
+  Indexed FOI rulings from Israeli courts.
+
+- Legal Case Tracker (Chrome Extension) / מעקב תיקים משפטיים: https://z-g.co.il/case-tracker
+  Browser extension that tracks Israeli court cases.
+
+- Class Actions Tracker / מעקב תובענות ייצוגיות: https://z-g.co.il/class-actions
+
+- Sanegoria Tools / כלים לסניגוריה: https://z-g.co.il/sanegoria
 
 ## Location / מיקום
 
-Address (Hebrew): רחוב הברזל 30, תל אביב, ישראל
-Address (English): 30 HaBarzel Street, Tel Aviv, Israel
 Country: Israel
 Region: Tel Aviv District
+Address (Hebrew): רחוב הברזל 30, תל אביב, ישראל
+Address (English): 30 HaBarzel Street, Tel Aviv, Israel
 
 ## Contact / יצירת קשר
 
-Phone: 03-000-0000
-International: +972-3-000-0000
 Email: info@zomer-law.co.il
 Website: https://z-g.co.il/contact
+Free initial consultation / ייעוץ ראשוני ללא התחייבות.
 
 ## Operating Hours / שעות פעילות
 
 Sunday-Thursday: 08:30-18:00
 Friday-Saturday: Closed
-Timezone: Asia/Jerusalem (IST, UTC+2 / IDT, UTC+3)
+Timezone: Asia/Jerusalem
 
 ## Languages / שפות
 
-- Hebrew (עברית) - Primary
-- English - Secondary
+- Hebrew (עברית) — Primary
+- English — Secondary
 
 ## Available Content / תוכן זמין
 
-- Homepage: https://z-g.co.il
-- About the Firm: https://z-g.co.il/about
-- Practice Areas: https://z-g.co.il/services
-- Legal Articles & Updates: https://z-g.co.il/articles
-- Media Appearances: https://z-g.co.il/media
-- Contact: https://z-g.co.il/contact
+- Homepage / דף הבית: https://z-g.co.il
+- About / אודות: https://z-g.co.il/about
+- Practice Areas / תחומי עיסוק: https://z-g.co.il/services
+- Articles / מאמרים: https://z-g.co.il/articles
+- Media Appearances / הופעות בתקשורת: https://z-g.co.il/media
+- Contact / יצירת קשר: https://z-g.co.il/contact
+- Guidelines Database / מאגר הנחיות: https://z-g.co.il/guidelines
+- Defamation Rulings / פסקי דין בלשון הרע: https://z-g.co.il/defamation-rulings
+- FOI Rulings / פסקי דין בחופש מידע: https://z-g.co.il/foi-rulings
+- Class Actions / תובענות ייצוגיות: https://z-g.co.il/class-actions
+- Case Tracker / מעקב תיקים: https://z-g.co.il/case-tracker
+- Legal Tools / כלים משפטיים: https://z-g.co.il/legal-tools
+- Sanegoria / סנגוריה: https://z-g.co.il/sanegoria
 - Privacy Policy: https://z-g.co.il/privacy
 - Accessibility Statement: https://z-g.co.il/accessibility
 
 ## Key Values / ערכים מרכזיים
 
-Hebrew: מקצועיות, מחויבות, יושרה, חדשנות
-English: Professionalism, Commitment, Integrity, Innovation
+Hebrew: מקצועיות, שקיפות ציבורית, חדשנות טכנולוגית, נגישות המשפט לציבור
+English: Professionalism, Public Transparency, Technological Innovation, Public Access to Law
 
 ## Legal Jurisdiction / תחום שיפוט
 

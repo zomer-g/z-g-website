@@ -1,110 +1,77 @@
 import type { MetadataRoute } from "next";
-
-/**
- * Dynamic sitemap generator for the law firm website.
- *
- * Includes all public pages with appropriate change frequencies
- * and priority values. Service and article slugs are maintained
- * here statically until a database/CMS is integrated.
- */
+import { prisma } from "@/lib/prisma";
 
 const SITE_URL = "https://z-g.co.il";
 
-/* ─── Service Slugs ─── */
+type Entry = MetadataRoute.Sitemap[number];
 
-const SERVICE_SLUGS = [
-  "corporate-law",
-  "real-estate",
-  "litigation",
-  "labor-law",
-  "intellectual-property",
-  "tax-law",
-] as const;
+const staticEntry = (
+  path: string,
+  changeFrequency: Entry["changeFrequency"],
+  priority: number,
+): Entry => ({
+  url: path === "" ? SITE_URL : `${SITE_URL}${path}`,
+  lastModified: new Date(),
+  changeFrequency,
+  priority,
+});
 
-/* ─── Article Slugs ─── */
-
-const ARTICLE_SLUGS = [
-  "corporate-governance-guide",
-  "real-estate-tax-reform",
-  "class-action-trends",
-  "remote-work-legal-aspects",
-  "ai-intellectual-property",
-  "international-tax-planning",
-] as const;
-
-export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
-
-  /* ── Static Pages ── */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  /* ── Static / hand-written pages ── */
 
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: SITE_URL,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1.0,
-    },
-    {
-      url: `${SITE_URL}/about`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/services`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-    {
-      url: `${SITE_URL}/articles`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${SITE_URL}/media`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-    },
-    {
-      url: `${SITE_URL}/contact`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${SITE_URL}/privacy`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${SITE_URL}/accessibility`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    staticEntry("", "weekly", 1.0),
+    staticEntry("/about", "monthly", 0.8),
+    staticEntry("/services", "monthly", 0.9),
+    staticEntry("/articles", "weekly", 0.7),
+    staticEntry("/media", "monthly", 0.6),
+    staticEntry("/contact", "monthly", 0.7),
+    // Public projects — these are high-traffic flagship pages and must be indexed.
+    staticEntry("/projects", "weekly", 0.9),
+    staticEntry("/guidelines", "daily", 1.0),
+    staticEntry("/defamation-rulings", "weekly", 0.8),
+    staticEntry("/foi-rulings", "weekly", 0.8),
+    staticEntry("/rulings", "weekly", 0.7),
+    staticEntry("/class-actions", "weekly", 0.7),
+    staticEntry("/case-tracker", "monthly", 0.7),
+    staticEntry("/legal-tools", "monthly", 0.7),
+    staticEntry("/sanegoria", "monthly", 0.7),
+    staticEntry("/digital-services", "monthly", 0.6),
+    staticEntry("/privacy", "yearly", 0.3),
+    staticEntry("/accessibility", "yearly", 0.3),
+    staticEntry("/terms", "yearly", 0.3),
   ];
 
-  /* ── Service Detail Pages ── */
+  /* ── Dynamic: services from DB ── */
 
-  const servicePages: MetadataRoute.Sitemap = SERVICE_SLUGS.map((slug) => ({
-    url: `${SITE_URL}/services/${slug}`,
-    lastModified: now,
-    changeFrequency: "monthly" as const,
-    priority: 0.8,
-  }));
+  let servicePages: MetadataRoute.Sitemap = [];
+  try {
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+      select: { slug: true },
+    });
+    servicePages = services.map((s) => staticEntry(`/services/${s.slug}`, "monthly", 0.8));
+  } catch {
+    // DB unavailable — skip dynamic section rather than fail the whole sitemap.
+  }
 
-  /* ── Article Detail Pages ── */
+  /* ── Dynamic: published articles from DB ── */
 
-  const articlePages: MetadataRoute.Sitemap = ARTICLE_SLUGS.map((slug) => ({
-    url: `${SITE_URL}/articles/${slug}`,
-    lastModified: now,
-    changeFrequency: "yearly" as const,
-    priority: 0.7,
-  }));
+  let articlePages: MetadataRoute.Sitemap = [];
+  try {
+    const posts = await prisma.post.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true, publishedAt: true },
+    });
+    articlePages = posts.map((p) => ({
+      url: `${SITE_URL}/articles/${p.slug}`,
+      lastModified: p.updatedAt ?? p.publishedAt ?? new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    // ignore
+  }
 
   return [...staticPages, ...servicePages, ...articlePages];
 }

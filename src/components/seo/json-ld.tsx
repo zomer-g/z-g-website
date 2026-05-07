@@ -11,12 +11,23 @@ const FIRM_NAME_HE = "עו\"ד גיא זומר";
 const FIRM_NAME_EN = "Advocate Guy Zomer";
 const ATTORNEY_NAME_HE = "עו\"ד גיא זומר";
 const ATTORNEY_NAME_EN = "Guy Zomer";
+const ATTORNEY_ALT_NAMES = [
+  "גיא זומר",
+  "עו\"ד זומר",
+  "זומר עורך דין",
+  "Guy Zomer",
+  "Advocate Guy Zomer",
+  "Zomer Law",
+];
 const PHONE = "+972-3-000-0000";
 const EMAIL = "info@zomer-law.co.il";
 const ADDRESS_STREET = "רחוב הברזל 30";
 const ADDRESS_CITY = "תל אביב";
 const ADDRESS_COUNTRY = "IL";
-const LOGO_URL = `${SITE_URL}/images/logo.png`;
+// Use the existing portrait as the brand image. /images/logo.png does not exist
+// in /public — pointing crawlers at a 404 weakens rich-result eligibility.
+const LOGO_URL = `${SITE_URL}/apple-icon`;
+const PORTRAIT_URL = `${SITE_URL}/images/guy-zomer.jpg`;
 
 /* ─── Base Component ─── */
 
@@ -37,12 +48,12 @@ export function OrganizationSchema() {
     "@type": "LegalService",
     "@id": `${SITE_URL}/#organization`,
     name: FIRM_NAME_HE,
-    alternateName: FIRM_NAME_EN,
+    alternateName: ATTORNEY_ALT_NAMES,
     url: SITE_URL,
     logo: LOGO_URL,
-    image: LOGO_URL,
+    image: PORTRAIT_URL,
     description:
-      "עו\"ד זומר - ייצוג משפטי מקצועי בתחום הפלילי. התמחות בייעוץ לפני חקירה, ליווי נפגעי עבירה, עבירות אלימות, סמים, רכוש והונאה.",
+      "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. ייצוג חשודים, נאשמים ונפגעי עבירה, עתירות חופש מידע ותיקי לשון הרע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
     telephone: PHONE,
     email: EMAIL,
     foundingDate: "2020",
@@ -166,12 +177,13 @@ export function AttorneySchema() {
     "@type": "Person",
     "@id": `${SITE_URL}/#attorney`,
     name: ATTORNEY_NAME_HE,
-    alternateName: ATTORNEY_NAME_EN,
-    jobTitle: "עורך דין פלילי",
+    alternateName: ATTORNEY_ALT_NAMES,
+    jobTitle: "עורך דין פלילי וחופש מידע",
     description:
-      "עו\"ד גיא זומר, בעל ניסיון עשיר בתחום המשפט הפלילי. מלווה חשודים ונאשמים בכל שלבי ההליך הפלילי.",
+      "עו\"ד גיא זומר, עורך דין פלילי וחופש מידע. מלווה חשודים, נאשמים ונפגעי עבירה בכל שלבי ההליך הפלילי, מנהל עתירות חופש מידע ומפעיל מאגרי הנחיות ופסיקה ציבוריים.",
     url: `${SITE_URL}/about`,
-    image: `${SITE_URL}/images/attorney-guy-zomer.jpg`,
+    image: PORTRAIT_URL,
+    mainEntityOfPage: `${SITE_URL}/about`,
     telephone: PHONE,
     email: EMAIL,
     alumniOf: {
@@ -332,11 +344,11 @@ export function WebSiteSchema() {
     "@type": "WebSite",
     "@id": `${SITE_URL}/#website`,
     name: FIRM_NAME_HE,
-    alternateName: FIRM_NAME_EN,
+    alternateName: ATTORNEY_ALT_NAMES,
     url: SITE_URL,
     inLanguage: "he",
     description:
-      "עו\"ד זומר - ייצוג משפטי מקצועי בתחום הפלילי. התמחות בייעוץ לפני חקירה, ליווי נפגעי עבירה, עבירות אלימות, סמים, רכוש והונאה.",
+      "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. מאגר הנחיות יועמ\"ש ופרקליט המדינה, מאגרי פסקי דין בלשון הרע ובחופש מידע, וייצוג בהליכים פליליים.",
     publisher: {
       "@type": "LegalService",
       "@id": `${SITE_URL}/#organization`,
