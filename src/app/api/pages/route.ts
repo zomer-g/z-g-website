@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { pageSchema } from "@/lib/validations";
+import { ensureExtensionPagesExist } from "@/lib/extension-pages-manifest";
 
 /* ---- GET /api/pages ---- */
 
 export async function GET() {
   try {
+    // Idempotently materialise the extension support pages on first call
+    // after deploy, so the admin sees them in the list without a manual
+    // seed step. No-op once the rows exist.
+    await ensureExtensionPagesExist();
+
     const pages = await prisma.page.findMany({
       orderBy: { slug: "asc" },
     });
