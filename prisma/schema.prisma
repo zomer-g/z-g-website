@@ -245,3 +245,50 @@ model GuidelineChunk {
   @@index([docId])
   @@map("guideline_chunks")
 }
+
+// ─── Pach HaMishpat ─── //
+// Community-driven status reporting for נט המשפט (Israel's court e-system).
+// Ported from the standalone pah.org.il site into the main z-g.co.il app so
+// it lives under /pach-hamishpat and shares the site's header/footer/admin.
+
+model PachReport {
+  id              Int       @id @default(autoincrement())
+  status          String    @default("green") // "green" | "orange" | "red"
+  description     String?
+  reporterType    String    @default("user") @map("reporter_type") // "user" | "admin"
+  createdDate     DateTime  @default(now()) @map("created_date")
+  expiresAt       DateTime? @map("expires_at")
+  isHidden        Boolean   @default(false) @map("is_hidden")
+  isScheduled     Boolean   @default(false) @map("is_scheduled")
+  scheduledFrom   DateTime? @map("scheduled_from")
+  scheduledUntil  DateTime? @map("scheduled_until")
+
+  @@index([createdDate])
+  @@index([isHidden, createdDate])
+  @@map("pach_reports")
+}
+
+model PachComment {
+  id          Int      @id @default(autoincrement())
+  content     String
+  authorName  String   @default("אנונימי") @map("author_name")
+  isAdmin     Boolean  @default(false) @map("is_admin")
+  isHidden    Boolean  @default(false) @map("is_hidden")
+  createdDate DateTime @default(now()) @map("created_date")
+
+  @@index([createdDate])
+  @@map("pach_comments")
+}
+
+model PachSystemMessage {
+  id          Int      @id @default(autoincrement())
+  title       String?
+  content     String?
+  imageUrl    String?  @map("image_url")
+  orderIndex  Int      @default(0) @map("order_index")
+  isArchived  Boolean  @default(false) @map("is_archived")
+  createdDate DateTime @default(now()) @map("created_date")
+
+  @@index([isArchived, orderIndex])
+  @@map("pach_system_messages")
+}

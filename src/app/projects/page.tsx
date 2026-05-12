@@ -12,6 +12,8 @@ import {
   Scale,
   Eye,
   BookOpen,
+  Trash2,
+  History,
   type LucideIcon,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
@@ -51,6 +53,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Scale,
   Eye,
   BookOpen,
+  Trash2,
+  History,
   ExternalLink,
 };
 
@@ -60,8 +64,31 @@ function resolveIcon(name: string): LucideIcon {
 
 /* ─── Page ─── */
 
+/**
+ * Internal projects (live on z-g.co.il itself) that should always appear in
+ * the list even if the DB-stored projects array hasn't been edited yet. We
+ * union these into the rendered list, deduping by URL — the admin can still
+ * override description/tags by editing the projects content in the CMS.
+ */
+const INTERNAL_PROJECTS: ProjectsPageContent["projects"] = [
+  {
+    title: "פח המשפט",
+    subtitle: "סטטוס נט המשפט בזמן אמת — דיווחים קהילתיים",
+    description:
+      "פלטפורמה קהילתית שעוקבת אחרי הזמינות של נט המשפט. כל משתמש יכול לדווח על תקלה (מערכת קרסה / תקלה חלקית) או לאשר שהמערכת חזרה לתקנה, וכולם רואים את הסטטוס הנוכחי. בנוסף — הודעות מערכת ועדכוני מנהל, יומן דיווחים ותגובות קהילה. נולד מתוך השאלה החוזרת \"תגידי, נט המשפט עובד לך?\" והפך אותה לנתון ציבורי שאפשר לראות בלחיצה.",
+    url: "/pach-hamishpat",
+    icon: "Trash2",
+    tags: ["נט המשפט", "דיווח קהילתי", "סטטוס בזמן אמת"],
+  },
+];
+
 export default async function ProjectsPage() {
   const content = await getPageContent<ProjectsPageContent>("projects");
+  const seen = new Set(content.projects.map((p) => p.url));
+  const mergedProjects = [
+    ...INTERNAL_PROJECTS.filter((p) => !seen.has(p.url)),
+    ...content.projects,
+  ];
 
   return (
     <PublicLayout>
@@ -114,7 +141,7 @@ export default async function ProjectsPage() {
           </h2>
 
           <div className="space-y-10">
-            {content.projects.map((project, index) => {
+            {mergedProjects.map((project, index) => {
               const Icon = resolveIcon(project.icon);
               return (
                 <Card
