@@ -108,14 +108,14 @@ export function ShareLinkButton({
             ? "הקישור הועתק"
             : status === "failed"
               ? "ההעתקה נכשלה"
-              : "העתק קישור לפריט"
+              : "להעתקת קישור לפריט"
         }
         title={
           status === "copied"
             ? "הקישור הועתק ללוח"
             : status === "failed"
               ? "ההעתקה נכשלה"
-              : "העתק קישור לפריט"
+              : "להעתקת קישור לפריט"
         }
         className={`relative z-10 inline-flex items-center justify-center w-8 h-8 rounded-md border text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition ${className ?? ""}`}
         style={{ borderColor: "#d1d5db" }}
@@ -184,7 +184,7 @@ export function ShareLinkButton({
             ? "הקישור הועתק"
             : status === "failed"
               ? "ההעתקה נכשלה"
-              : "העתק קישור"}
+              : "להעתקת קישור"}
         </span>
       </button>
       {canNativeShare ? (
@@ -211,7 +211,7 @@ export function ShareLinkButton({
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
           </svg>
-          <span>שתף</span>
+          <span>שיתוף</span>
         </button>
       ) : null}
     </div>

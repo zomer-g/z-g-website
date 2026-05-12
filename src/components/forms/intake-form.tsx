@@ -147,7 +147,7 @@ export default function IntakeForm() {
           required
           aria-required="true"
           autoComplete="name"
-          placeholder="הזן את שמך המלא"
+          placeholder="שם מלא"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
@@ -210,7 +210,7 @@ export default function IntakeForm() {
           fullWidth
           size="lg"
         >
-          {status === "loading" ? "שולח..." : "שלח פנייה"}
+          {status === "loading" ? "בשליחה..." : "לשליחת הפנייה"}
         </Button>
       </fieldset>
 

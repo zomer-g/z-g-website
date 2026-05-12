@@ -117,9 +117,9 @@ export default function RootLayout({
         <a
           href="#main-content"
           className="skip-link"
-          aria-label="דלג לתוכן הראשי"
+          aria-label="מעבר לתוכן הראשי"
         >
-          דלג לתוכן הראשי
+          מעבר לתוכן הראשי
         </a>
         <Providers>{children}</Providers>
       </body>

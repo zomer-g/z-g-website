@@ -241,13 +241,13 @@ export function ClassActionDetail({ caseItem }: { caseItem: ClassActionCase }) {
               })}
             </div>
 
+            {/* Inline PDF preview — hidden on mobile because most mobile
+                browsers don't render inline PDFs and were leaving a blank
+                box. The CTA below becomes the primary entry point on mobile. */}
             <div
-              className="border border-gray-200 rounded-md overflow-hidden bg-gray-50"
+              className="hidden sm:block border border-gray-200 rounded-md overflow-hidden bg-gray-50"
               style={{ height: "min(80vh, 900px)" }}
             >
-              {/* The iframe loads our proxy route, which forces inline
-                  Content-Disposition so the browser renders the PDF instead
-                  of downloading it. */}
               <iframe
                 key={active.doc.id /* force reload when the user switches tab */}
                 src={`/api/class-actions/documents/${active.doc.id}/file`}
@@ -257,16 +257,20 @@ export function ClassActionDetail({ caseItem }: { caseItem: ClassActionCase }) {
                 dir="ltr"
               />
             </div>
+            <p className="sm:hidden text-sm text-gray-600 leading-relaxed">
+              הצגת קובץ ה-PDF בתוך הדף אינה נתמכת בכל הדפדפנים בנייד. לצפייה
+              בקובץ המקורי, יש לפתוח אותו בלשונית נפרדת:
+            </p>
 
-            <div className="mt-3 flex items-center justify-end gap-2 text-sm">
+            <div className="mt-3 flex items-center justify-center sm:justify-end gap-2 text-sm">
               <a
                 href={`/api/class-actions/documents/${active.doc.id}/file`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold rounded-md px-3 py-1.5 border"
+                className="font-semibold rounded-md px-4 py-2 border"
                 style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
               >
-                פתח בלשונית חדשה
+                לפתיחה בלשונית נפרדת
               </a>
             </div>
           </>

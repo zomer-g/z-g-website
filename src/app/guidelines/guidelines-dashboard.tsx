@@ -196,7 +196,7 @@ function GuidelineCard({
           share button) carry `relative z-10` so they stay clickable above. */}
       <Link
         href={detailHref}
-        aria-label={`פתח פרטי הנחיה: ${doc.document_title || doc.filename || "ללא כותרת"}`}
+        aria-label={`פרטי הנחיה: ${doc.document_title || doc.filename || "ללא כותרת"}`}
         className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
         style={{ outlineColor: C_PRIMARY }}
       />
@@ -326,7 +326,7 @@ function GuidelineCard({
           className="text-sm font-semibold rounded-md px-3 py-1.5 text-white transition"
           style={{ background: C_PRIMARY }}
         >
-          פתח PDF
+          קובץ PDF
         </a>
         <button
           type="button"
@@ -337,7 +337,7 @@ function GuidelineCard({
           }}
           className="text-sm font-semibold rounded-md px-3 py-1.5 text-gray-600 hover:text-gray-900 transition mr-auto"
         >
-          {open ? "צמצם" : "פרטים נוספים"}
+          {open ? "צמצום" : "פרטים נוספים"}
         </button>
       </div>
     </article>
@@ -480,7 +480,7 @@ export function GuidelinesDashboard() {
                   onClick={clearAllSourcesImmediate}
                   className="text-xs font-semibold text-gray-600 hover:underline"
                 >
-                  נקה סינון מקור
+                  ניקוי סינון מקור
                 </button>
               ) : null}
             </div>
@@ -559,7 +559,7 @@ export function GuidelinesDashboard() {
             onClick={clearFilters}
             className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
-            נקה
+            ניקוי
           </button>
           <button
             type="button"
@@ -567,7 +567,7 @@ export function GuidelinesDashboard() {
             className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
             style={{ background: C_PRIMARY }}
           >
-            סנן
+            סינון
           </button>
         </div>
       </div>
@@ -575,7 +575,7 @@ export function GuidelinesDashboard() {
       {/* Results header */}
       <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
         {loading ? (
-          <span>טוען…</span>
+          <span>בטעינה…</span>
         ) : error ? (
           <span className="text-red-600">{error}</span>
         ) : (

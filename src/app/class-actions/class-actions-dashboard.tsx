@@ -193,7 +193,7 @@ function DocSlot({
                   : dateLabel
               }
             >
-              <span>פתח PDF</span>
+              <span>קובץ PDF</span>
               {docs.length > 1 ? (
                 <span className="opacity-80">({dateLabel})</span>
               ) : null}
@@ -227,7 +227,7 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
       {detailHref ? (
         <Link
           href={detailHref}
-          aria-label={`פתח פרטי תיק: ${caseItem.case_name || caseItem.case_number}`}
+          aria-label={`פרטי תיק: ${caseItem.case_name || caseItem.case_number}`}
           className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           style={{ outlineColor: C_PRIMARY }}
         />
@@ -545,7 +545,7 @@ export function ClassActionsDashboard() {
             onClick={clearFilters}
             className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
-            נקה
+            ניקוי
           </button>
           <button
             type="button"
@@ -553,7 +553,7 @@ export function ClassActionsDashboard() {
             className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
             style={{ background: C_PRIMARY }}
           >
-            סנן
+            סינון
           </button>
         </div>
       </div>
@@ -562,7 +562,7 @@ export function ClassActionsDashboard() {
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
         <div>
           {loading ? (
-            <span>טוען…</span>
+            <span>בטעינה…</span>
           ) : error ? (
             <span className="text-red-600">{error}</span>
           ) : (

@@ -328,7 +328,7 @@ function MultiDropdown({ label, options, selected, onChange, searchable = false 
       {open && (
         <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" dir="rtl">
           {searchable && (
-            <input type="text" placeholder="חפש..." value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" placeholder="חיפוש..." value={search} onChange={e => setSearch(e.target.value)}
                    className="w-full border-b p-2 text-sm outline-none sticky top-0 bg-white" />
           )}
           {filtered.slice(0, 100).map(o => (
