@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
@@ -11,6 +12,7 @@ import {
   MessageSquare,
   Plus,
   Trash2,
+  User as UserIcon,
   Users,
   X,
 } from "lucide-react";
@@ -135,7 +137,6 @@ export function PachDashboard() {
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [newComment, setNewComment] = useState({ content: "", author_name: "" });
   const [showWhatsApp, setShowWhatsApp] = useState(false);
-  const [showPersonalAreaToast, setShowPersonalAreaToast] = useState(false);
 
   const loadAll = useCallback(async () => {
     try {
@@ -315,37 +316,26 @@ export function PachDashboard() {
         <SystemMessagesPanel messages={messages} />
       </div>
 
-      {/* Personal-area shortcut — present for parity with the original
-          site. It never had a real destination; click reveals an inline
-          "coming soon" pill rather than 404-ing to a missing route. */}
-      <button
-        type="button"
-        onClick={() => {
-          setShowPersonalAreaToast(true);
-          window.setTimeout(() => setShowPersonalAreaToast(false), 4000);
-        }}
-        className="fixed top-24 left-4 sm:left-6 z-40 inline-flex items-center gap-1.5 rounded-md bg-red-600 hover:bg-red-700 px-3 py-2 text-sm font-bold text-white shadow-lg transition"
-      >
-        אזור אישי חדש
-      </button>
-      {showPersonalAreaToast ? (
-        <div className="fixed top-36 left-4 sm:left-6 z-40 max-w-xs rounded-lg bg-white border border-red-300 px-3 py-2 text-sm text-gray-800 shadow-xl">
-          האזור האישי בפיתוח. בינתיים, אפשר לדווח ולעקוב כאן בעמוד הראשי.
-        </div>
-      ) : null}
-
-      {/* WhatsApp floating button — opens a fake assistant chat. Mirrors
-          the original site's UX expectation; intentionally non-interactive
-          (no input, no clickable menu choices) so users can read but not
-          actually send anything. */}
-      <button
-        type="button"
-        onClick={() => setShowWhatsApp(true)}
-        className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300"
-        aria-label="לפתיחת חלון הצ׳אט"
-      >
-        <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
-      </button>
+      {/* Floating action stack in the bottom-left corner. Stacked vertically
+          so neither button covers the timeline content on mobile. */}
+      <div className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 flex flex-col items-stretch gap-3">
+        <Link
+          href="/pach-hamishpat/personal-area"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-bold text-white shadow-2xl transition focus:outline-none focus:ring-4 focus:ring-red-300"
+          aria-label="לפתיחת האזור האישי החדש"
+        >
+          <UserIcon className="h-4 w-4" />
+          <span>אזור אישי חדש</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => setShowWhatsApp(true)}
+          className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300 self-start"
+          aria-label="לפתיחת חלון הצ׳אט"
+        >
+          <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
+        </button>
+      </div>
 
       {showWhatsApp ? <WhatsAppPopup onClose={() => setShowWhatsApp(false)} /> : null}
     </div>
@@ -625,15 +615,19 @@ function StatusBanner({ status, text }: { status: Status; text: string }) {
         </p>
       ) : null}
       <div className="flex justify-center mt-4">
+        {/* Two-layer transform: the outer div carries the click-kick
+            translation/rotation; the inner img carries the per-status
+            keyframe animation. Splitting them keeps the kick from
+            fighting the animation's `transform` for ownership. */}
         <div
           onClick={handleClick}
+          style={{ ...kickStyle, willChange: "transform" }}
           className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 drop-shadow-2xl select-none cursor-pointer"
         >
           <img
             src={TRASH_IMAGE[status]}
             alt={`פח זבל במצב ${status}`}
             className={`w-full h-full object-contain ${animClass}`}
-            style={{ ...kickStyle, willChange: "transform" }}
             draggable={false}
           />
           {status === "orange" ? (
