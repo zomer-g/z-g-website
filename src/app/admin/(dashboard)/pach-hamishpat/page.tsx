@@ -178,60 +178,84 @@ function MessagesTab({
     title: string;
     content: string;
     image_url: string;
-  }>({ title: "", content: "", image_url: "" });
+    created_date: string; // empty = use server's now()
+  }>({ title: "", content: "", image_url: "", created_date: "" });
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Reuse the existing site-wide media upload endpoint. Server-side it
-  // already enforces admin auth, MIME whitelist (incl. images) and 10MB
-  // cap, and persists a Media row — so the URL is stable and previewable
-  // immediately after upload.
+  // Encode the image inline as a base64 data URL and stash it directly on
+  // the message row. Render's filesystem is ephemeral (files written to
+  // public/uploads/ vanish on the next deploy), so disk-backed uploads
+  // weren't surviving — the image broke as soon as a deploy ran. Storing
+  // the bytes in the DB column makes the image truly part of the record
+  // and works the same in admin preview and public render. We cap at 2MB
+  // raw to keep row size sane.
   const uploadFile = useCallback(async (file: File): Promise<void> => {
     if (!file.type.startsWith("image/")) {
       setUploadError("רק תמונות נתמכות (JPEG, PNG, WebP, GIF).");
       return;
     }
+    const MAX_RAW = 2 * 1024 * 1024;
+    if (file.size > MAX_RAW) {
+      setUploadError("הקובץ גדול מ-2MB. כדאי לדחוס תמונה לפני העלאה.");
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("alt", draft.title || "הודעת מערכת");
-      const res = await fetch("/api/media/upload", {
-        method: "POST",
-        body: form,
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error ?? new Error("שגיאה בקריאת הקובץ"));
+        reader.onload = () => {
+          if (typeof reader.result !== "string") {
+            reject(new Error("פורמט קריאה לא צפוי"));
+            return;
+          }
+          resolve(reader.result);
+        };
+        reader.readAsDataURL(file);
       });
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || "שגיאה בהעלאה");
-      }
-      setDraft((d) => ({ ...d, image_url: data.url! }));
+      setDraft((d) => ({ ...d, image_url: dataUrl }));
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "שגיאה בהעלאה");
     } finally {
       setUploading(false);
     }
-  }, [draft.title]);
+  }, []);
 
   const openNew = () => {
     setEditing(null);
-    setDraft({ title: "", content: "", image_url: "" });
+    setDraft({ title: "", content: "", image_url: "", created_date: "" });
   };
   const openEdit = (m: SystemMessage) => {
     setEditing(m);
+    // <input type="datetime-local"> wants "yyyy-mm-ddThh:mm" in LOCAL time
+    // without a Z suffix. Convert from the API's ISO UTC string.
+    const d = new Date(m.created_date);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const localStr = Number.isNaN(d.getTime())
+      ? ""
+      : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     setDraft({
       title: m.title ?? "",
       content: m.content ?? "",
       image_url: m.image_url ?? "",
+      created_date: localStr,
     });
   };
 
   const save = async () => {
     setBusy(true);
     try {
+      // The datetime-local input gives us local time without zone info.
+      // Convert to a real Date so the server stores the moment the admin
+      // intended, regardless of the server's local time zone.
+      const createdIso = draft.created_date
+        ? new Date(draft.created_date).toISOString()
+        : null;
       if (editing) {
         await fetch(`/api/pach-hamishpat/messages/${editing.id}`, {
           method: "PATCH",
@@ -240,6 +264,7 @@ function MessagesTab({
             title: draft.title || null,
             content: draft.content || null,
             image_url: draft.image_url || null,
+            ...(createdIso ? { created_date: createdIso } : {}),
           }),
         });
       } else {
@@ -255,11 +280,12 @@ function MessagesTab({
             content: draft.content || null,
             image_url: draft.image_url || null,
             order_index: minOrder - 1,
+            ...(createdIso ? { created_date: createdIso } : {}),
           }),
         });
       }
       setEditing(null);
-      setDraft({ title: "", content: "", image_url: "" });
+      setDraft({ title: "", content: "", image_url: "", created_date: "" });
       await onChange();
     } finally {
       setBusy(false);
@@ -331,6 +357,35 @@ function MessagesTab({
           dir="rtl"
           className="w-full rounded border border-border px-3 py-2 text-right"
         />
+        {/* Optional explicit publish date. Useful when entering historical
+            announcements in retrospect so they sort to the correct slot
+            on the public sidebar (newest first). Leave empty to use "now". */}
+        <label className="block space-y-1">
+          <span className="text-sm font-semibold text-foreground">
+            תאריך פרסום{" "}
+            <span className="text-xs font-normal text-muted">
+              (ריק = עכשיו)
+            </span>
+          </span>
+          <div className="flex items-center gap-2">
+            <input
+              type="datetime-local"
+              value={draft.created_date}
+              onChange={(e) => setDraft({ ...draft, created_date: e.target.value })}
+              className="flex-1 rounded border border-border px-3 py-2 text-left"
+              dir="ltr"
+            />
+            {draft.created_date ? (
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, created_date: "" })}
+                className="rounded border border-border bg-card px-2 py-2 text-xs text-muted hover:bg-muted-bg"
+              >
+                ניקוי
+              </button>
+            ) : null}
+          </div>
+        </label>
         {/* Image dropzone — click to pick, drag-and-drop, or paste from
             clipboard. Falls back to a URL field below if the operator wants
             to point at an external image instead of uploading. */}

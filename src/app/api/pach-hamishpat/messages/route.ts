@@ -60,6 +60,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    // Optional explicit backdating — lets the admin enter historical
+    // messages with their original publication date.
+    let createdDate: Date | undefined;
+    if (typeof body.created_date === "string" && body.created_date) {
+      const d = new Date(body.created_date);
+      if (!Number.isNaN(d.getTime())) createdDate = d;
+    }
     const created = await prisma.pachSystemMessage.create({
       data: {
         title: typeof body.title === "string" ? body.title : null,
@@ -67,6 +74,7 @@ export async function POST(req: NextRequest) {
         imageUrl: typeof body.image_url === "string" ? body.image_url : null,
         orderIndex: Number.isFinite(Number(body.order_index)) ? Number(body.order_index) : 0,
         isArchived: false,
+        ...(createdDate ? { createdDate } : {}),
       },
     });
     return NextResponse.json(serialize(created));

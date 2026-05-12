@@ -10,6 +10,7 @@ const FIELD_MAP: Record<string, string> = {
   image_url: "imageUrl",
   order_index: "orderIndex",
   is_archived: "isArchived",
+  created_date: "createdDate",
 };
 
 function serialize(m: {
@@ -60,7 +61,15 @@ export async function PATCH(
     if (!col) continue;
     if (col === "isArchived") data[col] = !!v;
     else if (col === "orderIndex") data[col] = Number.isFinite(Number(v)) ? Number(v) : 0;
-    else data[col] = v;
+    else if (col === "createdDate") {
+      // Accept either an ISO string or a yyyy-mm-ddThh:mm value from an
+      // <input type="datetime-local">; reject anything else so we don't
+      // silently null out the timestamp.
+      if (typeof v !== "string" || !v) continue;
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) continue;
+      data[col] = d;
+    } else data[col] = v;
   }
 
   if (Object.keys(data).length === 0) {

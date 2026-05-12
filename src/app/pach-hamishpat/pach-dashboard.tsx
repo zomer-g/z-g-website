@@ -7,10 +7,12 @@ import {
   Clock,
   History,
   Info,
+  MessageCircle,
   MessageSquare,
   Plus,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 
 /**
@@ -132,6 +134,8 @@ export function PachDashboard() {
   const [daysToShow, setDaysToShow] = useState(1);
   const [showCommentForm, setShowCommentForm] = useState(false);
   const [newComment, setNewComment] = useState({ content: "", author_name: "" });
+  const [showWhatsApp, setShowWhatsApp] = useState(false);
+  const [showPersonalAreaToast, setShowPersonalAreaToast] = useState(false);
 
   const loadAll = useCallback(async () => {
     try {
@@ -310,15 +314,310 @@ export function PachDashboard() {
       <div className="lg:col-span-1">
         <SystemMessagesPanel messages={messages} />
       </div>
+
+      {/* Personal-area shortcut — present for parity with the original
+          site. It never had a real destination; click reveals an inline
+          "coming soon" pill rather than 404-ing to a missing route. */}
+      <button
+        type="button"
+        onClick={() => {
+          setShowPersonalAreaToast(true);
+          window.setTimeout(() => setShowPersonalAreaToast(false), 4000);
+        }}
+        className="fixed top-24 left-4 sm:left-6 z-40 inline-flex items-center gap-1.5 rounded-md bg-red-600 hover:bg-red-700 px-3 py-2 text-sm font-bold text-white shadow-lg transition"
+      >
+        אזור אישי חדש
+      </button>
+      {showPersonalAreaToast ? (
+        <div className="fixed top-36 left-4 sm:left-6 z-40 max-w-xs rounded-lg bg-white border border-red-300 px-3 py-2 text-sm text-gray-800 shadow-xl">
+          האזור האישי בפיתוח. בינתיים, אפשר לדווח ולעקוב כאן בעמוד הראשי.
+        </div>
+      ) : null}
+
+      {/* WhatsApp floating button — opens a fake assistant chat. Mirrors
+          the original site's UX expectation; intentionally non-interactive
+          (no input, no clickable menu choices) so users can read but not
+          actually send anything. */}
+      <button
+        type="button"
+        onClick={() => setShowWhatsApp(true)}
+        className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300"
+        aria-label="לפתיחת חלון הצ׳אט"
+      >
+        <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
+      </button>
+
+      {showWhatsApp ? <WhatsAppPopup onClose={() => setShowWhatsApp(false)} /> : null}
+    </div>
+  );
+}
+
+/* ─── Fake WhatsApp Popup ─── */
+
+function WhatsAppPopup({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed bottom-24 left-6 sm:left-8 z-50 w-[min(360px,calc(100vw-3rem))] rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden"
+      role="dialog"
+      aria-labelledby="wa-title"
+      dir="rtl"
+    >
+      <div className="bg-[#075E54] text-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+            <span className="text-xl">🗑️</span>
+          </div>
+          <div>
+            <p id="wa-title" className="font-semibold text-sm">
+              שירות פח המשפט
+            </p>
+            <p className="text-xs text-white/80">מקוון עכשיו</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="לסגירת החלון"
+          className="rounded-full p-1 hover:bg-white/10"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+      <div
+        className="px-4 py-5 space-y-3"
+        style={{
+          backgroundColor: "#ECE5DD",
+          backgroundImage:
+            "url(\"data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23d8d3c5' fill-opacity='0.35'%3E%3Ccircle cx='10' cy='10' r='1.5'/%3E%3Ccircle cx='50' cy='30' r='1.5'/%3E%3Ccircle cx='30' cy='60' r='1.5'/%3E%3C/g%3E%3C/svg%3E\")",
+        }}
+      >
+        <div className="max-w-[85%] rounded-2xl bg-white shadow-sm px-3 py-2 text-sm leading-relaxed text-gray-800">
+          שלום ותודה שפניתם לשירות הווטסאפ של הנהלת פח המשפט, נא לבחור
+          מהתפריט:
+          <div className="mt-2 flex flex-col gap-1.5">
+            <span className="inline-block rounded-md border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-700 cursor-not-allowed select-none">
+              1. מידע כללי
+            </span>
+            <span className="inline-block rounded-md border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-700 cursor-not-allowed select-none">
+              2. תמיכה טכנית
+            </span>
+          </div>
+          <p className="mt-2 text-[10px] text-gray-400 text-left">
+            10:42 ✓✓
+          </p>
+        </div>
+      </div>
+      <div className="px-3 py-2 bg-[#F0F0F0] border-t border-gray-200 flex items-center gap-2">
+        <input
+          type="text"
+          readOnly
+          disabled
+          placeholder="הקלדה אינה זמינה בערוץ זה"
+          className="flex-1 rounded-full bg-white border border-gray-200 px-3 py-1.5 text-sm text-gray-400 cursor-not-allowed"
+        />
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366] text-white opacity-60 cursor-not-allowed">
+          <MessageCircle className="h-4 w-4" />
+        </span>
+      </div>
     </div>
   );
 }
 
 /* ─── Components ─── */
 
+/** Synthesised metallic "kick" — same 4-variant library as the original
+ *  pah.org.il site, picked at random per click. Uses WebAudio so we don't
+ *  ship any audio file. Silently no-ops if AudioContext isn't available. */
+function playKickSound() {
+  try {
+    type AC = typeof AudioContext;
+    const Ctor: AC | undefined =
+      typeof window !== "undefined"
+        ? (window.AudioContext ??
+            (window as unknown as { webkitAudioContext?: AC }).webkitAudioContext)
+        : undefined;
+    if (!Ctor) return;
+    const ctx = new Ctor();
+    const now = ctx.currentTime;
+
+    const variants = [
+      // 1. Sharp metallic tink
+      () => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = "sine";
+        o.frequency.setValueAtTime(2200, now);
+        g.gain.setValueAtTime(0.15, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        o.start(now);
+        o.stop(now + 0.2);
+
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.connect(g2);
+        g2.connect(ctx.destination);
+        o2.type = "square";
+        o2.frequency.setValueAtTime(3300, now);
+        g2.gain.setValueAtTime(0.08, now);
+        g2.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        o2.start(now);
+        o2.stop(now + 0.1);
+      },
+      // 2. Deep metallic clank
+      () => {
+        [1, 1.6, 2.9, 4.2].forEach((ratio) => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g);
+          g.connect(ctx.destination);
+          o.type = "triangle";
+          o.frequency.setValueAtTime(180 * ratio, now);
+          g.gain.setValueAtTime(0.1, now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          o.start(now);
+          o.stop(now + 0.5);
+        });
+      },
+      // 3. Short dull thud
+      () => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = "sawtooth";
+        o.frequency.setValueAtTime(150, now);
+        o.frequency.exponentialRampToValueAtTime(80, now + 0.1);
+        g.gain.setValueAtTime(0.4, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        o.start(now);
+        o.stop(now + 0.15);
+      },
+      // 4. Hollow bonk
+      () => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.type = "triangle";
+        o.frequency.setValueAtTime(300, now);
+        o.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+        g.gain.setValueAtTime(0.6, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        o.start(now);
+        o.stop(now + 0.25);
+      },
+    ];
+    variants[Math.floor(Math.random() * variants.length)]();
+  } catch {
+    /* audio not supported — fine, just no sound */
+  }
+}
+
 function StatusBanner({ status, text }: { status: Status; text: string }) {
+  const [kickStyle, setKickStyle] = useState<React.CSSProperties>({});
+
+  // Click on the trash → randomized small displacement + rotation + a
+  // metallic clank, then springs back. Same behavior as the original
+  // pah.org.il StatusTrashCan component.
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    playKickSound();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+    let tx = 0;
+    let ty = 0;
+    let rot = 0;
+    if (x < w * 0.4 && y < h * 0.4) {
+      tx = -8;
+      ty = -6;
+      rot = -4;
+    } else if (x > w * 0.6 && y < h * 0.4) {
+      tx = 8;
+      ty = -6;
+      rot = 4;
+    } else if (x < w * 0.4 && y > h * 0.6) {
+      tx = -8;
+      ty = 6;
+      rot = -3;
+    } else if (x > w * 0.6 && y > h * 0.6) {
+      tx = 8;
+      ty = 6;
+      rot = 3;
+    } else {
+      tx = x < w / 2 ? -5 : 5;
+      ty = -8;
+      rot = x < w / 2 ? -2 : 2;
+    }
+    setKickStyle({
+      transform: `translate(${tx}px, ${ty}px) rotate(${rot}deg)`,
+      transition: "transform 120ms ease-out",
+    });
+    window.setTimeout(() => {
+      setKickStyle({
+        transform: "translate(0px, 0px) rotate(0deg)",
+        transition: "transform 250ms ease-in-out",
+      });
+    }, 120);
+  };
+
+  // Animation per status: gentle sway for green, smoke rise for orange,
+  // fire flicker for red. Keyframes live in the inline <style> block so
+  // they're scoped to this component without touching globals.css.
+  const animClass =
+    status === "red"
+      ? "pach-fire"
+      : status === "orange"
+        ? "pach-smoke"
+        : "pach-sway";
+
   return (
     <div className="text-center">
+      <style>{`
+        @keyframes pach-sway {
+          0%, 100% { transform: rotate(-1.5deg); }
+          50% { transform: rotate(1.5deg); }
+        }
+        .pach-sway { animation: pach-sway 4s ease-in-out infinite; transform-origin: 50% 90%; }
+
+        @keyframes pach-smoke {
+          0% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-3px) scale(1.01); }
+          100% { transform: translateY(0px) scale(1); }
+        }
+        .pach-smoke { animation: pach-smoke 2.4s ease-in-out infinite; }
+
+        @keyframes pach-fire {
+          0% { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); transform: translate(0, 0); }
+          25% { filter: drop-shadow(0 0 12px rgba(239,68,68,0.85)); transform: translate(-1px, -1px); }
+          50% { filter: drop-shadow(0 0 8px rgba(239,68,68,0.55)); transform: translate(1px, 1px); }
+          75% { filter: drop-shadow(0 0 14px rgba(239,68,68,0.95)); transform: translate(-1px, 1px); }
+          100% { filter: drop-shadow(0 0 6px rgba(239,68,68,0.5)); transform: translate(0, 0); }
+        }
+        .pach-fire { animation: pach-fire 0.45s ease-in-out infinite; }
+
+        @keyframes pach-smoke-particle {
+          0% { transform: translateY(0) scale(0.7); opacity: 0; }
+          30% { opacity: 0.45; }
+          100% { transform: translateY(-90px) scale(1.4); opacity: 0; }
+        }
+        .pach-smoke-p {
+          position: absolute;
+          top: 25%;
+          left: 50%;
+          width: 22px;
+          height: 22px;
+          margin-left: -11px;
+          background: radial-gradient(circle, rgba(120,120,120,0.6) 0%, transparent 70%);
+          border-radius: 50%;
+          animation: pach-smoke-particle 2.8s ease-out infinite;
+        }
+        .pach-smoke-p.p2 { left: 40%; animation-delay: 0.7s; }
+        .pach-smoke-p.p3 { left: 60%; animation-delay: 1.4s; }
+      `}</style>
       <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-1">{text}</h2>
       {status === "red" ? (
         <p className="text-lg text-red-600 mt-1 font-bold animate-pulse">
@@ -326,13 +625,24 @@ function StatusBanner({ status, text }: { status: Status; text: string }) {
         </p>
       ) : null}
       <div className="flex justify-center mt-4">
-        <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 drop-shadow-2xl select-none">
+        <div
+          onClick={handleClick}
+          className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 drop-shadow-2xl select-none cursor-pointer"
+        >
           <img
             src={TRASH_IMAGE[status]}
             alt={`פח זבל במצב ${status}`}
-            className="w-full h-full object-contain"
+            className={`w-full h-full object-contain ${animClass}`}
+            style={{ ...kickStyle, willChange: "transform" }}
             draggable={false}
           />
+          {status === "orange" ? (
+            <div className="absolute inset-0 pointer-events-none">
+              <span className="pach-smoke-p" />
+              <span className="pach-smoke-p p2" />
+              <span className="pach-smoke-p p3" />
+            </div>
+          ) : null}
         </div>
       </div>
       <div className="bg-primary/5 p-5 max-w-lg mx-auto mt-6 rounded-lg shadow-sm">
