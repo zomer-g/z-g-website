@@ -1,17 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Archive,
   ArchiveRestore,
   Calendar,
   Eye,
   EyeOff,
+  ImagePlus,
   Loader2,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -178,6 +180,41 @@ function MessagesTab({
     image_url: string;
   }>({ title: "", content: "", image_url: "" });
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Reuse the existing site-wide media upload endpoint. Server-side it
+  // already enforces admin auth, MIME whitelist (incl. images) and 10MB
+  // cap, and persists a Media row — so the URL is stable and previewable
+  // immediately after upload.
+  const uploadFile = useCallback(async (file: File): Promise<void> => {
+    if (!file.type.startsWith("image/")) {
+      setUploadError("רק תמונות נתמכות (JPEG, PNG, WebP, GIF).");
+      return;
+    }
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("alt", draft.title || "הודעת מערכת");
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "שגיאה בהעלאה");
+      }
+      setDraft((d) => ({ ...d, image_url: data.url! }));
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "שגיאה בהעלאה");
+    } finally {
+      setUploading(false);
+    }
+  }, [draft.title]);
 
   const openNew = () => {
     setEditing(null);
@@ -294,14 +331,130 @@ function MessagesTab({
           dir="rtl"
           className="w-full rounded border border-border px-3 py-2 text-right"
         />
-        <input
-          type="url"
-          placeholder="כתובת תמונה (אופציונלי)"
-          value={draft.image_url}
-          dir="ltr"
-          onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
-          className="w-full rounded border border-border px-3 py-2 text-left"
-        />
+        {/* Image dropzone — click to pick, drag-and-drop, or paste from
+            clipboard. Falls back to a URL field below if the operator wants
+            to point at an external image instead of uploading. */}
+        <div className="space-y-2">
+          <span className="text-sm font-semibold text-foreground">תמונה</span>
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                if (it.kind === "file" && it.type.startsWith("image/")) {
+                  const f = it.getAsFile();
+                  if (f) {
+                    e.preventDefault();
+                    void uploadFile(f);
+                    break;
+                  }
+                }
+              }
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragging(false);
+              const file = e.dataTransfer?.files?.[0];
+              if (file) void uploadFile(file);
+            }}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            role="button"
+            aria-label="לבחירת תמונה או גרירה לכאן"
+            className={cn(
+              "rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-border bg-muted-bg hover:border-primary/40",
+            )}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void uploadFile(f);
+                // Reset so picking the same filename twice fires onChange.
+                e.target.value = "";
+              }}
+            />
+            {draft.image_url ? (
+              <div className="relative inline-block">
+                <img
+                  src={draft.image_url}
+                  alt="תצוגה מקדימה"
+                  className="max-h-56 max-w-full mx-auto rounded object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDraft({ ...draft, image_url: "" });
+                    setUploadError(null);
+                  }}
+                  aria-label="להסרת התמונה"
+                  className="absolute -top-2 -right-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow hover:bg-red-700"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : uploading ? (
+              <div className="flex flex-col items-center gap-2 text-muted">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="text-sm">בהעלאה...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-muted">
+                <ImagePlus className="h-8 w-8" />
+                <p className="text-sm font-medium">
+                  לבחירה, לגרירה לכאן, או להדבקה (Ctrl+V)
+                </p>
+                <p className="text-xs">JPEG / PNG / WebP / GIF, עד 10MB</p>
+              </div>
+            )}
+          </div>
+
+          {uploadError ? (
+            <p className="text-sm text-red-600">{uploadError}</p>
+          ) : null}
+
+          <details className="text-sm">
+            <summary className="cursor-pointer text-muted hover:text-foreground">
+              או הדבקת כתובת URL חיצונית
+            </summary>
+            <input
+              type="url"
+              placeholder="https://..."
+              value={draft.image_url}
+              dir="ltr"
+              onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
+              className="mt-2 w-full rounded border border-border px-3 py-2 text-left"
+            />
+          </details>
+        </div>
+
         <div className="flex justify-end gap-2">
           <button
             type="button"
