@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+  type ReadonlyURLSearchParams,
+} from "next/navigation";
 import type { Guideline } from "@/types/guideline";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
@@ -65,6 +71,36 @@ function buildQs(filters: Filters, skip: number) {
   if (filters.date_to) p.set("date_to", filters.date_to);
   for (const s of filters.sources) p.append("source", s);
   return p.toString();
+}
+
+/* ── URL ⇄ filter helpers ──
+   The dashboard's applied filters live in the page URL so users can share
+   a link that already contains their query, date range, source picks and
+   even page number. URLSearchParams handles percent-encoding of operators
+   like double-quotes, so a query like `"מצלמות גוף"` round-trips cleanly. */
+
+function filtersFromSearchParams(sp: ReadonlyURLSearchParams): Filters {
+  return {
+    q: sp.get("q") ?? "",
+    date_from: sp.get("date_from") ?? "",
+    date_to: sp.get("date_to") ?? "",
+    sources: sp.getAll("source").filter(Boolean),
+  };
+}
+
+function skipFromSearchParams(sp: ReadonlyURLSearchParams): number {
+  const n = Number(sp.get("skip"));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+function filtersToSearchParams(f: Filters, s: number): URLSearchParams {
+  const p = new URLSearchParams();
+  if (f.q.trim()) p.set("q", f.q.trim());
+  if (f.date_from) p.set("date_from", f.date_from);
+  if (f.date_to) p.set("date_to", f.date_to);
+  for (const x of f.sources) p.append("source", x);
+  if (s > 0) p.set("skip", String(s));
+  return p;
 }
 
 function SkeletonCard() {
@@ -345,9 +381,30 @@ function GuidelineCard({
 }
 
 export function GuidelinesDashboard() {
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [skip, setSkip] = useState(0);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Applied filters and current page are derived from the URL — so a copied
+  // address bar with `?q="מצלמות גוף"&source=פרקליט המדינה&skip=24` reproduces
+  // the same view on someone else's screen.
+  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+  const skip = useMemo(() => skipFromSearchParams(searchParams), [searchParams]);
+
+  // Draft state lives only for the search/date inputs that wait for the
+  // user to press "סנן". Sources and pagination commit instantly so they
+  // don't need a draft. We seed draft from the URL on the first render so
+  // a shared link visibly pre-fills the search box, then leave it under
+  // the user's exclusive control after that.
+  const [draft, setDraft] = useState<Filters>(filters);
+  const draftHydratedRef = useRef(false);
+  useEffect(() => {
+    if (!draftHydratedRef.current) {
+      setDraft(filters);
+      draftHydratedRef.current = true;
+    }
+  }, [filters]);
+
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -382,14 +439,22 @@ export function GuidelinesDashboard() {
     fetchData(filters, skip);
   }, [fetchData, filters, skip]);
 
-  const applyFilters = () => {
-    setSkip(0);
-    setFilters(draft);
-  };
+  // Single channel for changing applied state: write to the URL, the
+  // memos pick it up, the fetch effect re-runs. Using replace() avoids
+  // pushing every keystroke / page click onto the history stack — back
+  // button still works, it just lands on the URL the user navigated to.
+  const navigate = useCallback(
+    (f: Filters, s: number) => {
+      const qs = filtersToSearchParams(f, s).toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname],
+  );
+
+  const applyFilters = () => navigate(draft, 0);
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
-    setSkip(0);
-    setFilters(EMPTY_FILTERS);
+    navigate(EMPTY_FILTERS, 0);
   };
 
   // Source pills are an "active" filter — toggling applies immediately and
@@ -398,14 +463,10 @@ export function GuidelinesDashboard() {
     const next = filters.sources.includes(s)
       ? filters.sources.filter((x) => x !== s)
       : [...filters.sources, s];
-    setSkip(0);
-    setFilters((f) => ({ ...f, sources: next }));
-    setDraft((d) => ({ ...d, sources: next }));
+    navigate({ ...filters, sources: next }, 0);
   };
   const clearAllSourcesImmediate = () => {
-    setSkip(0);
-    setFilters((f) => ({ ...f, sources: [] }));
-    setDraft((d) => ({ ...d, sources: [] }));
+    navigate({ ...filters, sources: [] }, 0);
   };
 
   const facetSources: SourceFacet[] = data?.facets?.sources ?? [];
@@ -608,7 +669,7 @@ export function GuidelinesDashboard() {
           <button
             type="button"
             disabled={!canPrev}
-            onClick={() => setSkip((s) => Math.max(0, s - PAGE_SIZE))}
+            onClick={() => navigate(filters, Math.max(0, skip - PAGE_SIZE))}
             className="text-sm font-semibold rounded-md px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
           >
@@ -621,7 +682,7 @@ export function GuidelinesDashboard() {
           <button
             type="button"
             disabled={!canNext}
-            onClick={() => setSkip((s) => s + PAGE_SIZE)}
+            onClick={() => navigate(filters, skip + PAGE_SIZE)}
             className="text-sm font-semibold rounded-md px-4 py-2 text-white disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: C_PRIMARY }}
           >
