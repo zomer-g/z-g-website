@@ -16,6 +16,7 @@ import type {
   GuidelinesPageContent,
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
+  LeamPageContent,
 } from "@/types/content";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
@@ -445,6 +446,88 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   cacheTtlMinutes: 60,
 };
 
+/* ─── Leam (לעם) Civic Sites Page ─── */
+
+export const DEFAULT_LEAM_CONTENT: LeamPageContent = {
+  metaStrip: "טכנולוגיה אזרחית · גרסה 1.0",
+  hero: {
+    title: "לעם",
+    subtitle:
+      "מקבץ של ארבעה אתרים אזרחיים שמנגישים מידע ציבורי בישראל — מאגרי מידע, גרסאות, יומני נבחרים והסדרי ניגוד עניינים.",
+  },
+  stats: [
+    { k: "04", v: "אתרים" },
+    { k: "49+", v: "גופים ציבוריים" },
+    { k: "∞", v: "מאגרי מידע", srK: "ללא הגבלה" },
+    { k: "100%", v: "קוד פתוח" },
+  ],
+  manifesto: {
+    title: "שקיפות היא תנאי לדמוקרטיה",
+    body:
+      "ארבעת האתרים שלהלן נבנו מתוך תפיסה אחת: שמידע ציבורי הוא קודם כל שלנו. כל אתר מטפל בשכבה אחרת של הפער בין המידע שגופי הציבור מחזיקים לבין המידע שאזרחים יכולים בפועל להגיע אליו, להבין ולהשתמש בו — מהקובץ הגולמי ועד מפת הקשרים בין נושאי המשרה.",
+  },
+  sitesSection: {
+    eyebrow: "האתרים",
+    title: "ארבע שכבות של שקיפות",
+  },
+  sites: [
+    {
+      index: "01",
+      name: "מידע לעם",
+      tagline: "אתר המידע הפתוח הישראלי",
+      description:
+        "מערכת שמרכזת אלפי מאגרי מידע מ-49 גופים ציבוריים בישראל ומאפשרת לכל אזרח לחפש, לעיין ולהוריד מידע ממשלתי — מהיסטוריית טיסות ועד רישומי בנייה ירוקה. הבסיס לכל ניתוח ציבורי בלתי-תלוי.",
+      domain: "odata.org.il",
+      url: "https://www.odata.org.il/",
+      icon: "Database",
+      tags: ["מידע פתוח", "ממשק תכנות פתוח", "49 גופים"],
+    },
+    {
+      index: "02",
+      name: "גרסאות לעם",
+      tagline: "מעקב גרסאות אחרי מאגרי מידע ממשלתיים",
+      description:
+        "כלי שמתעד את ההיסטוריה של מאגרי המידע ב-data.gov.il וב-gov.il — כל הוספה, גריעה או שינוי של קובץ. מאפשר לעקוב, להשוות בין גרסאות ולזהות שינויים שקטים בנתונים שמתפרסמים לציבור. שקיפות גם לאורך זמן, לא רק ברגע הפרסום.",
+      domain: "over.org.il",
+      url: "https://www.over.org.il/",
+      icon: "History",
+      tags: ["השוואת גרסאות", "מאגרים ממשלתיים", "שקיפות לאורך זמן"],
+    },
+    {
+      index: "03",
+      name: "יומן לעם",
+      tagline: "מעקב אחר פעילות נבחרי ציבור",
+      description:
+        "כלי שמתעד ומנגיש את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, הצבעות ופעילות שוטפת — ומקשר בין דמויות ציבוריות לבין ציר הזמן. נציגים שנבחרו לשרת את הציבור צריכים להיות אחראים כלפיו.",
+      domain: "ocal.org.il",
+      url: "https://ocal.org.il/",
+      icon: "Calendar",
+      tags: ["נבחרי ציבור", "ציר זמן", "אחריותיות"],
+    },
+    {
+      index: "04",
+      name: "ניגוד עניינים לעם",
+      tagline: "מאגר הסדרי ניגוד עניינים של נושאי משרה",
+      description:
+        "מנוע חיפוש שמרכז את הסדרי ניגוד העניינים של בעלי תפקידים ציבוריים בישראל ומאפשר לבדוק אילו זיקות כלכליות ועסקיות קיימות להם — וגם למפות חזותית את רשת הקשרים שביניהם.",
+      domain: "ocoi.org.il",
+      url: "https://www.ocoi.org.il/",
+      icon: "Network",
+      tags: ["גרף קשרים", "ניגוד עניינים", "מיפוי קשרים"],
+    },
+  ],
+  ctaSiteLabel: "כניסה לאתר",
+  cta: {
+    title: "רוצים לשתף פעולה?",
+    description:
+      "אתרי לעם פתוחים לשיתופי פעולה עם חוקרים, עיתונאים, ארגוני חברה אזרחית ויוצרים עצמאיים. אם יש לכם רעיון להמשך — כתבו לנו.",
+    primaryCtaText: "צרו קשר",
+    primaryCtaLink: "/contact",
+    secondaryCtaText: "כל המיזמים",
+    secondaryCtaLink: "/projects",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -465,4 +548,5 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   guidelines: DEFAULT_GUIDELINES_CONTENT,
   "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
+  leam: DEFAULT_LEAM_CONTENT,
 };

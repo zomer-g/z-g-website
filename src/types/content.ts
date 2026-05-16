@@ -357,6 +357,52 @@ export interface GuidelinesPageContent {
   cacheTtlMinutes: number;
 }
 
+// ── Leam (לעם) Civic Sites Page Content ──
+
+export interface LeamSiteItem {
+  index: string;           // "01", "02" — decorative ordinal
+  name: string;            // "מידע לעם"
+  tagline: string;         // single-line subtitle
+  description: string;     // paragraph body
+  domain: string;          // bare domain shown LTR ("odata.org.il")
+  url: string;             // full https URL the card links to
+  icon: string;            // lucide icon name (Database, History, Calendar, Network, ...)
+  tags: string[];          // chips at the bottom of the card
+}
+
+export interface LeamStat {
+  k: string;               // main display value ("04", "49+", "∞", "100%")
+  v: string;               // label below the value ("אתרים", "גופים ציבוריים", ...)
+  srK?: string;            // optional screen-reader expansion for non-text glyphs (e.g. ∞ → "ללא הגבלה")
+}
+
+export interface LeamPageContent {
+  metaStrip: string;       // small badge text above the hero title
+  hero: {
+    title: string;         // big wordmark — "לעם"
+    subtitle: string;      // paragraph under the title (\n becomes <br>)
+  };
+  stats: LeamStat[];       // 4-cell counter strip in the hero
+  manifesto: {
+    title: string;
+    body: string;          // paragraph text
+  };
+  sitesSection: {
+    eyebrow: string;       // small label above the section heading ("האתרים")
+    title: string;         // section heading ("ארבע שכבות של שקיפות")
+  };
+  sites: LeamSiteItem[];   // the 4 (or more) site cards
+  ctaSiteLabel: string;    // CTA button text inside each site card ("כניסה לאתר")
+  cta: {
+    title: string;
+    description: string;
+    primaryCtaText: string;
+    primaryCtaLink: string;
+    secondaryCtaText: string;
+    secondaryCtaLink: string;
+  };
+}
+
 // ── Defamation Rulings Dashboard Page Content ──
 
 export interface DefamationRulingsPageContent {
@@ -393,6 +439,7 @@ export type PageContentMap = {
   guidelines: GuidelinesPageContent;
   "defamation-rulings": DefamationRulingsPageContent;
   "foi-rulings": FoiRulingsPageContent;
+  leam: LeamPageContent;
 };
 
 export type PageSlug = keyof PageContentMap;

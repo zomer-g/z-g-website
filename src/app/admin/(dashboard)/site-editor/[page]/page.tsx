@@ -19,6 +19,7 @@ import { ServiceDetailEditors } from "@/components/admin/section-editors/service
 import { ProjectsEditors } from "@/components/admin/section-editors/projects-editors";
 import { DigitalServicesEditors } from "@/components/admin/section-editors/digital-services-editors";
 import { DashboardPageEditor } from "@/components/admin/section-editors/dashboard-page-editor";
+import { LeamEditors } from "@/components/admin/section-editors/leam-editors";
 import {
   ArrowRight,
   Loader2,
@@ -28,7 +29,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent, LeamPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -50,6 +51,7 @@ const PAGE_LABELS: Record<string, string> = {
   guidelines: "מאגר הנחיות",
   "defamation-rulings": "פסקי דין בלשון הרע",
   "foi-rulings": "פסקי דין בעתירות חופש מידע",
+  leam: "לעם — אתרים אזרחיים",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -70,6 +72,7 @@ const PAGE_URLS: Record<string, string> = {
   guidelines: "/guidelines",
   "defamation-rulings": "/defamation-rulings",
   "foi-rulings": "/foi-rulings",
+  leam: "/leam",
 };
 
 /* ─── Page Editor ─── */
@@ -408,6 +411,12 @@ export default function SiteEditorPageEditor({
           {slug === "foi-rulings" && (
             <DashboardPageEditor<FoiRulingsPageContent>
               content={content as FoiRulingsPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "leam" && (
+            <LeamEditors
+              content={content as LeamPageContent}
               onChange={setContent}
             />
           )}
