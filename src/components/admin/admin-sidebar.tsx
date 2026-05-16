@@ -20,6 +20,7 @@ import {
   Tv,
   SpellCheck,
   Trash2,
+  TrendingUp,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
@@ -34,6 +35,7 @@ const navItems = [
   { label: "העלאת קבצים", href: "/admin/media", icon: Image },
   { label: "פניות", href: "/admin/submissions", icon: Inbox },
   { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
+  { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
   { label: "הגדרות", href: "/admin/settings", icon: Settings },
 ] as const;
 
