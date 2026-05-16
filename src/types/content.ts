@@ -73,13 +73,30 @@ export interface HomeProjectsPreview {
   ctaLink: string;
 }
 
+export interface HomeLawyersCallout {
+  enabled: boolean;
+  eyebrow: string;
+  title: string;
+  paragraphs: string[];
+  ctaText: string;
+  ctaLink: string;
+}
+
+export interface SeoMetadata {
+  title: string;
+  description: string;
+  keywords: string[];
+}
+
 export interface HomePageContent {
   hero: HomeHeroContent;
   services: HomeServicesSection;
   aboutPreview: HomeAboutPreview;
   projectsPreview: HomeProjectsPreview;
+  lawyersCallout: HomeLawyersCallout;
   articles: HomeArticlesSection;
   cta: HomeCtaSection;
+  seo: SeoMetadata;
 }
 
 // ── About Page Content ──
@@ -172,6 +189,17 @@ export interface FooterContent {
   contactInfo: ContactInfo;
   legalLinks: NavItem[];
   copyright: string;
+}
+
+// ── Global Site SEO (for layout.tsx defaults) ──
+
+export interface SiteSeoContent {
+  defaultTitle: string;
+  titleTemplate: string;
+  description: string;
+  ogDescription: string;
+  twitterDescription: string;
+  keywords: string[];
 }
 
 // ── Services Listing Page Content ──
@@ -393,6 +421,7 @@ export type PageContentMap = {
   guidelines: GuidelinesPageContent;
   "defamation-rulings": DefamationRulingsPageContent;
   "foi-rulings": FoiRulingsPageContent;
+  "site-seo": SiteSeoContent;
 };
 
 export type PageSlug = keyof PageContentMap;

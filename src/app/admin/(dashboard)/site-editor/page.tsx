@@ -26,6 +26,7 @@ import {
   BarChart3,
   Scale,
   BookOpen,
+  Globe,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -60,6 +61,7 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "service-detail", label: "עמוד שירות (תבנית)", icon: FileText },
   { slug: "header", label: "כותרת עליונה", icon: PanelTop },
   { slug: "footer", label: "כותרת תחתונה", icon: PanelBottom },
+  { slug: "site-seo", label: "SEO — האתר (גלובלי)", icon: Globe },
   { slug: "privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/privacy" },
   { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
   { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },

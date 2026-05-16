@@ -19,6 +19,7 @@ import { ServiceDetailEditors } from "@/components/admin/section-editors/service
 import { ProjectsEditors } from "@/components/admin/section-editors/projects-editors";
 import { DigitalServicesEditors } from "@/components/admin/section-editors/digital-services-editors";
 import { DashboardPageEditor } from "@/components/admin/section-editors/dashboard-page-editor";
+import { SiteSeoEditor } from "@/components/admin/section-editors/site-seo-editor";
 import {
   ArrowRight,
   Loader2,
@@ -28,7 +29,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent, SiteSeoContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -50,6 +51,7 @@ const PAGE_LABELS: Record<string, string> = {
   guidelines: "מאגר הנחיות",
   "defamation-rulings": "פסקי דין בלשון הרע",
   "foi-rulings": "פסקי דין בעתירות חופש מידע",
+  "site-seo": "SEO — האתר (גלובלי)",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -70,6 +72,7 @@ const PAGE_URLS: Record<string, string> = {
   guidelines: "/guidelines",
   "defamation-rulings": "/defamation-rulings",
   "foi-rulings": "/foi-rulings",
+  "site-seo": "/",
 };
 
 /* ─── Page Editor ─── */
@@ -408,6 +411,12 @@ export default function SiteEditorPageEditor({
           {slug === "foi-rulings" && (
             <DashboardPageEditor<FoiRulingsPageContent>
               content={content as FoiRulingsPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "site-seo" && (
+            <SiteSeoEditor
+              content={content as SiteSeoContent}
               onChange={setContent}
             />
           )}

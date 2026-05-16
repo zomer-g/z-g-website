@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
   media: "מדיה",
   "article-detail": "עמוד מאמר (תבנית)",
   "service-detail": "עמוד שירות (תבנית)",
+  "site-seo": "SEO — האתר (גלובלי)",
 };
 
 /* ─── Helper: ensure page exists (auto-creates from defaults) ─── */

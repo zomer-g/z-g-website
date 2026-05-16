@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Input, Textarea } from "@/components/ui/input";
 import { SectionCard } from "./section-card";
-import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2, ExternalLink, Code2 } from "lucide-react";
+import { Sparkles, LayoutGrid, Info, Newspaper, Megaphone, Plus, Trash2, ExternalLink, Code2, Scale, Search } from "lucide-react";
 import { AiWriterButton } from "@/components/admin/ai-writer-button";
 import type { HomePageContent } from "@/types/content";
 
@@ -266,6 +266,141 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
               עבור לניהול מיזמים
             </Link>
           </div>
+        </div>
+      </SectionCard>
+
+      {/* ── Lawyers Callout Section ── */}
+      <SectionCard title="בוקסה לעורכי דין" icon={Scale}>
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <input
+              type="checkbox"
+              checked={content.lawyersCallout?.enabled ?? true}
+              onChange={(e) => update("lawyersCallout", { enabled: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            הצג את הבוקסה בדף הבית
+          </label>
+          <Input
+            label="תווית עליונה (eyebrow)"
+            value={content.lawyersCallout?.eyebrow ?? ""}
+            onChange={(e) => update("lawyersCallout", { eyebrow: e.target.value })}
+            dir="rtl"
+          />
+          <Input
+            label="כותרת"
+            value={content.lawyersCallout?.title ?? ""}
+            onChange={(e) => update("lawyersCallout", { title: e.target.value })}
+            dir="rtl"
+          />
+          {(content.lawyersCallout?.paragraphs ?? []).map((p, idx) => (
+            <div key={idx} className="flex gap-2">
+              <div className="relative flex-1">
+                <Textarea
+                  label={`פסקה ${idx + 1}`}
+                  value={p}
+                  onChange={(e) => {
+                    const paragraphs = [...(content.lawyersCallout?.paragraphs ?? [])];
+                    paragraphs[idx] = e.target.value;
+                    update("lawyersCallout", { paragraphs });
+                  }}
+                  rows={3}
+                  dir="rtl"
+                />
+                <div className="absolute top-0 left-0">
+                  <AiWriterButton
+                    value={p}
+                    onResult={(text) => {
+                      const paragraphs = [...(content.lawyersCallout?.paragraphs ?? [])];
+                      paragraphs[idx] = text;
+                      update("lawyersCallout", { paragraphs });
+                    }}
+                    fieldLabel="פסקה בבוקסה לעורכי דין"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const paragraphs = (content.lawyersCallout?.paragraphs ?? []).filter((_, i) => i !== idx);
+                  update("lawyersCallout", { paragraphs });
+                }}
+                className="mt-6 text-red-400 hover:text-red-600 transition-colors self-start"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              const paragraphs = [...(content.lawyersCallout?.paragraphs ?? []), ""];
+              update("lawyersCallout", { paragraphs });
+            }}
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+          >
+            <Plus size={14} /> הוסף פסקה
+          </button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="טקסט כפתור"
+              value={content.lawyersCallout?.ctaText ?? ""}
+              onChange={(e) => update("lawyersCallout", { ctaText: e.target.value })}
+              dir="rtl"
+            />
+            <Input
+              label="קישור כפתור"
+              value={content.lawyersCallout?.ctaLink ?? "/contact"}
+              onChange={(e) => update("lawyersCallout", { ctaLink: e.target.value })}
+              dir="ltr"
+            />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── SEO (per-page) Section ── */}
+      <SectionCard title="SEO — דף הבית" icon={Search}>
+        <div className="space-y-3">
+          <p className="text-xs text-muted">
+            מטא-נתונים של דף הבית עצמו (כותרת ה-tab בדפדפן, תיאור ל-Google ולרשתות חברתיות).
+            ה-SEO הגלובלי של האתר נמצא בעמוד נפרד &quot;SEO — האתר&quot; ברשימת העמודים.
+          </p>
+          <Input
+            label="כותרת (Title)"
+            value={content.seo?.title ?? ""}
+            onChange={(e) => update("seo", { title: e.target.value })}
+            dir="rtl"
+          />
+          <div className="relative">
+            <Textarea
+              label="תיאור (Description)"
+              value={content.seo?.description ?? ""}
+              onChange={(e) => update("seo", { description: e.target.value })}
+              rows={3}
+              dir="rtl"
+            />
+            <div className="absolute top-0 left-0">
+              <AiWriterButton
+                value={content.seo?.description ?? ""}
+                onResult={(text) => update("seo", { description: text })}
+                fieldLabel="תיאור SEO לדף הבית"
+              />
+            </div>
+          </div>
+          <Textarea
+            label="מילות מפתח (כל מילה בשורה נפרדת)"
+            value={(content.seo?.keywords ?? []).join("\n")}
+            onChange={(e) =>
+              update("seo", {
+                keywords: e.target.value
+                  .split("\n")
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              })
+            }
+            rows={6}
+            dir="rtl"
+          />
         </div>
       </SectionCard>
 

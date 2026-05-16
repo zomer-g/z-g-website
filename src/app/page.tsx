@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Hero from "@/components/home/hero";
+import LawyersCallout from "@/components/home/lawyers-callout";
 import { getPageContent } from "@/lib/content";
 import { getIcon } from "@/lib/icons";
 import { prisma } from "@/lib/prisma";
@@ -28,16 +29,17 @@ export const dynamic = "force-dynamic";
 
 const PROJECT_ICONS: Record<string, typeof Database> = { Database, Calendar, Search };
 
-/* ─── Metadata ─── */
+/* ─── Metadata (sourced from CMS — editable in /admin/site-editor/home) ─── */
 
-export const metadata: Metadata = {
-  title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-  description:
-    'עו"ד גיא זומר — עורך דין פלילי עם גישה אנליטית מבוססת דאטה וטכנולוגיה. ייצוג בחקירות, הליכים פליליים, עתירות חופש מידע ותיקי לשון הרע. מפעיל את מאגר ההנחיות הציבורי הגדול בישראל.',
-  alternates: {
-    canonical: "/",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const content = await getPageContent<HomePageContent>("home");
+  return {
+    title: content.seo?.title,
+    description: content.seo?.description,
+    keywords: content.seo?.keywords,
+    alternates: { canonical: "/" },
+  };
+}
 
 /* ─── Page ─── */
 
@@ -243,7 +245,7 @@ export default async function HomePage() {
               <div className="relative aspect-[3/4] max-w-xs sm:max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl">
                 <Image
                   src="/images/guy-zomer.jpg"
-                  alt="עו״ד גיא זומר – עורך דין פלילי, תמונת פורטרט מקצועית"
+                  alt="עו״ד גיא זומר — משפט, טכנולוגיה ומידע, תמונת פורטרט מקצועית"
                   fill
                   className="object-cover object-top"
                   sizes="(min-width: 1024px) 384px, (min-width: 640px) 384px, 320px"
@@ -268,6 +270,11 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
+      </EditableSection>
+
+      {/* ── Lawyers Callout ── */}
+      <EditableSection editHref="/admin/site-editor/home" editLabel="בוקסה לעורכי דין">
+        <LawyersCallout content={content.lawyersCallout} />
       </EditableSection>
 
       {/* ── Articles Preview (from DB) ── */}

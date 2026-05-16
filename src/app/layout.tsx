@@ -3,6 +3,8 @@ import Script from "next/script";
 import { Heebo } from "next/font/google";
 import { AttorneySchema, OrganizationSchema, WebSiteSchema } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
+import { getPageContent } from "@/lib/content";
+import type { SiteSeoContent } from "@/types/content";
 import "./globals.css";
 
 const GA_ID = "G-W3B12VYHCK";
@@ -13,81 +15,65 @@ const heebo = Heebo({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL || "https://z-g.co.il"),
-  title: {
-    default: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-    template: "%s | עו\"ד גיא זומר",
-  },
-  description:
-    "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. ייצוג חשודים, נאשמים ונפגעי עבירה, עתירות חופש מידע, ולשון הרע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
-  applicationName: "עו\"ד גיא זומר",
-  authors: [{ name: "עו\"ד גיא זומר", url: "https://z-g.co.il/about" }],
-  creator: "עו\"ד גיא זומר",
-  publisher: "עו\"ד גיא זומר",
-  keywords: [
-    "גיא זומר",
-    "עו\"ד גיא זומר",
-    "עורך דין גיא זומר",
-    "זומר עורך דין",
-    "עורך דין פלילי",
-    "עו\"ד פלילי",
-    "חופש מידע",
-    "עתירת חופש מידע",
-    "מאגר הנחיות",
-    "הנחיות יועמ\"ש",
-    "הנחיות פרקליט המדינה",
-    "לשון הרע",
-    "פסקי דין לשון הרע",
-    "ייעוץ לפני חקירה",
-    "ייצוג נפגעי עבירה",
-    "Guy Zomer",
-    "Zomer Law",
-  ],
-  alternates: {
-    canonical: "/",
-    languages: {
-      he: "/",
-      "he-IL": "/",
+/* ─── Site-wide metadata (sourced from CMS — editable in /admin/site-editor/site-seo) ─── */
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getPageContent<SiteSeoContent>("site-seo");
+  return {
+    metadataBase: new URL(process.env.SITE_URL || "https://z-g.co.il"),
+    title: {
+      default: seo.defaultTitle,
+      template: seo.titleTemplate,
     },
-  },
-  openGraph: {
-    type: "website",
-    locale: "he_IL",
-    url: "https://z-g.co.il",
-    siteName: "עו\"ד גיא זומר",
-    title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-    description:
-      "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי הגדול בישראל, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
-    images: [
-      {
-        url: "/images/guy-zomer.jpg",
-        width: 1200,
-        height: 1600,
-        alt: "עו\"ד גיא זומר",
+    description: seo.description,
+    applicationName: "עו\"ד גיא זומר",
+    authors: [{ name: "עו\"ד גיא זומר", url: "https://z-g.co.il/about" }],
+    creator: "עו\"ד גיא זומר",
+    publisher: "עו\"ד גיא זומר",
+    keywords: seo.keywords,
+    alternates: {
+      canonical: "/",
+      languages: {
+        he: "/",
+        "he-IL": "/",
       },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-    description:
-      "ייצוג בפלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
-    images: ["/images/guy-zomer.jpg"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    },
+    openGraph: {
+      type: "website",
+      locale: "he_IL",
+      url: "https://z-g.co.il",
+      siteName: "עו\"ד גיא זומר",
+      title: seo.defaultTitle,
+      description: seo.ogDescription,
+      images: [
+        {
+          url: "/images/guy-zomer.jpg",
+          width: 1200,
+          height: 1600,
+          alt: "עו\"ד גיא זומר",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo.defaultTitle,
+      description: seo.twitterDescription,
+      images: ["/images/guy-zomer.jpg"],
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-snippet": -1,
-      "max-image-preview": "large",
-      "max-video-preview": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-snippet": -1,
+        "max-image-preview": "large",
+        "max-video-preview": -1,
+      },
     },
-  },
-  category: "law",
-};
+    category: "law",
+  };
+}
 
 export default function RootLayout({
   children,

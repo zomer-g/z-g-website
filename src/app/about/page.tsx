@@ -23,7 +23,7 @@ import { EditableSection } from "@/components/admin/editable-section";
 export const metadata: Metadata = {
   title: "אודות",
   description:
-    "אודות עו\"ד זומר - הכירו את הניסיון והערכים. ליווי משפטי מקצועי עם מחויבות למצוינות.",
+    "אודות עו\"ד גיא זומר — מחבר בין משפט, טכנולוגיה ומידע. שלוש דיסציפלינות, מומחיות אחת: עריכת דין, הנדסת תוכנה ודאטה, וניהול מאגרי המידע המשפטיים הציבוריים הגדולים בישראל.",
 };
 
 /* ─── Page ─── */
@@ -91,7 +91,7 @@ export default async function AboutPage() {
               <div className="relative aspect-[3/4] max-w-sm mx-auto overflow-hidden rounded-2xl shadow-xl lg:mx-0">
                 <Image
                   src="/images/guy-zomer.jpg"
-                  alt="עו״ד גיא זומר – עורך דין פלילי, תמונת פורטרט מקצועית"
+                  alt="עו״ד גיא זומר — משפט, טכנולוגיה ומידע, תמונת פורטרט מקצועית"
                   fill
                   className="object-cover object-top"
                   sizes="(min-width: 1024px) 384px, (min-width: 640px) 384px, 320px"
