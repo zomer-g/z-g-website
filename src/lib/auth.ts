@@ -24,9 +24,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (!user.email) return false;
-      return adminEmails.includes(user.email.toLowerCase());
+      if (!adminEmails.includes(user.email.toLowerCase())) return false;
+
+      // PrismaAdapter only writes tokens to the Account row on FIRST link.
+      // On subsequent sign-ins (even with new scopes), the row is reused and
+      // not refreshed. Patch the row ourselves with the freshest tokens/scope
+      // returned by the OAuth provider so /admin/seo can use them.
+      if (account?.provider === "google" && user.id) {
+        const existing = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: "google",
+              providerAccountId: account.providerAccountId,
+            },
+          },
+          select: { id: true },
+        });
+        if (existing) {
+          await prisma.account.update({
+            where: { id: existing.id },
+            data: {
+              access_token: account.access_token ?? undefined,
+              refresh_token: account.refresh_token ?? undefined,
+              expires_at:
+                typeof account.expires_at === "number"
+                  ? account.expires_at
+                  : undefined,
+              scope: account.scope ?? undefined,
+              token_type: account.token_type ?? undefined,
+              id_token: account.id_token ?? undefined,
+            },
+          });
+        }
+      }
+      return true;
     },
     async session({ session, user }) {
       if (session.user) {
