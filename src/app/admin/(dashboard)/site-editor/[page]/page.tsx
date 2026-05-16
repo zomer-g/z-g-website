@@ -72,7 +72,7 @@ const PAGE_URLS: Record<string, string> = {
   guidelines: "/guidelines",
   "defamation-rulings": "/defamation-rulings",
   "foi-rulings": "/foi-rulings",
-  leam: "/leam",
+  leam: "/o",
 };
 
 /* ─── Page Editor ─── */
