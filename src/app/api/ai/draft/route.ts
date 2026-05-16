@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // Call Gemini API
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent(combinedPrompt);
     const response = result.response;
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       result: text,
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
     });
   } catch (error) {
     console.error("POST /api/ai/draft error:", error);

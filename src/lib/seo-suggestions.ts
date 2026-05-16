@@ -214,7 +214,7 @@ ${contentBlock}${focusBlock}
 החזר JSON בלבד.`;
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const modelName = "gemini-2.0-flash";
+  const modelName = "gemini-2.5-flash";
   const model = genAI.getGenerativeModel({
     model: modelName,
     generationConfig: {
