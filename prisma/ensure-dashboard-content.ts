@@ -305,6 +305,66 @@ async function ensureProjectsPage() {
   );
 }
 
+// Media articles to seed if they're not already present. Identity is the URL —
+// if a MediaAppearance with the same URL already exists in the DB (whether the
+// admin added it manually or a previous deploy seeded it), the row is left
+// untouched so admin edits aren't blown away on every redeploy.
+const MEDIA_ARTICLES_TO_SEED = [
+  {
+    title:
+      'סכנה להדלפות? בית המשפט קבע: מותר לפרסם מידע רפואי ותעודת זהות',
+    description:
+      "פסק דין קבע כי ניתן לפרסם מידע מתוך הליכים משפטיים, גם כאשר מדובר במידע אישי ורגיש במיוחד. בפסק הדין הודגש כי עקרון פומביות הדיון הוא עקרון יסוד חוקתי.",
+    type: "article",
+    source: "ישראל היום",
+    date: "10.05.2026",
+    url: "https://www.israelhayom.co.il/news/law/article/20503250",
+  },
+  {
+    title:
+      'ת"א 56708-12-22 אומן נ\' התמנון — מידע ציבורי לכל (ע"ר) ואח\'',
+    description:
+      "סקירה משפטית של פסק הדין שעוסק באיזון בין הזכות לפרטיות לעקרון פומביות הדיון בפרסום מסמכים משפטיים.",
+    type: "article",
+    source: "law.co.il",
+    date: "11.05.2026",
+    url: "https://www.law.co.il/computer-law/2026/05/11/uman-v-the-octopus-public-information-for-all-ra/",
+  },
+  {
+    title: "בית המשפט: פרסום פסקי דין מותר — גם כשהוא פוגע בפרטיות",
+    description:
+      "בית משפט בירושלים דחה תביעה של אדם שפרטיו הרפואיים ומספר תעודת הזהות פורסמו באתר 'תולעת המשפט'. השופטת קבעה שפרסום מידע משפטי מדויק מוגן בחוק.",
+    type: "article",
+    source: "ביזפורטל",
+    date: "15.05.2026",
+    url: "https://www.bizportal.co.il/takdin/news/article/20031848",
+  },
+] as const;
+
+async function ensureMediaArticles() {
+  let inserted = 0;
+  let skipped = 0;
+  for (const article of MEDIA_ARTICLES_TO_SEED) {
+    // Match by URL — that's the natural identity for an external article and
+    // is more robust than title (titles get edited; the URL is the canonical
+    // reference). `findFirst` rather than `findUnique` because url isn't a
+    // unique index in the schema.
+    const existing = await prisma.mediaAppearance.findFirst({
+      where: { url: article.url },
+      select: { id: true },
+    });
+    if (existing) {
+      skipped += 1;
+      continue;
+    }
+    await prisma.mediaAppearance.create({ data: article });
+    inserted += 1;
+  }
+  console.log(
+    `  · media articles: inserted ${inserted}, skipped ${skipped} (already present)`,
+  );
+}
+
 async function main() {
   console.log("Ensuring dashboard content is in sync...");
 
@@ -323,6 +383,7 @@ async function main() {
   );
   await ensureDashboardPage("leam", "לעם — אתרים אזרחיים", LEAM_DEFAULT);
   await ensureProjectsPage();
+  await ensureMediaArticles();
 
   console.log("Done.");
 }
