@@ -171,6 +171,14 @@ export async function POST(req: NextRequest) {
     skipped: 0,
     fetched: 0,
     docsRebuilt: 0,
+    // Breakdown of `docsRebuilt` so the operator can tell *why* a wave
+    // re-embedded: brand-new docs (never had a hash), docs whose hash
+    // changed (real upstream churn), or docs the operator forced. If
+    // `changedDocs` is large with no upstream activity, something in the
+    // hash recipe is unstable and worth investigating.
+    newDocs: 0,
+    changedDocs: 0,
+    forcedDocs: 0,
     chunksCreated: 0,
     chunksDeleted: 0,
     embeddingBatches: 0,
@@ -242,9 +250,21 @@ export async function POST(req: NextRequest) {
             const docHash = await hashText(
               `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
             );
-            if (!force && existingHash.get(id) === docHash) {
+            const priorHash = existingHash.get(id);
+            if (!force && priorHash === docHash) {
               stats.skipped += 1;
               return;
+            }
+
+            // Classify why this doc will be rebuilt — surfaces in the UI
+            // so the operator can see "228 changed" vs "228 forced" and
+            // gauge whether the system is doing legitimate work.
+            if (force) {
+              stats.forcedDocs += 1;
+            } else if (!priorHash) {
+              stats.newDocs += 1;
+            } else {
+              stats.changedDocs += 1;
             }
 
             docState.set(id, {

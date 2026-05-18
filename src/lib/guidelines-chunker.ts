@@ -101,7 +101,16 @@ export function chunkGuideline(doc: ChunkInputDoc): BuiltChunk[] {
   if (summary) headerParts.push(summary);
   const metadataLines: string[] = [];
   if (doc.metadata) {
-    for (const [k, v] of Object.entries(doc.metadata)) {
+    // Sort keys before serialising. `Object.entries` preserves insertion
+    // order, which in turn depends on whatever order the upstream JSON
+    // serialised csv_row in — and that can drift between requests. Without
+    // this sort, "indexing the same document on Tuesday vs Wednesday"
+    // produced different metadata header bytes, different SHA-256, and
+    // re-embedded the doc on every build. Sorting locks the order so the
+    // hash only changes when actual content changes.
+    const keys = Object.keys(doc.metadata).sort();
+    for (const k of keys) {
+      const v = doc.metadata[k];
       const value = (v ?? "").toString().trim();
       if (!value) continue;
       metadataLines.push(`${k}: ${value}`);

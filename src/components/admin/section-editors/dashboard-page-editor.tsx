@@ -58,6 +58,11 @@ interface EmbedResponse {
   docsRebuilt?: number;
   embedded?: number;
   skipped?: number;
+  // Breakdown of docsRebuilt — see API route for definitions. Optional
+  // because older server versions don't return them.
+  newDocs?: number;
+  changedDocs?: number;
+  forcedDocs?: number;
   failed?: number;
   durationMs?: number;
   stoppedEarly?: boolean;
@@ -77,6 +82,9 @@ async function runEmbedLoop(
 ): Promise<EmbedFeedback> {
   let totalRebuilt = 0;
   let totalSkipped = 0;
+  let totalNew = 0;
+  let totalChanged = 0;
+  let totalForced = 0;
   let totalFailed = 0;
   let totalSeconds = 0;
   let runs = 0;
@@ -101,11 +109,26 @@ async function runEmbedLoop(
     runs += 1;
     totalRebuilt += data.docsRebuilt ?? data.embedded ?? 0;
     totalSkipped += data.skipped ?? 0;
+    totalNew += data.newDocs ?? 0;
+    totalChanged += data.changedDocs ?? 0;
+    totalForced += data.forcedDocs ?? 0;
     totalFailed += data.failed ?? 0;
     totalSeconds += Math.round((data.durationMs ?? 0) / 1000);
     totalDocs = data.total ?? totalDocs;
 
     const liveParts = [`סבב ${runs}`, `אומבדו: ${totalRebuilt}/${totalDocs}`];
+    // Breakdown of *why* docs were rebuilt, when the server provides it.
+    // Lets the operator distinguish "the corpus genuinely changed by 5%"
+    // from "something is invalidating my hashes". Only render the parts
+    // that are non-zero to avoid noise.
+    const breakdown: string[] = [];
+    if (totalNew > 0) breakdown.push(`חדשים: ${totalNew}`);
+    if (totalChanged > 0) breakdown.push(`השתנו: ${totalChanged}`);
+    if (totalForced > 0) breakdown.push(`כפויים: ${totalForced}`);
+    if (breakdown.length > 0) {
+      liveParts.push(`(${breakdown.join(", ")})`);
+    }
+    if (totalSkipped > 0) liveParts.push(`דולגו: ${totalSkipped}`);
     if (totalFailed > 0) liveParts.push(`כשלים: ${totalFailed}`);
     if (data.firstError) {
       const errLabel = data.firstError.status
@@ -138,6 +161,13 @@ async function runEmbedLoop(
     `אומבדו: ${totalRebuilt}/${totalDocs}`,
     `דולגו: ${totalSkipped}`,
   ];
+  const finalBreakdown: string[] = [];
+  if (totalNew > 0) finalBreakdown.push(`חדשים: ${totalNew}`);
+  if (totalChanged > 0) finalBreakdown.push(`השתנו: ${totalChanged}`);
+  if (totalForced > 0) finalBreakdown.push(`כפויים: ${totalForced}`);
+  if (finalBreakdown.length > 0) {
+    finalParts.push(`(${finalBreakdown.join(", ")})`);
+  }
   if (totalFailed > 0) finalParts.push(`כשלים: ${totalFailed}`);
   finalParts.push(`זמן כולל: ${totalSeconds} שניות`);
   return { type: "success", message: finalParts.join(" • ") };
