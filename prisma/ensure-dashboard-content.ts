@@ -309,6 +309,12 @@ async function ensureProjectsPage() {
 // if a MediaAppearance with the same URL already exists in the DB (whether the
 // admin added it manually or a previous deploy seeded it), the row is left
 // untouched so admin edits aren't blown away on every redeploy.
+//
+// IMPORTANT: dates are stored as YYYY-MM-DD strings to match the existing
+// rows. /media + /admin/media-appearances sort by `date` descending, and the
+// sort is lexicographic on the raw string — DD.MM.YYYY would sort below every
+// ISO-formatted date in the table (because "2"... > "1"...), pushing these
+// articles to the bottom of the list instead of the top.
 const MEDIA_ARTICLES_TO_SEED = [
   {
     title:
@@ -317,7 +323,7 @@ const MEDIA_ARTICLES_TO_SEED = [
       "פסק דין קבע כי ניתן לפרסם מידע מתוך הליכים משפטיים, גם כאשר מדובר במידע אישי ורגיש במיוחד. בפסק הדין הודגש כי עקרון פומביות הדיון הוא עקרון יסוד חוקתי.",
     type: "article",
     source: "ישראל היום",
-    date: "10.05.2026",
+    date: "2026-05-10",
     url: "https://www.israelhayom.co.il/news/law/article/20503250",
   },
   {
@@ -327,7 +333,7 @@ const MEDIA_ARTICLES_TO_SEED = [
       "סקירה משפטית של פסק הדין שעוסק באיזון בין הזכות לפרטיות לעקרון פומביות הדיון בפרסום מסמכים משפטיים.",
     type: "article",
     source: "law.co.il",
-    date: "11.05.2026",
+    date: "2026-05-11",
     url: "https://www.law.co.il/computer-law/2026/05/11/uman-v-the-octopus-public-information-for-all-ra/",
   },
   {
@@ -336,13 +342,25 @@ const MEDIA_ARTICLES_TO_SEED = [
       "בית משפט בירושלים דחה תביעה של אדם שפרטיו הרפואיים ומספר תעודת הזהות פורסמו באתר 'תולעת המשפט'. השופטת קבעה שפרסום מידע משפטי מדויק מוגן בחוק.",
     type: "article",
     source: "ביזפורטל",
-    date: "15.05.2026",
+    date: "2026-05-15",
     url: "https://www.bizportal.co.il/takdin/news/article/20031848",
   },
 ] as const;
 
+// Convert "DD.MM.YYYY" → "YYYY-MM-DD" if the input matches that shape, else
+// return null. Used to backfill the three rows the first deploy of this
+// script inserted in the wrong format. Admin-edited dates in any other format
+// won't match the regex and stay untouched.
+function ddmmyyyyToIso(date: string): string | null {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(date);
+  if (!m) return null;
+  const [, dd, mm, yyyy] = m;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 async function ensureMediaArticles() {
   let inserted = 0;
+  let backfilled = 0;
   let skipped = 0;
   for (const article of MEDIA_ARTICLES_TO_SEED) {
     // Match by URL — that's the natural identity for an external article and
@@ -351,17 +369,30 @@ async function ensureMediaArticles() {
     // unique index in the schema.
     const existing = await prisma.mediaAppearance.findFirst({
       where: { url: article.url },
-      select: { id: true },
+      select: { id: true, date: true },
     });
     if (existing) {
-      skipped += 1;
+      // One-time migration: if a previous deploy stored the date as
+      // DD.MM.YYYY, rewrite to ISO so this row sorts chronologically with
+      // the rest of the table. Once converted, the regex won't match again
+      // and the update is skipped.
+      const fixed = ddmmyyyyToIso(existing.date);
+      if (fixed) {
+        await prisma.mediaAppearance.update({
+          where: { id: existing.id },
+          data: { date: fixed },
+        });
+        backfilled += 1;
+      } else {
+        skipped += 1;
+      }
       continue;
     }
     await prisma.mediaAppearance.create({ data: article });
     inserted += 1;
   }
   console.log(
-    `  · media articles: inserted ${inserted}, skipped ${skipped} (already present)`,
+    `  · media articles: inserted ${inserted}, backfilled ${backfilled}, skipped ${skipped} (already in ISO format)`,
   );
 }
 
