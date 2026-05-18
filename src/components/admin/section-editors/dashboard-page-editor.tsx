@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "./section-card";
@@ -16,6 +16,7 @@ import {
   CheckCircle,
   Brain,
   Database,
+  Square,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -75,10 +76,15 @@ interface EmbedResponse {
 // source). Each server invocation returns stoppedEarly=true when a soft
 // deadline was hit; we keep posting until the run is genuinely done. The
 // caller gets live progress via onProgress so multiple buttons (global +
-// per-source) can render their own feedback strips.
+// per-source) can render their own feedback strips. Pass an `abortSignal`
+// to let the operator stop a long-running re-embed from the UI; aborting
+// closes the in-flight fetch and exits the loop with a "נעצר" summary
+// (the server-side wave currently running may still finish — Render
+// doesn't tear down workers mid-request — but no more rounds are issued).
 async function runEmbedLoop(
   url: string,
   onProgress: (feedback: EmbedFeedback) => void,
+  abortSignal?: AbortSignal,
 ): Promise<EmbedFeedback> {
   let totalRebuilt = 0;
   let totalSkipped = 0;
@@ -95,13 +101,45 @@ async function runEmbedLoop(
   // round and burns OpenAI credit re-embedding the same first batch.
   let runStartedAt: string | null = null;
 
+  // Builds the same totals string we'd emit on normal completion, but with
+  // a "נעצר" prefix. Used when the operator aborts.
+  const buildStoppedReport = (): EmbedFeedback => {
+    const parts = [
+      `נעצר על-ידי משתמש לאחר ${runs} ${runs === 1 ? "סבב" : "סבבים"}`,
+      `אומבדו: ${totalRebuilt}/${totalDocs}`,
+    ];
+    const bd: string[] = [];
+    if (totalNew > 0) bd.push(`חדשים: ${totalNew}`);
+    if (totalChanged > 0) bd.push(`השתנו: ${totalChanged}`);
+    if (totalForced > 0) bd.push(`כפויים: ${totalForced}`);
+    if (bd.length > 0) parts.push(`(${bd.join(", ")})`);
+    if (totalSkipped > 0) parts.push(`דולגו: ${totalSkipped}`);
+    if (totalFailed > 0) parts.push(`כשלים: ${totalFailed}`);
+    if (totalSeconds > 0) parts.push(`זמן: ${totalSeconds} שניות`);
+    return { type: "success", message: parts.join(" • ") };
+  };
+
   while (true) {
+    if (abortSignal?.aborted) return buildStoppedReport();
     const sep: string = url.includes("?") ? "&" : "?";
     const fullUrl: string = runStartedAt
       ? `${url}${sep}since=${encodeURIComponent(runStartedAt)}`
       : url;
-    const res: Response = await fetch(fullUrl, { method: "POST" });
-    const data: EmbedResponse = (await res.json()) as EmbedResponse;
+    let res: Response;
+    let data: EmbedResponse;
+    try {
+      res = await fetch(fullUrl, { method: "POST", signal: abortSignal });
+      data = (await res.json()) as EmbedResponse;
+    } catch (err) {
+      // AbortError is what fetch throws when the signal aborts mid-flight.
+      // Browsers normalise it under a few names — match by name and by the
+      // signal's `aborted` flag for safety.
+      const name = (err as { name?: string })?.name;
+      if (name === "AbortError" || abortSignal?.aborted) {
+        return buildStoppedReport();
+      }
+      throw err;
+    }
     if (!res.ok) throw new Error(data.error || "שגיאה בבניית האינדקס");
     if (typeof data.runStartedAt === "string" && !runStartedAt) {
       runStartedAt = data.runStartedAt;
@@ -245,16 +283,22 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   const [embedding, setEmbedding] = useState(false);
   const [embedForce, setEmbedForce] = useState(false);
   const [embedFeedback, setEmbedFeedback] = useState<EmbedFeedback | null>(null);
+  // AbortController for the global embed loop. Stored in a ref so the
+  // stop button can call `.abort()` without re-rendering. Cleared in
+  // the handler's `finally` so the next click starts fresh.
+  const embedAbortRef = useRef<AbortController | null>(null);
 
   const handleEmbed = async () => {
     if (!embedAction) return;
+    const controller = new AbortController();
+    embedAbortRef.current = controller;
     setEmbedding(true);
     setEmbedFeedback(null);
     const url = embedForce
       ? `${embedAction.endpoint}?force=1`
       : embedAction.endpoint;
     try {
-      const final = await runEmbedLoop(url, setEmbedFeedback);
+      const final = await runEmbedLoop(url, setEmbedFeedback, controller.signal);
       setEmbedFeedback(final);
     } catch (err) {
       setEmbedFeedback({
@@ -262,9 +306,14 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         message: err instanceof Error ? err.message : "שגיאה בבניית האינדקס",
       });
     } finally {
+      embedAbortRef.current = null;
       setEmbedding(false);
       setTimeout(() => setEmbedFeedback(null), 30000);
     }
+  };
+
+  const handleStopEmbed = () => {
+    embedAbortRef.current?.abort();
   };
 
   // Per-source list state. Lazily fetched on mount when the embed panel is
@@ -277,6 +326,9 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   const [sourceFeedback, setSourceFeedback] = useState<
     Record<string, EmbedFeedback | undefined>
   >({});
+  // Single controller because only one per-source embed runs at a time
+  // (guard: handleEmbedSource bails early if runningSource is set).
+  const sourceEmbedAbortRef = useRef<AbortController | null>(null);
 
   const loadSources = async () => {
     setSourcesLoading(true);
@@ -310,12 +362,16 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   const handleEmbedSource = async (label: string) => {
     if (!embedAction) return;
     if (runningSource) return;
+    const controller = new AbortController();
+    sourceEmbedAbortRef.current = controller;
     setRunningSource(label);
     setSourceFeedback((prev) => ({ ...prev, [label]: undefined }));
     const url = `${embedAction.endpoint}?force=1&source=${encodeURIComponent(label)}`;
     try {
-      const final = await runEmbedLoop(url, (f) =>
-        setSourceFeedback((prev) => ({ ...prev, [label]: f })),
+      const final = await runEmbedLoop(
+        url,
+        (f) => setSourceFeedback((prev) => ({ ...prev, [label]: f })),
+        controller.signal,
       );
       setSourceFeedback((prev) => ({ ...prev, [label]: final }));
       // Successful embed → fresh updatedAt → reload the list so the
@@ -331,12 +387,17 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         },
       }));
     } finally {
+      sourceEmbedAbortRef.current = null;
       setRunningSource(null);
       setTimeout(
         () => setSourceFeedback((prev) => ({ ...prev, [label]: undefined })),
         30000,
       );
     }
+  };
+
+  const handleStopSourceEmbed = () => {
+    sourceEmbedAbortRef.current?.abort();
   };
 
   // Per-source data import. Distinct from "אנדקס": this just refreshes the
@@ -548,7 +609,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
               מדלגות על מסמכים שלא השתנו.
             </p>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Button
                 type="button"
                 onClick={handleEmbed}
@@ -560,6 +621,21 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
                 <Brain size={16} />
                 {embedForce ? "בנה הכל מחדש" : "עדכן אינדקס"}
               </Button>
+              {embedding ? (
+                <Button
+                  type="button"
+                  onClick={handleStopEmbed}
+                  variant="ghost"
+                  className={cn(
+                    "whitespace-nowrap",
+                    "border border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700",
+                  )}
+                  title="עצירת הריצה הנוכחית. הסבב שכבר נשלח לשרת ייתכן וישלים — אבל לא ייצא סבב חדש."
+                >
+                  <Square size={14} />
+                  עצרי
+                </Button>
+              ) : null}
               <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
                 <input
                   type="checkbox"
@@ -688,6 +764,22 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
                             <Brain size={14} />
                             אנדקס
                           </Button>
+                          {isEmbedding ? (
+                            <Button
+                              type="button"
+                              onClick={handleStopSourceEmbed}
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "whitespace-nowrap",
+                                "border border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700",
+                              )}
+                              title="עצירת האינדוקס של המקור הזה. הסבב שכבר נשלח לשרת ייתכן וישלים — אבל לא ייצא סבב חדש."
+                            >
+                              <Square size={14} />
+                              עצרי
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                       {fb ? (
