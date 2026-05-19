@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  usePathname,
+  useRouter,
+  useSearchParams,
+  type ReadonlyURLSearchParams,
+} from "next/navigation";
 import type {
   ClassActionDocument,
   ClassActionCase,
@@ -98,6 +104,65 @@ function buildQs(filters: Filters, skip: number, sort: SortOrder) {
   if (filters.claim_min) p.set("claim_min", filters.claim_min);
   if (filters.claim_max) p.set("claim_max", filters.claim_max);
   return p.toString();
+}
+
+/* ── URL ⇄ state helpers ──
+   Mirror the guidelines dashboard: filters/sort/skip live in the page URL so
+   a copied address bar reproduces the same view. URLSearchParams handles
+   percent-encoding, so a query like `?q=פרטיות&sort=amount_desc&skip=24`
+   round-trips cleanly across share/clipboard. */
+
+const DEFAULT_SORT: SortOrder = "date_desc";
+const SORT_VALUES = new Set<SortOrder>(SORT_OPTIONS.map((o) => o.value));
+
+function isAppealValue(v: string): v is Filters["is_appeal"] {
+  return v === "" || v === "true" || v === "false";
+}
+
+function filtersFromSearchParams(sp: ReadonlyURLSearchParams): Filters {
+  const ia = sp.get("is_appeal") ?? "";
+  const it = sp.get("is_attachment") ?? "";
+  return {
+    q: sp.get("q") ?? "",
+    date_from: sp.get("date_from") ?? "",
+    date_to: sp.get("date_to") ?? "",
+    court: sp.get("court") ?? "",
+    case_number: sp.get("case_number") ?? "",
+    is_appeal: isAppealValue(ia) ? ia : "",
+    is_attachment: isAppealValue(it) ? it : "",
+    claim_min: sp.get("claim_min") ?? "",
+    claim_max: sp.get("claim_max") ?? "",
+  };
+}
+
+function skipFromSearchParams(sp: ReadonlyURLSearchParams): number {
+  const n = Number(sp.get("skip"));
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+}
+
+function sortFromSearchParams(sp: ReadonlyURLSearchParams): SortOrder {
+  const raw = sp.get("sort");
+  return raw && SORT_VALUES.has(raw as SortOrder) ? (raw as SortOrder) : DEFAULT_SORT;
+}
+
+function stateToSearchParams(
+  f: Filters,
+  s: number,
+  ord: SortOrder,
+): URLSearchParams {
+  const p = new URLSearchParams();
+  if (f.q.trim()) p.set("q", f.q.trim());
+  if (f.date_from) p.set("date_from", f.date_from);
+  if (f.date_to) p.set("date_to", f.date_to);
+  if (f.court.trim()) p.set("court", f.court.trim());
+  if (f.case_number.trim()) p.set("case_number", f.case_number.trim());
+  if (f.is_appeal) p.set("is_appeal", f.is_appeal);
+  if (f.is_attachment) p.set("is_attachment", f.is_attachment);
+  if (f.claim_min) p.set("claim_min", f.claim_min);
+  if (f.claim_max) p.set("claim_max", f.claim_max);
+  if (ord !== DEFAULT_SORT) p.set("sort", ord);
+  if (s > 0) p.set("skip", String(s));
+  return p;
 }
 
 function SkeletonCard() {
@@ -352,10 +417,33 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
 }
 
 export function ClassActionsDashboard() {
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [skip, setSkip] = useState(0);
-  const [sort, setSort] = useState<SortOrder>("date_desc");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Applied filters / sort / current page are derived from the URL — so a
+  // copied address bar reproduces the same view on someone else's screen.
+  const filters = useMemo(
+    () => filtersFromSearchParams(searchParams),
+    [searchParams],
+  );
+  const skip = useMemo(() => skipFromSearchParams(searchParams), [searchParams]);
+  const sort = useMemo(() => sortFromSearchParams(searchParams), [searchParams]);
+
+  // Draft state lives only for the inputs that wait for the user to press
+  // "סינון". Sort and pagination commit instantly so they don't need a
+  // draft. Seed draft from the URL on first render so a shared link
+  // visibly pre-fills the inputs, then leave it under the user's exclusive
+  // control after that.
+  const [draft, setDraft] = useState<Filters>(filters);
+  const draftHydratedRef = useRef(false);
+  useEffect(() => {
+    if (!draftHydratedRef.current) {
+      setDraft(filters);
+      draftHydratedRef.current = true;
+    }
+  }, [filters]);
+
   const [data, setData] = useState<CasesListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -384,14 +472,22 @@ export function ClassActionsDashboard() {
     fetchData(filters, skip, sort);
   }, [fetchData, filters, skip, sort]);
 
-  const applyFilters = () => {
-    setSkip(0);
-    setFilters(draft);
-  };
+  // Single channel for changing applied state: write to the URL, the
+  // memos pick it up, the fetch effect re-runs. `router.replace` keeps
+  // each filter change off the browser history stack so the back button
+  // still works for actual navigation.
+  const navigate = useCallback(
+    (f: Filters, s: number, ord: SortOrder) => {
+      const qs = stateToSearchParams(f, s, ord).toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname],
+  );
+
+  const applyFilters = () => navigate(draft, 0, sort);
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
-    setSkip(0);
-    setFilters(EMPTY_FILTERS);
+    navigate(EMPTY_FILTERS, 0, DEFAULT_SORT);
   };
 
   const total = data?.total ?? 0;
@@ -580,10 +676,7 @@ export function ClassActionsDashboard() {
           <select
             id="ca-sort"
             value={sort}
-            onChange={(e) => {
-              setSort(e.target.value as SortOrder);
-              setSkip(0);
-            }}
+            onChange={(e) => navigate(filters, 0, e.target.value as SortOrder)}
             className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
           >
             {SORT_OPTIONS.map((o) => (
@@ -610,7 +703,7 @@ export function ClassActionsDashboard() {
           <button
             type="button"
             disabled={!canPrev}
-            onClick={() => setSkip((s) => Math.max(0, s - PAGE_SIZE))}
+            onClick={() => navigate(filters, Math.max(0, skip - PAGE_SIZE), sort)}
             className="text-sm font-semibold rounded-md px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
           >
@@ -623,7 +716,7 @@ export function ClassActionsDashboard() {
           <button
             type="button"
             disabled={!canNext}
-            onClick={() => setSkip((s) => s + PAGE_SIZE)}
+            onClick={() => navigate(filters, skip + PAGE_SIZE, sort)}
             className="text-sm font-semibold rounded-md px-4 py-2 text-white disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: C_PRIMARY }}
           >
