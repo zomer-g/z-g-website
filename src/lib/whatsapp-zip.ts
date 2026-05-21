@@ -127,9 +127,12 @@ function stripBidiAndNbsp(s: string): string {
     .replace(/[  ]/g, " ");
 }
 
-const FILE_ATTACHED_RE =
-  /^(.+?)\s*\(file attached\)\s*(.*)$/s;          // Android
-const IOS_ATTACHED_RE = /^<attached:\s*(.+?)>\s*(.*)$/s;   // iOS
+// Match attachment markers on a single line. The dotAll (`/s`) flag is
+// intentionally NOT used — the project's tsconfig target predates ES2018
+// regex flags, and we don't need `.` to cross newlines anyway: the parser
+// splits the .txt on /\r?\n/ before applying these patterns.
+const FILE_ATTACHED_RE = /^(.+?)\s*\(file attached\)\s*(.*)$/;          // Android
+const IOS_ATTACHED_RE = /^<attached:\s*(.+?)>\s*(.*)$/;                 // iOS
 const MEDIA_OMITTED = /^\s*<Media omitted>\s*$/i;
 
 // Split the part after the timestamp into sender + body. WhatsApp uses the
