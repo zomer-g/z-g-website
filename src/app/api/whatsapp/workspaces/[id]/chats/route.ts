@@ -128,7 +128,7 @@ export async function POST(
             filename: m.filename,
             mimeType: m.mimeType,
             size: m.size,
-            data: m.buffer,
+            data: m.data,
           },
           select: { id: true },
         });
