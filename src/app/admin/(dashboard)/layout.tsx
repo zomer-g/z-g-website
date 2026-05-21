@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, isAdminEmail } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/admin-sidebar";
 
 /* ─── Admin Layout ─── */
@@ -11,7 +11,11 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (!session?.user) {
+  // Defense in depth: ADMIN_EMAILS check at the layout level. The signIn
+  // callback already restricts the "google" provider to admin emails, but a
+  // user with a "google-public" session must not reach /admin even if they
+  // try to navigate here directly.
+  if (!session?.user || !isAdminEmail(session.user.email)) {
     redirect("/admin/login");
   }
 
