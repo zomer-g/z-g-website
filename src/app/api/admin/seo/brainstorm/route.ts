@@ -41,10 +41,14 @@ export async function POST(req: NextRequest) {
     const result = await brainstormKeywords({ focusHint: parsed.data.focusHint });
     return NextResponse.json(result);
   } catch (err) {
+    // Log the real error server-side; never echo it back to the client —
+    // upstream errors from Gemini may include URLs/keys we don't want to expose.
     console.error("POST /api/admin/seo/brainstorm error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "BRAINSTORM_FAILED", message },
+      {
+        error: "BRAINSTORM_FAILED",
+        message: "שגיאה בהפעלת ה-AI. בדוק את ה-logs לפרטים.",
+      },
       { status: 500 },
     );
   }

@@ -59,10 +59,14 @@ export async function GET(req: NextRequest) {
       authKind: status.kind,
     });
   } catch (err) {
+    // Log the real error server-side; never echo it back to the client —
+    // could leak internal paths, env var names, or token-shaped strings.
     console.error("GET /api/admin/seo/gsc error:", err);
-    const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json(
-      { error: "GSC_REQUEST_FAILED", message },
+      {
+        error: "GSC_REQUEST_FAILED",
+        message: "שגיאה בטעינת נתוני Search Console. בדוק את ה-logs לפרטים.",
+      },
       { status: 500 },
     );
   }
