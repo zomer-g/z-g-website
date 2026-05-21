@@ -22,6 +22,14 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/admin";
   const [isLoading, setIsLoading] = useState(false);
 
+  // Admin destinations need the "google" provider (carries the
+  // webmasters.readonly scope used by /admin/seo, restricted to ADMIN_EMAILS).
+  // Everywhere else (e.g. /whatsapp/<slug> guest pages) goes through the
+  // public client so Google's Testing-mode lock on the admin client doesn't
+  // block guests.
+  const isAdminDestination = callbackUrl.startsWith("/admin");
+  const provider = isAdminDestination ? "google" : "google-public";
+
   const errorMessage = errorParam
     ? ERROR_MESSAGES[errorParam] ?? ERROR_MESSAGES.default
     : null;
@@ -29,7 +37,7 @@ function LoginForm() {
   const handleSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("google", { callbackUrl });
+      await signIn(provider, { callbackUrl });
     } catch {
       setIsLoading(false);
     }
@@ -58,9 +66,13 @@ function LoginForm() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">כניסת מנהל</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isAdminDestination ? "כניסת מנהל" : "כניסה"}
+            </h1>
             <p className="mt-2 text-sm text-gray-500">
-              התחברו למערכת הניהול של האתר
+              {isAdminDestination
+                ? "התחברו למערכת הניהול של האתר"
+                : "התחברו באמצעות חשבון Google כדי להמשיך"}
             </p>
           </div>
 
@@ -142,7 +154,9 @@ function LoginForm() {
 
           {/* Footer text */}
           <p className="mt-6 text-center text-xs text-gray-400">
-            הגישה מוגבלת למנהלי המערכת בלבד
+            {isAdminDestination
+              ? "הגישה מוגבלת למנהלי המערכת בלבד"
+              : "רק משתמשים שהוזמנו מראש לרשימת הגישה יוכלו להיכנס"}
           </p>
         </div>
       </div>
