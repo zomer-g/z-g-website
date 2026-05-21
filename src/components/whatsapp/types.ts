@@ -7,6 +7,10 @@
 export interface WhatsappChatSummary {
   id: string;
   contactName: string;
+  // Which raw sender string in this chat should be treated as "me"
+  // (outgoing/green). null when the admin hasn't picked one yet —
+  // bubbles fall back to "everyone is incoming" until they do.
+  selfSender: string | null;
   messageCount: number;
   lastAt: string | null;        // ISO string
   lastTextPreview: string | null;
@@ -17,6 +21,10 @@ export interface WhatsappMessageDTO {
   timestamp: string;            // ISO string
   sender: string;
   isSystem: boolean;
+  // True only for admins. Hidden messages are filtered out of the
+  // server response for guest viewers; admins receive them with this
+  // flag so the UI can fade them + offer an unhide toggle.
+  isHidden: boolean;
   text: string | null;
   media: WhatsappMediaDTO | null;
 }

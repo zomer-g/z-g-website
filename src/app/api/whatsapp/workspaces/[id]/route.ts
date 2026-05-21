@@ -44,6 +44,7 @@ export async function GET(
         select: {
           id: true,
           contactName: true,
+          selfSender: true,
           zipFilename: true,
           messageCount: true,
           firstAt: true,
@@ -54,7 +55,37 @@ export async function GET(
       },
     },
   });
-  return NextResponse.json({ workspace: full });
+
+  // Admin-only enrichment: for each chat, the distinct non-system senders
+  // + their message counts, so the admin UI can offer a "who's me?"
+  // dropdown without a second roundtrip. Guests don't need this and the
+  // groupBy is cheap because chatId+order is already indexed.
+  let chatsWithSenders = full?.chats ?? [];
+  if (full && gate.access.isAdmin) {
+    const grouped = await prisma.whatsappMessage.groupBy({
+      by: ["chatId", "sender"],
+      where: {
+        chatId: { in: full.chats.map((c) => c.id) },
+        isSystem: false,
+        NOT: { sender: "" },
+      },
+      _count: { _all: true },
+    });
+    const sendersByChat = new Map<string, { sender: string; count: number }[]>();
+    for (const g of grouped) {
+      const arr = sendersByChat.get(g.chatId) ?? [];
+      arr.push({ sender: g.sender, count: g._count._all });
+      sendersByChat.set(g.chatId, arr);
+    }
+    chatsWithSenders = full.chats.map((c) => ({
+      ...c,
+      senders: (sendersByChat.get(c.id) ?? []).sort((a, b) => b.count - a.count),
+    }));
+  }
+
+  return NextResponse.json({
+    workspace: full ? { ...full, chats: chatsWithSenders } : null,
+  });
 }
 
 export async function PATCH(

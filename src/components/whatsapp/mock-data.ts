@@ -34,6 +34,7 @@ const CHAT_A: WhatsappMessageDTO[] = [
     timestamp: at("06:00"),
     sender: "",
     isSystem: true,
+    isHidden: false,
     text: "ההודעות בצ׳אט זה מוצפנות מקצה לקצה",
     media: null,
   },
@@ -42,6 +43,7 @@ const CHAT_A: WhatsappMessageDTO[] = [
     timestamp: at("08:12"),
     sender: "דנה כהן (לקוחה)",
     isSystem: false,
+    isHidden: false,
     text: "בוקר טוב — את הדיון מחר אישרת? יש לי לחץ קל לפני זה.",
     media: null,
   },
@@ -50,6 +52,7 @@ const CHAT_A: WhatsappMessageDTO[] = [
     timestamp: at("08:18"),
     sender: MOCK_SELF,
     isSystem: false,
+    isHidden: false,
     text: "בוקר טוב 🙏 הדיון מחר ב-10:00, חדר ישיבות 3 בקומה 7. עליזה מסדרת איתי את החומר במהלך היום.",
     media: null,
   },
@@ -58,6 +61,7 @@ const CHAT_A: WhatsappMessageDTO[] = [
     timestamp: at("08:21"),
     sender: "דנה כהן (לקוחה)",
     isSystem: false,
+    isHidden: false,
     text: "מצוין. שתעדכן אותי כשתוודאו שהמסמכים מסודרים.",
     media: null,
   },
@@ -70,6 +74,7 @@ const CHAT_B: WhatsappMessageDTO[] = [
     timestamp: at("09:32"),
     sender: "עליזה — מתמחה",
     isSystem: false,
+    isHidden: false,
     text: "כמו שאמרנו — הדבקתי פתק קטן ליד התיק. צילמתי שלא נשכח:",
     media: null,
   },
@@ -78,6 +83,7 @@ const CHAT_B: WhatsappMessageDTO[] = [
     timestamp: at("09:33"),
     sender: "עליזה — מתמחה",
     isSystem: false,
+    isHidden: false,
     text: null,
     media: {
       id: "b2-media",
@@ -92,6 +98,7 @@ const CHAT_B: WhatsappMessageDTO[] = [
     timestamp: at("09:41"),
     sender: MOCK_SELF,
     isSystem: false,
+    isHidden: false,
     text: "מושלם, תודה. תוודאי שגם דנה רואה את החדר שמסודר על הפתק.",
     media: null,
   },
@@ -100,26 +107,29 @@ const CHAT_B: WhatsappMessageDTO[] = [
     timestamp: at("09:43"),
     sender: "עליזה — מתמחה",
     isSystem: false,
+    isHidden: false,
     text: "על זה — שולחת לה תמונה גם 👍",
     media: null,
   },
 ];
 
-// ── Chat C — עו"ד שמרון (צד שכנגד) — coordinating with a voice note. ──
+// ── Chat C — עו"ד פלוני (צד שכנגד) — coordinating with a voice note. ──
 const CHAT_C: WhatsappMessageDTO[] = [
   {
     id: "c1",
     timestamp: at("12:05"),
-    sender: 'עו"ד שמרון (צד שכנגד)',
+    sender: 'עו"ד פלוני (צד שכנגד)',
     isSystem: false,
+    isHidden: false,
     text: "אהלן, שלחתי הצעת פשרה בבוקר. אפשר לקפוץ ל-15 דקות שיחה לפני הדיון מחר?",
     media: null,
   },
   {
     id: "c2",
     timestamp: at("12:38"),
-    sender: 'עו"ד שמרון (צד שכנגד)',
+    sender: 'עו"ד פלוני (צד שכנגד)',
     isSystem: false,
+    isHidden: false,
     text: null,
     media: {
       id: "c2-media",
@@ -134,6 +144,7 @@ const CHAT_C: WhatsappMessageDTO[] = [
     timestamp: at("13:12"),
     sender: MOCK_SELF,
     isSystem: false,
+    isHidden: false,
     text: "קיבלתי את ההקלטה. בוא נתאם מחר ב-09:00, רבע שעה לפני הדיון. אם תרצה — בקופיה מצורף את חברתי דנה.",
     media: null,
   },
@@ -146,7 +157,8 @@ export const MOCK_CHATS: Array<{
   {
     summary: {
       id: "mock-c",
-      contactName: 'עו"ד שמרון (צד שכנגד)',
+      contactName: 'עו"ד פלוני (צד שכנגד)',
+      selfSender: MOCK_SELF,
       messageCount: CHAT_C.length,
       lastAt: CHAT_C[CHAT_C.length - 1].timestamp,
       lastTextPreview: "נתאם מחר ב-09:00 רבע שעה לפני הדיון.",
@@ -157,6 +169,7 @@ export const MOCK_CHATS: Array<{
     summary: {
       id: "mock-b",
       contactName: "עליזה — מתמחה",
+      selfSender: MOCK_SELF,
       messageCount: CHAT_B.length,
       lastAt: CHAT_B[CHAT_B.length - 1].timestamp,
       lastTextPreview: "על זה — שולחת לה תמונה גם 👍",
@@ -167,6 +180,7 @@ export const MOCK_CHATS: Array<{
     summary: {
       id: "mock-a",
       contactName: "דנה כהן (לקוחה)",
+      selfSender: MOCK_SELF,
       messageCount: CHAT_A.length,
       lastAt: CHAT_A[CHAT_A.length - 1].timestamp,
       lastTextPreview: "שתעדכן אותי כשתוודאו שהמסמכים מסודרים.",

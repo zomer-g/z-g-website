@@ -35,6 +35,10 @@ export default async function WhatsappWorkspacePage({ params }: PageProps) {
         select: {
           id: true,
           contactName: true,
+          // Per-chat "self" sender — admin sets this from /admin/whatsapp/[id].
+          // When null, no message is treated as outgoing (everything reads as
+          // incoming/white).
+          selfSender: true,
           messageCount: true,
           lastAt: true,
         },
@@ -60,14 +64,14 @@ export default async function WhatsappWorkspacePage({ params }: PageProps) {
   const dto: WhatsappWorkspaceDTO = {
     id: workspace.id,
     title: workspace.title,
-    // The "self" sender for outgoing-bubble alignment. We use the admin's
-    // own display name when ADMIN is viewing, and "אני" when a guest
-    // viewer is the workspace's intended recipient (so their messages
-    // align as expected).
-    selfSender: access.isAdmin ? (access.email ?? "אני") : "אני",
+    // Workspace-level fallback used by the shell only when a chat has no
+    // per-chat selfSender set. The per-chat value (configured by the
+    // admin in /admin/whatsapp/[id]) is the real signal — see below.
+    selfSender: "",
     chats: workspace.chats.map((c) => ({
       id: c.id,
       contactName: c.contactName,
+      selfSender: c.selfSender ?? null,
       messageCount: c.messageCount,
       lastAt: c.lastAt ? c.lastAt.toISOString() : null,
       lastTextPreview: null,
@@ -92,7 +96,7 @@ export default async function WhatsappWorkspacePage({ params }: PageProps) {
             style={{ height: "min(82vh, 820px)" }}
           >
             <div className="flex h-full min-h-0">
-              <WhatsappShell workspace={dto} mode="live" />
+              <WhatsappShell workspace={dto} mode="live" isAdmin={access.isAdmin} />
             </div>
           </div>
         </div>

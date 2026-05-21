@@ -23,6 +23,10 @@ interface ChatPaneProps {
   error: string | null;
   selfSender: string;
   onBack: () => void;          // mobile back button: returns to the chat list
+  // Admin-only — when true, MessageBubble renders a per-bubble hide
+  // toggle and faded styling on hidden rows. Guests never see this.
+  isAdmin?: boolean;
+  onToggleHidden?: (messageId: string, nextHidden: boolean) => void;
 }
 
 function dayKey(iso: string): string {
@@ -49,6 +53,8 @@ export function ChatPane({
   error,
   selfSender,
   onBack,
+  isAdmin = false,
+  onToggleHidden,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -158,6 +164,8 @@ export function ChatPane({
                 message={it.msg}
                 isOutgoing={it.isOutgoing}
                 showSender={it.showSender}
+                isAdmin={isAdmin}
+                onToggleHidden={onToggleHidden}
               />
             ),
           )

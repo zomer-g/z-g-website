@@ -20,15 +20,26 @@ export interface MergedMessage extends WhatsappMessageDTO {
   // the per-bubble source label. The merged shell builds these by
   // tagging each loaded chat's messages with the chat's contactName.
   sourceContact: string;
+  // The source chat's selfSender (configured by the admin per chat).
+  // Used to decide outgoing-vs-incoming per message — without this,
+  // every bubble in the merged view would look like an incoming message.
+  sourceSelfSender: string | null;
 }
 
 interface MergedViewProps {
   messages: MergedMessage[];
   loading: boolean;
   error: string | null;
-  selfSender: string;
+  // Used only when a merged message lacks sourceSelfSender — kept here as
+  // a workspace-level fallback so the props stay backward-compatible.
+  workspaceSelfSender: string;
   onExit: () => void;       // dismiss merged view, return to chat list
   selectedCount: number;
+  // isAdmin is intentionally NOT a prop here: hidden-message styling
+  // surfaces via the MessageBubble component itself (it reads
+  // message.isHidden and renders the fade + badge). The merged view does
+  // not currently offer an inline hide toggle — admins should hide
+  // messages from the single-chat pane to keep the merged state simple.
 }
 
 function dayKey(iso: string): string {
@@ -64,7 +75,7 @@ export function MergedView({
   messages,
   loading,
   error,
-  selfSender,
+  workspaceSelfSender,
   onExit,
   selectedCount,
 }: MergedViewProps) {
@@ -94,11 +105,15 @@ export function MergedView({
         out.push({ kind: "day", key: `day-${day}-${m.id}`, label: day });
         lastDay = day;
       }
-      const isOutgoing = !m.isSystem && m.sender === selfSender;
+      // Per-source selfSender is the priority; the workspace fallback only
+      // applies when a source chat has no selfSender configured (and even
+      // then, only if it isn't an empty string).
+      const self = m.sourceSelfSender ?? workspaceSelfSender;
+      const isOutgoing = !m.isSystem && !!self && m.sender === self;
       out.push({ kind: "msg", key: m.id, msg: m, isOutgoing });
     }
     return out;
-  }, [messages, selfSender]);
+  }, [messages, workspaceSelfSender]);
 
   return (
     <div className="flex flex-1 flex-col bg-[#efeae2] min-h-0">

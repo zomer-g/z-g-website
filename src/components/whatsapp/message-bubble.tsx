@@ -13,8 +13,9 @@
 // non-authorized users).
 
 import { useState } from "react";
-import { Download, FileText, Image as ImageIcon, Mic, X } from "lucide-react";
+import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Mic, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AudioPlayer } from "./audio-player";
 import type { WhatsappMessageDTO } from "./types";
 
 interface MessageBubbleProps {
@@ -23,6 +24,12 @@ interface MessageBubbleProps {
   // Show the sender label above the bubble (used for the first message
   // in a run by the same sender).
   showSender: boolean;
+  // When true, the viewer is an ADMIN and we expose the hide toggle.
+  // Hidden messages render with faded styling + a "hidden" badge so the
+  // admin can still see them. Non-admins never receive hidden rows from
+  // the server, so this branch never runs for them.
+  isAdmin?: boolean;
+  onToggleHidden?: (messageId: string, nextHidden: boolean) => void;
 }
 
 function formatBytes(n: number): string {
@@ -71,7 +78,13 @@ function FileTile({
   );
 }
 
-export function MessageBubble({ message, isOutgoing, showSender }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  isOutgoing,
+  showSender,
+  isAdmin = false,
+  onToggleHidden,
+}: MessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (message.isSystem) {
@@ -87,16 +100,42 @@ export function MessageBubble({ message, isOutgoing, showSender }: MessageBubble
   const time = formatTime(message.timestamp);
   const isImage = message.media?.mimeType.startsWith("image/");
   const isAudio = message.media?.mimeType.startsWith("audio/");
+  const hideable = isAdmin && !!onToggleHidden;
 
   return (
     <div
       className={cn(
-        "flex w-full px-2 my-0.5",
+        "group/bubble flex w-full px-2 my-0.5 items-start",
         // In RTL Hebrew, "outgoing" = right-aligned visually =
         // `justify-start` because the start edge is on the right.
         isOutgoing ? "justify-start" : "justify-end",
+        message.isHidden && "opacity-50",
       )}
     >
+      {/* Admin hide/unhide toggle. Floats to the side opposite the bubble
+          so it doesn't crowd the message content. Fades in on hover. */}
+      {hideable ? (
+        <button
+          type="button"
+          onClick={() => onToggleHidden!(message.id, !message.isHidden)}
+          aria-label={message.isHidden ? "החזרה להצגה" : "הסתרת הודעה"}
+          title={message.isHidden ? "הצגה מחדש" : "הסתרת ההודעה ממציגים אחרים"}
+          className={cn(
+            "shrink-0 rounded-full p-1 mt-1.5",
+            "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100",
+            "transition-opacity",
+            message.isHidden
+              ? "text-emerald-700 hover:bg-emerald-50"
+              : "text-gray-500 hover:bg-black/5",
+          )}
+        >
+          {message.isHidden ? (
+            <EyeOff className="h-3.5 w-3.5" />
+          ) : (
+            <Eye className="h-3.5 w-3.5" />
+          )}
+        </button>
+      ) : null}
       <div
         className={cn(
           "max-w-[78%] sm:max-w-[68%] rounded-lg shadow-sm",
@@ -105,9 +144,15 @@ export function MessageBubble({ message, isOutgoing, showSender }: MessageBubble
             ? "bg-emerald-100 rounded-tr-md rounded-tl-2xl rounded-bl-2xl rounded-br-2xl"
             : "bg-white rounded-tl-md rounded-tr-2xl rounded-br-2xl rounded-bl-2xl",
           "px-2.5 py-1.5",
+          message.isHidden && "ring-1 ring-amber-300",
         )}
         dir="auto"
       >
+        {message.isHidden ? (
+          <div className="mb-1 text-[10px] font-semibold text-amber-700">
+            הודעה מוסתרת — נראית רק למנהלי האזור
+          </div>
+        ) : null}
         {showSender && !isOutgoing ? (
           <div className="text-xs font-semibold text-emerald-700 mb-0.5">
             {message.sender || "הודעה"}
@@ -159,12 +204,7 @@ export function MessageBubble({ message, isOutgoing, showSender }: MessageBubble
                 ) : null}
               </>
             ) : isAudio ? (
-              <audio
-                controls
-                src={message.media.url}
-                className="w-full max-w-xs"
-                preload="none"
-              />
+              <AudioPlayer src={message.media.url} outgoing={isOutgoing} />
             ) : (
               <FileTile
                 filename={message.media.filename}

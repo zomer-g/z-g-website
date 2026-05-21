@@ -32,10 +32,18 @@ export async function GET(
       ? Math.min(Math.floor(limitRaw), MAX_LIMIT)
       : DEFAULT_LIMIT;
 
+  // Hidden messages: admins see them all (with the isHidden flag so the
+  // UI can fade + show a toggle). Allowlisted guests see only non-hidden
+  // rows — the data is filtered out at the query level so hidden text
+  // never lands in their browser.
+  const where = gate.access.isAdmin
+    ? { chatId }
+    : { chatId, isHidden: false };
+
   const [total, messages] = await Promise.all([
-    prisma.whatsappMessage.count({ where: { chatId } }),
+    prisma.whatsappMessage.count({ where }),
     prisma.whatsappMessage.findMany({
-      where: { chatId },
+      where,
       orderBy: { order: "asc" },
       skip,
       take: limit,
@@ -44,6 +52,7 @@ export async function GET(
         timestamp: true,
         sender: true,
         isSystem: true,
+        isHidden: true,
         text: true,
         media: {
           select: {
@@ -62,11 +71,15 @@ export async function GET(
       total,
       skip,
       limit,
+      isAdmin: gate.access.isAdmin,
       items: messages.map((m) => ({
         id: m.id,
         timestamp: m.timestamp.toISOString(),
         sender: m.sender,
         isSystem: m.isSystem,
+        // Only surface isHidden to admins — guests never see hidden rows
+        // anyway, so including the flag would be misleading noise.
+        isHidden: gate.access.isAdmin ? m.isHidden : false,
         text: m.text,
         media: m.media,
       })),

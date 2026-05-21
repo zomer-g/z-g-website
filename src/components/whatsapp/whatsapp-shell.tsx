@@ -33,6 +33,11 @@ import type {
 interface WhatsappShellProps {
   workspace: WhatsappWorkspaceDTO;
   mode: "mock" | "live";
+  // Whether the current viewer is an ADMIN. Drives per-message hide
+  // controls and exposes hidden messages with a "hidden" badge. The
+  // server is the source of truth for these — guests never receive
+  // hidden rows even if a malicious client passes isAdmin=true.
+  isAdmin?: boolean;
 }
 
 interface ApiMessage {
@@ -40,6 +45,7 @@ interface ApiMessage {
   timestamp: string;
   sender: string;
   isSystem: boolean;
+  isHidden: boolean;
   text: string | null;
   media: { id: string; filename: string; mimeType: string; size: number } | null;
 }
@@ -52,6 +58,7 @@ function apiMsgToDTO(m: ApiMessage): WhatsappMessageDTO {
     timestamp: m.timestamp,
     sender: m.sender,
     isSystem: m.isSystem,
+    isHidden: m.isHidden,
     text: m.text,
     media: m.media
       ? {
@@ -81,7 +88,11 @@ async function fetchChatMessages(
   return json.items.map(apiMsgToDTO);
 }
 
-export function WhatsappShell({ workspace, mode }: WhatsappShellProps) {
+export function WhatsappShell({
+  workspace,
+  mode,
+  isAdmin = false,
+}: WhatsappShellProps) {
   /* ── Per-chat view state ────────────────────────────────────────── */
 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -121,6 +132,37 @@ export function WhatsappShell({ workspace, mode }: WhatsappShellProps) {
     void loadOneChat(activeChatId);
   }, [activeChatId, loadOneChat]);
 
+  /* ── Hide / unhide single messages (admin only) ─────────────────── */
+
+  // The toggle takes effect optimistically: we flip the local flag first
+  // so the UI feels instant, then send PATCH; on failure we roll back
+  // and surface an error. Only ADMINs ever see the button — but we
+  // double-check the prop here so a stale isAdmin can't cause writes.
+  const toggleMessageHidden = useCallback(
+    async (messageId: string, nextHidden: boolean) => {
+      if (!isAdmin) return;
+      const prevList = messages;
+      setMessages((list) =>
+        list.map((m) => (m.id === messageId ? { ...m, isHidden: nextHidden } : m)),
+      );
+      try {
+        const res = await fetch(
+          `/api/whatsapp/messages/${encodeURIComponent(messageId)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isHidden: nextHidden }),
+          },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      } catch (err) {
+        console.error("Failed to toggle hidden:", err);
+        setMessages(prevList);
+      }
+    },
+    [isAdmin, messages],
+  );
+
   /* ── Merged-view state ──────────────────────────────────────────── */
 
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -149,7 +191,14 @@ export function WhatsappShell({ workspace, mode }: WhatsappShellProps) {
               mode === "mock"
                 ? mockMessagesFor(c.id)
                 : await fetchChatMessages(c.id, controller.signal);
-            return items.map((m) => ({ ...m, sourceContact: c.contactName }));
+            return items.map((m) => ({
+              ...m,
+              sourceContact: c.contactName,
+              // Tag each merged message with its source chat's selfSender so
+              // MergedView can decide outgoing-vs-incoming per-message even
+              // though multiple chats are mixed on one timeline.
+              sourceSelfSender: c.selfSender ?? null,
+            }));
           }),
         );
         const merged = perChat.flat().sort((a, b) => {
@@ -225,7 +274,9 @@ export function WhatsappShell({ workspace, mode }: WhatsappShellProps) {
             messages={mergedMessages}
             loading={mergedLoading}
             error={mergedError}
-            selfSender={workspace.selfSender}
+            // workspace-level fallback only used when a merged message's
+            // sourceSelfSender is null (chat without selfSender configured)
+            workspaceSelfSender={workspace.selfSender}
             selectedCount={mergedChatIds?.length ?? 0}
             onExit={handleExitMerged}
           />
@@ -235,8 +286,12 @@ export function WhatsappShell({ workspace, mode }: WhatsappShellProps) {
             messages={messages}
             loading={loading}
             error={error}
-            selfSender={workspace.selfSender}
+            // Per-chat selfSender wins over the workspace fallback. Empty
+            // string when neither is set → no message is outgoing.
+            selfSender={active?.selfSender ?? workspace.selfSender}
             onBack={() => setActiveChatId(null)}
+            isAdmin={isAdmin}
+            onToggleHidden={toggleMessageHidden}
           />
         )}
       </div>
