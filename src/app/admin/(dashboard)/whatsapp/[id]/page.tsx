@@ -260,6 +260,22 @@ export default function AdminWhatsappWorkspacePage({
     }
   };
 
+  // Clean-view variant: the same workspace URL with ?view=clean, which
+  // renders the WhatsApp shell full-screen without the site header,
+  // footer, or admin bar. Useful for handing a focused viewer link
+  // to a workspace member.
+  const copyCleanViewUrl = async () => {
+    if (!data) return;
+    try {
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/whatsapp/${data.slug}?view=clean`,
+      );
+      flash({ type: "success", message: "קישור לתצוגה נקייה הועתק" });
+    } catch {
+      flash({ type: "error", message: "ההעתקה נכשלה" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -296,10 +312,22 @@ export default function AdminWhatsappWorkspacePage({
         </Link>
         <div className="flex items-center justify-between gap-3 flex-wrap mt-2">
           <h1 className="text-2xl font-bold text-primary-dark truncate">{data.title}</h1>
-          <Button variant="ghost" size="sm" className="border border-border" onClick={copyShareUrl}>
-            <Copy className="h-3.5 w-3.5" />
-            העתקת קישור לשיתוף
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="ghost" size="sm" className="border border-border" onClick={copyShareUrl}>
+              <Copy className="h-3.5 w-3.5" />
+              קישור מלא
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="border border-border"
+              onClick={copyCleanViewUrl}
+              title="פותח את האזור במסך מלא, ללא כותרת/פוטר/סרגל ניהול — מתאים לשיתוף לצפייה ממוקדת"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              קישור לתצוגה נקייה
+            </Button>
+          </div>
         </div>
         <div className="mt-1 text-xs font-mono text-gray-600">/whatsapp/{data.slug}</div>
       </div>
