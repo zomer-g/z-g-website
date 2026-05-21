@@ -84,13 +84,23 @@ function mimeFor(filename: string): string {
   return MIME_BY_EXT[ext] ?? "application/octet-stream";
 }
 
-// "WhatsApp Chat with Talia.txt" → "Talia"; "_chat.txt" → "" (use ZIP filename instead).
+// Pull the contact name out of the chat .txt filename. WhatsApp exports
+// localise the prefix, so we try every shape we've seen in the wild
+// before giving up. "_chat.txt" carries no name and returns null.
+//
+//   English Android/iOS : "WhatsApp Chat with Talia.txt"          → "Talia"
+//   Hebrew Android      : "צ׳אט WhatsApp עם דנה.txt"               → "דנה"
+//   Hebrew alt          : "שיחת WhatsApp עם דנה.txt"               → "דנה"
 function extractContactFromTxtName(txtFilename: string): string | null {
   const base = txtFilename.replace(/\.[^.]+$/, "");
-  // English locale
   const en = /^WhatsApp Chat with\s+(.+)$/i.exec(base);
   if (en) return en[1].trim();
-  // Hebrew "צ׳אט וואטסאפ עם …" or just "_chat" → no name to extract.
+  // Hebrew uses the geresh (׳) in "צ׳אט" — accept the curly geresh,
+  // ASCII apostrophe, and the right single-quote variant.
+  const heChat = /^צ[׳'']?אט\s+WhatsApp\s+עם\s+(.+)$/i.exec(base);
+  if (heChat) return heChat[1].trim();
+  const heSicha = /^שיחת\s+WhatsApp\s+עם\s+(.+)$/i.exec(base);
+  if (heSicha) return heSicha[1].trim();
   return null;
 }
 
@@ -172,13 +182,43 @@ function detectAttachment(body: string): AttachmentInfo {
 export async function parseWhatsappZip(buffer: Buffer): Promise<ParsedChat> {
   const zip = await JSZip.loadAsync(buffer);
 
-  // Find the chat .txt. WhatsApp always names it either
-  // "WhatsApp Chat with <X>.txt" or "_chat.txt".
-  const txtEntry = Object.values(zip.files).find((f) => {
+  // Locate the chat .txt. WhatsApp localises the filename ("WhatsApp Chat
+  // with X.txt", "_chat.txt", "צ׳אט WhatsApp עם X.txt", and similar
+  // per-locale variants) so we try the known prefixes first and then fall
+  // back to picking any .txt file in the archive. Every legitimate
+  // WhatsApp export contains exactly one .txt, so that fallback is safe.
+  const txtCandidates = Object.values(zip.files).filter((f) => {
     if (f.dir) return false;
     const name = f.name.split(/[\\/]/).pop() ?? f.name;
-    return /^(_chat|WhatsApp Chat with .+)\.txt$/i.test(name);
+    return /\.txt$/i.test(name);
   });
+  const namedTxt = txtCandidates.find((f) => {
+    const name = f.name.split(/[\\/]/).pop() ?? f.name;
+    return (
+      /^_chat\.txt$/i.test(name) ||
+      /^WhatsApp Chat with .+\.txt$/i.test(name) ||
+      /^צ[׳'']?אט\s+WhatsApp\s+עם\s.+\.txt$/i.test(name) ||
+      /^שיחת\s+WhatsApp\s+עם\s.+\.txt$/i.test(name)
+    );
+  });
+  // Prefer the localised name; otherwise take the largest .txt (a safer
+  // tiebreaker than "first" for ZIPs that happen to bundle a stray note).
+  const txtEntry =
+    namedTxt ??
+    (txtCandidates.length > 0
+      ? txtCandidates.reduce((biggest, cur) => {
+          // _data.uncompressedSize is the only size field JSZip exposes
+          // for an in-memory entry; missing on directories (filtered out
+          // above) — fall back to 0 so the reduce still works.
+          const sizeOf = (f: JSZip.JSZipObject): number => {
+            const internal = f as unknown as {
+              _data?: { uncompressedSize?: number };
+            };
+            return internal._data?.uncompressedSize ?? 0;
+          };
+          return sizeOf(cur) > sizeOf(biggest) ? cur : biggest;
+        })
+      : null);
   if (!txtEntry) {
     throw new Error(
       "לא נמצא קובץ שיחה (.txt) בתוך ה-ZIP — האם זה אכן ייצוא של ווטסאפ?",
