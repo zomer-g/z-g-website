@@ -105,10 +105,20 @@ function extractContactFromTxtName(txtFilename: string): string | null {
 }
 
 // Lines that start with one of these prefix shapes begin a new message.
-const ANDROID_RE =
-  /^(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*[-–]\s*(.*)$/;
-const IOS_RE =
-  /^\[(\d{1,2})\/(\d{1,2})\/(\d{2,4}),\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s+(.*)$/;
+//
+// Date separator is `/`, `.`, or `-` — varies by locale. Hebrew Android
+// exports use `27.8.2025`; English uses `27/08/2025`; some iOS exports use
+// `27-08-2025`. We accept all three rather than guessing per-locale.
+//
+// Message separator (between time and sender) can be ASCII hyphen, en-dash
+// or em-dash — different WhatsApp versions render different glyphs.
+const DATE_SEP = "[\\/.\\-]";
+const ANDROID_RE = new RegExp(
+  `^(\\d{1,2})${DATE_SEP}(\\d{1,2})${DATE_SEP}(\\d{2,4}),\\s+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\s*[-–—]\\s*(.*)$`,
+);
+const IOS_RE = new RegExp(
+  `^\\[(\\d{1,2})${DATE_SEP}(\\d{1,2})${DATE_SEP}(\\d{2,4}),\\s+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?\\]\\s+(.*)$`,
+);
 
 function parseDate(
   dd: string,
