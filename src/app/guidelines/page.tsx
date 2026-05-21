@@ -52,7 +52,7 @@ export default async function GuidelinesPage() {
     auth(),
   ]);
 
-  const isAdmin = !!session?.user;
+  const isAdmin = session?.user?.role === "ADMIN";
   if (!content.isPublic && !isAdmin) {
     notFound();
   }

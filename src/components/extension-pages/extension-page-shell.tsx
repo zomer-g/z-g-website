@@ -41,7 +41,7 @@ export async function ExtensionPageShell({
     auth(),
   ]);
 
-  const isAdmin = !!session?.user;
+  const isAdmin = session?.user?.role === "ADMIN";
   // Hide drafts from the public; admins still see them so they can preview.
   if (page && page.status !== "PUBLISHED" && !isAdmin) {
     notFound();

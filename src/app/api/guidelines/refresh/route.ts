@@ -25,7 +25,7 @@ async function readTtlMs(): Promise<number> {
 // upstream always returns the full corpus and we cache it once.
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "נדרשת הזדהות" }, { status: 401 });
   }
 

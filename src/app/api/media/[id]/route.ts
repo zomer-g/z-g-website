@@ -14,7 +14,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 },

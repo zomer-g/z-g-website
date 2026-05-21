@@ -8,7 +8,7 @@ export const maxDuration = 60;
 
 export async function POST() {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "נדרשת הזדהות" }, { status: 401 });
   }
   if (!process.env.OPENAI_API_KEY) {

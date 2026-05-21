@@ -59,7 +59,9 @@ function getUpstreamApiKey(): string | undefined {
 
 async function isAuthorized(req: NextRequest): Promise<boolean> {
   const session = await auth();
-  if (session?.user?.id) return true;
+  // ADMIN-only at the session level; GUEST users (WhatsApp workspace
+  // allowlist) must NOT be able to trigger an expensive embed run.
+  if (session?.user?.role === "ADMIN") return true;
   const expected = process.env.CRON_SECRET;
   if (expected && req.headers.get("x-cron-secret") === expected) return true;
   return false;

@@ -16,7 +16,7 @@ interface CheckRequestBody {
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "נדרשת הזדהות" }, { status: 401 });
   }
 

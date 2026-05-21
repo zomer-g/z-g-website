@@ -62,7 +62,7 @@ export async function GET(
     // Draft content requires admin auth
     if (isDraft) {
       const session = await auth();
-      if (!session?.user?.id) {
+      if (session?.user?.role !== "ADMIN") {
         return NextResponse.json(
           { error: "נדרשת הזדהות" },
           { status: 401 }
@@ -101,7 +101,7 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 }

@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 },

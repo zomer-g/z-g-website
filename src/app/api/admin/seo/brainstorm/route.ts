@@ -13,7 +13,7 @@ const bodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

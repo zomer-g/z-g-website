@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     // Unauthenticated requests can only see published posts
     const session = await auth();
-    const isAdmin = !!session?.user?.id;
+    const isAdmin = session?.user?.role === "ADMIN";
     const where = isAdmin
       ? (status ? { status } : {})
       : { status: "PUBLISHED" as PostStatus };
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 },

@@ -11,7 +11,11 @@ export default async function AdminLayout({
 }) {
   const session = await auth();
 
-  if (!session?.user) {
+  // The admin shell is for ADMIN only. GUEST users (sign-in allowed via the
+  // WhatsApp workspace allowlist) get redirected to login as if they're
+  // anonymous — same as logged-out visitors. Their useful destination is
+  // /whatsapp/<slug>, not the admin dashboard.
+  if (session?.user?.role !== "ADMIN") {
     redirect("/admin/login");
   }
 

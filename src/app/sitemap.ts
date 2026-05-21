@@ -37,6 +37,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/legal-tools", "monthly", 0.7),
     staticEntry("/sanegoria", "monthly", 0.7),
     staticEntry("/digital-services", "monthly", 0.6),
+    // /whatsapp is the public landing/demo (mock chats). Private workspace
+    // sub-pages live under /whatsapp/<slug> and are blocked in robots.ts;
+    // we deliberately do NOT enumerate them here.
+    staticEntry("/whatsapp", "monthly", 0.5),
     staticEntry("/privacy", "yearly", 0.3),
     staticEntry("/accessibility", "yearly", 0.3),
     staticEntry("/terms", "yearly", 0.3),

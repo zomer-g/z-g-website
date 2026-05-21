@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Content required" }, { status: 400 });
     }
     const session = await auth();
-    const isAdmin = !!session?.user;
+    const isAdmin = session?.user?.role === "ADMIN";
 
     const created = await prisma.pachComment.create({
       data: {

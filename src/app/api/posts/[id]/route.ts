@@ -28,9 +28,9 @@ export async function GET(
       );
     }
 
-    // Unauthenticated users can only see published posts
+    // Non-admin users (anonymous + GUEST) can only see published posts.
     const session = await auth();
-    if (!session?.user?.id && post.status !== "PUBLISHED") {
+    if (session?.user?.role !== "ADMIN" && post.status !== "PUBLISHED") {
       return NextResponse.json({ error: "המאמר לא נמצא" }, { status: 404 });
     }
 
@@ -52,7 +52,7 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 },
@@ -131,7 +131,7 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (session?.user?.role !== "ADMIN") {
       return NextResponse.json(
         { error: "נדרשת הזדהות לביצוע פעולה זו" },
         { status: 401 },

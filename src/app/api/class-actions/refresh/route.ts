@@ -4,7 +4,7 @@ import { clearCache } from "@/lib/class-actions-cache";
 
 export async function POST() {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "נדרשת הזדהות" }, { status: 401 });
   }
 

@@ -2,8 +2,34 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
+import type { AppRole } from "@/types/next-auth";
 
 const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase());
+
+function isAdminEmail(email: string): boolean {
+  return adminEmails.includes(email.toLowerCase());
+}
+
+// A non-admin Google account is allowed to sign in only if their email is
+// present in at least one WhatsappWorkspaceAccess row. Anyone else is
+// rejected at the signIn callback and never gets a session.
+async function isAllowedGuestEmail(email: string): Promise<boolean> {
+  try {
+    const count = await prisma.whatsappWorkspaceAccess.count({
+      where: { email: email.toLowerCase() },
+    });
+    return count > 0;
+  } catch (err) {
+    // Fail closed — if we can't talk to Postgres we shouldn't let a
+    // would-be guest in just because the allowlist check threw.
+    console.error("isAllowedGuestEmail check failed:", err);
+    return false;
+  }
+}
+
+function resolveRole(email: string): AppRole {
+  return isAdminEmail(email) ? "ADMIN" : "GUEST";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -28,7 +54,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user, account }) {
       if (!user.email) return false;
-      if (!adminEmails.includes(user.email.toLowerCase())) return false;
+      const email = user.email.toLowerCase();
+      // Admin emails (env-configured) bypass the DB lookup. Everyone else
+      // must be on at least one WhatsappWorkspaceAccess row.
+      if (!isAdminEmail(email) && !(await isAllowedGuestEmail(email))) {
+        return false;
+      }
 
       // PrismaAdapter only writes tokens to the Account row on FIRST link.
       // On subsequent sign-ins (even with new scopes), the row is reused and
@@ -66,6 +97,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        // Resolve role on every session read so removing an email from
+        // ADMIN_EMAILS or from the WhatsApp allowlist takes effect on the
+        // next page load without forcing a sign-out flow. NextAuth still
+        // gates signIn separately, so this is just keeping the role on a
+        // live session truthful.
+        session.user.role = resolveRole(session.user.email ?? "");
       }
       return session;
     },

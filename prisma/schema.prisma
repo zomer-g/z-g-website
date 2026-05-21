@@ -130,17 +130,17 @@ model Submission {
 }
 
 model MediaAppearance {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  type        String   // "video" | "article" | "podcast"
-  source      String
-  date        String
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  type         String // "video" | "article" | "podcast"
+  source       String
+  date         String
   url          String?
   thumbnailUrl String?
   order        Int      @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
 }
 
 model SiteSettings {
@@ -150,6 +150,12 @@ model SiteSettings {
 
 enum Role {
   ADMIN
+  // GUEST users can sign in via SSO but only see WhatsApp workspaces
+  // they're on the allowlist for. They cannot reach /admin or any other
+  // private dashboard. The role is assigned at signIn time based on
+  // whether the email is in ADMIN_EMAILS env or only in
+  // WhatsappWorkspaceAccess rows.
+  GUEST
 }
 
 enum PostStatus {
@@ -252,16 +258,16 @@ model GuidelineChunk {
 // it lives under /pach-hamishpat and shares the site's header/footer/admin.
 
 model PachReport {
-  id              Int       @id @default(autoincrement())
-  status          String    @default("green") // "green" | "orange" | "red"
-  description     String?
-  reporterType    String    @default("user") @map("reporter_type") // "user" | "admin"
-  createdDate     DateTime  @default(now()) @map("created_date")
-  expiresAt       DateTime? @map("expires_at")
-  isHidden        Boolean   @default(false) @map("is_hidden")
-  isScheduled     Boolean   @default(false) @map("is_scheduled")
-  scheduledFrom   DateTime? @map("scheduled_from")
-  scheduledUntil  DateTime? @map("scheduled_until")
+  id             Int       @id @default(autoincrement())
+  status         String    @default("green") // "green" | "orange" | "red"
+  description    String?
+  reporterType   String    @default("user") @map("reporter_type") // "user" | "admin"
+  createdDate    DateTime  @default(now()) @map("created_date")
+  expiresAt      DateTime? @map("expires_at")
+  isHidden       Boolean   @default(false) @map("is_hidden")
+  isScheduled    Boolean   @default(false) @map("is_scheduled")
+  scheduledFrom  DateTime? @map("scheduled_from")
+  scheduledUntil DateTime? @map("scheduled_until")
 
   @@index([createdDate])
   @@index([isHidden, createdDate])
@@ -291,4 +297,101 @@ model PachSystemMessage {
 
   @@index([isArchived, orderIndex])
   @@map("pach_system_messages")
+}
+
+// ─── WhatsApp Chat Workspaces ─── //
+// Per-workspace SSO-gated chat archives. Each workspace can hold many chats
+// (one per uploaded WhatsApp ZIP export). Access is controlled by the
+// WhatsappWorkspaceAccess join table — only those emails (plus any ADMIN)
+// can view the workspace. See src/lib/auth.ts + src/lib/whatsapp-auth.ts.
+
+model WhatsappWorkspace {
+  id          String                    @id @default(cuid())
+  slug        String                    @unique // URL: /whatsapp/<slug>
+  title       String // shown in admin list + as page title
+  description String?
+  chats       WhatsappChat[]
+  access      WhatsappWorkspaceAccess[]
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@map("whatsapp_workspaces")
+}
+
+model WhatsappWorkspaceAccess {
+  id          String            @id @default(cuid())
+  workspaceId String            @map("workspace_id")
+  workspace   WhatsappWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Email is always stored lowercased. The signIn callback and per-route
+  // gates both lowercase before comparing — never trust the raw value
+  // from Google OAuth (Gmail addresses round-trip case-insensitive but
+  // other Google Workspace domains may not).
+  email       String
+  createdAt   DateTime          @default(now())
+
+  @@unique([workspaceId, email])
+  @@index([email])
+  @@map("whatsapp_workspace_access")
+}
+
+model WhatsappChat {
+  id           String            @id @default(cuid())
+  workspaceId  String            @map("workspace_id")
+  workspace    WhatsappWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  // Derived from the ZIP filename ("WhatsApp Chat with X.zip" → "X"). The
+  // chat .txt also embeds the contact name on every line but the filename
+  // is the most reliable single source.
+  contactName  String            @map("contact_name")
+  zipFilename  String            @map("zip_filename")
+  messageCount Int               @default(0) @map("message_count")
+  firstAt      DateTime?         @map("first_at")
+  lastAt       DateTime?         @map("last_at")
+  messages     WhatsappMessage[]
+  media        WhatsappMedia[]
+  uploadedAt   DateTime          @default(now()) @map("uploaded_at")
+
+  @@index([workspaceId])
+  @@index([workspaceId, lastAt])
+  @@map("whatsapp_chats")
+}
+
+model WhatsappMessage {
+  id        String         @id @default(cuid())
+  chatId    String         @map("chat_id")
+  chat      WhatsappChat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  timestamp DateTime
+  // Raw sender string as exported. Empty for system messages (encryption
+  // notice, joins, leaves). The UI compares it against the contactName
+  // to decide outgoing-vs-incoming.
+  sender    String
+  isSystem  Boolean        @default(false) @map("is_system")
+  text      String? // null when message is media-only
+  mediaId   String?        @map("media_id")
+  media     WhatsappMedia? @relation(fields: [mediaId], references: [id], onDelete: SetNull)
+  // 0-based position in the chat. Used as the sort key (timestamps are
+  // not unique — multiple messages can land in the same minute) and as
+  // a stable React key.
+  order     Int
+
+  @@index([chatId, order])
+  @@map("whatsapp_messages")
+}
+
+model WhatsappMedia {
+  id        String            @id @default(cuid())
+  chatId    String            @map("chat_id")
+  chat      WhatsappChat      @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  filename  String // original filename from the ZIP
+  mimeType  String            @map("mime_type")
+  size      Int // bytes
+  // The actual file content. Postgres TOASTs values > 2KB so multi-MB
+  // images / audio are stored out-of-line; we never SELECT this column
+  // in listing queries — only the dedicated /api/whatsapp/media/[id]
+  // streaming route reads it.
+  data      Bytes
+  messages  WhatsappMessage[]
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@index([chatId])
+  @@map("whatsapp_media")
 }

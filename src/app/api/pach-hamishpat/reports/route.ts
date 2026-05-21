@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const session = await auth();
-    const isAdmin = !!session?.user;
+    const isAdmin = session?.user?.role === "ADMIN";
 
     const status =
       body.status === "red" || body.status === "orange" || body.status === "green"

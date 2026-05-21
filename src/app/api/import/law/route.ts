@@ -25,7 +25,7 @@ function stripHtml(html: string): string {
 
 export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "נדרשת הזדהות" }, { status: 401 });
   }
 
