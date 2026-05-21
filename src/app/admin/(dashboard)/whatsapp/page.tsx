@@ -244,9 +244,15 @@ export default function AdminWhatsappListPage() {
                 </div>
                 <code className="text-xs font-mono text-gray-600 truncate">/whatsapp/{r.slug}</code>
                 <div className="mt-auto flex items-center gap-2">
-                  <Button asChild variant="ghost" size="sm" className="border border-border">
-                    <Link href={`/admin/whatsapp/${r.id}`}>נהלי</Link>
-                  </Button>
+                  {/* The shared Button component doesn't accept `asChild`,
+                      so the "manage" link is rendered as a plain anchor
+                      styled to match the ghost-with-border button. */}
+                  <Link
+                    href={`/admin/whatsapp/${r.id}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted-bg/60"
+                  >
+                    נהלי
+                  </Link>
                   <Button
                     variant="ghost"
                     size="sm"
