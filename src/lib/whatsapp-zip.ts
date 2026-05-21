@@ -147,13 +147,15 @@ function stripBidiAndNbsp(s: string): string {
     .replace(/[  ]/g, " ");
 }
 
-// Match attachment markers on a single line. The dotAll (`/s`) flag is
-// intentionally NOT used — the project's tsconfig target predates ES2018
-// regex flags, and we don't need `.` to cross newlines anyway: the parser
-// splits the .txt on /\r?\n/ before applying these patterns.
-const FILE_ATTACHED_RE = /^(.+?)\s*\(file attached\)\s*(.*)$/;          // Android
-const IOS_ATTACHED_RE = /^<attached:\s*(.+?)>\s*(.*)$/;                 // iOS
+// "<Media omitted>" appears when the export was generated without media.
+// Locale-independent — WhatsApp keeps this English even in Hebrew/Arabic.
 const MEDIA_OMITTED = /^\s*<Media omitted>\s*$/i;
+
+// "(file attached)" / "(קובץ מצורף)" / "<attached: …>" — the wording varies
+// by locale (English, Hebrew "קובץ מצורף", iOS "<attached: …>"). Rather
+// than enumerate every translation, we strip whatever optional parenthetical
+// or "<attached: …>" wrapper is sitting next to a recognised filename.
+const ATTACHMENT_WRAPPER_RE = /\s*(?:\([^)]*\)|<[^>]*>)\s*/g;
 
 // Split the part after the timestamp into sender + body. WhatsApp uses the
 // FIRST ": " as the separator. Anything without a colon is a system event.
@@ -172,19 +174,32 @@ interface AttachmentInfo {
   textRemainder: string | null;
 }
 
-function detectAttachment(body: string): AttachmentInfo {
+// Locale-agnostic attachment detection: look for a known filename
+// (anything that's actually present in the ZIP) inside the body. If we
+// find one, strip it and any "(…)"/"<…>" wrapper, and return whatever
+// text is left. This sidesteps the long tail of localised attachment
+// markers ("(file attached)", "(קובץ מצורף)", "<attached: …>", etc.)
+// — we just trust the ZIP listing as the canonical filename source.
+function detectAttachment(
+  body: string,
+  mediaFilenames: Set<string>,
+): AttachmentInfo {
   if (MEDIA_OMITTED.test(body)) {
     return { filename: null, textRemainder: body.trim() };
   }
-  let m = FILE_ATTACHED_RE.exec(body);
-  if (m) {
-    const rest = m[2].trim();
-    return { filename: m[1].trim(), textRemainder: rest || null };
-  }
-  m = IOS_ATTACHED_RE.exec(body);
-  if (m) {
-    const rest = m[2].trim();
-    return { filename: m[1].trim(), textRemainder: rest || null };
+  for (const filename of mediaFilenames) {
+    const idx = body.indexOf(filename);
+    if (idx < 0) continue;
+    const before = body.slice(0, idx);
+    const after = body.slice(idx + filename.length);
+    // Drop any trailing "(...)" / "<...>" wrapper immediately after the
+    // filename — that's the locale-specific marker we don't care about.
+    const cleanAfter = after.replace(ATTACHMENT_WRAPPER_RE, "").trim();
+    const remainder = (before.trim() + " " + cleanAfter).trim();
+    return {
+      filename,
+      textRemainder: remainder.length > 0 ? remainder : null,
+    };
   }
   return { filename: null, textRemainder: body };
 }
@@ -302,11 +317,12 @@ export async function parseWhatsappZip(buffer: Buffer): Promise<ParsedChat> {
     const [, dd, mm, yyyy, hh, min, sec, after] = match;
     const timestamp = parseDate(dd, mm, yyyy, hh, min, sec);
     const { sender, body, isSystem } = splitBody(after);
-    const { filename, textRemainder } = detectAttachment(body);
+    const { filename, textRemainder } = detectAttachment(body, mediaFilenames);
 
-    // Only count the attachment if we actually have those bytes in the
-    // ZIP — guards against typos in the .txt or partial exports.
-    const haveBytes = !!filename && mediaFilenames.has(filename);
+    // detectAttachment only returns a filename if it was matched against
+    // mediaFilenames (the ZIP listing), so by construction these bytes
+    // exist. Kept for documentation.
+    const haveBytes = !!filename;
 
     messages.push({
       timestamp,

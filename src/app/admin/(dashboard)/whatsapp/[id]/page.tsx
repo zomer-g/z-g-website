@@ -15,6 +15,7 @@ import {
   Trash2,
   Plus,
   Copy,
+  Pencil,
   AlertCircle,
   CheckCircle,
   MessageCircle,
@@ -181,6 +182,28 @@ export default function AdminWhatsappWorkspacePage({
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const renameChat = async (chatId: string, current: string) => {
+    const next = window.prompt("שם איש הקשר החדש:", current);
+    if (next === null) return;            // user pressed cancel
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === current) return;
+    try {
+      const res = await fetch(`/api/whatsapp/workspaces/${id}/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactName: trimmed }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+      flash({ type: "success", message: "השם עודכן" });
+      await refresh();
+    } catch (err) {
+      flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" });
     }
   };
 
@@ -406,14 +429,24 @@ export default function AdminWhatsappWorkspacePage({
                       <span>{c.messageCount} הודעות</span>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => deleteChat(c.id, c.contactName)}
-                    className="text-red-500 hover:bg-red-50 p-1 rounded"
-                    aria-label="מחיקת שיחה"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => renameChat(c.id, c.contactName)}
+                      className="text-gray-500 hover:bg-gray-100 hover:text-gray-700 p-1 rounded"
+                      aria-label={`שינוי שם איש קשר: ${c.contactName}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteChat(c.id, c.contactName)}
+                      className="text-red-500 hover:bg-red-50 p-1 rounded"
+                      aria-label="מחיקת שיחה"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

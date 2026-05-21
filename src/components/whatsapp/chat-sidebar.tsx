@@ -8,7 +8,7 @@
 // occupies the full screen and is replaced by the chat pane after the
 // user picks a chat (controlled by the parent shell).
 
-import { Search } from "lucide-react";
+import { Search, Layers } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { WhatsappChatSummary } from "./types";
@@ -18,6 +18,9 @@ interface ChatSidebarProps {
   chats: WhatsappChatSummary[];
   activeChatId: string | null;
   onSelect: (chatId: string) => void;
+  // Optional: open the merged-view picker. If omitted, the button is hidden
+  // (e.g. workspaces with fewer than 2 chats where merging is meaningless).
+  onOpenMergedPicker?: () => void;
 }
 
 function initials(name: string): string {
@@ -42,7 +45,13 @@ function formatRelative(iso: string | null): string {
   return d.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit" });
 }
 
-export function ChatSidebar({ title, chats, activeChatId, onSelect }: ChatSidebarProps) {
+export function ChatSidebar({
+  title,
+  chats,
+  activeChatId,
+  onSelect,
+  onOpenMergedPicker,
+}: ChatSidebarProps) {
   const [filter, setFilter] = useState("");
   const filtered = useMemo(() => {
     const q = filter.trim();
@@ -64,8 +73,24 @@ export function ChatSidebar({ title, chats, activeChatId, onSelect }: ChatSideba
         "w-full lg:max-w-[360px]",
       )}
     >
-      <header className="bg-[#f0f2f5] px-4 py-3 shrink-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{title}</div>
+      <header className="bg-[#f0f2f5] px-4 py-3 shrink-0 flex items-center justify-between gap-2">
+        <div className="text-sm font-semibold text-gray-900 truncate min-w-0">{title}</div>
+        {onOpenMergedPicker && chats.length >= 2 ? (
+          <button
+            type="button"
+            onClick={onOpenMergedPicker}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
+              "border border-emerald-300 bg-white text-emerald-700",
+              "text-xs font-semibold hover:bg-emerald-50 transition-colors",
+              "shrink-0",
+            )}
+            title="הצגת כמה שיחות יחד בציר זמן רציף"
+          >
+            <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>תצוגה משולבת</span>
+          </button>
+        ) : null}
       </header>
 
       <div className="px-3 py-2 bg-white border-b border-black/5 shrink-0">
