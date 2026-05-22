@@ -47,11 +47,13 @@ export async function GET(
   // admin UI can offer a "who's me?" dropdown without a second roundtrip.
   let layersWithActors = full?.layers ?? [];
   if (full && gate.access.isAdmin) {
+    // TimelineEvent has no `isSystem` column (system events are a
+    // WhatsApp-export-specific concept); the filter would be invalid.
+    // We just exclude empty actors so the dropdown stays useful.
     const grouped = await prisma.timelineEvent.groupBy({
       by: ["layerId", "actor"],
       where: {
         layerId: { in: full.layers.map((l) => l.id) },
-        isSystem: false,
         NOT: { actor: "" },
       },
       _count: { _all: true },
