@@ -43,16 +43,15 @@ export interface TagRef {
 
 export interface ChannelSummary {
   id: string;
-  // Display name shown in the sidebar. WhatsApp: contact name.
-  // Timeline: layer title.
-  title: string;
-  // Which actor in this channel should render as "me" (outgoing/green).
-  // Null until the admin picks one; bubbles fall back to all-incoming.
-  selfActor: string | null;
-  // For UX hints on the sidebar row.
-  itemCount: number;
   lastAt: string | null;       // ISO
-  lastPreview: string | null;
+  // The following are domain-extensions kept optional so legacy
+  // WhatsApp DTOs (which use `contactName` / `selfSender` /
+  // `messageCount` / `lastTextPreview` instead) still satisfy the
+  // ChannelSummary part of the WhatsappChatSummary intersection alias.
+  title?: string;              // generic display name
+  selfActor?: string | null;
+  itemCount?: number;
+  lastPreview?: string | null;
 }
 
 export interface Item {
