@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { WhatsappShell } from "@/components/conversation/conversation-shell";
-import { MOCK_WORKSPACE } from "@/components/whatsapp/mock-data";
+import { MOCK_WORKSPACE, MOCK_ITEMS } from "@/components/whatsapp/mock-data";
 
 // Force-static — this page never reads from the DB. Synthetic chats only.
 export const dynamic = "force-static";
@@ -45,7 +45,11 @@ export default function WhatsappLandingPage() {
             style={{ height: "min(720px, 80vh)" }}
           >
             <div className="flex h-full min-h-0">
-              <WhatsappShell workspace={MOCK_WORKSPACE} mode="mock" />
+              <WhatsappShell
+                workspace={MOCK_WORKSPACE}
+                mode="mock"
+                mockItems={MOCK_ITEMS}
+              />
             </div>
           </div>
         </div>

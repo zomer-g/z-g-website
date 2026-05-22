@@ -110,9 +110,11 @@ interface ConversationShellProps {
   // timeline pages pass timelineApiPaths. Defaults to whatsapp so the
   // existing whatsapp page code didn't have to change.
   apiPaths?: ApiPaths;
-  // Synchronous mock-mode accessor. Required when mode="mock".
-  // Whatsapp passes its `mockMessagesFor`; timeline passes its own.
-  mockItemsFor?: (channelId: string) => WhatsappMessageDTO[];
+  // Synchronous mock-mode data. Plain map (channelId → items) instead
+  // of a function — functions can't be passed from a server component
+  // (which the landing pages are) to a client component (which the
+  // shell is). Required when mode="mock"; ignored otherwise.
+  mockItems?: Record<string, WhatsappMessageDTO[]>;
 }
 
 interface ApiMessage {
@@ -171,7 +173,7 @@ export function WhatsappShell({
   mode,
   isAdmin = false,
   apiPaths = whatsappApiPaths,
-  mockItemsFor,
+  mockItems,
 }: ConversationShellProps) {
   /* ── Per-channel view state ─────────────────────────────────────── */
 
@@ -186,7 +188,7 @@ export function WhatsappShell({
   const loadOneChat = useCallback(
     async (channelId: string) => {
       if (mode === "mock") {
-        setMessages(mockItemsFor ? mockItemsFor(channelId) : []);
+        setMessages(mockItems?.[channelId] ?? []);
         setLoading(false);
         setError(null);
         return;
@@ -204,7 +206,7 @@ export function WhatsappShell({
         setLoading(false);
       }
     },
-    [mode, apiPaths, mockItemsFor],
+    [mode, apiPaths, mockItems],
   );
 
   useEffect(() => {
@@ -260,9 +262,7 @@ export function WhatsappShell({
           selected.map(async (c): Promise<MergedMessage[]> => {
             const items =
               mode === "mock"
-                ? mockItemsFor
-                  ? mockItemsFor(c.id)
-                  : []
+                ? mockItems?.[c.id] ?? []
                 : await fetchChannelItems(c.id, apiPaths, controller.signal);
             return items.map((m) => ({
               ...m,
@@ -289,7 +289,7 @@ export function WhatsappShell({
     })();
 
     return () => controller.abort();
-  }, [mergedChatIds, workspace.chats, mode, apiPaths, mockItemsFor]);
+  }, [mergedChatIds, workspace.chats, mode, apiPaths, mockItems]);
 
   const handleConfirmMerged = (ids: string[]) => {
     setPickerOpen(false);

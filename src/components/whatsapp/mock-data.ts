@@ -199,3 +199,10 @@ export const MOCK_WORKSPACE: WhatsappWorkspaceDTO = {
 export function mockMessagesFor(chatId: string): WhatsappMessageDTO[] {
   return MOCK_CHATS.find((c) => c.summary.id === chatId)?.messages ?? [];
 }
+
+// Plain map (chatId → messages) for use as the conversation shell's
+// `mockItems` prop. Functions can't be passed from a server component
+// (the landing page is) to a client component, so we precompute and
+// hand over a serialisable object instead.
+export const MOCK_ITEMS: Record<string, WhatsappMessageDTO[]> =
+  Object.fromEntries(MOCK_CHATS.map((c) => [c.summary.id, c.messages]));

@@ -7,7 +7,7 @@ import {
 } from "@/components/conversation/conversation-shell";
 import {
   MOCK_TIMELINE_WORKSPACE,
-  mockTimelineEventsFor,
+  MOCK_TIMELINE_ITEMS,
 } from "@/components/whatsapp/timeline-mock";
 
 // Force-static — public demo only, no DB calls.
@@ -53,7 +53,7 @@ export default function TimelineLandingPage() {
                 workspace={MOCK_TIMELINE_WORKSPACE}
                 mode="mock"
                 apiPaths={timelineApiPaths}
-                mockItemsFor={mockTimelineEventsFor}
+                mockItems={MOCK_TIMELINE_ITEMS}
               />
             </div>
           </div>

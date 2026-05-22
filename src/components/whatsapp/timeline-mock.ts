@@ -168,3 +168,11 @@ export function mockTimelineEventsFor(layerId: string): WhatsappMessageDTO[] {
     MOCK_TIMELINE_LAYERS.find((l) => l.summary.id === layerId)?.messages ?? []
   );
 }
+
+// Plain map (layerId → events) for use as the conversation shell's
+// `mockItems` prop. See the WhatsApp mock-data file for the rationale
+// (functions can't cross the server→client boundary).
+export const MOCK_TIMELINE_ITEMS: Record<string, WhatsappMessageDTO[]> =
+  Object.fromEntries(
+    MOCK_TIMELINE_LAYERS.map((l) => [l.summary.id, l.messages]),
+  );
