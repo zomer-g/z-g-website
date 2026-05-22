@@ -10,14 +10,14 @@ import { getSessionAccess } from "@/lib/whatsapp-auth";
 
 export async function POST(
   req: NextRequest,
-  ctx: { params: Promise<{ id: string }> },
+  ctx: { params: Promise<{ messageId: string }> },
 ) {
   const access = await getSessionAccess();
   if (!access.isAdmin) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 401 });
   }
 
-  const { id: messageId } = await ctx.params;
+  const { messageId } = await ctx.params;
 
   // Resolve the message → chat → workspace so we know which tag pool
   // to use (and to surface 404 cleanly when the message id is wrong).

@@ -6,13 +6,13 @@ import { getSessionAccess } from "@/lib/whatsapp-auth";
 
 export async function DELETE(
   _req: NextRequest,
-  ctx: { params: Promise<{ id: string; tagId: string }> },
+  ctx: { params: Promise<{ messageId: string; tagId: string }> },
 ) {
   const access = await getSessionAccess();
   if (!access.isAdmin) {
     return NextResponse.json({ error: "אין הרשאה" }, { status: 401 });
   }
-  const { id: messageId, tagId } = await ctx.params;
+  const { messageId, tagId } = await ctx.params;
   try {
     await prisma.whatsappMessageTag.delete({
       where: { messageId_tagId: { messageId, tagId } },
