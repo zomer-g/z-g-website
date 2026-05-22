@@ -15,7 +15,7 @@ import type {
   WhatsappChatSummary,
   WhatsappMessageDTO,
   WhatsappWorkspaceDTO,
-} from "./types";
+} from "@/components/conversation/types";
 
 const MOCK_SELF = "אני";
 const SAMPLE_IMAGE_URL = "/whatsapp-demo/sample-image.jpg";
