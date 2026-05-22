@@ -41,6 +41,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // sub-pages live under /whatsapp/<slug> and are blocked in robots.ts;
     // we deliberately do NOT enumerate them here.
     staticEntry("/whatsapp", "monthly", 0.5),
+    // /timeline landing only — projects under it are private and live
+    // in the robots disallow list.
+    staticEntry("/timeline", "monthly", 0.5),
     staticEntry("/privacy", "yearly", 0.3),
     staticEntry("/accessibility", "yearly", 0.3),
     staticEntry("/terms", "yearly", 0.3),

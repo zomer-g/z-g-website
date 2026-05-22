@@ -13,7 +13,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MessageBubble } from "./message-bubble";
+import { MessageBubble } from "./bubble";
 import type { WhatsappMessageDTO, WhatsappChatSummary } from "./types";
 
 interface ChatPaneProps {

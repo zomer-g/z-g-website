@@ -22,6 +22,7 @@ import {
   Trash2,
   TrendingUp,
   MessageCircle,
+  Calendar,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
@@ -34,6 +35,7 @@ const navItems = [
   { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
   { label: "פח המשפט", href: "/admin/pach-hamishpat", icon: Trash2 },
   { label: "ווטסאפ", href: "/admin/whatsapp", icon: MessageCircle },
+  { label: "ציר זמן", href: "/admin/timeline", icon: Calendar },
   { label: "העלאת קבצים", href: "/admin/media", icon: Image },
   { label: "פניות", href: "/admin/submissions", icon: Inbox },
   { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },

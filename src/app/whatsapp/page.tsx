@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
-import { WhatsappShell } from "@/components/whatsapp/whatsapp-shell";
+import { WhatsappShell } from "@/components/conversation/conversation-shell";
 import { MOCK_WORKSPACE } from "@/components/whatsapp/mock-data";
 
 // Force-static — this page never reads from the DB. Synthetic chats only.

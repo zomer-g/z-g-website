@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
-import { WhatsappShell } from "@/components/whatsapp/whatsapp-shell";
+import { WhatsappShell } from "@/components/conversation/conversation-shell";
 import { prisma } from "@/lib/prisma";
 import { getSessionAccess, canAccessWorkspace } from "@/lib/whatsapp-auth";
-import type { WhatsappWorkspaceDTO } from "@/components/whatsapp/types";
+import type { WhatsappWorkspaceDTO } from "@/components/conversation/types";
 
 export const dynamic = "force-dynamic";
 

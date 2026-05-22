@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ArrowRight, Layers, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MessageBubble } from "./message-bubble";
+import { MessageBubble } from "./bubble";
 import type { WhatsappMessageDTO } from "./types";
 
 export interface MergedMessage extends WhatsappMessageDTO {

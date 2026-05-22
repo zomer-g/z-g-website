@@ -13,11 +13,12 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        // The bare `/whatsapp` landing stays allowed (it's a public demo).
-        // Everything *under* it (`/whatsapp/<slug>`) is a private workspace
-        // and must never be indexed. Workspace pages also emit
-        // `robots: noindex, nofollow` metadata as a second line of defense.
-        disallow: ["/api/", "/admin/", "/whatsapp/"],
+        // The bare `/whatsapp` and `/timeline` landings stay allowed
+        // (public demos). Everything *under* either (`/whatsapp/<slug>`,
+        // `/timeline/<slug>`) is a private workspace/project and must
+        // never be indexed. Those pages also emit `robots: noindex,
+        // nofollow` metadata as a second line of defense.
+        disallow: ["/api/", "/admin/", "/whatsapp/", "/timeline/"],
       },
     ],
     sitemap: "https://z-g.co.il/sitemap.xml",
