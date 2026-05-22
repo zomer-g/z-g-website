@@ -101,7 +101,9 @@ export function ChatSidebar({
             type="text"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            placeholder="חיפוש בשיחות"
+            placeholder="סינון לפי שם השכבה/השיחה"
+            title="לחיפוש בתוך התוכן השתמשו בשורת החיפוש העליונה"
+            aria-label="סינון רשימת השכבות/השיחות לפי שם"
             className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5 text-sm focus:outline-none focus:border-emerald-200"
           />
         </label>
