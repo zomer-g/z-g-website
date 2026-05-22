@@ -97,6 +97,20 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl" className={heebo.variable}>
       <head>
+        {/*
+          Site-wide ?view=clean detector. Runs synchronously in <head>
+          BEFORE any DOM paints so we avoid a flash of the header/footer
+          before they're hidden. Adds `view-clean` to <html>; the CSS
+          rule in globals.css then hides chrome on every page.
+          Recognised values mirror the per-page check in /whatsapp/[slug]
+          and /timeline/[slug]: clean, 0, embed, raw.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var v=new URLSearchParams(location.search).get('view');if(v&&/^(clean|0|embed|raw)$/i.test(v)){document.documentElement.classList.add('view-clean');}}catch(e){}})();",
+          }}
+        />
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           strategy="afterInteractive"

@@ -202,3 +202,20 @@ body {
   border-radius: 0.5rem;
   margin: 1.5em 0;
 }
+
+/* ── ?view=clean — site-wide headerless mode ──
+   Set by the inline script in <head> when the URL carries
+   ?view=clean (or 0/embed/raw). Hides the site chrome so any page
+   can be embedded as a standalone view. The admin sidebar inside
+   /admin/* is left visible — clean mode is meant for public-facing
+   embedding, not for hiding the admin shell. */
+html.view-clean header,
+html.view-clean footer,
+html.view-clean [role="toolbar"][aria-label="סרגל ניהול"],
+html.view-clean .skip-link {
+  display: none !important;
+}
+/* No header → no need for the body to reserve space above main. */
+html.view-clean body {
+  padding-top: 0 !important;
+}

@@ -230,6 +230,16 @@ export default function AdminTimelineProjectPage({
 
   /* ─── Event editor (active layer) ───────────────────────────────── */
   const [activeLayerId, setActiveLayerId] = useState<string | null>(null);
+  // Auto-select the first layer the moment data loads, so the event
+  // editor + import widgets are visible immediately. Without this the
+  // admin sees layers but no way to add events until they realize the
+  // layer title is a button.
+  useEffect(() => {
+    if (!data) return;
+    if (data.layers.length === 0) return;
+    if (activeLayerId && data.layers.some((l) => l.id === activeLayerId)) return;
+    setActiveLayerId(data.layers[0].id);
+  }, [data, activeLayerId]);
   const [evtTs, setEvtTs] = useState("");
   const [evtCategory, setEvtCategory] = useState<string>("note");
   const [evtActor, setEvtActor] = useState("");
@@ -553,7 +563,13 @@ export default function AdminTimelineProjectPage({
               {data.layers.map((l) => {
                 const isActive = activeLayerId === l.id;
                 return (
-                  <li key={l.id} className="p-3 space-y-2">
+                  <li
+                    key={l.id}
+                    className={
+                      "p-3 space-y-2 transition-colors " +
+                      (isActive ? "bg-emerald-50 border-s-4 border-emerald-500" : "")
+                    }
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <button
@@ -564,13 +580,29 @@ export default function AdminTimelineProjectPage({
                             (isActive ? "text-emerald-700" : "text-gray-900 hover:underline")
                           }
                         >
-                          {l.title}
+                          {isActive ? "● " : ""}{l.title}
                         </button>
                         <div className="text-xs text-gray-600">
                           {l._count.events} אירועים
+                          {isActive ? (
+                            <span className="text-emerald-700 font-medium">
+                              {" "}— נבחרה לעריכה
+                            </span>
+                          ) : null}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
+                        {!isActive ? (
+                          <button
+                            type="button"
+                            onClick={() => setActiveLayerId(l.id)}
+                            className="text-xs font-medium text-emerald-700 border border-emerald-300 bg-white hover:bg-emerald-50 rounded-md px-2 py-1"
+                            aria-label="פתיחה לעריכת אירועים"
+                            title="פתיחה — לפתיחת עורך האירועים והייבוא לשכבה זו"
+                          >
+                            פתח לעריכה
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => renameLayer(l)}
@@ -629,6 +661,10 @@ export default function AdminTimelineProjectPage({
             <h2 className="text-sm font-bold text-primary-dark">
               הוספת אירוע ל-&quot;{activeLayer.title}&quot;
             </h2>
+            <p className="text-xs text-gray-600">
+              עורך זה פעיל על השכבה שסומנה בירוק למעלה. כדי לערוך שכבה אחרת —
+              לחצי על &quot;פתח לעריכה&quot; ליד הכותרת שלה.
+            </p>
             <div className="grid sm:grid-cols-2 gap-3">
               <Input
                 label="תאריך + שעה"
@@ -723,7 +759,20 @@ export default function AdminTimelineProjectPage({
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      ) : data.layers.length > 0 ? (
+        <Card>
+          <CardContent className="p-4 text-sm text-gray-600">
+            לעריכת אירועים בתוך שכבה — לחצי על &quot;פתח לעריכה&quot; ליד הכותרת
+            של אחת השכבות למעלה.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4 text-sm text-gray-600">
+            כדי להוסיף אירועים, יצרי קודם שכבה חדשה למעלה (לדוגמה &quot;חקירת המשטרה&quot;).
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
