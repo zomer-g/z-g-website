@@ -14,7 +14,11 @@ import { useEffect, useMemo, useRef } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
-import type { WhatsappMessageDTO, WhatsappChatSummary } from "./types";
+import type {
+  WhatsappMessageDTO,
+  WhatsappChatSummary,
+  TagRef,
+} from "./types";
 
 interface ChatPaneProps {
   chat: WhatsappChatSummary | null;
@@ -27,6 +31,19 @@ interface ChatPaneProps {
   // toggle and faded styling on hidden rows. Guests never see this.
   isAdmin?: boolean;
   onToggleHidden?: (messageId: string, nextHidden: boolean) => void;
+  // Tag pool + per-item attach/detach handed down from the shell so
+  // bubbles can render a tag-icon button + TagPicker popover.
+  tagsPool?: TagRef[];
+  onAttachTag?: (
+    itemId: string,
+    payload: { tagId: string } | { name: string },
+  ) => Promise<TagRef>;
+  onDetachTag?: (itemId: string, tagId: string) => Promise<void>;
+  // Click handler on existing tag chips → toggles that tag's id in the
+  // URL search filter (so clicking a chip narrows the view to "items
+  // with this tag").
+  onToggleTagFilter?: (tagId: string) => void;
+  activeTagIds?: string[];
 }
 
 function dayKey(iso: string): string {
@@ -55,6 +72,11 @@ export function ChatPane({
   onBack,
   isAdmin = false,
   onToggleHidden,
+  tagsPool,
+  onAttachTag,
+  onDetachTag,
+  onToggleTagFilter,
+  activeTagIds,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -166,6 +188,11 @@ export function ChatPane({
                 showSender={it.showSender}
                 isAdmin={isAdmin}
                 onToggleHidden={onToggleHidden}
+                tagsPool={tagsPool}
+                onAttachTag={onAttachTag}
+                onDetachTag={onDetachTag}
+                onToggleTagFilter={onToggleTagFilter}
+                activeTagIds={activeTagIds}
               />
             ),
           )

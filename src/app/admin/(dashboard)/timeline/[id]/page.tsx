@@ -268,7 +268,7 @@ export default function AdminTimelineProjectPage({
     }
   };
 
-  /* ─── Bulk import (CSV/JSON) ────────────────────────────────────── */
+  /* ─── Bulk import (CSV/JSON/XLSX/WhatsApp ZIP) ──────────────────── */
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const importFile = async (file: File) => {
@@ -278,24 +278,64 @@ export default function AdminTimelineProjectPage({
     }
     setImporting(true);
     try {
-      const isJson = file.name.toLowerCase().endsWith(".json");
-      const text = await file.text();
-      const res = await fetch(`/api/timeline/layers/${activeLayerId}/events/import`, {
-        method: "POST",
-        headers: { "Content-Type": isJson ? "application/json" : "text/csv" },
-        body: text,
-      });
-      const body = await res.json().catch(() => null);
-      if (!res.ok) {
-        const details = body?.details
-          ? "\n" +
-            (body.details as Array<{ row: number; reason: string }>)
-              .map((d) => `שורה ${d.row}: ${d.reason}`)
-              .join("\n")
-          : "";
-        throw new Error((body?.error || `HTTP ${res.status}`) + details);
+      // Pick the wire shape from the file extension. Binary formats
+      // (xlsx, zip) need arrayBuffer; text formats stay as text so the
+      // network panel is readable when debugging.
+      const lower = file.name.toLowerCase();
+      const isJson = lower.endsWith(".json");
+      const isCsv = lower.endsWith(".csv");
+      const isXlsx = /\.(xlsx|xlsm|xls)$/.test(lower);
+      const isZip = lower.endsWith(".zip");
+
+      let contentType: string;
+      let body: BodyInit;
+      if (isJson) {
+        contentType = "application/json";
+        body = await file.text();
+      } else if (isCsv) {
+        contentType = "text/csv";
+        body = await file.text();
+      } else if (isXlsx) {
+        contentType =
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        body = await file.arrayBuffer();
+      } else if (isZip) {
+        contentType = "application/zip";
+        body = await file.arrayBuffer();
+      } else {
+        // Unknown — let the server try to figure it out from filename.
+        contentType = file.type || "application/octet-stream";
+        body = await file.arrayBuffer();
       }
-      flash({ type: "success", message: `יובאו ${body?.inserted ?? "?"} אירועים` }, 12000);
+
+      // Pass filename so the server can dispatch even when the browser
+      // sends application/octet-stream for binary uploads.
+      const qs = new URLSearchParams({ filename: file.name }).toString();
+      const res = await fetch(
+        `/api/timeline/layers/${activeLayerId}/events/import?${qs}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": contentType },
+          body,
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        const warnings: string[] = json?.warnings ?? [];
+        const tail = warnings.length
+          ? "\n" + warnings.slice(0, 5).join("\n")
+          : "";
+        throw new Error((json?.error || `HTTP ${res.status}`) + tail);
+      }
+      const warnCount = (json?.warnings ?? []).length;
+      const suffix = warnCount > 0 ? ` (${warnCount} אזהרות — דלגנו על שורות לא תקינות)` : "";
+      flash(
+        {
+          type: "success",
+          message: `יובאו ${json?.inserted ?? "?"} אירועים${suffix}`,
+        },
+        12000,
+      );
       await refresh();
     } catch (err) {
       flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" }, 15000);
@@ -645,21 +685,25 @@ export default function AdminTimelineProjectPage({
               </Button>
             </div>
 
-            {/* CSV / JSON bulk import for the active layer */}
+            {/* Bulk import — CSV / JSON / Excel / WhatsApp ZIP */}
             <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-4 mt-2">
               <p className="text-xs text-gray-700 leading-relaxed mb-2">
                 <FileText className="inline h-3.5 w-3.5 me-1" />
-                ייבוא רב-שורות. CSV עם עמודות{" "}
-                <code className="font-mono">timestamp,category,actor,title,body</code>{" "}
-                — או JSON של מערך אובייקטים באותם מפתחות. {" "}
-                <code className="font-mono">timestamp</code> חייב להיות ב-ISO 8601 (לדוגמה{" "}
-                <code className="font-mono">2026-05-21T10:30:00Z</code>).
+                ייבוא רב-שורות. תומך ב-<strong>CSV</strong>, <strong>JSON</strong>,{" "}
+                <strong>Excel (.xlsx)</strong> וייצוא <strong>WhatsApp ZIP</strong>.
+                כל טבלה שיש בה עמודת תאריך תזוהה אוטומטית — פורמטים נתמכים:{" "}
+                <code className="font-mono">DD/MM/YYYY</code>,{" "}
+                <code className="font-mono">MM/DD/YYYY</code>,{" "}
+                <code className="font-mono">YYYY-MM-DD</code>,{" "}
+                <code className="font-mono">DD.MM.YYYY</code>, ועוד.
+                עמודות מזוהות לפי כותרות (תאריך / מועד / date, שולח / actor, כותרת / title,
+                תוכן / body, סוג / category). שאר העמודות מקופלות לתוך גוף האירוע.
               </p>
               <div className="flex items-center gap-2">
                 <input
                   ref={importInputRef}
                   type="file"
-                  accept=".csv,.json,text/csv,application/json"
+                  accept=".csv,.json,.xlsx,.xls,.xlsm,.zip,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/zip"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) void importFile(f);

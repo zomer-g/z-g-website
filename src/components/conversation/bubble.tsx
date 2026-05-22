@@ -12,11 +12,22 @@
 // /api/whatsapp/media/<id> for a real workspace, which 401s/404s for
 // non-authorized users).
 
-import { useState } from "react";
-import { Download, Eye, EyeOff, FileText, Image as ImageIcon, Mic, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
+  Image as ImageIcon,
+  Mic,
+  Tag as TagIcon,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AudioPlayer } from "./audio-player";
-import type { WhatsappMessageDTO } from "./types";
+import { TagChips } from "./tag-chips";
+import { TagPicker } from "./tag-picker";
+import type { WhatsappMessageDTO, TagRef } from "./types";
 
 interface MessageBubbleProps {
   message: WhatsappMessageDTO;
@@ -30,6 +41,18 @@ interface MessageBubbleProps {
   // the server, so this branch never runs for them.
   isAdmin?: boolean;
   onToggleHidden?: (messageId: string, nextHidden: boolean) => void;
+  // Tag system: pool + per-item attach/detach + active filter state.
+  // The bubble renders TagChips below the body whenever the message
+  // has tags (visible to everyone), plus a tag-icon button in the
+  // hover controls that opens TagPicker (admin only).
+  tagsPool?: TagRef[];
+  onAttachTag?: (
+    itemId: string,
+    payload: { tagId: string } | { name: string },
+  ) => Promise<TagRef>;
+  onDetachTag?: (itemId: string, tagId: string) => Promise<void>;
+  onToggleTagFilter?: (tagId: string) => void;
+  activeTagIds?: string[];
 }
 
 function formatBytes(n: number): string {
@@ -84,8 +107,26 @@ export function MessageBubble({
   showSender,
   isAdmin = false,
   onToggleHidden,
+  tagsPool,
+  onAttachTag,
+  onDetachTag,
+  onToggleTagFilter,
+  activeTagIds,
 }: MessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const tagButtonRef = useRef<HTMLButtonElement>(null);
+  // Click-outside dismiss for the tag picker popover. The picker
+  // itself stops propagation; clicks anywhere else close it.
+  useEffect(() => {
+    if (!tagPickerOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (tagButtonRef.current?.contains(e.target as Node)) return;
+      setTagPickerOpen(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, [tagPickerOpen]);
 
   if (message.isSystem) {
     return (
@@ -101,6 +142,9 @@ export function MessageBubble({
   const isImage = message.media?.mimeType.startsWith("image/");
   const isAudio = message.media?.mimeType.startsWith("audio/");
   const hideable = isAdmin && !!onToggleHidden;
+  const taggable = isAdmin && !!onAttachTag && !!onDetachTag;
+  const itemTags = message.tags ?? [];
+  const activeTagSet = activeTagIds ? new Set(activeTagIds) : undefined;
 
   return (
     <div
@@ -114,27 +158,74 @@ export function MessageBubble({
     >
       {/* Admin hide/unhide toggle. Floats to the side opposite the bubble
           so it doesn't crowd the message content. Fades in on hover. */}
-      {hideable ? (
-        <button
-          type="button"
-          onClick={() => onToggleHidden!(message.id, !message.isHidden)}
-          aria-label={message.isHidden ? "החזרה להצגה" : "הסתרת הודעה"}
-          title={message.isHidden ? "הצגה מחדש" : "הסתרת ההודעה ממציגים אחרים"}
-          className={cn(
-            "shrink-0 rounded-full p-1 mt-1.5",
-            "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100",
-            "transition-opacity",
-            message.isHidden
-              ? "text-emerald-700 hover:bg-emerald-50"
-              : "text-gray-500 hover:bg-black/5",
-          )}
-        >
-          {message.isHidden ? (
-            <EyeOff className="h-3.5 w-3.5" />
-          ) : (
-            <Eye className="h-3.5 w-3.5" />
-          )}
-        </button>
+      {/* Admin-only hover controls stacked vertically. The tag button
+          also surfaces the per-bubble TagPicker popover. */}
+      {(hideable || taggable) ? (
+        <div className="shrink-0 flex flex-col items-center mt-1.5 gap-0.5 opacity-0 group-hover/bubble:opacity-100 focus-within:opacity-100 transition-opacity">
+          {hideable ? (
+            <button
+              type="button"
+              onClick={() => onToggleHidden!(message.id, !message.isHidden)}
+              aria-label={message.isHidden ? "החזרה להצגה" : "הסתרת הודעה"}
+              title={message.isHidden ? "הצגה מחדש" : "הסתרת ההודעה ממציגים אחרים"}
+              className={cn(
+                "rounded-full p-1",
+                message.isHidden
+                  ? "text-emerald-700 hover:bg-emerald-50"
+                  : "text-gray-500 hover:bg-black/5",
+              )}
+            >
+              {message.isHidden ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
+            </button>
+          ) : null}
+          {taggable ? (
+            <div className="relative">
+              <button
+                ref={tagButtonRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTagPickerOpen((v) => !v);
+                }}
+                aria-label="ניהול תגיות להודעה"
+                title="ניהול תגיות"
+                aria-expanded={tagPickerOpen}
+                className="rounded-full p-1 text-gray-500 hover:bg-black/5"
+              >
+                <TagIcon className="h-3.5 w-3.5" />
+              </button>
+              {tagPickerOpen ? (
+                <div
+                  className={cn(
+                    // Anchor the popover next to the button. In RTL the
+                    // "start" edge is the right; in mobile a fixed
+                    // right-side offset works in both.
+                    "absolute top-full mt-1 z-50",
+                    isOutgoing ? "start-0" : "end-0",
+                  )}
+                >
+                  <TagPicker
+                    pool={tagsPool ?? []}
+                    attached={itemTags}
+                    onAttachByName={async (name) => {
+                      const tag = await onAttachTag!(message.id, { name });
+                      return tag;
+                    }}
+                    onToggleAttached={async (tag, attach) => {
+                      if (attach) await onAttachTag!(message.id, { tagId: tag.id });
+                      else await onDetachTag!(message.id, tag.id);
+                    }}
+                    onClose={() => setTagPickerOpen(false)}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
       <div
         className={cn(
@@ -216,9 +307,28 @@ export function MessageBubble({
           </div>
         ) : null}
 
+        {/* Optional timeline-event headline — small bold line above the body. */}
+        {message.title ? (
+          <div className="text-sm font-semibold text-gray-900 leading-snug mb-0.5">
+            {message.title}
+          </div>
+        ) : null}
+
         {message.text ? (
           <div className="whitespace-pre-wrap break-words text-sm text-gray-900">
             {message.text}
+          </div>
+        ) : null}
+
+        {/* Tag chips. Clicking a chip toggles it in the URL filter (if the
+            shell wired a handler) so the user can drill down by tag. */}
+        {itemTags.length > 0 ? (
+          <div className="mt-1">
+            <TagChips
+              tags={itemTags}
+              onTagClick={onToggleTagFilter}
+              activeTagIds={activeTagSet}
+            />
           </div>
         ) : null}
 

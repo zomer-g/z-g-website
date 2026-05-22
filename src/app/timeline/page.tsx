@@ -8,6 +8,7 @@ import {
 import {
   MOCK_TIMELINE_WORKSPACE,
   MOCK_TIMELINE_ITEMS,
+  MOCK_TIMELINE_TAGS,
 } from "@/components/whatsapp/timeline-mock";
 
 // Force-static — public demo only, no DB calls.
@@ -54,6 +55,7 @@ export default function TimelineLandingPage() {
                 mode="mock"
                 apiPaths={timelineApiPaths}
                 mockItems={MOCK_TIMELINE_ITEMS}
+                mockTags={MOCK_TIMELINE_TAGS}
               />
             </div>
           </div>

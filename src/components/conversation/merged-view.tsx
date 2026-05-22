@@ -30,16 +30,13 @@ interface MergedViewProps {
   messages: MergedMessage[];
   loading: boolean;
   error: string | null;
-  // Used only when a merged message lacks sourceSelfSender — kept here as
-  // a workspace-level fallback so the props stay backward-compatible.
+  // Used only when a merged message lacks sourceSelfSender.
   workspaceSelfSender: string;
-  onExit: () => void;       // dismiss merged view, return to chat list
+  onExit: () => void;       // dismiss the view, return to chat list
   selectedCount: number;
-  // isAdmin is intentionally NOT a prop here: hidden-message styling
-  // surfaces via the MessageBubble component itself (it reads
-  // message.isHidden and renders the fade + badge). The merged view does
-  // not currently offer an inline hide toggle — admins should hide
-  // messages from the single-chat pane to keep the merged state simple.
+  // Optional override for the header label — search mode renders
+  // "תוצאות חיפוש…" here instead of the generic "תצוגה משולבת".
+  headerLabel?: string;
 }
 
 function dayKey(iso: string): string {
@@ -78,6 +75,7 @@ export function MergedView({
   workspaceSelfSender,
   onExit,
   selectedCount,
+  headerLabel,
 }: MergedViewProps) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -131,10 +129,12 @@ export function MergedView({
         </div>
         <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-900 truncate">
-            תצוגה משולבת
+            {headerLabel ?? "תצוגה משולבת"}
           </div>
           <div className="text-xs text-gray-500">
-            {selectedCount} שיחות · {messages.length} הודעות בציר משותף
+            {headerLabel
+              ? `${messages.length} תוצאות`
+              : `${selectedCount} שיחות · ${messages.length} הודעות בציר משותף`}
           </div>
         </div>
       </header>
