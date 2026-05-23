@@ -18,6 +18,10 @@ import {
   Layers as LayersIcon,
   FileText,
   Upload,
+  Eye,
+  EyeOff,
+  X,
+  Check,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
@@ -270,11 +274,160 @@ export default function AdminTimelineProjectPage({
       setEvtActor("");
       setEvtTitle("");
       setEvtBody("");
-      await refresh();
+      // Refresh both the project (for the layer-event count badge) and
+      // the events list under the editor (so the new row shows up).
+      await Promise.all([refresh(), loadLayerEvents()]);
     } catch (err) {
       flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" });
     } finally {
       setCreatingEvt(false);
+    }
+  };
+
+  /* ─── Existing events: list / edit / delete / hide ─────────────── */
+  // We list events for the active layer (admin sees hidden too — the
+  // GET endpoint already returns isHidden when the caller is admin)
+  // and let the admin inline-edit any row or remove it via DELETE.
+  // The list refetches on every layer change and after any mutation.
+  interface EventRow {
+    id: string;
+    timestamp: string;
+    actor: string;
+    category: string;
+    title: string | null;
+    text: string | null;
+    isHidden: boolean;
+  }
+  const [layerEvents, setLayerEvents] = useState<EventRow[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<{
+    timestamp: string;
+    category: string;
+    actor: string;
+    title: string;
+    body: string;
+  } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const loadLayerEvents = useCallback(async () => {
+    if (!activeLayerId) {
+      setLayerEvents([]);
+      return;
+    }
+    setEventsLoading(true);
+    setEventsError(null);
+    try {
+      const res = await fetch(
+        `/api/timeline/layers/${activeLayerId}/events?limit=2000`,
+        { cache: "no-store" },
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
+      const json = (await res.json()) as { items: EventRow[] };
+      setLayerEvents(json.items);
+    } catch (err) {
+      setEventsError(err instanceof Error ? err.message : "שגיאה");
+      setLayerEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [activeLayerId]);
+
+  useEffect(() => {
+    void loadLayerEvents();
+  }, [loadLayerEvents]);
+
+  // Convert ISO timestamp to the value format <input type="datetime-local">
+  // expects: "YYYY-MM-DDTHH:mm" (in the browser's local zone).
+  const toLocalInput = (iso: string): string => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const beginEdit = (e: EventRow) => {
+    setEditingEventId(e.id);
+    setEditDraft({
+      timestamp: toLocalInput(e.timestamp),
+      category: e.category,
+      actor: e.actor,
+      title: e.title ?? "",
+      body: e.text ?? "",
+    });
+  };
+  const cancelEdit = () => {
+    setEditingEventId(null);
+    setEditDraft(null);
+  };
+  const saveEdit = async (eventId: string) => {
+    if (!editDraft) return;
+    if (!editDraft.timestamp || !editDraft.actor.trim() ||
+        (!editDraft.title.trim() && !editDraft.body.trim())) {
+      flash({ type: "error", message: "תאריך, actor, וכותרת או גוף נדרשים" });
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/timeline/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timestamp: new Date(editDraft.timestamp).toISOString(),
+          category: editDraft.category,
+          actor: editDraft.actor.trim(),
+          title: editDraft.title.trim() || null,
+          body: editDraft.body.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(((await res.json()) as { error?: string }).error || `HTTP ${res.status}`);
+      }
+      flash({ type: "success", message: "האירוע עודכן" });
+      cancelEdit();
+      await loadLayerEvents();
+    } catch (err) {
+      flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+  const deleteEvent = async (e: EventRow) => {
+    const label = e.title || e.text || "האירוע";
+    if (!window.confirm(`למחוק את "${label.slice(0, 60)}"?`)) return;
+    try {
+      const res = await fetch(`/api/timeline/events/${e.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      flash({ type: "success", message: "נמחק" });
+      await loadLayerEvents();
+      await refresh(); // updates the layer's _count.events badge
+    } catch (err) {
+      flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" });
+    }
+  };
+  const toggleEventHidden = async (e: EventRow) => {
+    const next = !e.isHidden;
+    // Optimistic update
+    setLayerEvents((list) =>
+      list.map((x) => (x.id === e.id ? { ...x, isHidden: next } : x)),
+    );
+    try {
+      const res = await fetch(`/api/timeline/events/${e.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isHidden: next }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      // Roll back
+      setLayerEvents((list) =>
+        list.map((x) => (x.id === e.id ? { ...x, isHidden: !next } : x)),
+      );
+      flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" });
     }
   };
 
@@ -346,7 +499,7 @@ export default function AdminTimelineProjectPage({
         },
         12000,
       );
-      await refresh();
+      await Promise.all([refresh(), loadLayerEvents()]);
     } catch (err) {
       flash({ type: "error", message: err instanceof Error ? err.message : "שגיאה" }, 15000);
     } finally {
@@ -756,6 +909,216 @@ export default function AdminTimelineProjectPage({
                   <Upload className="h-4 w-4 text-gray-400" aria-hidden="true" />
                 )}
               </div>
+            </div>
+
+            {/* ── Existing events: list / edit / hide / delete ── */}
+            <div className="pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-primary-dark">
+                  אירועים בשכבה זו{" "}
+                  <span className="text-xs font-normal text-gray-600">
+                    ({layerEvents.length})
+                  </span>
+                </h3>
+                {eventsLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" />
+                ) : null}
+              </div>
+
+              {eventsError ? (
+                <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+                  {eventsError}
+                </div>
+              ) : layerEvents.length === 0 && !eventsLoading ? (
+                <p className="text-xs text-gray-500">
+                  אין אירועים בשכבה זו. הוסיפי אירוע מהטופס למעלה או יבאי קובץ.
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-100 border border-gray-200 rounded-md">
+                  {layerEvents.map((e) => {
+                    const isEditing = editingEventId === e.id;
+                    const dt = new Date(e.timestamp);
+                    const dtLabel = Number.isNaN(dt.getTime())
+                      ? e.timestamp
+                      : dt.toLocaleString("he-IL", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                    const catLabel =
+                      KNOWN_CATEGORIES.find((c) => c.value === e.category)?.label ??
+                      e.category;
+                    return (
+                      <li
+                        key={e.id}
+                        className={
+                          "p-3 " +
+                          (e.isHidden ? "bg-amber-50" : "") +
+                          (isEditing ? " bg-emerald-50" : "")
+                        }
+                      >
+                        {isEditing && editDraft ? (
+                          <div className="space-y-2">
+                            <div className="grid sm:grid-cols-2 gap-2">
+                              <Input
+                                label="תאריך + שעה"
+                                type="datetime-local"
+                                value={editDraft.timestamp}
+                                onChange={(ev) =>
+                                  setEditDraft((d) =>
+                                    d ? { ...d, timestamp: ev.target.value } : d,
+                                  )
+                                }
+                                dir="ltr"
+                              />
+                              <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                  סוג
+                                </label>
+                                <select
+                                  value={editDraft.category}
+                                  onChange={(ev) =>
+                                    setEditDraft((d) =>
+                                      d ? { ...d, category: ev.target.value } : d,
+                                    )
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                >
+                                  {KNOWN_CATEGORIES.map((c) => (
+                                    <option key={c.value} value={c.value}>
+                                      {c.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <Input
+                                label="actor / שולח"
+                                value={editDraft.actor}
+                                onChange={(ev) =>
+                                  setEditDraft((d) =>
+                                    d ? { ...d, actor: ev.target.value } : d,
+                                  )
+                                }
+                                dir="rtl"
+                              />
+                              <Input
+                                label="כותרת"
+                                value={editDraft.title}
+                                onChange={(ev) =>
+                                  setEditDraft((d) =>
+                                    d ? { ...d, title: ev.target.value } : d,
+                                  )
+                                }
+                                dir="rtl"
+                              />
+                            </div>
+                            <Textarea
+                              label="גוף האירוע"
+                              value={editDraft.body}
+                              onChange={(ev) =>
+                                setEditDraft((d) =>
+                                  d ? { ...d, body: ev.target.value } : d,
+                                )
+                              }
+                              dir="rtl"
+                              rows={3}
+                            />
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={cancelEdit}
+                                disabled={savingEdit}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                ביטול
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => void saveEdit(e.id)}
+                                loading={savingEdit}
+                                disabled={savingEdit}
+                              >
+                                <Check className="h-3.5 w-3.5" />
+                                שמירה
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-1">
+                                <time className="font-mono text-[11px] text-gray-600" dir="ltr">
+                                  {dtLabel}
+                                </time>
+                                <Badge variant="muted">{catLabel}</Badge>
+                                <span className="text-xs font-medium text-gray-700">
+                                  {e.actor}
+                                </span>
+                                {e.isHidden ? (
+                                  <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                                    מוסתר
+                                  </span>
+                                ) : null}
+                              </div>
+                              {e.title ? (
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {e.title}
+                                </div>
+                              ) : null}
+                              {e.text ? (
+                                <div className="text-xs text-gray-700 whitespace-pre-wrap line-clamp-3">
+                                  {e.text}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => void toggleEventHidden(e)}
+                                className={
+                                  "p-1 rounded " +
+                                  (e.isHidden
+                                    ? "text-emerald-700 hover:bg-emerald-50"
+                                    : "text-gray-500 hover:bg-gray-100")
+                                }
+                                aria-label={e.isHidden ? "הצגה מחדש" : "הסתרה"}
+                                title={e.isHidden ? "הצגה מחדש" : "הסתרת האירוע ממציגים אחרים"}
+                              >
+                                {e.isHidden ? (
+                                  <EyeOff className="h-3.5 w-3.5" />
+                                ) : (
+                                  <Eye className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => beginEdit(e)}
+                                className="text-gray-500 hover:bg-gray-100 p-1 rounded"
+                                aria-label="עריכת אירוע"
+                                title="עריכה"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteEvent(e)}
+                                className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                aria-label="מחיקת אירוע"
+                                title="מחיקה"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
           </CardContent>
         </Card>
