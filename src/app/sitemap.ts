@@ -3,6 +3,14 @@ import { prisma } from "@/lib/prisma";
 
 const SITE_URL = "https://z-g.co.il";
 
+// Force-dynamic + revalidate=0 so the sitemap re-queries the DB on
+// EVERY request. Without this, Next.js could serve a stale cached
+// sitemap for hours after a new article / service / page is published.
+// Cost: one cheap Prisma SELECT per fetch (Google fetches sitemap.xml
+// at most every few hours), which is negligible.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type Entry = MetadataRoute.Sitemap[number];
 
 const staticEntry = (
