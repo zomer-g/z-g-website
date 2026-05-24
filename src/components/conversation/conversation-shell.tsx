@@ -552,6 +552,18 @@ function ConversationShellInner({
         pool={tagsPool}
         onToggleTag={url.toggleTag}
         onClear={url.reset}
+        // Render the back arrow only when there's actually something
+        // to back out of. Priority matches the right-pane priority
+        // above: search beats merged beats single-chat.
+        onBack={
+          rightPaneOpen
+            ? () => {
+                if (searchActive) url.reset();
+                else if (inMergedView) handleExitMerged();
+                else setActiveChatId(null);
+              }
+            : undefined
+        }
       />
 
       <div className="flex flex-1 min-h-0">

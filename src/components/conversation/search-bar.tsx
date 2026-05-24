@@ -8,7 +8,7 @@
 // URL, which is the source of truth.
 
 import { useEffect, useRef, useState } from "react";
-import { Search, X, Filter, Check } from "lucide-react";
+import { Search, X, Filter, Check, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TagChips } from "./tag-chips";
 import { tagStyle } from "./tag-utils";
@@ -22,6 +22,12 @@ interface SearchBarProps {
   pool: TagRef[];
   onToggleTag: (tagId: string) => void;
   onClear: () => void;
+  // When provided, renders a back-arrow button at the leading edge of
+  // the search bar. The shell passes this in only when there's a sub-
+  // view to exit (open chat / merged view / search results) so the
+  // arrow doesn't appear on the empty list state where it would have
+  // nothing to do.
+  onBack?: () => void;
 }
 
 export function SearchBar({
@@ -32,6 +38,7 @@ export function SearchBar({
   pool,
   onToggleTag,
   onClear,
+  onBack,
 }: SearchBarProps) {
   const activeTagIds = new Set(searchState.tagIds);
   // Surface the resolved chips for the URL's tag ids — we look them
@@ -67,6 +74,21 @@ export function SearchBar({
   return (
     <div className="border-b border-black/5 bg-white px-3 py-2 shrink-0">
       <div className="flex items-center gap-2">
+        {/* Back arrow — only when the shell has a sub-view to exit.
+            Always visible (both viewports) so users on mobile aren't
+            forced to scroll up into the chat header to find the back
+            arrow there. */}
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="חזרה לרשימת השכבות/השיחות"
+            title="חזרה — סגירת התצוגה הנוכחית"
+            className="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
+          >
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        ) : null}
         <label className="relative flex-1">
           <span className="sr-only">חיפוש בתוכן</span>
           <Search
