@@ -132,11 +132,17 @@ export function ChatPane({
     <div className="flex flex-1 flex-col bg-[#efeae2] min-h-0">
       {/* Top bar */}
       <header className="flex items-center gap-3 bg-[#f0f2f5] border-b border-black/5 px-3 py-2 shrink-0">
+        {/* WhatsApp-mobile-style back arrow. Visible on every viewport
+            (not just mobile) so the user always has a one-click way to
+            close the chat and return to the list — matches what the
+            merged/search view does, and what users expect from the
+            phone app even on desktop. */}
         <button
           type="button"
           onClick={onBack}
-          className="lg:hidden inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
+          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
           aria-label="חזרה לרשימת השיחות"
+          title="סגירת השיחה — חזרה לרשימה"
         >
           <ArrowRight className="h-5 w-5" />
         </button>
