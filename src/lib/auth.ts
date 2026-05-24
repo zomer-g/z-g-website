@@ -28,14 +28,22 @@ function isAdminEmail(email: string): boolean {
 }
 
 // A non-admin Google account is allowed to sign in only if their email is
-// present in at least one WhatsappWorkspaceAccess row. Anyone else is
-// rejected at the signIn callback and never gets a session.
+// present in at least one access list — WhatsappWorkspaceAccess OR
+// TimelineProjectAccess. Anyone else is rejected at the signIn callback
+// and never gets a session.
+//
+// Both allow-lists are checked because the two features share the SSO
+// flow: a guest invited to a timeline project but never to a whatsapp
+// workspace would otherwise be silently rejected at sign-in and bounce
+// back to /admin/login with no clear reason.
 async function isAllowedGuestEmail(email: string): Promise<boolean> {
+  const lower = email.toLowerCase();
   try {
-    const count = await prisma.whatsappWorkspaceAccess.count({
-      where: { email: email.toLowerCase() },
-    });
-    return count > 0;
+    const [wsCount, tlCount] = await Promise.all([
+      prisma.whatsappWorkspaceAccess.count({ where: { email: lower } }),
+      prisma.timelineProjectAccess.count({ where: { email: lower } }),
+    ]);
+    return wsCount + tlCount > 0;
   } catch (err) {
     // Fail closed — if we can't talk to Postgres we shouldn't let a
     // would-be guest in just because the allowlist check threw.
@@ -72,6 +80,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           include_granted_scopes: "true",
         },
       },
+      // Both Google providers point at the SAME identity (Google email).
+      // Without this flag, signing in via the *other* client when a User
+      // row already exists triggers OAuthAccountNotLinked — the exact
+      // failure mode admins hit when they go /admin → google, then later
+      // /whatsapp/<slug> → google-public. Safe here because we never accept
+      // a non-Google provider for the same identity and Google verifies
+      // the email before issuing the token.
+      allowDangerousEmailAccountLinking: true,
     }),
     // ── Public provider (basic scopes only) ──
     // Only registered when env vars are present, so existing dev/preview
@@ -86,6 +102,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             // Default Google scopes only: openid email profile. No
             // `authorization` override → no sensitive scopes requested,
             // so this client can be published to Production.
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
