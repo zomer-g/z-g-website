@@ -3,6 +3,7 @@ import Footer from "@/components/layout/footer";
 import { AdminEditModeProvider } from "@/contexts/admin-bar-context";
 import { AdminBar } from "@/components/admin/admin-bar";
 import { getPageContent } from "@/lib/content";
+import { DEFAULT_HEADER_CONTENT } from "@/lib/content-defaults";
 import { prisma } from "@/lib/prisma";
 import type {
   HeaderContent,
@@ -59,10 +60,12 @@ export default async function PublicLayout({ children }: PublicLayoutProps) {
       loadProjectNavItems(),
     ]);
 
-  // Inject the live submenus. Each parent NavItem is identified by its
-  // own href (so the marker doesn't depend on a separate field on the
-  // type). Items without children: [] stay as ordinary links.
-  const navWithDropdowns: NavItem[] = headerContent.navItems.map((item) => {
+  // Use the code-defined nav structure as the authoritative base so
+  // that changes in content-defaults.ts take effect immediately without
+  // needing to reseed the DB. Only branding fields (logo, CTA) come
+  // from the DB-stored CMS row so editors can still update them via
+  // the site-editor without a deploy.
+  const navWithDropdowns: NavItem[] = DEFAULT_HEADER_CONTENT.navItems.map((item) => {
     if (item.children === undefined) return item;
     if (item.href === "/services") return { ...item, children: serviceChildren };
     if (item.href === "/projects") return { ...item, children: projectChildren };
