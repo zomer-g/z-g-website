@@ -41,8 +41,30 @@ const PROSECUTOR_DATASET_ID = "9fbe426a-4750-4202-94aa-0518fe9e575c";
 // Key used in resource_mappings for the scraped CSV resource.
 const RESOURCE_KEY = "נתוני הסורק";
 
-const PAGE_SIZE = 1000;
+// Fetch 5 000 rows per CKAN request — reduces total requests from ~33 to ~7
+// for the 32 k police dataset, keeping the first-load under ~15 s.
+const PAGE_SIZE = 5000;
 const PARALLEL = 4;
+
+// Only fetch the fields we actually use. This excludes the large HTML blobs
+// (DescriptionHtmlString, DescriptionBlankTextString) which account for most
+// of the response size (~4 KB per police record × 32 k ≈ 128 MB).
+const POLICE_FIELDS = [
+  "_id",
+  "Data.ShemShluchaMetapelet",
+  "Data.Tikim",
+  "Data.Taarich",
+  "Data.HeTaarich",
+  "Data.details.Description_text",
+].join(",");
+
+const PROSECUTOR_FIELDS = [
+  "_id",
+  "Data.case_number",
+  "Data.unit",
+  "Data.more_info.Description_text",
+  "UrlName",
+].join(",");
 
 /* ─── Text extraction helpers ────────────────────────────────────────── */
 
@@ -166,8 +188,10 @@ async function fetchCKANPage(
   resourceId: string,
   offset: number,
   limit: number,
+  fields?: string,
 ): Promise<{ records: CKANRow[]; total: number } | null> {
-  const url = `${ODATA_BASE}/api/3/action/datastore_search?resource_id=${encodeURIComponent(resourceId)}&limit=${limit}&offset=${offset}`;
+  let url = `${ODATA_BASE}/api/3/action/datastore_search?resource_id=${encodeURIComponent(resourceId)}&limit=${limit}&offset=${offset}`;
+  if (fields) url += `&fields=${encodeURIComponent(fields)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
   const json = (await res.json()) as CKANResponse;
@@ -178,9 +202,9 @@ async function fetchCKANPage(
   };
 }
 
-async function fetchAllCKANRows(resourceId: string): Promise<CKANRow[] | null> {
+async function fetchAllCKANRows(resourceId: string, fields?: string): Promise<CKANRow[] | null> {
   // First page — also tells us the total
-  const first = await fetchCKANPage(resourceId, 0, PAGE_SIZE);
+  const first = await fetchCKANPage(resourceId, 0, PAGE_SIZE, fields);
   if (!first) return null;
 
   const all: CKANRow[] = [...first.records];
@@ -198,7 +222,7 @@ async function fetchAllCKANRows(resourceId: string): Promise<CKANRow[] | null> {
   for (let i = 0; i < offsets.length; i += PARALLEL) {
     const batch = offsets.slice(i, i + PARALLEL);
     const pages = await Promise.all(
-      batch.map((off) => fetchCKANPage(resourceId, off, PAGE_SIZE)),
+      batch.map((off) => fetchCKANPage(resourceId, off, PAGE_SIZE, fields)),
     );
     if (pages.some((p) => p === null)) return null;
     for (const page of pages) {
@@ -221,7 +245,8 @@ export async function fetchDatasetRecords(
     return null;
   }
 
-  const rows = await fetchAllCKANRows(resourceId);
+  const fields = source === "police" ? POLICE_FIELDS : PROSECUTOR_FIELDS;
+  const rows = await fetchAllCKANRows(resourceId, fields);
   if (!rows) {
     console.error(`conditional-arrangements: failed to fetch CKAN rows for resource ${resourceId}`);
     return null;
