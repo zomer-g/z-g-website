@@ -41,6 +41,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/foi-rulings", "weekly", 0.8),
     staticEntry("/rulings", "weekly", 0.7),
     staticEntry("/class-actions", "weekly", 0.7),
+    staticEntry("/conditional-arrangements", "weekly", 0.7),
     staticEntry("/case-tracker", "monthly", 0.7),
     staticEntry("/legal-tools", "monthly", 0.7),
     staticEntry("/sanegoria", "monthly", 0.7),

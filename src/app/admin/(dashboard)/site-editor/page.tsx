@@ -68,6 +68,7 @@ const PAGE_DEFS: { slug: string; label: string; icon: React.ElementType; href?: 
   { slug: "leam", label: "לעם — אתרים אזרחיים", icon: Globe },
   { slug: "sanegoria", label: "דשבורד סניגוריה", icon: BarChart3 },
   { slug: "class-actions", label: "דשבורד תובענות ייצוגיות", icon: Scale },
+  { slug: "conditional-arrangements", label: "דשבורד הסדרים מותנים", icon: Scale },
   { slug: "guidelines", label: "מאגר הנחיות", icon: BookOpen },
   { slug: "defamation-rulings", label: "פסקי דין בלשון הרע", icon: Scale },
   { slug: "foi-rulings", label: "פסקי דין בעתירות חופש מידע", icon: Scale },

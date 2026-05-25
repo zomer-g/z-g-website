@@ -426,6 +426,14 @@ export interface FoiRulingsPageContent {
   cacheTtlMinutes: number;
 }
 
+// ── Conditional Arrangements Dashboard Page Content ──
+
+export interface ConditionalArrangementsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -446,6 +454,7 @@ export type PageContentMap = {
   guidelines: GuidelinesPageContent;
   "defamation-rulings": DefamationRulingsPageContent;
   "foi-rulings": FoiRulingsPageContent;
+  "conditional-arrangements": ConditionalArrangementsPageContent;
   leam: LeamPageContent;
 };
 

@@ -16,6 +16,7 @@ import type {
   GuidelinesPageContent,
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
+  ConditionalArrangementsPageContent,
   LeamPageContent,
 } from "@/types/content";
 
@@ -454,6 +455,17 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   cacheTtlMinutes: 60,
 };
 
+/* ─── Conditional Arrangements Dashboard Page ─── */
+
+export const DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT: ConditionalArrangementsPageContent = {
+  isPublic: true,
+  hero: {
+    title: "הסדרים מותנים",
+    subtitle: "מאגר הסדרים מותנים של המשטרה והפרקליטות — מהחדש לישן",
+  },
+  cacheTtlMinutes: 60,
+};
+
 /* ─── Leam (לעם) Civic Sites Page ─── */
 
 export const DEFAULT_LEAM_CONTENT: LeamPageContent = {
@@ -556,5 +568,6 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   guidelines: DEFAULT_GUIDELINES_CONTENT,
   "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
+  "conditional-arrangements": DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT,
   leam: DEFAULT_LEAM_CONTENT,
 };
