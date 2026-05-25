@@ -121,10 +121,17 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "אודות", href: "/about" },
     { label: "שירותים דיגיטליים", href: "/digital-services" },
     { label: "מיזמים", href: "/projects" },
-    { label: "תחומי עיסוק", href: "/services" },
+    // "תחומי עיסוק" is a dropdown — its `children` are populated at
+    // runtime in PublicLayout from the active Service rows in the DB,
+    // so adding/disabling a service in /admin auto-updates the header.
+    // The static default carries an empty children[] so the dropdown
+    // affordance shows even before the DB load resolves.
+    { label: "תחומי עיסוק", href: "/services", children: [] },
     { label: "מאמרים", href: "/articles" },
     { label: "מדיה", href: "/media" },
-    { label: "תובענות ייצוגיות", href: "/class-actions" },
+    // "תובענות ייצוגיות" used to be a top-level entry — it still lives
+    // under /projects → /class-actions, so dropping the dedicated link
+    // here trims the menu without hiding the page.
     { label: "צור קשר", href: "/contact" },
   ],
   ctaText: "ייעוץ ראשוני",

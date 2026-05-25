@@ -4,7 +4,14 @@
 
 export interface NavItem {
   label: string;
+  // The top-level link. When the item has children, the header still
+  // renders this as the dropdown header — clicking it navigates to the
+  // overview page, hovering/tapping the chevron opens the submenu.
   href: string;
+  // Optional submenu. When present, the desktop header renders a
+  // hover/focus dropdown and the mobile menu renders an expandable
+  // accordion underneath the parent row.
+  children?: NavItem[];
 }
 
 export interface ContactInfo {

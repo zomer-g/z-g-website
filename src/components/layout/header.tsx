@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
-import type { HeaderContent } from "@/types/content";
+import type { HeaderContent, NavItem } from "@/types/content";
 import { DEFAULT_HEADER_CONTENT } from "@/lib/content-defaults";
 
 interface HeaderProps {
@@ -79,12 +79,23 @@ export default function Header({ content }: HeaderProps) {
     }
   }, [isMobileMenuOpen]);
 
+  // Tracks which mobile-menu item is expanded. Only one submenu can be
+  // open at a time. Collapsed by every site interaction that closes the
+  // outer menu (button toggle + link clicks) so it's never left in an
+  // inconsistent state. No useEffect needed — both writers go through
+  // the same handlers.
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+
   const toggleMobileMenu = useCallback(() => {
-    setIsMobileMenuOpen((prev) => !prev);
+    setIsMobileMenuOpen((prev) => {
+      if (prev) setMobileExpanded(null);
+      return !prev;
+    });
   }, []);
 
   const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
+    setMobileExpanded(null);
     menuButtonRef.current?.focus();
   }, []);
 
@@ -120,24 +131,32 @@ export default function Header({ content }: HeaderProps) {
 
           <nav role="navigation" aria-label="ניווט ראשי" className="hidden lg:flex">
             <ul className="flex items-center gap-1" role="list">
-              {data.navItems.map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "relative inline-block rounded-md px-4 py-2 text-sm font-medium",
-                      "transition-colors duration-200",
-                      isActive(item.href) ? "text-accent-text" : "text-primary hover:text-accent-text hover:bg-muted-bg"
-                    )}
-                    aria-current={isActive(item.href) ? "page" : undefined}
-                  >
-                    {item.label}
-                    {isActive(item.href) && (
-                      <span className="absolute inset-x-4 -bottom-[1px] h-0.5 bg-accent" aria-hidden="true" />
-                    )}
-                  </Link>
-                </li>
-              ))}
+              {data.navItems.map((item) =>
+                item.children && item.children.length > 0 ? (
+                  <DesktopDropdown
+                    key={item.href}
+                    item={item}
+                    isActive={isActive}
+                  />
+                ) : (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "relative inline-block rounded-md px-4 py-2 text-sm font-medium",
+                        "transition-colors duration-200",
+                        isActive(item.href) ? "text-accent-text" : "text-primary hover:text-accent-text hover:bg-muted-bg"
+                      )}
+                      aria-current={isActive(item.href) ? "page" : undefined}
+                    >
+                      {item.label}
+                      {isActive(item.href) && (
+                        <span className="absolute inset-x-4 -bottom-[1px] h-0.5 bg-accent" aria-hidden="true" />
+                      )}
+                    </Link>
+                  </li>
+                ),
+              )}
             </ul>
           </nav>
 
@@ -171,6 +190,10 @@ export default function Header({ content }: HeaderProps) {
         </div>
       </div>
 
+      {/* DesktopDropdown is defined below — pulled out so the open/close
+          state and the focus-management hooks stay local to each item
+          rather than living on the Header. */}
+
       {isMobileMenuOpen && (
         <>
           <div className={cn("fixed inset-0 z-40 bg-foreground/40 lg:hidden", hasAdminBar ? "top-[7.5rem]" : "top-20")} aria-hidden="true" onClick={closeMobileMenu} />
@@ -185,21 +208,96 @@ export default function Header({ content }: HeaderProps) {
           >
             <nav role="navigation" aria-label="ניווט ראשי - נייד">
               <ul className="divide-y divide-border px-4 py-2" role="list">
-                {data.navItems.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={closeMobileMenu}
-                      className={cn(
-                        "block px-4 py-4 text-base font-medium transition-colors duration-200",
-                        isActive(item.href) ? "text-accent-text bg-muted-bg" : "text-primary hover:text-accent-text hover:bg-muted-bg"
+                {data.navItems.map((item) => {
+                  const hasChildren = !!item.children && item.children.length > 0;
+                  const isExpanded = mobileExpanded === item.href;
+                  return (
+                    <li key={item.href}>
+                      {hasChildren ? (
+                        <div>
+                          {/* Row holds two interactive zones: the label
+                              navigates to the parent page; the chevron
+                              toggles the submenu so the user can browse
+                              without leaving the menu. */}
+                          <div className="flex items-stretch">
+                            <Link
+                              href={item.href}
+                              onClick={closeMobileMenu}
+                              className={cn(
+                                "flex-1 px-4 py-4 text-base font-medium transition-colors duration-200",
+                                isActive(item.href) ? "text-accent-text bg-muted-bg" : "text-primary hover:text-accent-text hover:bg-muted-bg",
+                              )}
+                              aria-current={isActive(item.href) ? "page" : undefined}
+                            >
+                              {item.label}
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMobileExpanded((prev) =>
+                                  prev === item.href ? null : item.href,
+                                )
+                              }
+                              className={cn(
+                                "px-3 text-primary hover:bg-muted-bg transition-colors duration-200",
+                                isExpanded && "bg-muted-bg",
+                              )}
+                              aria-expanded={isExpanded}
+                              aria-label={
+                                isExpanded
+                                  ? `סגירת תפריט ${item.label}`
+                                  : `פתיחת תפריט ${item.label}`
+                              }
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  "h-5 w-5 transition-transform duration-200",
+                                  isExpanded && "rotate-180",
+                                )}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          </div>
+                          {isExpanded ? (
+                            <ul
+                              className="border-s-2 border-accent/40 ms-6 my-1 space-y-0"
+                              role="list"
+                            >
+                              {item.children!.map((child) => (
+                                <li key={child.href}>
+                                  <Link
+                                    href={child.href}
+                                    onClick={closeMobileMenu}
+                                    className={cn(
+                                      "block px-4 py-2.5 text-sm transition-colors duration-200",
+                                      isActive(child.href)
+                                        ? "text-accent-text bg-muted-bg font-semibold"
+                                        : "text-primary/90 hover:text-accent-text hover:bg-muted-bg",
+                                    )}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={closeMobileMenu}
+                          className={cn(
+                            "block px-4 py-4 text-base font-medium transition-colors duration-200",
+                            isActive(item.href) ? "text-accent-text bg-muted-bg" : "text-primary hover:text-accent-text hover:bg-muted-bg",
+                          )}
+                          aria-current={isActive(item.href) ? "page" : undefined}
+                        >
+                          {item.label}
+                        </Link>
                       )}
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
               <div className="border-t border-border px-8 py-4">
                 <Link
@@ -218,5 +316,141 @@ export default function Header({ content }: HeaderProps) {
         </>
       )}
     </header>
+  );
+}
+
+/* ─── DesktopDropdown ───
+ * A single nav entry that owns a submenu. Opens on hover OR focus
+ * (keyboard-accessible), closes on mouse-leave / blur / Escape. The
+ * parent link still navigates on click so a user with a fixed
+ * destination doesn't get stuck in the menu — only the chevron / hover
+ * surfaces the submenu.
+ */
+function DesktopDropdown({
+  item,
+  isActive,
+}: {
+  item: NavItem;
+  isActive: (href: string) => boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLLIElement>(null);
+
+  // Small open-on-enter / delayed-close so brushing past the chevron
+  // doesn't snap the menu open/closed.
+  const handleEnter = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    setOpen(true);
+  };
+  const handleLeave = () => {
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => setOpen(false), 120);
+  };
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  // Esc closes when focus is anywhere inside the dropdown.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const active = isActive(item.href);
+
+  return (
+    <li
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      onFocus={handleEnter}
+      onBlur={(e) => {
+        // Only close when focus actually leaves the dropdown — not
+        // when it moves between the parent link and the children.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          handleLeave();
+        }
+      }}
+    >
+      <div className="flex items-stretch">
+        <Link
+          href={item.href}
+          className={cn(
+            "relative inline-flex items-center rounded-s-md px-4 py-2 text-sm font-medium",
+            "transition-colors duration-200",
+            active
+              ? "text-accent-text"
+              : "text-primary hover:text-accent-text hover:bg-muted-bg",
+          )}
+          aria-current={active ? "page" : undefined}
+        >
+          {item.label}
+          {active && (
+            <span
+              className="absolute inset-x-4 -bottom-[1px] h-0.5 bg-accent"
+              aria-hidden="true"
+            />
+          )}
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label={open ? `סגירת תפריט ${item.label}` : `פתיחת תפריט ${item.label}`}
+          className={cn(
+            "inline-flex items-center rounded-e-md px-1.5 py-2",
+            "transition-colors duration-200",
+            active ? "text-accent-text" : "text-primary hover:text-accent-text hover:bg-muted-bg",
+          )}
+        >
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 transition-transform duration-200",
+              open && "rotate-180",
+            )}
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+
+      {open ? (
+        <ul
+          role="menu"
+          aria-label={item.label}
+          className={cn(
+            "absolute end-0 top-full mt-1 min-w-[14rem]",
+            "rounded-lg border border-border bg-background shadow-lg",
+            "py-2 z-50",
+          )}
+        >
+          {item.children!.map((child) => (
+            <li key={child.href} role="none">
+              <Link
+                href={child.href}
+                role="menuitem"
+                className={cn(
+                  "block px-4 py-2 text-sm transition-colors duration-200",
+                  isActive(child.href)
+                    ? "text-accent-text bg-muted-bg font-semibold"
+                    : "text-primary hover:text-accent-text hover:bg-muted-bg",
+                )}
+                aria-current={isActive(child.href) ? "page" : undefined}
+              >
+                {child.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
   );
 }
