@@ -4,7 +4,12 @@ import { AdminEditModeProvider } from "@/contexts/admin-bar-context";
 import { AdminBar } from "@/components/admin/admin-bar";
 import { getPageContent } from "@/lib/content";
 import { prisma } from "@/lib/prisma";
-import type { HeaderContent, FooterContent, NavItem } from "@/types/content";
+import type {
+  HeaderContent,
+  FooterContent,
+  NavItem,
+  ProjectsPageContent,
+} from "@/types/content";
 
 interface PublicLayoutProps {
   readonly children: React.ReactNode;
@@ -30,21 +35,39 @@ async function loadServiceNavItems(): Promise<NavItem[]> {
   }
 }
 
-export default async function PublicLayout({ children }: PublicLayoutProps) {
-  const [headerContent, footerContent, serviceChildren] = await Promise.all([
-    getPageContent<HeaderContent>("header"),
-    getPageContent<FooterContent>("footer"),
-    loadServiceNavItems(),
-  ]);
+// Builds the "מיזמים" submenu from the same CMS content the /projects
+// page consumes, so editing a project's title or URL in
+// /admin/site-editor/projects automatically updates the header.
+async function loadProjectNavItems(): Promise<NavItem[]> {
+  try {
+    const content = await getPageContent<ProjectsPageContent>("projects");
+    return content.projects.map((p) => ({
+      label: p.title,
+      href: p.url,
+    }));
+  } catch {
+    return [];
+  }
+}
 
-  // Inject the live services list into the "תחומי עיסוק" dropdown.
-  // Identified by `children` being defined on the nav item (the
-  // default header content marks that entry — see content-defaults.ts).
-  const navWithDropdowns: NavItem[] = headerContent.navItems.map((item) =>
-    item.children !== undefined
-      ? { ...item, children: serviceChildren }
-      : item,
-  );
+export default async function PublicLayout({ children }: PublicLayoutProps) {
+  const [headerContent, footerContent, serviceChildren, projectChildren] =
+    await Promise.all([
+      getPageContent<HeaderContent>("header"),
+      getPageContent<FooterContent>("footer"),
+      loadServiceNavItems(),
+      loadProjectNavItems(),
+    ]);
+
+  // Inject the live submenus. Each parent NavItem is identified by its
+  // own href (so the marker doesn't depend on a separate field on the
+  // type). Items without children: [] stay as ordinary links.
+  const navWithDropdowns: NavItem[] = headerContent.navItems.map((item) => {
+    if (item.children === undefined) return item;
+    if (item.href === "/services") return { ...item, children: serviceChildren };
+    if (item.href === "/projects") return { ...item, children: projectChildren };
+    return item;
+  });
   const headerWithDropdowns: HeaderContent = {
     ...headerContent,
     navItems: navWithDropdowns,
