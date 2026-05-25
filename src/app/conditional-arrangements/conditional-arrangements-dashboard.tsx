@@ -184,20 +184,28 @@ function Badge({
 
 /* ─── ArrangementCard ────────────────────────────────────────────── */
 
-// Fields shown in the card header — not duplicated in the "פרטים נוספים"
-// expanded section.
+// Fields already rendered prominently in the card — omitted from the
+// "פרטים נוספים" accordion so values are not duplicated.
 const PRIMARY_FIELDS = new Set([
-  ...["תאריך", "תאריך הסדר", "תאריך חתימה", "תאריך פתיחת תיק", "תאריך ביצוע ההסדר", "תאריך עדכון"],
-  ...["עבירה", "סוג עבירה", "תיאור עבירה", "עבירות", "עבירה עיקרית"],
-  ...["מחוז", "מחוז פרקליטות", "יחידה", "תחנה", "מחוז משטרה", "יחידת חקירות"],
-  ...["קנס", "סכום קנס", 'קנס (ש"ח)', "סכום קנס ₪"],
-  ...["פיצוי", "סכום פיצוי", 'פיצוי (ש"ח)', "סכום פיצוי ₪"],
+  "שלוחה",    // police district → shown as district row
+  "יחידה",    // prosecutor district → shown as district row
+  "תאריך",   // police date → shown in top badge row
+  "מספר תיק", // case number → shown in top badge row
 ]);
 
 function ArrangementCard({ item }: { item: ConditionalArrangement }) {
   const [open, setOpen] = useState(false);
   const { text: sourceText, bg: sourceBg } = SOURCE_COLOR[item.source];
 
+  const caseNo = item.raw["מספר תיק"];
+  const descText = item.raw["תיאור"];
+  // Short snippet shown collapsed (the offense heading covers the statute).
+  const descSnippet = descText
+    ? descText.slice(0, 220).trimEnd() + (descText.length > 220 ? "…" : "")
+    : null;
+  const districtLabel = item.source === "police" ? "שלוחה" : "יחידה";
+
+  // Extra fields = everything in raw not already shown prominently
   const extraFields = Object.entries(item.raw).filter(
     ([k, v]) => !PRIMARY_FIELDS.has(k) && v?.trim(),
   );
@@ -212,20 +220,32 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
         <Badge color={sourceText} bg={sourceBg}>
           {SOURCE_LABEL[item.source]}
         </Badge>
+        {caseNo ? (
+          <span className="text-xs text-gray-500 font-mono">{caseNo}</span>
+        ) : null}
         {item.date ? (
-          <span className="ms-auto text-xs text-gray-500">{fmtDate(item.date)}</span>
+          <span className="ms-auto text-xs text-gray-500 shrink-0">{fmtDate(item.date)}</span>
         ) : null}
       </div>
 
-      {/* Offense — main heading */}
-      <h3 className="text-base font-bold leading-snug mb-2" style={{ color: C_POLICE }}>
-        {item.offense ?? "—"}
-      </h3>
+      {/* Offense — statute heading */}
+      {item.offense ? (
+        <h3 className="text-sm font-bold leading-snug mb-2 text-gray-900">
+          {item.offense}
+        </h3>
+      ) : null}
+
+      {/* Description snippet */}
+      {descSnippet ? (
+        <p className="text-xs text-gray-600 mb-2 leading-relaxed line-clamp-3">
+          {descSnippet}
+        </p>
+      ) : null}
 
       {/* District */}
       {item.district ? (
         <div className="text-sm text-gray-700 mb-1">
-          <span className="font-semibold">מחוז:</span> {item.district}
+          <span className="font-semibold">{districtLabel}:</span> {item.district}
         </div>
       ) : null}
 
@@ -241,19 +261,19 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
         </div>
       ) : null}
 
-      {/* Expandable extra fields */}
+      {/* Expandable extra fields — shows full description + remaining raw */}
       {open && extraFields.length > 0 ? (
-        <div className="border-t border-gray-100 mt-3 pt-3 space-y-1">
+        <div className="border-t border-gray-100 mt-3 pt-3 space-y-2">
           {extraFields.map(([k, v]) => (
             <div key={k} className="text-sm text-gray-700">
-              <span className="font-semibold">{k}:</span>{" "}
-              <span className="text-gray-600">{v}</span>
+              <div className="font-semibold mb-0.5">{k}:</div>
+              <div className="text-gray-600 whitespace-pre-wrap leading-relaxed">{v}</div>
             </div>
           ))}
         </div>
       ) : null}
 
-      {/* Toggle button (only when there are extra fields) */}
+      {/* Toggle button */}
       {extraFields.length > 0 ? (
         <div className="mt-auto pt-3 flex justify-end">
           <button
@@ -425,7 +445,7 @@ export function ConditionalArrangementsDashboard() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">מחוז</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">מחוז / שלוחה</label>
             <select
               value={draft.district}
               onChange={(e) => setDraft((d) => ({ ...d, district: e.target.value }))}
