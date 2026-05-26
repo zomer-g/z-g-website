@@ -284,6 +284,36 @@ export async function fetchDatasetRecords(
   return rows.map((row, i) => normalise(row, i));
 }
 
+/**
+ * Fetch the full description text for a single arrangement by its CKAN row ID.
+ * Used by the detail API so cards can load full text on demand without keeping
+ * 5–10 KB × 33 k records in the server's RAM at all times.
+ */
+export async function fetchArrangementDetail(
+  source: ArrangementSource,
+  ckanId: number,
+): Promise<string | null> {
+  const datasetId = source === "police" ? POLICE_DATASET_ID : PROSECUTOR_DATASET_ID;
+  const resourceId = await getLatestResourceId(datasetId);
+  if (!resourceId) return null;
+
+  const descField =
+    source === "police"
+      ? "Data.details.Description_text"
+      : "Data.more_info.Description_text";
+
+  const filters = encodeURIComponent(JSON.stringify({ _id: ckanId }));
+  const fields = encodeURIComponent(["_id", descField].join(","));
+  const url = `${ODATA_BASE}/api/3/action/datastore_search?resource_id=${encodeURIComponent(resourceId)}&filters=${filters}&limit=1&fields=${fields}`;
+
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = (await res.json()) as CKANResponse;
+  if (!json.success || !json.result.records.length) return null;
+
+  return str(json.result.records[0][descField]) || null;
+}
+
 export async function fetchAllArrangements(): Promise<ConditionalArrangement[] | null> {
   const [police, prosecutor] = await Promise.all([
     fetchDatasetRecords(POLICE_DATASET_ID, "police"),

@@ -184,33 +184,57 @@ function Badge({
 
 /* ─── ArrangementCard ────────────────────────────────────────────── */
 
-// Fields already rendered prominently in the card — omitted from the
-// "פרטים נוספים" accordion so values are not duplicated.
+// Fields shown prominently in the card body — excluded from the secondary
+// accordion so values are not duplicated. "תיאור" is NOT here: it is shown
+// as a snippet in the card, and the accordion fetches the full text on demand.
 const PRIMARY_FIELDS = new Set([
-  "שלוחה",       // police district → shown as district row
-  "יחידה",       // prosecutor district → shown as district row
-  "תאריך",      // police date → shown in top badge row
-  "תאריך עברי", // redundant with Gregorian date shown above
-  "מספר תיק",   // case number → shown in top badge row
-  "תיאור",      // description snippet shown in card body
+  "שלוחה",       // police district
+  "יחידה",       // prosecutor district
+  "תאריך",      // police date
+  "תאריך עברי", // redundant with Gregorian date
+  "מספר תיק",   // case number
 ]);
 
+type DetailState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "done"; text: string }
+  | { status: "error" };
+
 function ArrangementCard({ item }: { item: ConditionalArrangement }) {
-  const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState<DetailState>({ status: "idle" });
   const { text: sourceText, bg: sourceBg } = SOURCE_COLOR[item.source];
 
   const caseNo = item.raw["מספר תיק"];
   const descText = item.raw["תיאור"];
-  // Short snippet shown collapsed (the offense heading covers the statute).
   const descSnippet = descText
     ? descText.slice(0, 220).trimEnd() + (descText.length > 220 ? "…" : "")
     : null;
   const districtLabel = item.source === "police" ? "שלוחה" : "יחידה";
 
-  // Extra fields = everything in raw not already shown prominently
-  const extraFields = Object.entries(item.raw).filter(
-    ([k, v]) => !PRIMARY_FIELDS.has(k) && v?.trim(),
-  );
+  // CKAN numeric ID extracted from "_id" like "police:1234"
+  const ckanId = item._id.split(":")[1];
+
+  const isOpen = detail.status === "done" || detail.status === "loading" || detail.status === "error";
+
+  async function loadDetail() {
+    if (detail.status !== "idle") {
+      // toggle closed
+      setDetail({ status: "idle" });
+      return;
+    }
+    setDetail({ status: "loading" });
+    try {
+      const res = await fetch(
+        `/api/conditional-arrangements/detail?source=${item.source}&id=${ckanId}`,
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = (await res.json()) as { description: string };
+      setDetail({ status: "done", text: json.description });
+    } catch {
+      setDetail({ status: "error" });
+    }
+  }
 
   return (
     <article
@@ -263,31 +287,32 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
         </div>
       ) : null}
 
-      {/* Expandable extra fields — shows full description + remaining raw */}
-      {open && extraFields.length > 0 ? (
-        <div className="border-t border-gray-100 mt-3 pt-3 space-y-2">
-          {extraFields.map(([k, v]) => (
-            <div key={k} className="text-sm text-gray-700">
-              <div className="font-semibold mb-0.5">{k}:</div>
-              <div className="text-gray-600 whitespace-pre-wrap leading-relaxed">{v}</div>
+      {/* Full-text detail panel — fetched on demand */}
+      {isOpen ? (
+        <div className="border-t border-gray-100 mt-3 pt-3">
+          {detail.status === "loading" ? (
+            <div className="text-xs text-gray-400 animate-pulse">טוען פרטים מלאים…</div>
+          ) : detail.status === "error" ? (
+            <div className="text-xs text-red-500">שגיאה בטעינת הפרטים. נסו שוב.</div>
+          ) : detail.status === "done" ? (
+            <div className="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+              {detail.text}
             </div>
-          ))}
+          ) : null}
         </div>
       ) : null}
 
       {/* Toggle button */}
-      {extraFields.length > 0 ? (
-        <div className="mt-auto pt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="text-xs font-semibold rounded-md px-3 py-1 border transition"
-            style={{ color: C_POLICE, borderColor: C_POLICE }}
-          >
-            {open ? "צמצם" : "פרטים נוספים"}
-          </button>
-        </div>
-      ) : null}
+      <div className="mt-auto pt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={loadDetail}
+          className="text-xs font-semibold rounded-md px-3 py-1 border transition"
+          style={{ color: C_POLICE, borderColor: C_POLICE }}
+        >
+          {isOpen ? "סגור" : "פרטים מלאים"}
+        </button>
+      </div>
     </article>
   );
 }
