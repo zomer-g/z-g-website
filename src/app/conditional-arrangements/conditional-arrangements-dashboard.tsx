@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   usePathname,
+  useRouter,
   useSearchParams,
   type ReadonlyURLSearchParams,
 } from "next/navigation";
@@ -320,6 +321,7 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
 
 export function ConditionalArrangementsDashboard() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams(); // read-once on mount for URL initialisation
 
   // ── Applied state (drives the fetch; NOT re-derived from URL after mount) ──
@@ -386,15 +388,18 @@ export function ConditionalArrangementsDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — run once on mount
 
-  // Sync URL for shareability without triggering a React navigation.
-  // window.history.replaceState updates the address bar without going through
-  // the Next.js router, so useSearchParams never lags behind the applied state.
+  // Sync URL for shareability using the Next.js router.
+  // router.replace() for a same-route search-param change is a soft navigation:
+  // it preserves all client-component state (data, filters, loading) and does
+  // NOT unmount/remount the component — unlike window.history.replaceState,
+  // which Next.js App Router intercepts and treats as an uncontrolled navigation
+  // that mounts a second component instance alongside the first.
   const syncUrl = useCallback(
     (f: Filters, s: number, ord: SortOrder) => {
       const qs = stateToSearchParams(f, s, ord).toString();
-      window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
-    [pathname],
+    [pathname, router],
   );
 
   // Single entry-point for every state change: update local state, fetch, sync URL.
