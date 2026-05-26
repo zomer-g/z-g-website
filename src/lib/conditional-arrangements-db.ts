@@ -295,11 +295,17 @@ async function _doSync(force: boolean): Promise<void> {
     return;
   }
 
+  // For the initial sync (no ca_sync row yet) pass resumable=true so that if
+  // the process OOM-crashes mid-way, the next restart re-uses already-inserted
+  // records (via skipDuplicates) instead of deleting and starting over.
+  // For weekly re-syncs (meta exists, UUID changed) use the full delete+insert
+  // cycle to replace stale records correctly.
+  const resumable = !meta;
   if (policeChanged && policeId) {
-    await _syncSource("police", policeId);
+    await _syncSource("police", policeId, resumable);
   }
   if (prosecutorChanged && prosecutorId) {
-    await _syncSource("prosecutor", prosecutorId);
+    await _syncSource("prosecutor", prosecutorId, resumable);
   }
 
   await prisma.caSync.upsert({
@@ -319,17 +325,28 @@ async function _doSync(force: boolean): Promise<void> {
   console.log(`ca-sync: done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
-async function _syncSource(source: ArrangementSource, resourceId: string): Promise<void> {
+async function _syncSource(
+  source: ArrangementSource,
+  resourceId: string,
+  resumable: boolean,
+): Promise<void> {
   const fields = source === "police" ? POLICE_FIELDS : PROSECUTOR_FIELDS;
   const mapper = source === "police" ? mapPoliceRow : mapProsecutorRow;
 
-  // Drop existing records for this source before re-inserting.
-  const { count: deleted } = await prisma.caRecord.deleteMany({ where: { source } });
-  console.log(`ca-sync: deleted ${deleted} existing ${source} records`);
+  if (!resumable) {
+    // Re-sync: wipe stale records so the table reflects the current CKAN dataset.
+    const { count: deleted } = await prisma.caRecord.deleteMany({ where: { source } });
+    console.log(`ca-sync: deleted ${deleted} existing ${source} records for re-sync`);
+  } else {
+    // Initial sync (or resuming after a crash): keep any already-inserted records.
+    // createMany uses skipDuplicates=true, so rows already in the DB are skipped
+    // and the sync continues from where it left off.
+    const already = await prisma.caRecord.count({ where: { source } });
+    console.log(`ca-sync: resumable ${source} sync — ${already} records already in DB`);
+  }
 
   // Fetch page 0 first to learn the total row count, then insert it.
-  // The block scope limits firstPage's lifetime so the GC can reclaim it
-  // before we start fetching subsequent pages.
+  // Block scope ensures firstPage is GC-eligible before subsequent pages arrive.
   let total: number;
   let rowIdx: number;
   {
@@ -339,21 +356,16 @@ async function _syncSource(source: ArrangementSource, resourceId: string): Promi
       return;
     }
     total = firstPage.total;
-    console.log(`ca-sync: ${source} total = ${total}`);
+    console.log(`ca-sync: ${source} total = ${total}, PAGE_SIZE = ${PAGE_SIZE}`);
     await _insertBatch(firstPage.records.map((row, i) => mapper(row, i)));
     rowIdx = firstPage.records.length;
     // firstPage goes out of scope here → GC-eligible before next page fetch
   }
 
-  // Fetch and insert remaining pages one at a time (sequentially).
-  //
-  // WHY NOT PARALLEL: fetching 2 × 3 000-row pages simultaneously holds
-  // ~60 MB of description strings in heap. Combined with the Next.js/Prisma
-  // baseline (~150 MB) that pushes past V8's ~250 MB heap limit on Render
-  // Starter (512 MB RAM), causing exit 134 (OOM kill). Sequential fetch keeps
-  // the live-page budget at one page (~30 MB) → peak ≈ 195 MB.
-  // The extra ~65 s sync time is acceptable because sync runs in the background
-  // and callers receive 503 immediately (they never wait for it).
+  // Sequential page fetch — one page in memory at a time.
+  // WHY NOT PARALLEL: with PAGE_SIZE=1000 each page holds ~5.7 MB JSON;
+  // V8's parser spikes 3× during parse (~17 MB). Two parallel pages would
+  // push the ~200 MB Next.js baseline past V8's limit → exit 134.
   for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) {
     const page = await fetchCKANPage(resourceId, off, PAGE_SIZE, fields);
     if (!page) {
@@ -362,10 +374,10 @@ async function _syncSource(source: ArrangementSource, resourceId: string): Promi
     }
     await _insertBatch(page.records.map((row, j) => mapper(row, rowIdx + j)));
     rowIdx += page.records.length;
-    // page goes out of scope at end of loop body → GC-eligible before next fetch
+    // page goes out of scope here → GC-eligible before next fetch
   }
 
-  console.log(`ca-sync: inserted ${rowIdx} ${source} records`);
+  console.log(`ca-sync: ${source} done — ${rowIdx} rows processed`);
 }
 
 async function _insertBatch(rows: DbRow[]): Promise<void> {
