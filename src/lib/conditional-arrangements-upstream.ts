@@ -50,10 +50,12 @@ const PARALLEL = 2;
 
 // Truncate stored description texts to keep cached RAM in check.
 // Offense/fine/compensation are extracted from the FULL text before truncation.
-// Card UI shows ≤220 chars; 800 chars gives the free-text search enough
-// context to find both terms in an AND query (e.g. "גניבה פלאפון").
-// Impact: 33 k records × 800 chars ≈ 26 MB vs. × 5 KB untruncated ≈ 160 MB.
-const MAX_DESC_CHARS = 800;
+// Card UI shows ≤220 chars; 500 chars gives the free-text search enough
+// context to find terms that appear after a typical case-number preamble.
+// "גניבה"-style queries now hit the offense field (always included in the
+// haystack), so only item-specific words like "פלאפון" need to be in here.
+// Impact: 33 k records × 500 chars ≈ 16 MB vs. × 5 KB untruncated ≈ 160 MB.
+const MAX_DESC_CHARS = 500;
 
 /* ─── Prosecutor unit code → display name (source: gov.il filter dropdown) ── */
 

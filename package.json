@@ -8,7 +8,7 @@
     "db:seed-content": "npx tsx prisma/seed-content.ts",
     "db:ensure-dashboards": "npx tsx prisma/ensure-dashboard-content.ts",
     "proofread": "npx tsx scripts/proofread.ts",
-    "start": "next start",
+    "start": "NODE_OPTIONS='--max-old-space-size=400' next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
