@@ -155,7 +155,11 @@ function mapPoliceRow(row: CKANRow, rowIdx: number): DbRow {
     offense,
     fine: extractAmount(fullDesc, FINE_RE),
     compensation: extractAmount(fullDesc, COMP_RE),
-    description: fullDesc || null,
+    // Store only a short snippet (SNIPPET_CHARS) for the card display.
+    // The full description is fetched on-demand from CKAN by the detail API.
+    // Storing the full ~5 KB per row × 3 000 rows/page = ~15 MB would push
+    // the heap past V8's ~250 MB limit on Render Starter during sync.
+    description: fullDesc.slice(0, SNIPPET_CHARS) || null,
     caseNumber: caseNo,
     searchText,
   };
@@ -182,7 +186,7 @@ function mapProsecutorRow(row: CKANRow, rowIdx: number): DbRow {
     offense,
     fine: extractAmount(fullDesc, FINE_RE),
     compensation: extractAmount(fullDesc, COMP_RE),
-    description: fullDesc || null,
+    description: fullDesc.slice(0, SNIPPET_CHARS) || null,
     caseNumber: caseNo,
     searchText,
   };
