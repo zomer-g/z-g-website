@@ -1,12 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  usePathname,
-  useRouter,
-  useSearchParams,
-  type ReadonlyURLSearchParams,
-} from "next/navigation";
+import { usePathname } from "next/navigation";
 import type {
   ConditionalArrangement,
   ArrangementsResponse,
@@ -96,7 +91,7 @@ function isSourceFilter(v: string): v is SourceFilter {
   return v === "all" || v === "police" || v === "prosecutor";
 }
 
-function filtersFromSearchParams(sp: ReadonlyURLSearchParams): Filters {
+function filtersFromSearchParams(sp: URLSearchParams): Filters {
   const src = sp.get("source") ?? "all";
   return {
     source: isSourceFilter(src) ? src : "all",
@@ -108,12 +103,12 @@ function filtersFromSearchParams(sp: ReadonlyURLSearchParams): Filters {
   };
 }
 
-function skipFromSearchParams(sp: ReadonlyURLSearchParams): number {
+function skipFromSearchParams(sp: URLSearchParams): number {
   const n = Number(sp.get("skip"));
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
 }
 
-function sortFromSearchParams(sp: ReadonlyURLSearchParams): SortOrder {
+function sortFromSearchParams(sp: URLSearchParams): SortOrder {
   const raw = sp.get("sort");
   return raw === "date_asc" ? "date_asc" : "date_desc";
 }
@@ -321,8 +316,6 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
 
 export function ConditionalArrangementsDashboard() {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams(); // read-once on mount for URL initialisation
 
   // ── Applied state (drives the fetch; NOT re-derived from URL after mount) ──
   // Using local state instead of URL-derived useMemo avoids the Next.js App
@@ -373,13 +366,21 @@ export function ConditionalArrangementsDashboard() {
   );
 
   // Initialise from URL params exactly once on mount.
+  // We read window.location.search directly instead of useSearchParams() so that
+  // this component is NOT subscribed to the Next.js router's search-param context.
+  // useSearchParams() causes Next.js to wrap the component in a Suspense boundary;
+  // any URL change (router.replace or replaceState) then re-triggers that Suspense,
+  // unmounting and remounting the component and stacking duplicate grids in the DOM.
+  // Reading from window.location.search is safe here because useEffect only runs
+  // client-side, after hydration, when window is always available.
   const mountedRef = useRef(false);
   useEffect(() => {
     if (mountedRef.current) return;
     mountedRef.current = true;
-    const f = filtersFromSearchParams(searchParams);
-    const s = skipFromSearchParams(searchParams);
-    const ord = sortFromSearchParams(searchParams);
+    const sp = new URLSearchParams(window.location.search);
+    const f = filtersFromSearchParams(sp);
+    const s = skipFromSearchParams(sp);
+    const ord = sortFromSearchParams(sp);
     setFilters(f);
     setSkip(s);
     setSort(ord);
@@ -388,18 +389,17 @@ export function ConditionalArrangementsDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — run once on mount
 
-  // Sync URL for shareability using the Next.js router.
-  // router.replace() for a same-route search-param change is a soft navigation:
-  // it preserves all client-component state (data, filters, loading) and does
-  // NOT unmount/remount the component — unlike window.history.replaceState,
-  // which Next.js App Router intercepts and treats as an uncontrolled navigation
-  // that mounts a second component instance alongside the first.
+  // Sync URL for shareability using window.history.replaceState.
+  // This is safe now that the component no longer calls useSearchParams():
+  // without a search-param subscription, replaceState is a pure browser
+  // history update — Next.js does not intercept it to trigger a navigation,
+  // so no Suspense re-triggers, no remount, and no duplicate grid instances.
   const syncUrl = useCallback(
     (f: Filters, s: number, ord: SortOrder) => {
       const qs = stateToSearchParams(f, s, ord).toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
     },
-    [pathname, router],
+    [pathname],
   );
 
   // Single entry-point for every state change: update local state, fetch, sync URL.
