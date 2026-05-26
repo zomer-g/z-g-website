@@ -45,8 +45,6 @@ const SYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 
 // Rows fetched from CKAN per request (mirrors upstream).
 const PAGE_SIZE = 3000;
-// Parallel CKAN pages per round (mirrors upstream).
-const PARALLEL = 2;
 
 // Max rows per Prisma createMany call.
 // 500 rows × ~10 columns = ~5 000 params — well under Postgres's 65 535 limit.
@@ -320,34 +318,42 @@ async function _syncSource(source: ArrangementSource, resourceId: string): Promi
   const { count: deleted } = await prisma.caRecord.deleteMany({ where: { source } });
   console.log(`ca-sync: deleted ${deleted} existing ${source} records`);
 
-  // Fetch first page from CKAN
-  const first = await fetchCKANPage(resourceId, 0, PAGE_SIZE, fields);
-  if (!first) {
-    console.error(`ca-sync: failed to fetch first page for ${source}`);
-    return;
+  // Fetch page 0 first to learn the total row count, then insert it.
+  // The block scope limits firstPage's lifetime so the GC can reclaim it
+  // before we start fetching subsequent pages.
+  let total: number;
+  let rowIdx: number;
+  {
+    const firstPage = await fetchCKANPage(resourceId, 0, PAGE_SIZE, fields);
+    if (!firstPage) {
+      console.error(`ca-sync: failed to fetch first page for ${source}`);
+      return;
+    }
+    total = firstPage.total;
+    console.log(`ca-sync: ${source} total = ${total}`);
+    await _insertBatch(firstPage.records.map((row, i) => mapper(row, i)));
+    rowIdx = firstPage.records.length;
+    // firstPage goes out of scope here → GC-eligible before next page fetch
   }
 
-  // Insert first page immediately — raw rows are GC'd after mapping
-  await _insertBatch(first.records.map((row, i) => mapper(row, i)));
-  let rowIdx = first.records.length;
-  const total = first.total;
-  console.log(`ca-sync: ${source} total = ${total}`);
-
-  // Remaining pages in parallel batches of PARALLEL
-  const offsets: number[] = [];
-  for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) offsets.push(off);
-
-  for (let i = 0; i < offsets.length; i += PARALLEL) {
-    const batch = offsets.slice(i, i + PARALLEL);
-    const pages = await Promise.all(
-      batch.map((off) => fetchCKANPage(resourceId, off, PAGE_SIZE, fields)),
-    );
-    for (const page of pages) {
-      if (!page) { console.error(`ca-sync: failed a page for ${source}`); continue; }
-      await _insertBatch(page.records.map((row, j) => mapper(row, rowIdx + j)));
-      rowIdx += page.records.length;
-      // page.records now unreferenced → raw CKAN rows with large descriptions GC'd
+  // Fetch and insert remaining pages one at a time (sequentially).
+  //
+  // WHY NOT PARALLEL: fetching 2 × 3 000-row pages simultaneously holds
+  // ~60 MB of description strings in heap. Combined with the Next.js/Prisma
+  // baseline (~150 MB) that pushes past V8's ~250 MB heap limit on Render
+  // Starter (512 MB RAM), causing exit 134 (OOM kill). Sequential fetch keeps
+  // the live-page budget at one page (~30 MB) → peak ≈ 195 MB.
+  // The extra ~65 s sync time is acceptable because sync runs in the background
+  // and callers receive 503 immediately (they never wait for it).
+  for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) {
+    const page = await fetchCKANPage(resourceId, off, PAGE_SIZE, fields);
+    if (!page) {
+      console.error(`ca-sync: failed page at offset ${off} for ${source}`);
+      continue;
     }
+    await _insertBatch(page.records.map((row, j) => mapper(row, rowIdx + j)));
+    rowIdx += page.records.length;
+    // page goes out of scope at end of loop body → GC-eligible before next fetch
   }
 
   console.log(`ca-sync: inserted ${rowIdx} ${source} records`);
