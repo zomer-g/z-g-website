@@ -75,10 +75,11 @@ function applyFilters(
       if (!item.offense || !norm(item.offense).includes(offense)) return false;
     }
 
-    // Free-text: search across all raw field values
+    // Free-text: split into AND terms — every term must appear somewhere in raw
     if (q) {
+      const terms = q.split(/\s+/).filter(Boolean);
       const haystack = Object.values(item.raw).map(norm).join(" ");
-      if (!haystack.includes(q)) return false;
+      if (!terms.every((t) => haystack.includes(t))) return false;
     }
 
     return true;

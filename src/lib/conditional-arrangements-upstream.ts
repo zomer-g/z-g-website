@@ -41,17 +41,33 @@ const PROSECUTOR_DATASET_ID = "9fbe426a-4750-4202-94aa-0518fe9e575c";
 // Key used in resource_mappings for the scraped CSV resource.
 const RESOURCE_KEY = "נתוני הסורק";
 
-// Fetch 5 000 rows per CKAN request — reduces total requests from ~33 to ~7
-// for the 32 k police dataset, keeping the first-load under ~15 s.
-const PAGE_SIZE = 5000;
+// 3 000 rows per CKAN request balances request count vs. in-flight JSON size.
+// Police dataset (32 k rows): 11 pages × 2 parallel = ~6 rounds ≈ 12 s.
+const PAGE_SIZE = 3000;
 // Keep parallel fetches at 2 to avoid OOM spikes on Render Starter (512 MB).
-// Peak usage during fetch: 2 in-flight responses × ~20 MB JSON = ~40 MB extra.
+// Peak usage during fetch: 2 in-flight responses × ~12 MB JSON = ~24 MB extra.
 const PARALLEL = 2;
 
-// Truncate long description texts to limit cached object size.
-// 3 000 chars is enough for free-text search snippets and card display.
-// Full text without truncation: ~5–10 KB × 32 k records ≈ 160–320 MB RAM.
-const MAX_DESC_CHARS = 3000;
+// Aggressively truncate stored description texts to keep cached RAM in check.
+// Offense/fine/compensation are extracted from the FULL text before truncation.
+// Card UI shows ≤220 chars; 300 covers that plus basic keyword search.
+// Impact: 33 k records × 300 chars ≈ 10 MB vs. × 5 KB untruncated ≈ 160 MB.
+const MAX_DESC_CHARS = 300;
+
+/* ─── Prosecutor unit code → display name (source: gov.il filter dropdown) ── */
+
+const PROSECUTOR_UNIT_NAMES: Record<string, string> = {
+  "01": "פרקליטות מחוז דרום (פלילי)",
+  "02": "פרקליטות מחוז תל-אביב (פלילי)",
+  "03": "פרקליטות מחוז צפון (פלילי)",
+  "04": "פרקליטות מחוז מרכז (פלילי)",
+  "05": "פרקליטות מחוז ירושלים (פלילי)",
+  "06": "פרקליטות המדינה - המחלקה לחקירות שוטרים",
+  "07": "פרקליטות המדינה - המחלקה הכלכלית",
+  "08": "פרקליטות מחוז חיפה (פלילי)",
+  "09": "פרקליטות המדינה - מחלקת הסייבר",
+  "10": "פרקליטות מחוז תל אביב - מיסוי וכלכלה",
+};
 
 // Only fetch the fields we actually use. This excludes the large HTML blobs
 // (DescriptionHtmlString, DescriptionBlankTextString) which account for most
@@ -120,7 +136,9 @@ function str(v: string | number | null | undefined): string {
 }
 
 function normalisePolice(row: CKANRow, rowIdx: number): ConditionalArrangement {
-  const descText = str(row["Data.details.Description_text"]).slice(0, MAX_DESC_CHARS);
+  // Run extraction on the FULL text; store only a truncated snippet in raw.
+  const fullDesc = str(row["Data.details.Description_text"]);
+  const descSnippet = fullDesc.slice(0, MAX_DESC_CHARS);
   const raw: RawRecord = {};
   const branch = str(row["Data.ShemShluchaMetapelet"]);
   const caseNo = str(row["Data.Tikim"]);
@@ -130,37 +148,40 @@ function normalisePolice(row: CKANRow, rowIdx: number): ConditionalArrangement {
   if (caseNo) raw["מספר תיק"] = caseNo;
   if (date) raw["תאריך"] = date;
   if (heDate) raw["תאריך עברי"] = heDate;
-  if (descText) raw["תיאור"] = descText;
+  if (descSnippet) raw["תיאור"] = descSnippet;
   return {
     _id: `police:${str(row["_id"]) || rowIdx}`,
     source: "police",
     date: parseDateSlash(date),
     district: branch || null,
-    offense: extractOffense(descText),
-    fine: extractAmount(descText, FINE_RE),
-    compensation: extractAmount(descText, COMP_RE),
+    offense: extractOffense(fullDesc),
+    fine: extractAmount(fullDesc, FINE_RE),
+    compensation: extractAmount(fullDesc, COMP_RE),
     raw,
   };
 }
 
 function normaliseProsecutor(row: CKANRow, rowIdx: number): ConditionalArrangement {
-  const descText = str(row["Data.more_info.Description_text"]).slice(0, MAX_DESC_CHARS);
+  // Run extraction on the FULL text; store only a truncated snippet in raw.
+  const fullDesc = str(row["Data.more_info.Description_text"]);
+  const descSnippet = fullDesc.slice(0, MAX_DESC_CHARS);
   const raw: RawRecord = {};
   const caseNo = str(row["Data.case_number"]);
-  const unit = str(row["Data.unit"]);
-  const urlName = str(row["UrlName"]);
+  const unitCode = str(row["Data.unit"]);
+  // Resolve numeric code to display name; fall back to the raw code.
+  const unitName = PROSECUTOR_UNIT_NAMES[unitCode] || unitCode;
   if (caseNo) raw["מספר תיק"] = caseNo;
-  if (unit) raw["יחידה"] = unit;
-  if (urlName) raw["UrlName"] = urlName;
-  if (descText) raw["תיאור"] = descText;
+  if (unitName) raw["יחידה"] = unitName;
+  // UrlName is an internal slug — not informative, omitted from display.
+  if (descSnippet) raw["תיאור"] = descSnippet;
   return {
     _id: `prosecutor:${str(row["_id"]) || rowIdx}`,
     source: "prosecutor",
     date: null,
-    district: unit || null,
-    offense: extractOffense(descText),
-    fine: extractAmount(descText, FINE_RE),
-    compensation: extractAmount(descText, COMP_RE),
+    district: unitName || null,
+    offense: extractOffense(fullDesc),
+    fine: extractAmount(fullDesc, FINE_RE),
+    compensation: extractAmount(fullDesc, COMP_RE),
     raw,
   };
 }

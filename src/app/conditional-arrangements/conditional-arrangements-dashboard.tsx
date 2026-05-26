@@ -187,10 +187,12 @@ function Badge({
 // Fields already rendered prominently in the card — omitted from the
 // "פרטים נוספים" accordion so values are not duplicated.
 const PRIMARY_FIELDS = new Set([
-  "שלוחה",    // police district → shown as district row
-  "יחידה",    // prosecutor district → shown as district row
-  "תאריך",   // police date → shown in top badge row
-  "מספר תיק", // case number → shown in top badge row
+  "שלוחה",       // police district → shown as district row
+  "יחידה",       // prosecutor district → shown as district row
+  "תאריך",      // police date → shown in top badge row
+  "תאריך עברי", // redundant with Gregorian date shown above
+  "מספר תיק",   // case number → shown in top badge row
+  "תיאור",      // description snippet shown in card body
 ]);
 
 function ArrangementCard({ item }: { item: ConditionalArrangement }) {
@@ -410,7 +412,7 @@ export function ConditionalArrangementsDashboard() {
           </label>
           <input
             type="text"
-            placeholder="חיפוש בכל שדות ההסדר..."
+            placeholder="חיפוש בכל שדות ההסדר — מספר מילים = AND (כל המילים חייבות להופיע)..."
             value={draft.q}
             onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
             onKeyDown={(e) => {
