@@ -75,10 +75,18 @@ function applyFilters(
       if (!item.offense || !norm(item.offense).includes(offense)) return false;
     }
 
-    // Free-text: split into AND terms — every term must appear somewhere in raw
+    // Free-text: split into AND terms — every term must appear somewhere in the
+    // combined haystack: raw fields + extracted offense + district.
+    // offense and district are extracted separately from raw and must be
+    // searched explicitly so e.g. "גניבה" (offense text) + "פלאפון" (in תיאור)
+    // works as an AND query.
     if (q) {
       const terms = q.split(/\s+/).filter(Boolean);
-      const haystack = Object.values(item.raw).map(norm).join(" ");
+      const haystack = [
+        ...Object.values(item.raw),
+        item.offense ?? "",
+        item.district ?? "",
+      ].map(norm).join(" ");
       if (!terms.every((t) => haystack.includes(t))) return false;
     }
 

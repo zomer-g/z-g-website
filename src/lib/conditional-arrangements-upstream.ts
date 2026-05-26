@@ -48,11 +48,12 @@ const PAGE_SIZE = 3000;
 // Peak usage during fetch: 2 in-flight responses × ~12 MB JSON = ~24 MB extra.
 const PARALLEL = 2;
 
-// Aggressively truncate stored description texts to keep cached RAM in check.
+// Truncate stored description texts to keep cached RAM in check.
 // Offense/fine/compensation are extracted from the FULL text before truncation.
-// Card UI shows ≤220 chars; 300 covers that plus basic keyword search.
-// Impact: 33 k records × 300 chars ≈ 10 MB vs. × 5 KB untruncated ≈ 160 MB.
-const MAX_DESC_CHARS = 300;
+// Card UI shows ≤220 chars; 800 chars gives the free-text search enough
+// context to find both terms in an AND query (e.g. "גניבה פלאפון").
+// Impact: 33 k records × 800 chars ≈ 26 MB vs. × 5 KB untruncated ≈ 160 MB.
+const MAX_DESC_CHARS = 800;
 
 /* ─── Prosecutor unit code → display name (source: gov.il filter dropdown) ── */
 

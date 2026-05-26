@@ -342,23 +342,36 @@ export function ConditionalArrangementsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // AbortController ref — cancel the in-flight request when a newer one starts
+  // so stale responses never overwrite fresh data (race condition fix).
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(
     async (f: Filters, s: number, ord: SortOrder) => {
+      // Cancel any previous in-flight fetch
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      // Clear stale cards immediately so old data never co-exists with new totals
+      setData(null);
       setLoading(true);
       setError(null);
       try {
         const res = await fetch(
           `/api/conditional-arrangements/records?${buildQs(f, s, ord)}`,
+          { signal: controller.signal },
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as ArrangementsResponse;
         setData(json);
       } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return; // stale — ignore
         console.error(e);
         setError("שגיאה בטעינת ההסדרים. נסו שוב מאוחר יותר.");
         setData(null);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     },
     [],
@@ -556,7 +569,7 @@ export function ConditionalArrangementsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : data?.records.map((r) => <ArrangementCard key={r._id} item={r} />)}
+          : (data?.records ?? []).map((r) => <ArrangementCard key={r._id} item={r} />)}
       </div>
 
       {/* ── Pagination ── */}
