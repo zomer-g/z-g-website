@@ -44,7 +44,14 @@ const RESOURCE_KEY = "נתוני הסורק";
 // Fetch 5 000 rows per CKAN request — reduces total requests from ~33 to ~7
 // for the 32 k police dataset, keeping the first-load under ~15 s.
 const PAGE_SIZE = 5000;
-const PARALLEL = 4;
+// Keep parallel fetches at 2 to avoid OOM spikes on Render Starter (512 MB).
+// Peak usage during fetch: 2 in-flight responses × ~20 MB JSON = ~40 MB extra.
+const PARALLEL = 2;
+
+// Truncate long description texts to limit cached object size.
+// 3 000 chars is enough for free-text search snippets and card display.
+// Full text without truncation: ~5–10 KB × 32 k records ≈ 160–320 MB RAM.
+const MAX_DESC_CHARS = 3000;
 
 // Only fetch the fields we actually use. This excludes the large HTML blobs
 // (DescriptionHtmlString, DescriptionBlankTextString) which account for most
@@ -113,7 +120,7 @@ function str(v: string | number | null | undefined): string {
 }
 
 function normalisePolice(row: CKANRow, rowIdx: number): ConditionalArrangement {
-  const descText = str(row["Data.details.Description_text"]);
+  const descText = str(row["Data.details.Description_text"]).slice(0, MAX_DESC_CHARS);
   const raw: RawRecord = {};
   const branch = str(row["Data.ShemShluchaMetapelet"]);
   const caseNo = str(row["Data.Tikim"]);
@@ -137,7 +144,7 @@ function normalisePolice(row: CKANRow, rowIdx: number): ConditionalArrangement {
 }
 
 function normaliseProsecutor(row: CKANRow, rowIdx: number): ConditionalArrangement {
-  const descText = str(row["Data.more_info.Description_text"]);
+  const descText = str(row["Data.more_info.Description_text"]).slice(0, MAX_DESC_CHARS);
   const raw: RawRecord = {};
   const caseNo = str(row["Data.case_number"]);
   const unit = str(row["Data.unit"]);
