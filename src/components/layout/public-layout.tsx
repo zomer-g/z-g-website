@@ -3,13 +3,12 @@ import Footer from "@/components/layout/footer";
 import { AdminEditModeProvider } from "@/contexts/admin-bar-context";
 import { AdminBar } from "@/components/admin/admin-bar";
 import { getPageContent } from "@/lib/content";
-import { DEFAULT_HEADER_CONTENT } from "@/lib/content-defaults";
+import { DEFAULT_HEADER_CONTENT, DEFAULT_PROJECTS_CONTENT } from "@/lib/content-defaults";
 import { prisma } from "@/lib/prisma";
 import type {
   HeaderContent,
   FooterContent,
   NavItem,
-  ProjectsPageContent,
 } from "@/types/content";
 
 interface PublicLayoutProps {
@@ -36,29 +35,24 @@ async function loadServiceNavItems(): Promise<NavItem[]> {
   }
 }
 
-// Builds the "מיזמים" submenu from the same CMS content the /projects
-// page consumes, so editing a project's title or URL in
-// /admin/site-editor/projects automatically updates the header.
-async function loadProjectNavItems(): Promise<NavItem[]> {
-  try {
-    const content = await getPageContent<ProjectsPageContent>("projects");
-    return content.projects.map((p) => ({
-      label: p.title,
-      href: p.url,
-    }));
-  } catch {
-    return [];
-  }
+// Builds the "מיזמים" submenu from the code-defined defaults so that
+// structural changes (add/remove/rename projects) take effect on deploy
+// without requiring a CMS publish step.
+function loadProjectNavItems(): NavItem[] {
+  return DEFAULT_PROJECTS_CONTENT.projects.map((p) => ({
+    label: p.title,
+    href: p.url,
+  }));
 }
 
 export default async function PublicLayout({ children }: PublicLayoutProps) {
-  const [headerContent, footerContent, serviceChildren, projectChildren] =
+  const [headerContent, footerContent, serviceChildren] =
     await Promise.all([
       getPageContent<HeaderContent>("header"),
       getPageContent<FooterContent>("footer"),
       loadServiceNavItems(),
-      loadProjectNavItems(),
     ]);
+  const projectChildren = loadProjectNavItems();
 
   // Use the code-defined nav structure as the authoritative base so
   // that changes in content-defaults.ts take effect immediately without

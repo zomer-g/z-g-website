@@ -80,6 +80,15 @@ const INTERNAL_PROJECTS: ProjectsPageContent["projects"] = [
     icon: "Trash2",
     tags: ["נט המשפט", "דיווח קהילתי", "סטטוס בזמן אמת"],
   },
+  {
+    title: "הסדרים מותנים",
+    subtitle: "מאגר הסדרים מותנים של המשטרה והפרקליטות",
+    description:
+      "דשבורד אינטראקטיבי המרכז את הסדרים המותנים שפרסמה המשטרה והפרקליטות — מעל 33,000 הסדרים ממאגרי הממשלה, עם יכולות חיפוש AND, סינון לפי מחוז, יחידה, עבירה וטווח תאריכים.",
+    url: "/conditional-arrangements",
+    icon: "Scale",
+    tags: ["הסדרים מותנים", "משטרה", "פרקליטות", "דאטה משפטי"],
+  },
 ];
 
 export default async function ProjectsPage() {
