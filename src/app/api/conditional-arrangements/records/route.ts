@@ -12,6 +12,12 @@ import { getPageContent } from "@/lib/content";
 import type { ConditionalArrangementsPageContent } from "@/types/content";
 
 const DEFAULT_TTL_MINUTES = 60;
+
+// Singleton in-flight promise: if two concurrent requests both miss the cache,
+// the second one waits for the first fetch instead of launching a duplicate.
+// A duplicate fetch would double peak RAM (2 full CKAN fetches in parallel)
+// and cause OOM on Render Starter (512 MB).
+let inflightFetch: Promise<ConditionalArrangement[] | null> | null = null;
 const MIN_TTL_MINUTES = 1;
 const MAX_TTL_MINUTES = 10080; // 1 week
 const CACHE_KEY = "all";
@@ -123,8 +129,15 @@ export async function GET(req: NextRequest) {
 
   if (!allItems) {
     try {
+      // Use singleton promise to prevent concurrent cold-start requests from
+      // each triggering a full CKAN fetch (stampede → doubled RAM → OOM).
+      if (!inflightFetch) {
+        inflightFetch = fetchAllArrangements().finally(() => {
+          inflightFetch = null;
+        });
+      }
       const [rawItems, ttlMs] = await Promise.all([
-        fetchAllArrangements(),
+        inflightFetch,
         readTtlMs(),
       ]);
 

@@ -55,7 +55,7 @@ const PARALLEL = 2;
 // "גניבה"-style queries now hit the offense field (always included in the
 // haystack), so only item-specific words like "פלאפון" need to be in here.
 // Impact: 33 k records × 500 chars ≈ 16 MB vs. × 5 KB untruncated ≈ 160 MB.
-const MAX_DESC_CHARS = 500;
+const MAX_DESC_CHARS = 300;
 
 /* ─── Prosecutor unit code → display name (source: gov.il filter dropdown) ── */
 
