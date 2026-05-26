@@ -230,37 +230,6 @@ async function fetchCKANPage(
   };
 }
 
-async function fetchAllCKANRows(resourceId: string, fields?: string): Promise<CKANRow[] | null> {
-  // First page — also tells us the total
-  const first = await fetchCKANPage(resourceId, 0, PAGE_SIZE, fields);
-  if (!first) return null;
-
-  const all: CKANRow[] = [...first.records];
-  const total = first.total;
-
-  if (all.length >= total) return all;
-
-  // Build remaining offsets
-  const offsets: number[] = [];
-  for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) {
-    offsets.push(off);
-  }
-
-  // Fetch in parallel batches of PARALLEL
-  for (let i = 0; i < offsets.length; i += PARALLEL) {
-    const batch = offsets.slice(i, i + PARALLEL);
-    const pages = await Promise.all(
-      batch.map((off) => fetchCKANPage(resourceId, off, PAGE_SIZE, fields)),
-    );
-    if (pages.some((p) => p === null)) return null;
-    for (const page of pages) {
-      if (page) all.push(...page.records);
-    }
-  }
-
-  return all;
-}
-
 /* ─── Public API ─────────────────────────────────────────────────────── */
 
 export async function fetchDatasetRecords(
@@ -274,14 +243,43 @@ export async function fetchDatasetRecords(
   }
 
   const fields = source === "police" ? POLICE_FIELDS : PROSECUTOR_FIELDS;
-  const rows = await fetchAllCKANRows(resourceId, fields);
-  if (!rows) {
+  const normalise = source === "police" ? normalisePolice : normaliseProsecutor;
+
+  // Normalise each page immediately so raw CKANRow[] objects (which carry the
+  // full description text — up to 10 KB each) are GC'd before the next batch
+  // arrives. Peak RAM: 2 in-flight pages × ~12 MB ≈ 24 MB, not 32k rows × 8 KB ≈ 260 MB.
+  const first = await fetchCKANPage(resourceId, 0, PAGE_SIZE, fields);
+  if (!first) {
     console.error(`conditional-arrangements: failed to fetch CKAN rows for resource ${resourceId}`);
     return null;
   }
 
-  const normalise = source === "police" ? normalisePolice : normaliseProsecutor;
-  return rows.map((row, i) => normalise(row, i));
+  const all: ConditionalArrangement[] = first.records.map((row, i) => normalise(row, i));
+  const total = first.total;
+
+  if (all.length >= total) return all;
+
+  const offsets: number[] = [];
+  for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) {
+    offsets.push(off);
+  }
+
+  let rowIdx = all.length;
+  for (let i = 0; i < offsets.length; i += PARALLEL) {
+    const batch = offsets.slice(i, i + PARALLEL);
+    const pages = await Promise.all(
+      batch.map((off) => fetchCKANPage(resourceId, off, PAGE_SIZE, fields)),
+    );
+    if (pages.some((p) => p === null)) return null;
+    for (const page of pages) {
+      if (page) {
+        for (const row of page.records) all.push(normalise(row, rowIdx++));
+        // page.records is now unreferenced — raw rows with full descriptions are GC'd
+      }
+    }
+  }
+
+  return all;
 }
 
 /**
