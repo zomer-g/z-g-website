@@ -197,25 +197,40 @@ function mapProsecutorRow(row: CKANRow, rowIdx: number): DbRow {
 let inflightSync: Promise<void> | null = null;
 
 /**
- * Check whether the DB is populated. If not, run a blocking sync.
- * If already populated, schedule a background version-check (non-blocking).
- * Returns true if a blocking sync was needed.
+ * Thrown by ensureData() when the DB is empty and a background sync has been
+ * kicked off. The route handler should return 503 + Retry-After immediately
+ * so Render's 60s proxy timeout is never hit (the sync itself takes ~65s).
  */
-export async function ensureData(): Promise<boolean> {
+export class SyncInProgressError extends Error {
+  constructor() {
+    super("Initial sync in progress — retry in ~60 s");
+    this.name = "SyncInProgressError";
+  }
+}
+
+/**
+ * Ensure the DB is populated. When the DB is empty (first deploy) a
+ * background sync is started and SyncInProgressError is thrown immediately —
+ * the caller must return 503 so Render's proxy doesn't time out the request
+ * while the ~65 s sync runs. Subsequent requests throw the same error until
+ * the sync finishes and the CaSync row is written, after which this function
+ * returns normally and callers can query the DB.
+ */
+export async function ensureData(): Promise<void> {
   const meta = await prisma.caSync.findUnique({ where: { id: "singleton" } });
 
   if (!meta) {
-    // First deploy: DB is empty — block until populated.
+    // DB empty: kick off the sync in the background and return 503 immediately.
+    // This avoids hitting Render's 60-second proxy timeout while the sync runs.
     if (!inflightSync) {
+      console.log("ca-sync: DB empty, starting background initial sync");
       inflightSync = _doSync(true).finally(() => { inflightSync = null; });
     }
-    await inflightSync;
-    return true;
+    throw new SyncInProgressError();
   }
 
-  // DB has data — serve stale data while checking version in background.
+  // DB has data — serve immediately, version-check in background if stale.
   _triggerBackgroundVersionCheck(meta.syncedAt);
-  return false;
 }
 
 function _triggerBackgroundVersionCheck(syncedAt: Date): void {

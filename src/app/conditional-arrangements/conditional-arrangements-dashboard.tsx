@@ -336,9 +336,17 @@ export function ConditionalArrangementsDashboard() {
   // AbortController — cancel the in-flight request when a newer one starts.
   const abortRef = useRef<AbortController | null>(null);
 
+  // Auto-retry timer for 503 "sync in progress" responses.
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchData = useCallback(
     async (f: Filters, s: number, ord: SortOrder) => {
       abortRef.current?.abort();
+      // Clear any pending auto-retry before starting a new request.
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -350,6 +358,18 @@ export function ConditionalArrangementsDashboard() {
           `/api/conditional-arrangements/records?${buildQs(f, s, ord)}`,
           { signal: controller.signal },
         );
+        if (res.status === 503) {
+          // Initial DB sync is in progress — show friendly message and auto-retry.
+          if (!controller.signal.aborted) {
+            setError("הנתונים נטענים לראשונה, אנא המתינו…");
+            setLoading(false);
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              fetchData(f, s, ord);
+            }, 15_000);
+          }
+          return;
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as ArrangementsResponse;
         setData(json);

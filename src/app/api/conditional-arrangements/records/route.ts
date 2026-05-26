@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ensureData, queryArrangements } from "@/lib/conditional-arrangements-db";
+import { ensureData, queryArrangements, SyncInProgressError } from "@/lib/conditional-arrangements-db";
 
 export async function GET(req: NextRequest) {
-  // Ensure DB is populated. On first deploy (empty DB) this blocks until
-  // the initial CKAN sync completes; subsequent calls return immediately
-  // (DB already has data) and schedule a background version-check if the
-  // last check was more than a week ago.
+  // Ensure DB is populated.
+  // On first deploy (empty DB): ensureData() starts a background sync and
+  // throws SyncInProgressError immediately — we return 503 + Retry-After so
+  // Render's proxy never times out waiting for the ~65 s initial CKAN fetch.
+  // On subsequent requests (DB populated): returns normally in <1 ms.
   try {
     await ensureData();
   } catch (err) {
+    if (err instanceof SyncInProgressError) {
+      return NextResponse.json(
+        { error: "הנתונים נטענים לראשונה, נסו שוב בעוד דקה." },
+        { status: 503, headers: { "Retry-After": "60" } },
+      );
+    }
     console.error("conditional-arrangements: ensureData failed:", err);
     return NextResponse.json(
       { error: "נכשלה האינדוקסציה הראשונית של הנתונים. נסו שוב בעוד כמה דקות." },
