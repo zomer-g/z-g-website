@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   usePathname,
-  useRouter,
   useSearchParams,
   type ReadonlyURLSearchParams,
 } from "next/navigation";
@@ -320,40 +319,34 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
 /* ─── Main Dashboard ─────────────────────────────────────────────── */
 
 export function ConditionalArrangementsDashboard() {
-  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // read-once on mount for URL initialisation
 
-  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
-  const skip = useMemo(() => skipFromSearchParams(searchParams), [searchParams]);
-  const sort = useMemo(() => sortFromSearchParams(searchParams), [searchParams]);
+  // ── Applied state (drives the fetch; NOT re-derived from URL after mount) ──
+  // Using local state instead of URL-derived useMemo avoids the Next.js App
+  // Router concurrent-navigation delay: router.replace is an async transition,
+  // so useSearchParams lags behind the click. With local state fetchData is
+  // called synchronously in the same event that changes the filter.
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [skip, setSkip] = useState(0);
+  const [sort, setSort] = useState<SortOrder>(DEFAULT_SORT);
 
-  // Draft state for inputs that wait for "סינון" button.
-  const [draft, setDraft] = useState<Filters>(filters);
-  const draftHydratedRef = useRef(false);
-  useEffect(() => {
-    if (!draftHydratedRef.current) {
-      setDraft(filters);
-      draftHydratedRef.current = true;
-    }
-  }, [filters]);
+  // Draft state for text inputs that wait for the "סינון" button.
+  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
 
   const [data, setData] = useState<ArrangementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // AbortController ref — cancel the in-flight request when a newer one starts
-  // so stale responses never overwrite fresh data (race condition fix).
+  // AbortController — cancel the in-flight request when a newer one starts.
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchData = useCallback(
     async (f: Filters, s: number, ord: SortOrder) => {
-      // Cancel any previous in-flight fetch
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      // Clear stale cards immediately so old data never co-exists with new totals
       setData(null);
       setLoading(true);
       setError(null);
@@ -366,7 +359,7 @@ export function ConditionalArrangementsDashboard() {
         const json = (await res.json()) as ArrangementsResponse;
         setData(json);
       } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") return; // stale — ignore
+        if (e instanceof Error && e.name === "AbortError") return;
         console.error(e);
         setError("שגיאה בטעינת ההסדרים. נסו שוב מאוחר יותר.");
         setData(null);
@@ -377,23 +370,49 @@ export function ConditionalArrangementsDashboard() {
     [],
   );
 
+  // Initialise from URL params exactly once on mount.
+  const mountedRef = useRef(false);
   useEffect(() => {
-    fetchData(filters, skip, sort);
-  }, [fetchData, filters, skip, sort]);
+    if (mountedRef.current) return;
+    mountedRef.current = true;
+    const f = filtersFromSearchParams(searchParams);
+    const s = skipFromSearchParams(searchParams);
+    const ord = sortFromSearchParams(searchParams);
+    setFilters(f);
+    setSkip(s);
+    setSort(ord);
+    setDraft(f);
+    fetchData(f, s, ord);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — run once on mount
 
-  // Single path for changing applied state: write to URL.
-  const navigate = useCallback(
+  // Sync URL for shareability without triggering a React navigation.
+  // window.history.replaceState updates the address bar without going through
+  // the Next.js router, so useSearchParams never lags behind the applied state.
+  const syncUrl = useCallback(
     (f: Filters, s: number, ord: SortOrder) => {
       const qs = stateToSearchParams(f, s, ord).toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
     },
-    [router, pathname],
+    [pathname],
   );
 
-  const applyFilters = () => navigate(draft, 0, sort);
+  // Single entry-point for every state change: update local state, fetch, sync URL.
+  const applyState = useCallback(
+    (f: Filters, s: number, ord: SortOrder) => {
+      setFilters(f);
+      setSkip(s);
+      setSort(ord);
+      fetchData(f, s, ord);
+      syncUrl(f, s, ord);
+    },
+    [fetchData, syncUrl],
+  );
+
+  const applyFilters = () => applyState(draft, 0, sort);
   const clearFilters = () => {
     setDraft(EMPTY_FILTERS);
-    navigate(EMPTY_FILTERS, 0, DEFAULT_SORT);
+    applyState(EMPTY_FILTERS, 0, DEFAULT_SORT);
   };
 
   const total = data?.total ?? 0;
@@ -428,7 +447,7 @@ export function ConditionalArrangementsDashboard() {
                 onClick={() => {
                   const next = { ...draft, source: value };
                   setDraft(next);
-                  navigate(next, 0, sort);
+                  applyState(next, 0, sort);
                 }}
                 className="rounded-full px-4 py-1.5 text-sm font-semibold transition border"
                 style={
@@ -553,7 +572,7 @@ export function ConditionalArrangementsDashboard() {
           <select
             id="ca-sort"
             value={sort}
-            onChange={(e) => navigate(filters, 0, e.target.value as SortOrder)}
+            onChange={(e) => applyState(filters, 0, e.target.value as SortOrder)}
             className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
           >
             {SORT_OPTIONS.map((o) => (
@@ -578,7 +597,7 @@ export function ConditionalArrangementsDashboard() {
           <button
             type="button"
             disabled={!canPrev}
-            onClick={() => navigate(filters, Math.max(0, skip - PAGE_SIZE), sort)}
+            onClick={() => applyState(filters, Math.max(0, skip - PAGE_SIZE), sort)}
             className="text-sm font-semibold rounded-md px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ color: C_POLICE, borderColor: C_POLICE }}
           >
@@ -591,7 +610,7 @@ export function ConditionalArrangementsDashboard() {
           <button
             type="button"
             disabled={!canNext}
-            onClick={() => navigate(filters, skip + PAGE_SIZE, sort)}
+            onClick={() => applyState(filters, skip + PAGE_SIZE, sort)}
             className="text-sm font-semibold rounded-md px-4 py-2 text-white disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: C_POLICE }}
           >
