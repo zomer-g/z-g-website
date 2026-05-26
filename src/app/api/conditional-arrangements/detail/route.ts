@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ArrangementSource } from "@/types/conditional-arrangement";
-import { fetchArrangementDetail } from "@/lib/conditional-arrangements-upstream";
+import { getArrangementDescription } from "@/lib/conditional-arrangements-db";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -17,16 +17,20 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const description = await fetchArrangementDetail(source as ArrangementSource, ckanId);
+    const description = await getArrangementDescription(
+      source as ArrangementSource,
+      ckanId,
+    );
     if (description === null) {
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
     return NextResponse.json(
       { description },
-      { headers: { "Cache-Control": "public, max-age=3600" } },
+      // Full text stored in DB — cache aggressively, it never changes mid-week
+      { headers: { "Cache-Control": "public, max-age=86400" } },
     );
   } catch (err) {
     console.error("conditional-arrangements detail error:", err);
-    return NextResponse.json({ error: "upstream error" }, { status: 502 });
+    return NextResponse.json({ error: "שגיאה בשליפת הפרטים" }, { status: 500 });
   }
 }

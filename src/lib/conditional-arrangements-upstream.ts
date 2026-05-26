@@ -35,8 +35,8 @@ import type {
 const OVER_BASE = "https://www.over.org.il/api";
 const ODATA_BASE = "https://www.odata.org.il";
 
-const POLICE_DATASET_ID = "d49264eb-493c-4ab6-8a43-8784f6ae0fbf";
-const PROSECUTOR_DATASET_ID = "9fbe426a-4750-4202-94aa-0518fe9e575c";
+export const POLICE_DATASET_ID = "d49264eb-493c-4ab6-8a43-8784f6ae0fbf";
+export const PROSECUTOR_DATASET_ID = "9fbe426a-4750-4202-94aa-0518fe9e575c";
 
 // Key used in resource_mappings for the scraped CSV resource.
 const RESOURCE_KEY = "נתוני הסורק";
@@ -75,7 +75,7 @@ const PROSECUTOR_UNIT_NAMES: Record<string, string> = {
 // Only fetch the fields we actually use. This excludes the large HTML blobs
 // (DescriptionHtmlString, DescriptionBlankTextString) which account for most
 // of the response size (~4 KB per police record × 32 k ≈ 128 MB).
-const POLICE_FIELDS = [
+export const POLICE_FIELDS = [
   "_id",
   "Data.ShemShluchaMetapelet",
   "Data.Tikim",
@@ -84,7 +84,7 @@ const POLICE_FIELDS = [
   "Data.details.Description_text",
 ].join(",");
 
-const PROSECUTOR_FIELDS = [
+export const PROSECUTOR_FIELDS = [
   "_id",
   "Data.case_number",
   "Data.unit",
@@ -132,7 +132,7 @@ const COMP_RE = /פיצוי.*?(?:בסך|סך)\s+([\d,]+)\s*(?:ש|₪)/;
 /* ─── Record normalisation ───────────────────────────────────────────── */
 
 /** A raw row as returned by CKAN datastore_search. */
-type CKANRow = Record<string, string | number | null>;
+export type CKANRow = Record<string, string | number | null>;
 
 function str(v: string | number | null | undefined): string {
   return v == null ? "" : String(v);
@@ -191,7 +191,7 @@ function normaliseProsecutor(row: CKANRow, rowIdx: number): ConditionalArrangeme
 
 /* ─── over.org.il — get latest CKAN resource ID ─────────────────────── */
 
-async function getLatestResourceId(datasetId: string): Promise<string | null> {
+export async function getLatestResourceId(datasetId: string): Promise<string | null> {
   const url = `${OVER_BASE}/datasets/${datasetId}/versions?limit=20&ordering=-version_number`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
@@ -215,7 +215,7 @@ interface CKANResponse {
   };
 }
 
-async function fetchCKANPage(
+export async function fetchCKANPage(
   resourceId: string,
   offset: number,
   limit: number,

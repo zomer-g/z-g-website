@@ -567,3 +567,48 @@ model TimelineEventTag {
   @@index([tagId])
   @@map("timeline_event_tags")
 }
+
+// ─── Conditional Arrangements DB Storage ───
+//
+// Replaces the in-memory cache + per-request CKAN fetch that caused
+// repeated V8 heap OOM crashes on Render Starter (512 MB).
+//
+// Architecture:
+//   CaSync   – singleton row that records which CKAN resource IDs are
+//              currently stored and when the last version-check ran.
+//              A background job checks odata.org.il weekly; only when
+//              the resource UUID changes is a full re-fetch triggered.
+//
+//   CaRecord – one row per arrangement (≈32 k police + 1.7 k prosecutor).
+//              Storing here means API requests do a fast DB query instead
+//              of loading 33 k objects into the Node.js heap.
+//              `searchText` is a pre-normalised (lowercase, NFKD, no
+//              cantillation) blob used for ILIKE '%term%' AND search.
+
+model CaSync {
+  id                   String   @id @default("singleton")
+  policeResourceId     String?  @map("police_resource_id")
+  prosecutorResourceId String?  @map("prosecutor_resource_id")
+  syncedAt             DateTime @default(now()) @map("synced_at")
+
+  @@map("ca_sync")
+}
+
+model CaRecord {
+  id           String  @id         // "police:1234" or "prosecutor:456"
+  source       String              // "police" | "prosecutor"
+  date         String?             // "YYYY-MM-DD", null when absent/unparseable
+  district     String?             // שלוחה (police) or יחידה (prosecutor)
+  offense      String?             // extracted statute clause
+  fine         Int?
+  compensation Int?
+  description  String?             // full arrangement text (served by detail API)
+  caseNumber   String?  @map("case_number")
+  // Pre-normalised search blob for ILIKE '%term%' AND queries.
+  searchText   String?  @map("search_text")
+
+  @@index([source])
+  @@index([source, date])
+  @@index([date])
+  @@map("ca_records")
+}
