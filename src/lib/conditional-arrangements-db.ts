@@ -367,9 +367,17 @@ async function _syncSource(
   // V8's parser spikes 3× during parse (~17 MB). Two parallel pages would
   // push the ~200 MB Next.js baseline past V8's limit → exit 134.
   for (let off = PAGE_SIZE; off < total; off += PAGE_SIZE) {
-    const page = await fetchCKANPage(resourceId, off, PAGE_SIZE, fields);
+    // Retry up to 3 times with 2-second back-off to handle transient CKAN
+    // errors. Previously failed pages were silently skipped, leaving gaps.
+    let page = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      page = await fetchCKANPage(resourceId, off, PAGE_SIZE, fields);
+      if (page) break;
+      console.warn(`ca-sync: page offset=${off} attempt ${attempt} failed, ${attempt < 3 ? "retrying…" : "giving up"}`);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 2000));
+    }
     if (!page) {
-      console.error(`ca-sync: failed page at offset ${off} for ${source}`);
+      console.error(`ca-sync: permanently failed page at offset ${off} for ${source} — records will be missing`);
       continue;
     }
     await _insertBatch(page.records.map((row, j) => mapper(row, rowIdx + j)));
