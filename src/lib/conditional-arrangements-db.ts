@@ -43,8 +43,13 @@ import type {
 // How often to check ODATA for a new resource version.
 const SYNC_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 
-// Rows fetched from CKAN per request (mirrors upstream).
-const PAGE_SIZE = 3000;
+// Rows fetched per CKAN request during sync.
+// 3 000-row pages produce ~17 MB of uncompressed JSON; V8's JSON parser
+// temporarily holds the text + intermediate objects + final result (~51 MB
+// total spike) which pushes the ~200 MB Next.js baseline past the ~250 MB
+// V8 heap limit → exit 134 on Render Starter.  1 000 rows ≈ 5.7 MB JSON
+// → ~17 MB parse spike → ~217 MB peak — well under the limit.
+const PAGE_SIZE = 1000;
 
 // Max rows per Prisma createMany call.
 // 500 rows × ~10 columns = ~5 000 params — well under Postgres's 65 535 limit.
