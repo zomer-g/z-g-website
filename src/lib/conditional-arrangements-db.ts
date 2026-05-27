@@ -500,8 +500,11 @@ export async function queryArrangements(
     { id: "asc" }, // stable tiebreak
   ];
 
-  // Run count, page, and facets in a single transaction for consistency.
-  const [total, records, districtFacets, offenseFacets] = await prisma.$transaction([
+  // Run count, page, and facets in parallel. These are all read-only queries
+  // so there's no write-consistency concern; Promise.all is equivalent to
+  // $transaction([]) for reads but avoids a known Prisma 7 issue where
+  // distinct: [...] queries inside $transaction fail when where has conditions.
+  const [total, records, districtFacets, offenseFacets] = await Promise.all([
     prisma.caRecord.count({ where }),
     prisma.caRecord.findMany({
       where,

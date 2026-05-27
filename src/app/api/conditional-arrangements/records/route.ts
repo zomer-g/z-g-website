@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("conditional-arrangements: query error:", err);
-    return NextResponse.json({ error: "שגיאה בשאילתת הנתונים" }, { status: 500 });
+    // Temporarily expose the actual error for diagnosis. Remove after root cause confirmed.
+    const detail = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "שגיאה בשאילתת הנתונים", _debug: detail }, { status: 500 });
   }
 }
