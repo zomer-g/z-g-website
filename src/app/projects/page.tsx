@@ -64,40 +64,12 @@ function resolveIcon(name: string): LucideIcon {
 
 /* ─── Page ─── */
 
-/**
- * Internal projects (live on z-g.co.il itself) that should always appear in
- * the list even if the DB-stored projects array hasn't been edited yet. We
- * union these into the rendered list, deduping by URL — the admin can still
- * override description/tags by editing the projects content in the CMS.
- */
-const INTERNAL_PROJECTS: ProjectsPageContent["projects"] = [
-  {
-    title: "פח המשפט",
-    subtitle: "סטטוס נט המשפט בזמן אמת — דיווחים קהילתיים",
-    description:
-      "פלטפורמה קהילתית שעוקבת אחרי הזמינות של נט המשפט. כל משתמש יכול לדווח על תקלה (מערכת קרסה / תקלה חלקית) או לאשר שהמערכת חזרה לתקנה, וכולם רואים את הסטטוס הנוכחי. בנוסף — הודעות מערכת ועדכוני מנהל, יומן דיווחים ותגובות קהילה. נולד מתוך השאלה החוזרת \"תגידי, נט המשפט עובד לך?\" והפך אותה לנתון ציבורי שאפשר לראות בלחיצה.",
-    url: "/pach-hamishpat",
-    icon: "Trash2",
-    tags: ["נט המשפט", "דיווח קהילתי", "סטטוס בזמן אמת"],
-  },
-  {
-    title: "הסדרים מותנים",
-    subtitle: "מאגר הסדרים מותנים של המשטרה והפרקליטות",
-    description:
-      "דשבורד אינטראקטיבי המרכז את הסדרים המותנים שפרסמה המשטרה והפרקליטות — מעל 33,000 הסדרים ממאגרי הממשלה, עם יכולות חיפוש AND, סינון לפי מחוז, יחידה, עבירה וטווח תאריכים.",
-    url: "/conditional-arrangements",
-    icon: "Scale",
-    tags: ["הסדרים מותנים", "משטרה", "פרקליטות", "דאטה משפטי"],
-  },
-];
-
 export default async function ProjectsPage() {
   const content = await getPageContent<ProjectsPageContent>("projects");
-  const seen = new Set(content.projects.map((p) => p.url));
-  const mergedProjects = [
-    ...INTERNAL_PROJECTS.filter((p) => !seen.has(p.url)),
-    ...content.projects,
-  ];
+  // All projects are managed in the CMS (admin → עורך האתר → מיזמים).
+  // There is no hardcoded list here — the editor and this page always render
+  // the same content in the same order.
+  const mergedProjects = content.projects;
 
   return (
     <PublicLayout>
