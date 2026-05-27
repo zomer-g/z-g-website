@@ -610,5 +610,11 @@ model CaRecord {
   @@index([source])
   @@index([source, date])
   @@index([date])
+  // Facet + filter indexes — make distinct and WHERE queries fast
+  // (without these, every facet/filter query does a full sequential scan of 33k rows)
+  @@index([district])
+  @@index([offense])
+  @@index([source, district])
+  @@index([source, offense])
   @@map("ca_records")
 }

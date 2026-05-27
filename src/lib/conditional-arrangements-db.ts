@@ -21,6 +21,7 @@
  *   - Each page is inserted to DB in 500-row batches, then GC'd.
  */
 
+import { unstable_cache, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import {
@@ -324,6 +325,12 @@ async function _doSync(force: boolean): Promise<void> {
     },
   });
 
+  // Bust the Next.js Data Cache so getFacets() and getCachedDefaultPage()
+  // return fresh data on the next request after the sync completes.
+  // Next.js 16 requires a second argument (profile) to avoid a deprecation
+  // warning; {} is a valid CacheLifeConfig meaning "no specific profile".
+  revalidateTag("ca-facets", {});
+  revalidateTag("ca-data", {});
   console.log(`ca-sync: done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
@@ -398,6 +405,58 @@ async function _insertBatch(rows: DbRow[]): Promise<void> {
     });
   }
 }
+
+/* ─── Cached facets ───────────────────────────────────────────────── */
+
+/**
+ * Returns all distinct district and offense values across the entire dataset.
+ * Cached with Next.js Data Cache (tag: "ca-facets"); invalidated by revalidateTag
+ * after each sync so the dropdowns stay accurate after weekly data updates.
+ *
+ * Fetched globally (not filtered by source/query) so the dropdowns always show
+ * all possible filter values. This trades per-query freshness for a 4→2 query
+ * reduction on every records request.
+ */
+export const getFacets = unstable_cache(
+  async () => {
+    const [distRows, offRows] = await Promise.all([
+      prisma.caRecord.findMany({
+        select: { district: true },
+        distinct: ["district"],
+        orderBy: { district: "asc" },
+      }),
+      prisma.caRecord.findMany({
+        select: { offense: true },
+        distinct: ["offense"],
+        orderBy: { offense: "asc" },
+      }),
+    ]);
+    return {
+      districts: distRows
+        .map((r) => r.district)
+        .filter((d): d is string => d !== null),
+      offenses: offRows
+        .map((r) => r.offense)
+        .filter((o): o is string => o !== null),
+    };
+  },
+  ["ca-facets"],
+  { tags: ["ca-facets"] },
+);
+
+/**
+ * Server-side pre-render helper: returns the first 24 records with default params
+ * (no filters, newest-first). Cached for 60 s so the SSR path doesn't add a DB
+ * round-trip to every page request. Invalidated alongside facets after each sync.
+ */
+export const getCachedDefaultPage = unstable_cache(
+  async () => {
+    const params = new URLSearchParams({ limit: "24", skip: "0", sort: "date_desc" });
+    return queryArrangements(params);
+  },
+  ["ca-default-page"],
+  { tags: ["ca-data"], revalidate: 60 },
+);
 
 /* ─── Query ───────────────────────────────────────────────────────── */
 
@@ -500,11 +559,11 @@ export async function queryArrangements(
     { id: "asc" }, // stable tiebreak
   ];
 
-  // Run count, page, and facets in parallel. These are all read-only queries
-  // so there's no write-consistency concern; Promise.all is equivalent to
-  // $transaction([]) for reads but avoids a known Prisma 7 issue where
-  // distinct: [...] queries inside $transaction fail when where has conditions.
-  const [total, records, districtFacets, offenseFacets] = await Promise.all([
+  // Two queries only: count + paginated records.
+  // Facets are no longer computed here — they are served by getFacets() which is
+  // cached with unstable_cache and only recomputed after each weekly sync.
+  // This halves the DB query count per request (was 4, now 2).
+  const [total, records] = await Promise.all([
     prisma.caRecord.count({ where }),
     prisma.caRecord.findMany({
       where,
@@ -523,18 +582,6 @@ export async function queryArrangements(
         caseNumber: true,
       },
     }),
-    prisma.caRecord.findMany({
-      where,
-      select: { district: true },
-      distinct: ["district"],
-      orderBy: { district: "asc" },
-    }),
-    prisma.caRecord.findMany({
-      where,
-      select: { offense: true },
-      distinct: ["offense"],
-      orderBy: { offense: "asc" },
-    }),
   ]);
 
   return {
@@ -542,16 +589,6 @@ export async function queryArrangements(
     skip,
     limit,
     records: records.map(dbRowToArrangement),
-    facets: {
-      districts: districtFacets
-        .map((r) => r.district)
-        .filter((d): d is string => d !== null)
-        .sort((a, b) => a.localeCompare(b, "he")),
-      offenses: offenseFacets
-        .map((r) => r.offense)
-        .filter((o): o is string => o !== null)
-        .sort((a, b) => a.localeCompare(b, "he")),
-    },
   };
 }
 

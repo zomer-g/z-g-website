@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type {
   ConditionalArrangement,
   ArrangementsResponse,
+  ArrangementsFacets,
   ArrangementSource,
 } from "@/types/conditional-arrangement";
 import { DateInputIL } from "@/components/ui/date-input-il";
@@ -314,7 +315,29 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
 
 /* ─── Main Dashboard ─────────────────────────────────────────────── */
 
-export function ConditionalArrangementsDashboard() {
+interface DashboardProps {
+  /** First-page records pre-fetched server-side (default params, no filters).
+   *  When provided the dashboard renders immediately with no loading skeleton.
+   *  On a filter URL the dashboard discards this and fetches the filtered set. */
+  initialData?: ArrangementsResponse;
+  /** Global facets (all districts + offenses) pre-fetched server-side.
+   *  When provided the dropdowns are populated on first paint without a
+   *  separate client-side /facets request. */
+  initialFacets?: ArrangementsFacets;
+}
+
+/** Returns true when state represents the default view (no filters applied). */
+function isDefaultState(f: Filters, s: number, ord: SortOrder): boolean {
+  return (
+    f.source === "all" && !f.q && !f.date_from && !f.date_to &&
+    !f.district && !f.offense && s === 0 && ord === DEFAULT_SORT
+  );
+}
+
+export function ConditionalArrangementsDashboard({
+  initialData,
+  initialFacets,
+}: DashboardProps) {
   const pathname = usePathname();
 
   // ── Applied state (drives the fetch; NOT re-derived from URL after mount) ──
@@ -329,15 +352,29 @@ export function ConditionalArrangementsDashboard() {
   // Draft state for text inputs that wait for the "סינון" button.
   const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
 
-  const [data, setData] = useState<ArrangementsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Records data. Seeded from SSR when the URL matches the default state.
+  const [data, setData] = useState<ArrangementsResponse | null>(initialData ?? null);
+  // Skip the loading skeleton if we already have SSR data for the default view.
+  // The mount useEffect re-enables it if the URL turns out to have filters.
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
+
+  // Facets (distinct districts + offenses) — fetched once on mount via the
+  // /facets endpoint (cached server-side between syncs) or seeded from SSR.
+  // Not refetched on filter changes: dropdowns always show all possible values.
+  const [facets, setFacets] = useState<ArrangementsFacets>(
+    initialFacets ?? { districts: [], offenses: [] },
+  );
 
   // AbortController — cancel the in-flight request when a newer one starts.
   const abortRef = useRef<AbortController | null>(null);
 
   // Auto-retry timer for 503 "sync in progress" responses.
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Flag: skip the first client-side fetch if SSR data is already correct.
+  // Set to true when initialData is provided; cleared after first mount effect.
+  const skipFirstFetchRef = useRef(!!initialData);
 
   const fetchData = useCallback(
     async (f: Filters, s: number, ord: SortOrder) => {
@@ -385,6 +422,18 @@ export function ConditionalArrangementsDashboard() {
     [],
   );
 
+  // Fetch facets once on mount if not provided by SSR.
+  // The /facets endpoint is cached server-side (s-maxage=3600) so this request
+  // typically hits Render's CDN cache rather than the DB.
+  useEffect(() => {
+    if (initialFacets) return; // already populated from SSR — no fetch needed
+    fetch("/api/conditional-arrangements/facets")
+      .then((r) => r.json())
+      .then((f: ArrangementsFacets) => setFacets(f))
+      .catch(() => {}); // silent failure — dropdowns just stay empty
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — run once on mount
+
   // Initialise from URL params exactly once on mount.
   // We read window.location.search directly instead of useSearchParams() so that
   // this component is NOT subscribed to the Next.js router's search-param context.
@@ -405,6 +454,22 @@ export function ConditionalArrangementsDashboard() {
     setSkip(s);
     setSort(ord);
     setDraft(f);
+
+    // If SSR provided the default-page data AND the URL is the default state,
+    // skip the initial fetch — we already have the correct data.
+    if (skipFirstFetchRef.current && isDefaultState(f, s, ord)) {
+      skipFirstFetchRef.current = false;
+      return;
+    }
+    skipFirstFetchRef.current = false;
+
+    // URL has non-default filters (e.g., a shared link with q= or date_from=):
+    // clear the SSR data so we don't show wrong records while fetching.
+    if (initialData && !isDefaultState(f, s, ord)) {
+      setData(null);
+      setLoading(true);
+    }
+
     fetchData(f, s, ord);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — run once on mount
@@ -446,9 +511,9 @@ export function ConditionalArrangementsDashboard() {
   const canPrev = skip > 0;
   const canNext = skip + PAGE_SIZE < total;
 
-  // Dynamic facet options (from last successful response)
-  const districts = data?.facets.districts ?? [];
-  const offenses = data?.facets.offenses ?? [];
+  // Facet options come from the dedicated facets state (fetched once on mount,
+  // not recomputed on every filter change).
+  const { districts, offenses } = facets;
 
   return (
     <div dir="rtl">

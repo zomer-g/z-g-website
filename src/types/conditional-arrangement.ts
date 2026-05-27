@@ -25,12 +25,19 @@ export interface ArrangementsResponse {
   skip: number;
   limit: number;
   records: ConditionalArrangement[];
-  // Sorted, deduplicated categorical values seen across filtered records.
-  // Used to populate dynamic filter dropdowns in the UI.
-  facets: {
+  // Sorted, deduplicated categorical values across ALL records (not filtered).
+  // Fetched separately via /api/conditional-arrangements/facets and cached;
+  // absent from the records API response which only serves paginated data.
+  facets?: {
     districts: string[];
     offenses: string[];
   };
+}
+
+// Standalone facets shape returned by /api/conditional-arrangements/facets.
+export interface ArrangementsFacets {
+  districts: string[];
+  offenses: string[];
 }
 
 // Minimal over.org.il version object shape.
