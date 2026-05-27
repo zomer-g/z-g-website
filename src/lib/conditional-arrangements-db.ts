@@ -278,6 +278,24 @@ function _triggerBackgroundVersionCheck(syncedAt: Date): void {
 }
 
 /**
+ * Run a version-check sync immediately (bypasses the weekly interval check).
+ * Only syncs sources whose CKAN resource UUID changed since the last sync,
+ * or sources never synced yet (e.g. a newly added dataset like "labor").
+ * Much faster than forceSync() since it skips sources already up-to-date.
+ */
+export async function syncVersionCheck(): Promise<{ police: number; prosecutor: number; labor: number }> {
+  if (inflightSync) await inflightSync;
+  inflightSync = _doSync(false).finally(() => { inflightSync = null; });
+  await inflightSync;
+  const [police, prosecutor, labor] = await Promise.all([
+    prisma.caRecord.count({ where: { source: "police" } }),
+    prisma.caRecord.count({ where: { source: "prosecutor" } }),
+    prisma.caRecord.count({ where: { source: "labor" } }),
+  ]);
+  return { police, prosecutor, labor };
+}
+
+/**
  * Force a full re-fetch from CKAN regardless of stored resource IDs.
  * Called by the admin /sync endpoint.
  */
