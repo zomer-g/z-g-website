@@ -27,8 +27,10 @@ import type { Prisma } from "@/generated/prisma/client";
 import {
   POLICE_DATASET_ID,
   PROSECUTOR_DATASET_ID,
+  LABOR_DATASET_ID,
   POLICE_FIELDS,
   PROSECUTOR_FIELDS,
+  LABOR_FIELDS,
   fetchCKANPage,
   getLatestResourceId,
   type CKANRow,
@@ -200,6 +202,30 @@ function mapProsecutorRow(row: CKANRow, rowIdx: number): DbRow {
   };
 }
 
+function mapLaborRow(row: CKANRow, rowIdx: number): DbRow {
+  const ckanId = str(row["_id"]) || String(rowIdx);
+  const fullDesc = str(row["Data.moredetails.Description_text"]);
+  const caseNo = str(row["Data.casenumber"]) || null;
+  const offense = extractOffense(fullDesc);
+  const searchText = [
+    normText(fullDesc.slice(0, 1000)),
+    normText(str(caseNo)),
+    normText(str(offense)),
+  ].filter(Boolean).join(" ") || null;
+  return {
+    id: `labor:${ckanId}`,
+    source: "labor",
+    date: null, // dataset has no date field
+    district: "משרד העבודה",
+    offense,
+    fine: extractAmount(fullDesc, FINE_RE),
+    compensation: extractAmount(fullDesc, COMP_RE),
+    description: fullDesc || null,
+    caseNumber: caseNo,
+    searchText,
+  };
+}
+
 /* ─── Sync ────────────────────────────────────────────────────────── */
 
 // Singleton promise prevents concurrent syncs (no double-fetch if two
@@ -255,36 +281,39 @@ function _triggerBackgroundVersionCheck(syncedAt: Date): void {
  * Force a full re-fetch from CKAN regardless of stored resource IDs.
  * Called by the admin /sync endpoint.
  */
-export async function forceSync(): Promise<{ police: number; prosecutor: number }> {
+export async function forceSync(): Promise<{ police: number; prosecutor: number; labor: number }> {
   if (inflightSync) await inflightSync; // wait for any in-progress sync first
   inflightSync = _doSync(true).finally(() => { inflightSync = null; });
   await inflightSync;
-  const [police, prosecutor] = await prisma.$transaction([
+  const [police, prosecutor, labor] = await Promise.all([
     prisma.caRecord.count({ where: { source: "police" } }),
     prisma.caRecord.count({ where: { source: "prosecutor" } }),
+    prisma.caRecord.count({ where: { source: "labor" } }),
   ]);
-  return { police, prosecutor };
+  return { police, prosecutor, labor };
 }
 
 async function _doSync(force: boolean): Promise<void> {
   const t0 = Date.now();
   console.log(`ca-sync: starting (force=${force})`);
 
-  // Resolve latest resource IDs from ODATA
-  const [policeId, prosecutorId] = await Promise.all([
+  // Resolve latest resource IDs from ODATA for all three sources
+  const [policeId, prosecutorId, laborId] = await Promise.all([
     getLatestResourceId(POLICE_DATASET_ID),
     getLatestResourceId(PROSECUTOR_DATASET_ID),
+    getLatestResourceId(LABOR_DATASET_ID),
   ]).catch((err) => {
     console.error("ca-sync: failed to resolve resource IDs:", err);
-    return [null, null] as [null, null];
+    return [null, null, null] as [null, null, null];
   });
 
   const meta = await prisma.caSync.findUnique({ where: { id: "singleton" } });
 
   const policeChanged = force || (policeId !== null && policeId !== meta?.policeResourceId);
   const prosecutorChanged = force || (prosecutorId !== null && prosecutorId !== meta?.prosecutorResourceId);
+  const laborChanged = force || (laborId !== null && laborId !== meta?.laborResourceId);
 
-  if (!policeChanged && !prosecutorChanged) {
+  if (!policeChanged && !prosecutorChanged && !laborChanged) {
     console.log("ca-sync: versions unchanged, updating timestamp only");
     await prisma.caSync.upsert({
       where: { id: "singleton" },
@@ -292,6 +321,7 @@ async function _doSync(force: boolean): Promise<void> {
         id: "singleton",
         policeResourceId: meta?.policeResourceId,
         prosecutorResourceId: meta?.prosecutorResourceId,
+        laborResourceId: meta?.laborResourceId,
       },
       update: { syncedAt: new Date() },
     });
@@ -310,6 +340,9 @@ async function _doSync(force: boolean): Promise<void> {
   if (prosecutorChanged && prosecutorId) {
     await _syncSource("prosecutor", prosecutorId, resumable);
   }
+  if (laborChanged && laborId) {
+    await _syncSource("labor", laborId, resumable);
+  }
 
   await prisma.caSync.upsert({
     where: { id: "singleton" },
@@ -317,10 +350,12 @@ async function _doSync(force: boolean): Promise<void> {
       id: "singleton",
       policeResourceId: policeId ?? undefined,
       prosecutorResourceId: prosecutorId ?? undefined,
+      laborResourceId: laborId ?? undefined,
     },
     update: {
       ...(policeId ? { policeResourceId: policeId } : {}),
       ...(prosecutorId ? { prosecutorResourceId: prosecutorId } : {}),
+      ...(laborId ? { laborResourceId: laborId } : {}),
       syncedAt: new Date(),
     },
   });
@@ -339,8 +374,8 @@ async function _syncSource(
   resourceId: string,
   resumable: boolean,
 ): Promise<void> {
-  const fields = source === "police" ? POLICE_FIELDS : PROSECUTOR_FIELDS;
-  const mapper = source === "police" ? mapPoliceRow : mapProsecutorRow;
+  const fields = source === "police" ? POLICE_FIELDS : source === "prosecutor" ? PROSECUTOR_FIELDS : LABOR_FIELDS;
+  const mapper = source === "police" ? mapPoliceRow : source === "prosecutor" ? mapProsecutorRow : mapLaborRow;
 
   if (!resumable) {
     // Re-sync: wipe stale records so the table reflects the current CKAN dataset.

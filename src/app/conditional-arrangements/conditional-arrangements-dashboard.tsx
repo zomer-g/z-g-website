@@ -16,6 +16,7 @@ const PAGE_SIZE = 24;
 
 const C_POLICE = "#1a365d";
 const C_PROSECUTOR = "#6b21a8";
+const C_LABOR = "#065f46";
 
 const dateFmt = new Intl.DateTimeFormat("he-IL", {
   year: "numeric",
@@ -46,11 +47,13 @@ function fmtAmount(n: number | null) {
 const SOURCE_LABEL: Record<ArrangementSource, string> = {
   police: "משטרה",
   prosecutor: "פרקליטות",
+  labor: "משרד העבודה",
 };
 
 const SOURCE_COLOR: Record<ArrangementSource, { text: string; bg: string }> = {
   police: { text: C_POLICE, bg: "#dbeafe" },
   prosecutor: { text: C_PROSECUTOR, bg: "#f3e8ff" },
+  labor: { text: C_LABOR, bg: "#d1fae5" },
 };
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -89,7 +92,7 @@ const DEFAULT_SORT: SortOrder = "date_desc";
    reproduces the exact same view. */
 
 function isSourceFilter(v: string): v is SourceFilter {
-  return v === "all" || v === "police" || v === "prosecutor";
+  return v === "all" || v === "police" || v === "prosecutor" || v === "labor";
 }
 
 function filtersFromSearchParams(sp: URLSearchParams): Filters {
@@ -206,7 +209,7 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
   const descSnippet = descText
     ? descText.slice(0, 220).trimEnd() + (descText.length > 220 ? "…" : "")
     : null;
-  const districtLabel = item.source === "police" ? "שלוחה" : "יחידה";
+  const districtLabel = item.source === "police" ? "שלוחה" : item.source === "labor" ? "גוף" : "יחידה";
 
   // CKAN numeric ID extracted from "_id" like "police:1234"
   const ckanId = item._id.split(":")[1];
@@ -529,8 +532,11 @@ export function ConditionalArrangementsDashboard({
                 { value: "all", label: "כל המקורות" },
                 { value: "police", label: "משטרה" },
                 { value: "prosecutor", label: "פרקליטות" },
+                { value: "labor", label: "משרד העבודה" },
               ] as { value: SourceFilter; label: string }[]
-            ).map(({ value, label }) => (
+            ).map(({ value, label }) => {
+              const chipColor = value === "prosecutor" ? C_PROSECUTOR : value === "labor" ? C_LABOR : C_POLICE;
+              return (
               <button
                 key={value}
                 type="button"
@@ -542,13 +548,14 @@ export function ConditionalArrangementsDashboard({
                 className="rounded-full px-4 py-1.5 text-sm font-semibold transition border"
                 style={
                   filters.source === value
-                    ? { background: C_POLICE, color: "white", borderColor: C_POLICE }
-                    : { color: C_POLICE, borderColor: C_POLICE }
+                    ? { background: chipColor, color: "white", borderColor: chipColor }
+                    : { color: chipColor, borderColor: chipColor }
                 }
               >
                 {label}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 

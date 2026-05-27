@@ -1,6 +1,6 @@
 /* ─── Conditional Arrangements (הסדרים מותנים) Types ─── */
 
-export type ArrangementSource = "police" | "prosecutor";
+export type ArrangementSource = "police" | "prosecutor" | "labor";
 
 // Raw record as it comes off the CSV — field names are Hebrew strings.
 export type RawRecord = Record<string, string>;

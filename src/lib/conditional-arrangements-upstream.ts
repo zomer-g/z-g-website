@@ -37,6 +37,8 @@ const ODATA_BASE = "https://www.odata.org.il";
 
 export const POLICE_DATASET_ID = "d49264eb-493c-4ab6-8a43-8784f6ae0fbf";
 export const PROSECUTOR_DATASET_ID = "9fbe426a-4750-4202-94aa-0518fe9e575c";
+// Ministry of Labor conditional arrangements — 359 records, one unit.
+export const LABOR_DATASET_ID = "00fe9751-f316-4374-acd0-e148635cc7fb";
 
 // Key used in resource_mappings for the scraped CSV resource.
 const RESOURCE_KEY = "נתוני הסורק";
@@ -90,6 +92,12 @@ export const PROSECUTOR_FIELDS = [
   "Data.unit",
   "Data.more_info.Description_text",
   "UrlName",
+].join(",");
+
+export const LABOR_FIELDS = [
+  "_id",
+  "Data.casenumber",
+  "Data.moredetails.Description_text",
 ].join(",");
 
 /* ─── Text extraction helpers ────────────────────────────────────────── */

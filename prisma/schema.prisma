@@ -589,6 +589,7 @@ model CaSync {
   id                   String   @id @default("singleton")
   policeResourceId     String?  @map("police_resource_id")
   prosecutorResourceId String?  @map("prosecutor_resource_id")
+  laborResourceId      String?  @map("labor_resource_id")
   syncedAt             DateTime @default(now()) @map("synced_at")
 
   @@map("ca_sync")
