@@ -21,9 +21,9 @@ import type { ArrangementsResponse, ArrangementsFacets } from "@/types/condition
 // Removing force-dynamic lets the getCachedDefaultPage / getFacets cache work.
 
 export const metadata: Metadata = {
-  title: "הסדרים מותנים — משטרה ופרקליטות | זומר עורך דין",
+  title: "הסדרים מותנים — משטרה, פרקליטות ומשרד העבודה | זומר עורך דין",
   description:
-    "מאגר הסדרים מותנים של המשטרה והפרקליטות — חיפוש, סינון ומיון לפי מקור, תאריך, עבירה ומחוז.",
+    "מאגר הסדרים מותנים של המשטרה, הפרקליטות ומשרד העבודה — חיפוש, סינון ומיון לפי מקור, תאריך, עבירה ומחוז.",
 };
 
 export default async function ConditionalArrangementsPage() {
