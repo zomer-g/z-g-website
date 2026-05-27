@@ -9,6 +9,7 @@ import type {
   HeaderContent,
   FooterContent,
   NavItem,
+  ProjectsPageContent,
 } from "@/types/content";
 
 interface PublicLayoutProps {
@@ -35,24 +36,32 @@ async function loadServiceNavItems(): Promise<NavItem[]> {
   }
 }
 
-// Builds the "מיזמים" submenu from the code-defined defaults so that
-// structural changes (add/remove/rename projects) take effect on deploy
-// without requiring a CMS publish step.
-function loadProjectNavItems(): NavItem[] {
-  return DEFAULT_PROJECTS_CONTENT.projects.map((p) => ({
-    label: p.title,
-    href: p.url,
-  }));
+// Builds the "מיזמים" submenu from the DB-stored projects content so that
+// admin changes (add/remove/reorder via site-editor) are reflected immediately
+// after publish — without a deploy. Falls back to hardcoded defaults on error.
+async function loadProjectNavItems(): Promise<NavItem[]> {
+  try {
+    const content = await getPageContent<ProjectsPageContent>("projects");
+    return content.projects.map((p) => ({
+      label: p.title,
+      href: p.url,
+    }));
+  } catch {
+    return DEFAULT_PROJECTS_CONTENT.projects.map((p) => ({
+      label: p.title,
+      href: p.url,
+    }));
+  }
 }
 
 export default async function PublicLayout({ children }: PublicLayoutProps) {
-  const [headerContent, footerContent, serviceChildren] =
+  const [headerContent, footerContent, serviceChildren, projectChildren] =
     await Promise.all([
       getPageContent<HeaderContent>("header"),
       getPageContent<FooterContent>("footer"),
       loadServiceNavItems(),
+      loadProjectNavItems(),
     ]);
-  const projectChildren = loadProjectNavItems();
 
   // Use the code-defined nav structure as the authoritative base so
   // that changes in content-defaults.ts take effect immediately without
