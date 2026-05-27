@@ -221,7 +221,10 @@ export async function fetchCKANPage(
   limit: number,
   fields?: string,
 ): Promise<{ records: CKANRow[]; total: number } | null> {
-  let url = `${ODATA_BASE}/api/3/action/datastore_search?resource_id=${encodeURIComponent(resourceId)}&limit=${limit}&offset=${offset}`;
+  // sort=_id ensures stable pagination — without an explicit sort CKAN's default
+  // ordering is non-deterministic and the same record can appear at multiple
+  // offsets, resulting in ~9 000 duplicate IDs across the 32 k police dataset.
+  let url = `${ODATA_BASE}/api/3/action/datastore_search?resource_id=${encodeURIComponent(resourceId)}&limit=${limit}&offset=${offset}&sort=_id`;
   if (fields) url += `&fields=${encodeURIComponent(fields)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) return null;
