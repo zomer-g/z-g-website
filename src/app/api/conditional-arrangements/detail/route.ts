@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ArrangementSource } from "@/types/conditional-arrangement";
-import { fetchArrangementDetail } from "@/lib/conditional-arrangements-upstream";
+import { getArrangementDescription } from "@/lib/conditional-arrangements-db";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -17,11 +17,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Fetch the full description directly from CKAN for this single record.
-    // The DB stores only a 300-char snippet (for the card display); the full
-    // text is fetched on-demand here so we don't hold ~5 KB × 33 k records
-    // in the database during the weekly bulk sync.
-    const description = await fetchArrangementDetail(
+    // Read the full description from the DB. The sync now stores the complete
+    // description text (not a truncated snippet), so no external CKAN call is
+    // needed here — instant DB lookup, no external dependency per click.
+    const description = await getArrangementDescription(
       source as ArrangementSource,
       ckanId,
     );

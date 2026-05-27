@@ -55,7 +55,9 @@ const PAGE_SIZE = 1000;
 // 500 rows × ~10 columns = ~5 000 params — well under Postgres's 65 535 limit.
 const INSERT_BATCH = 500;
 
-// Description chars shown in the card snippet (full text stored in DB for detail).
+// Max chars shown in the card's description snippet (raw["תיאור"] in the API response).
+// The full text is stored in the DB `description` column and returned by the detail API.
+// Keeping the card snippet short avoids sending 5 KB × 24 cards = 120 KB per page request.
 const SNIPPET_CHARS = 300;
 
 /* ─── Prosecutor unit codes ─────────────────────────────────────── */
@@ -160,11 +162,11 @@ function mapPoliceRow(row: CKANRow, rowIdx: number): DbRow {
     offense,
     fine: extractAmount(fullDesc, FINE_RE),
     compensation: extractAmount(fullDesc, COMP_RE),
-    // Store only a short snippet (SNIPPET_CHARS) for the card display.
-    // The full description is fetched on-demand from CKAN by the detail API.
-    // Storing the full ~5 KB per row × 3 000 rows/page = ~15 MB would push
-    // the heap past V8's ~250 MB limit on Render Starter during sync.
-    description: fullDesc.slice(0, SNIPPET_CHARS) || null,
+    // Store the full description text in the DB. PAGE_SIZE=1000 means at most
+    // ~5 MB of description text is held per page during sync — well within budget.
+    // The detail API reads this column directly (no external CKAN call per click).
+    // Card display still shows a SNIPPET_CHARS-truncated excerpt via dbRowToArrangement.
+    description: fullDesc || null,
     caseNumber: caseNo,
     searchText,
   };
@@ -191,7 +193,7 @@ function mapProsecutorRow(row: CKANRow, rowIdx: number): DbRow {
     offense,
     fine: extractAmount(fullDesc, FINE_RE),
     compensation: extractAmount(fullDesc, COMP_RE),
-    description: fullDesc.slice(0, SNIPPET_CHARS) || null,
+    description: fullDesc || null,
     caseNumber: caseNo,
     searchText,
   };
@@ -487,8 +489,12 @@ export async function queryArrangements(
   const limit = Math.min(100, Math.max(1, clampInt(params.get("limit"), 1, 24)));
   const sortAsc = params.get("sort") === "date_asc";
   const where = buildWhere(params);
+  // Use NULLS LAST on both directions so null-dated prosecutor records
+  // always sort after police records regardless of which direction is chosen.
+  // PostgreSQL's default for DESC is NULLS FIRST, which would push prosecutors
+  // to the top of the "newest first" view — the opposite of what we want.
   const orderBy: Prisma.CaRecordOrderByWithRelationInput[] = [
-    { date: sortAsc ? "asc" : "desc" },
+    { date: { sort: sortAsc ? "asc" : "desc", nulls: "last" } },
     { id: "asc" }, // stable tiebreak
   ];
 
