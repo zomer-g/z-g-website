@@ -444,11 +444,13 @@ function buildWhere(params: URLSearchParams): Prisma.CaRecordWhereInput {
   if (offense) AND.push({ offense: { contains: offense, mode: "insensitive" } });
 
   // Free-text AND search: each term must appear in the pre-normalised
-  // searchText blob. Text and query are both normalised → plain LIKE works.
+  // searchText blob. Use ILIKE (mode: insensitive) → PostgreSQL matches
+  // even if normalisation missed a case variant; also required by Prisma 7
+  // TypeScript client which may not accept contains without an explicit mode.
   if (q) {
     const terms = q.split(/\s+/).filter(Boolean);
     for (const term of terms) {
-      AND.push({ searchText: { contains: term } });
+      AND.push({ searchText: { contains: term, mode: "insensitive" } });
     }
   }
 
