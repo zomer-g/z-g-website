@@ -129,7 +129,7 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "מיזמים", href: "/projects", children: [] },
     { label: "תחומי עיסוק", href: "/services", children: [] },
     { label: "מאמרים", href: "/articles" },
-    { label: "מדיה", href: "/media" },
+    { label: "פרסומים", href: "/media" },
     // "תובענות ייצוגיות" used to be a top-level entry — it lives
     // under /projects → /class-actions and is now in the "מיזמים"
     // dropdown, so dropping the dedicated link trims the menu
@@ -149,7 +149,7 @@ export const DEFAULT_FOOTER_CONTENT: FooterContent = {
     { label: "אודות", href: "/about" },
     { label: "תחומי עיסוק", href: "/services" },
     { label: "מאמרים", href: "/articles" },
-    { label: "מדיה", href: "/media" },
+    { label: "פרסומים", href: "/media" },
     { label: "מיזמים", href: "/projects" },
     { label: "תובענות ייצוגיות", href: "/class-actions" },
     { label: "שירותים דיגיטליים", href: "/digital-services" },
@@ -206,18 +206,19 @@ export const DEFAULT_ARTICLES_CONTENT: ArticlesPageContent = {
 
 export const DEFAULT_MEDIA_CONTENT: MediaPageContent = {
   hero: {
-    title: "מדיה",
-    subtitle: "ראיונות, הרצאות והופעות תקשורתיות בנושאים משפטיים אקטואליים.",
+    title: "פרסומים",
+    subtitle: "כתבות תקשורת, מחקרים אקדמיים ופרסומים בנושאים משפטיים.",
   },
   grid: {
-    title: "הופעות אחרונות",
-    subtitle: "ריכוז ההופעות התקשורתיות, ההרצאות והפרסומים האחרונים",
-    emptyState: "הופעות מדיה יתעדכנו בקרוב.",
+    title: "פרסומים",
+    subtitle: "ריכוז הפרסומים התקשורתיים והאקדמיים",
+    emptyState: "פרסומים יתעדכנו בקרוב.",
   },
   typeLabels: {
     video: "וידאו",
     article: "כתבה",
     podcast: "פודקאסט",
+    academic: "מחקר / אקדמיה",
   },
 };
 

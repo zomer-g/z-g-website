@@ -245,6 +245,7 @@ export interface MediaTypeLabels {
   video: string;
   article: string;
   podcast: string;
+  academic: string;
 }
 
 export interface MediaPageContent {
