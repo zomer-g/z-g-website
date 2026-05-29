@@ -567,9 +567,16 @@ function ConversationShellInner({
       />
 
       <div className="flex flex-1 min-h-0">
+        {/* Left wrapper: hugs the sidebar's intrinsic width on desktop
+            (360px) so there's no empty strip between it and the chat
+            pane. On mobile it expands to full width when no chat is
+            open, then collapses to hidden when the chat takes over. */}
         <div
           className={
-            "flex flex-1 min-h-0 " + (rightPaneOpen ? "hidden lg:flex" : "flex")
+            "flex min-h-0 lg:shrink-0 " +
+            (rightPaneOpen
+              ? "hidden lg:flex"
+              : "flex flex-1 lg:flex-none")
           }
         >
           <ChatSidebar
@@ -584,9 +591,11 @@ function ConversationShellInner({
           />
         </div>
 
+        {/* Right wrapper: always takes the remaining space on desktop. */}
         <div
           className={
-            "flex flex-1 min-h-0 " + (rightPaneOpen ? "flex" : "hidden lg:flex")
+            "flex flex-1 min-h-0 min-w-0 " +
+            (rightPaneOpen ? "flex" : "hidden lg:flex")
           }
         >
           {searchActive ? (
