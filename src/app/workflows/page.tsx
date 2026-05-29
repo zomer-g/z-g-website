@@ -21,7 +21,10 @@ export const metadata: Metadata = {
 export default function WorkflowsLandingPage() {
   return (
     <PublicLayout>
-      <Container className="py-8">
+      {/* pt-12/16 leaves clear breathing room under the sticky site
+          header — otherwise the h1 sits flush against it. pb-8 keeps
+          the bottom spacing modest. */}
+      <Container className="pt-12 sm:pt-16 pb-8">
         <div dir="rtl" className="space-y-4">
           <header className="text-center max-w-2xl mx-auto">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary-dark">

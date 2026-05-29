@@ -97,18 +97,15 @@ export function WorkflowsSidebar({
         "w-full lg:max-w-[360px]",
       )}
     >
-      <header className="bg-[#f0f2f5] px-4 py-3 shrink-0">
-        <h2 className="text-sm font-semibold text-gray-900 truncate" title={title}>
-          {title}
-        </h2>
-      </header>
-
-      {/* Tab switcher. role="tablist" so AT users can navigate between the
-          two pivots with arrow keys / understand the structure. */}
+      {/* Tab switcher acts as the sidebar's top strip — same height
+          as the chat pane header (h-14) so the two top bars line up
+          visually. The page-level h1 already states what this widget
+          is, so we don't need a separate redundant title bar here. */}
       <div
         role="tablist"
         aria-label="בחירת סוג רשימה"
-        className="flex items-stretch border-b border-black/5 bg-white shrink-0"
+        title={title}
+        className="flex items-stretch h-14 border-b border-black/5 bg-[#f0f2f5] shrink-0"
       >
         <TabButton
           active={tab === "entities"}

@@ -176,7 +176,9 @@ export function EventPane({
 
   return (
     <div className="flex flex-1 flex-col bg-[#efeae2] min-h-0">
-      <header className="flex items-center gap-3 bg-[#f0f2f5] border-b border-black/5 px-3 py-2 shrink-0">
+      {/* h-14 to line up exactly with the sidebar's tablist top strip
+          (both top bars sit at the same height). */}
+      <header className="flex items-center gap-3 h-14 bg-[#f0f2f5] border-b border-black/5 px-3 shrink-0">
         <button
           type="button"
           onClick={onBack}

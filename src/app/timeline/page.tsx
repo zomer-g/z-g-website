@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default function TimelineLandingPage() {
   return (
     <PublicLayout>
-      <Container className="py-8">
+      <Container className="pt-12 sm:pt-16 pb-8">
         <div dir="rtl" className="space-y-4">
           <header className="text-center max-w-2xl mx-auto">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary-dark">
