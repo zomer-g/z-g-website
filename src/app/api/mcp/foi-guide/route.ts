@@ -62,22 +62,49 @@ function challenge401() {
 
 async function authenticate(req: NextRequest): Promise<{ email: string } | null> {
   const header = req.headers.get("authorization");
-  if (!header || !header.toLowerCase().startsWith("bearer ")) return null;
+  if (!header) {
+    console.error("[mcp/foi-guide] auth: no Authorization header");
+    return null;
+  }
+  if (!header.toLowerCase().startsWith("bearer ")) {
+    console.error(
+      `[mcp/foi-guide] auth: non-Bearer scheme (got "${header.slice(0, 20)}…")`,
+    );
+    return null;
+  }
   const token = header.slice(7).trim();
-  if (!token) return null;
+  if (!token) {
+    console.error("[mcp/foi-guide] auth: empty token after Bearer");
+    return null;
+  }
 
   const record = await prisma.mcpOauthAccessToken.findUnique({
     where: { token },
   });
-  if (!record) return null;
-  if (record.expiresAt.getTime() < Date.now()) return null;
+  if (!record) {
+    console.error(
+      `[mcp/foi-guide] auth: token not found in DB (prefix=${token.slice(0, 8)}…)`,
+    );
+    return null;
+  }
+  if (record.expiresAt.getTime() < Date.now()) {
+    console.error(
+      `[mcp/foi-guide] auth: token expired at ${record.expiresAt.toISOString()}`,
+    );
+    return null;
+  }
 
   // Confirm the invite is still live — admin revocation should take effect
   // on the next call without us having to chase active tokens.
   const invite = await prisma.mcpInvite.findUnique({
     where: { email: record.email },
   });
-  if (!invite) return null;
+  if (!invite) {
+    console.error(
+      `[mcp/foi-guide] auth: invite revoked for email=${record.email}`,
+    );
+    return null;
+  }
 
   return { email: record.email };
 }
@@ -243,6 +270,14 @@ async function handleRpc(
 }
 
 export async function POST(req: NextRequest) {
+  const ua = req.headers.get("user-agent") ?? "<none>";
+  const authHeader = req.headers.get("authorization");
+  console.error(
+    `[mcp/foi-guide] POST ua="${ua.slice(0, 40)}" ` +
+      `has-auth=${authHeader ? "yes" : "no"} ` +
+      `ct=${req.headers.get("content-type") ?? "<none>"}`,
+  );
+
   const auth = await authenticate(req);
   if (!auth) return challenge401();
 
@@ -255,6 +290,10 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  console.error(
+    `[mcp/foi-guide] dispatched email=${auth.email} batch=${Array.isArray(body)} ` +
+      `method=${Array.isArray(body) ? body.map((b) => b.method).join("|") : body.method}`,
+  );
 
   const isBatch = Array.isArray(body);
   const requests: JsonRpcRequest[] = isBatch
