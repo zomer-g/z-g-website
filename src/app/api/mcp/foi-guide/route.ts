@@ -273,33 +273,33 @@ async function handleRpc(
   }
 }
 
+// Methods that don't require authentication. The MCP spec treats
+// `initialize` as the protocol handshake — Claude expects it to succeed
+// before it will start sending Bearer tokens on subsequent messages.
+// Same for ping and the notifications/* notifications. tools/list and
+// tools/call ALWAYS require auth.
+const PUBLIC_METHODS = new Set([
+  "initialize",
+  "ping",
+  "notifications/initialized",
+  "notifications/cancelled",
+]);
+
+function methodIsPublic(method: string): boolean {
+  return PUBLIC_METHODS.has(method);
+}
+
 export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") ?? "<none>";
   const authHeader = req.headers.get("authorization");
-  // Dump every header so we can see if Claude sends the token under a
-  // non-standard name (X-Authorization, Mcp-Bearer, cookie, etc.) or if a
-  // proxy strips it before reaching our handler.
-  const headerList: string[] = [];
-  req.headers.forEach((v, k) => {
-    const lower = k.toLowerCase();
-    if (lower === "authorization") {
-      headerList.push(`${k}=Bearer ${v.slice(7, 15)}…`);
-    } else if (lower === "cookie") {
-      headerList.push(`${k}=<${v.length} chars>`);
-    } else {
-      headerList.push(`${k}=${v.slice(0, 80)}`);
-    }
-  });
   console.error(
     `[mcp/foi-guide] POST ua="${ua.slice(0, 40)}" ` +
       `has-auth=${authHeader ? "yes" : "no"} ` +
-      `ct=${req.headers.get("content-type") ?? "<none>"} ` +
-      `headers=[${headerList.join(" | ")}]`,
+      `ct=${req.headers.get("content-type") ?? "<none>"}`,
   );
 
-  const auth = await authenticate(req);
-  if (!auth) return challenge401(req);
-
+  // Parse body FIRST so we know whether this is an initialize call (which
+  // is allowed without auth) or a tool call (which is not).
   let body: JsonRpcRequest | JsonRpcRequest[];
   try {
     body = (await req.json()) as JsonRpcRequest | JsonRpcRequest[];
@@ -309,15 +309,29 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
+  const requests: JsonRpcRequest[] = Array.isArray(body) ? body : [body];
+  const allPublic = requests.every(
+    (r) => typeof r?.method === "string" && methodIsPublic(r.method),
+  );
+
+  let authEmail: string | null = null;
+  if (!allPublic) {
+    const auth = await authenticate(req);
+    if (!auth) return challenge401(req);
+    authEmail = auth.email;
+  } else if (authHeader) {
+    // Even on a public method, if a token was sent we try to use it so
+    // usage tracking can attribute the call.
+    const auth = await authenticate(req);
+    authEmail = auth?.email ?? null;
+  }
+
   console.error(
-    `[mcp/foi-guide] dispatched email=${auth.email} batch=${Array.isArray(body)} ` +
-      `method=${Array.isArray(body) ? body.map((b) => b.method).join("|") : body.method}`,
+    `[mcp/foi-guide] dispatched email=${authEmail ?? "<unauth>"} batch=${Array.isArray(body)} ` +
+      `methods=${requests.map((r) => r.method).join("|")}`,
   );
 
   const isBatch = Array.isArray(body);
-  const requests: JsonRpcRequest[] = isBatch
-    ? (body as JsonRpcRequest[])
-    : [body as JsonRpcRequest];
 
   const responses: JsonRpcResponse[] = [];
   for (const r of requests) {
@@ -325,7 +339,14 @@ export async function POST(req: NextRequest) {
       responses.push(rpcError(null, -32600, "Invalid Request"));
       continue;
     }
-    const res = await handleRpc(r, auth.email);
+    // tools/call requires auth even if other requests in the batch don't.
+    if (!methodIsPublic(r.method) && !authEmail) {
+      responses.push(
+        rpcError(r.id, -32001, "Authentication required for this method"),
+      );
+      continue;
+    }
+    const res = await handleRpc(r, authEmail ?? "");
     if (res) responses.push(res);
   }
 
