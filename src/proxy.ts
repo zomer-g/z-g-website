@@ -32,6 +32,13 @@ export default auth((req) => {
 export const config = {
   matcher: [
     "/admin/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|images|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)",
+    // Exclude /api/mcp/* and /.well-known/* from middleware entirely.
+    // The MCP server does its own Bearer auth check; running the NextAuth
+    // auth() wrapper on every JSON-RPC POST adds latency, may interfere
+    // with header forwarding, and shows up in production as the MCP route
+    // handler never being invoked (no [mcp/foi-guide] logs despite live
+    // traffic). well-known metadata endpoints are also static spec
+    // documents — no need to involve session auth.
+    "/((?!_next/static|_next/image|favicon.ico|images|api/mcp|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)",
   ],
 };
