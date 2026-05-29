@@ -47,7 +47,7 @@ export default function TimelineLandingPage() {
 
           <div
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            style={{ height: "min(720px, 80vh)" }}
+            style={{ height: "min(880px, 85vh)", minHeight: "560px" }}
           >
             <div className="flex h-full min-h-0">
               <WhatsappShell

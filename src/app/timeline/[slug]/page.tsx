@@ -110,7 +110,7 @@ export default async function TimelineWorkspacePage({
           </header>
           <div
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            style={{ height: "min(82vh, 820px)" }}
+            style={{ height: "min(88vh, 900px)", minHeight: "560px" }}
           >
             <div className="flex h-full min-h-0">
               <WhatsappShell

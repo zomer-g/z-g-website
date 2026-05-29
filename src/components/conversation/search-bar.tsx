@@ -84,19 +84,19 @@ export function SearchBar({
             onClick={onBack}
             aria-label="חזרה לרשימת השכבות/השיחות"
             title="חזרה — סגירת התצוגה הנוכחית"
-            className="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
+            className="inline-flex shrink-0 items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
           >
-            <ArrowRight className="h-5 w-5" />
+            <ArrowRight className="h-5 w-5" aria-hidden="true" />
           </button>
         ) : null}
         <label className="relative flex-1">
-          <span className="sr-only">חיפוש בתוכן</span>
+          <span className="sr-only">חיפוש בתוך התוכן בכל השכבות והשיחות</span>
           <Search
-            className="absolute top-1/2 -translate-y-1/2 start-2 h-3.5 w-3.5 text-gray-400"
+            className="absolute top-1/2 -translate-y-1/2 start-2 h-3.5 w-3.5 text-gray-500"
             aria-hidden="true"
           />
           <input
-            type="text"
+            type="search"
             value={qDraft}
             onChange={(e) => setQDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -107,7 +107,8 @@ export function SearchBar({
             }}
             onBlur={onCommitQuery}
             placeholder="חיפוש בתוך התוכן (כל השכבות/השיחות) — Enter לאישור"
-            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-7 pe-3 py-1.5 text-sm focus:outline-none focus:border-emerald-200"
+            aria-label="חיפוש בתוכן השכבות והשיחות"
+            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-7 pe-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-600 focus:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200"
           />
         </label>
 
@@ -123,9 +124,10 @@ export function SearchBar({
               title="סינון לפי תגיות"
               className={cn(
                 "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
                 searchState.tagIds.length > 0
-                  ? "border-emerald-400 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                  ? "border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                  : "border-gray-400 bg-white text-gray-800 hover:bg-gray-50",
               )}
             >
               <Filter className="h-3.5 w-3.5" aria-hidden="true" />
@@ -178,6 +180,7 @@ export function SearchBar({
                           className={cn(
                             "w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-start",
                             "hover:bg-gray-50 transition-colors",
+                            "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-inset",
                             active && "bg-emerald-50",
                           )}
                           aria-pressed={active}
@@ -208,10 +211,10 @@ export function SearchBar({
           <button
             type="button"
             onClick={onClear}
-            aria-label="ניקוי חיפוש"
-            className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 rounded-md px-2 py-1 hover:bg-gray-100 shrink-0"
+            aria-label="ניקוי חיפוש ומסננים"
+            className="flex items-center gap-1 text-xs text-gray-700 hover:text-gray-900 rounded-md px-2 py-1 hover:bg-gray-100 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
             ניקוי
           </button>
         ) : null}

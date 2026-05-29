@@ -74,18 +74,25 @@ export function ChatSidebar({
       )}
     >
       <header className="bg-[#f0f2f5] px-4 py-3 shrink-0 flex items-center justify-between gap-2">
-        <div className="text-sm font-semibold text-gray-900 truncate min-w-0">{title}</div>
+        <h2
+          className="text-sm font-semibold text-gray-900 truncate min-w-0"
+          title={title}
+        >
+          {title}
+        </h2>
         {onOpenMergedPicker && chats.length >= 2 ? (
           <button
             type="button"
             onClick={onOpenMergedPicker}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
-              "border border-emerald-300 bg-white text-emerald-700",
+              "border border-emerald-300 bg-white text-emerald-800",
               "text-xs font-semibold hover:bg-emerald-50 transition-colors",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
               "shrink-0",
             )}
             title="הצגת כמה שיחות יחד בציר זמן רציף"
+            aria-label="פתיחת תצוגה משולבת של כמה שיחות"
           >
             <Layers className="h-3.5 w-3.5" aria-hidden="true" />
             <span>תצוגה משולבת</span>
@@ -95,40 +102,58 @@ export function ChatSidebar({
 
       <div className="px-3 py-2 bg-white border-b border-black/5 shrink-0">
         <label className="relative block">
-          <span className="sr-only">חיפוש בשיחות</span>
-          <Search className="absolute top-1/2 -translate-y-1/2 start-2 h-4 w-4 text-gray-400" aria-hidden="true" />
+          <span className="sr-only">סינון רשימת השכבות/השיחות לפי שם</span>
+          <Search
+            className="absolute top-1/2 -translate-y-1/2 start-2 h-4 w-4 text-gray-500"
+            aria-hidden="true"
+          />
           <input
-            type="text"
+            type="search"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="סינון לפי שם השכבה/השיחה"
             title="לחיפוש בתוך התוכן השתמשו בשורת החיפוש העליונה"
             aria-label="סינון רשימת השכבות/השיחות לפי שם"
-            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5 text-sm focus:outline-none focus:border-emerald-200"
+            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-600 focus:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200"
           />
         </label>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-500">
+          <div
+            className="px-4 py-10 text-center text-sm text-gray-700"
+            role="status"
+          >
             {chats.length === 0 ? "אין שיחות עדיין." : "לא נמצאו תוצאות."}
           </div>
         ) : (
-          <ul role="list" className="divide-y divide-black/5">
+          <ul
+            role="listbox"
+            aria-label="רשימת השכבות/השיחות"
+            className="divide-y divide-black/5"
+          >
             {filtered.map((c) => {
               const isActive = c.id === activeChatId;
               return (
-                <li key={c.id}>
+                <li key={c.id} role="presentation">
                   <button
                     type="button"
                     onClick={() => onSelect(c.id)}
+                    role="option"
+                    aria-selected={isActive}
+                    aria-current={isActive ? "true" : undefined}
                     className={cn(
                       "w-full flex items-start gap-3 px-3 py-3 text-start hover:bg-black/[0.04] transition-colors",
-                      isActive && "bg-emerald-50",
+                      "focus:outline-none focus-visible:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
+                      isActive &&
+                        "bg-emerald-50 border-s-4 border-emerald-600 ps-2",
                     )}
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white text-sm font-semibold">
+                    <div
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white text-sm font-semibold"
+                      aria-hidden="true"
+                    >
                       {initials(c.contactName)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -136,11 +161,14 @@ export function ChatSidebar({
                         <span className="truncate text-sm font-semibold text-gray-900">
                           {c.contactName}
                         </span>
-                        <time className="text-[11px] text-gray-500 shrink-0">
+                        <time
+                          dateTime={c.lastAt ?? undefined}
+                          className="text-[11px] text-gray-700 shrink-0"
+                        >
                           {formatRelative(c.lastAt)}
                         </time>
                       </div>
-                      <div className="mt-0.5 text-xs text-gray-600 line-clamp-1">
+                      <div className="mt-0.5 text-xs text-gray-700 line-clamp-1">
                         {c.lastTextPreview ?? "—"}
                       </div>
                     </div>

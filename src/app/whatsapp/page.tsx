@@ -42,7 +42,7 @@ export default function WhatsappLandingPage() {
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
             // Fixed visual height so the chat sample feels like the
             // real app even on a tall landing page.
-            style={{ height: "min(720px, 80vh)" }}
+            style={{ height: "min(880px, 85vh)", minHeight: "560px" }}
           >
             <div className="flex h-full min-h-0">
               <WhatsappShell

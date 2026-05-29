@@ -11,7 +11,7 @@
 // API fetch on /whatsapp/<slug>).
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, MessagesSquare, Search, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import type {
@@ -119,11 +119,53 @@ export function ChatPane({
 
   if (!chat) {
     return (
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center bg-emerald-50/40 text-gray-500">
-        <div className="rounded-full bg-white p-6 shadow-md mb-4">
-          <span className="block h-12 w-12 text-emerald-700 text-3xl text-center leading-12">💬</span>
+      <div
+        className="hidden lg:flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-emerald-50/60 to-white text-gray-700 p-10"
+        role="region"
+        aria-label="אזור תצוגת שיחה — לא נבחרה שיחה"
+      >
+        <div
+          className="rounded-full bg-white p-8 shadow-md ring-1 ring-emerald-100 mb-6"
+          aria-hidden="true"
+        >
+          <MessagesSquare
+            className="h-16 w-16 text-emerald-700"
+            strokeWidth={1.5}
+          />
         </div>
-        <p className="text-sm">בחרו שיחה כדי להתחיל</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2 text-center">
+          בחרו שיחה כדי להתחיל
+        </h2>
+        <p className="text-sm text-gray-700 max-w-md text-center leading-relaxed mb-6">
+          בחרו שכבה או שיחה מהרשימה כדי לראות את ההודעות שלה. אפשר גם להשתמש
+          בכלים הבאים כדי לסקור את כל החומר יחד.
+        </p>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
+          <li className="flex items-start gap-3 rounded-lg bg-white border border-gray-200 p-3 shadow-sm">
+            <Search
+              className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <div className="text-xs leading-relaxed text-gray-700">
+              <div className="font-semibold text-gray-900 mb-0.5">
+                חיפוש חוצה־שיחות
+              </div>
+              שורת החיפוש בראש העמוד סורקת את כל השכבות יחד.
+            </div>
+          </li>
+          <li className="flex items-start gap-3 rounded-lg bg-white border border-gray-200 p-3 shadow-sm">
+            <Layers
+              className="h-5 w-5 text-emerald-700 shrink-0 mt-0.5"
+              aria-hidden="true"
+            />
+            <div className="text-xs leading-relaxed text-gray-700">
+              <div className="font-semibold text-gray-900 mb-0.5">
+                תצוגה משולבת
+              </div>
+              צירוף כמה שיחות לציר זמן רציף אחד לפי הסדר הכרונולוגי.
+            </div>
+          </li>
+        </ul>
       </div>
     );
   }
@@ -140,11 +182,11 @@ export function ChatPane({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
+          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
           aria-label="חזרה לרשימת השיחות"
           title="סגירת השיחה — חזרה לרשימה"
         >
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white text-sm font-semibold">
           {initials(chat.contactName)}
@@ -167,15 +209,26 @@ export function ChatPane({
         )}
       >
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-gray-500 text-sm">
-            <Loader2 className="h-4 w-4 animate-spin me-2" /> טוען הודעות…
+          <div
+            className="flex items-center justify-center py-12 text-gray-700 text-sm"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-4 w-4 animate-spin me-2" aria-hidden="true" />
+            טוען הודעות…
           </div>
         ) : error ? (
-          <div className="mx-3 my-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div
+            className="mx-3 my-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            role="alert"
+          >
             {error}
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-12 text-sm text-gray-500">
+          <div
+            className="text-center py-12 text-sm text-gray-700"
+            role="status"
+          >
             אין הודעות בשיחה זו.
           </div>
         ) : (

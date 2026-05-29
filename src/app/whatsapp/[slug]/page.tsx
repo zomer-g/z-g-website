@@ -131,7 +131,7 @@ export default async function WhatsappWorkspacePage({
 
           <div
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            style={{ height: "min(82vh, 820px)" }}
+            style={{ height: "min(88vh, 900px)", minHeight: "560px" }}
           >
             <div className="flex h-full min-h-0">
               <WhatsappShell workspace={dto} mode="live" isAdmin={access.isAdmin} />
