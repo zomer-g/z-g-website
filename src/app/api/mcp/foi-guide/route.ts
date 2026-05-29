@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { siteOrigin } from "@/lib/mcp-oauth";
+import { originFromRequest } from "@/lib/mcp-oauth";
 import { searchFoiGuide } from "@/lib/foi-guide-search";
 
 // MCP server (Streamable HTTP transport). Implements the minimum JSON-RPC
@@ -45,7 +45,8 @@ function rpcError(
   return { jsonrpc: "2.0", id: id ?? null, error: { code, message, data } };
 }
 
-function challenge401() {
+function challenge401(req: NextRequest) {
+  const origin = originFromRequest(req);
   return new NextResponse(
     JSON.stringify({ error: "unauthorized" }),
     {
@@ -54,7 +55,10 @@ function challenge401() {
         "Content-Type": "application/json",
         // Per RFC 9728 — point the client at the protected-resource metadata
         // so it can discover the authorization server and start the flow.
-        "WWW-Authenticate": `Bearer realm="MCP", resource_metadata="${siteOrigin()}/.well-known/oauth-protected-resource"`,
+        // Uses the request-derived origin so clients reaching us at
+        // www.z-g.co.il get directed to www's metadata (not z-g.co.il's),
+        // avoiding a cross-host redirect that would strip their Bearer token.
+        "WWW-Authenticate": `Bearer realm="MCP", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
       },
     },
   );
@@ -294,7 +298,7 @@ export async function POST(req: NextRequest) {
   );
 
   const auth = await authenticate(req);
-  if (!auth) return challenge401();
+  if (!auth) return challenge401(req);
 
   let body: JsonRpcRequest | JsonRpcRequest[];
   try {

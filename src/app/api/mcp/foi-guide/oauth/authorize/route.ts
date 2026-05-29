@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  siteOrigin,
+  originFromRequest,
   signState,
   MCP_OAUTH_BASE_PATH,
   type AuthorizeState,
@@ -77,9 +77,13 @@ export async function GET(req: NextRequest) {
   const googleAuth = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   googleAuth.searchParams.set("client_id", googleClientId);
   googleAuth.searchParams.set("response_type", "code");
+  // Use the host the user actually reached us on (z-g.co.il vs
+  // www.z-g.co.il), so Google redirects back to the same host and Claude
+  // can complete the OAuth flow without a cross-host hop. Both hosts MUST
+  // be registered as Authorized redirect URIs in Google Console.
   googleAuth.searchParams.set(
     "redirect_uri",
-    `${siteOrigin()}${MCP_OAUTH_BASE_PATH}/callback`,
+    `${originFromRequest(req)}${MCP_OAUTH_BASE_PATH}/callback`,
   );
   googleAuth.searchParams.set("scope", "openid email profile");
   googleAuth.searchParams.set("state", signedState);

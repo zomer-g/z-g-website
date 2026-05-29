@@ -26,12 +26,35 @@ export const MCP_OAUTH_BASE_PATH = "/api/mcp/foi-guide/oauth";
 export const ACCESS_TOKEN_TTL_SECONDS = 24 * 3600;
 export const AUTH_CODE_TTL_SECONDS = 10 * 60;
 
+// Pulls the origin from env. Used only as a fallback when there's no
+// request context (e.g. during build-time static generation of well-known
+// metadata). Prefer originFromRequest() everywhere a request is available
+// — Render hosts the site on both z-g.co.il AND www.z-g.co.il, and
+// returning the "wrong" canonical host in the OAuth metadata triggers a
+// 30x redirect that strips the Bearer token (RFC 7230 §5.4 behaviour in
+// every HTTP client). The MCP flow then loops on 401s.
 export function siteOrigin(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXTAUTH_URL ||
     "http://localhost:3000"
   ).replace(/\/$/, "");
+}
+
+// Derives the origin from the incoming request, honoring whatever host
+// the client actually reached us on (so subsequent requests don't get
+// cross-host redirected and lose their auth header).
+import type { NextRequest } from "next/server";
+export function originFromRequest(req: NextRequest): string {
+  const proto =
+    req.headers.get("x-forwarded-proto") ??
+    (req.nextUrl.protocol.replace(":", "")) ??
+    "https";
+  const host =
+    req.headers.get("x-forwarded-host") ??
+    req.headers.get("host") ??
+    req.nextUrl.host;
+  return `${proto}://${host}`.replace(/\/$/, "");
 }
 
 export function randomToken(bytes = 32): string {

@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import {
   AUTH_CODE_TTL_SECONDS,
   MCP_OAUTH_BASE_PATH,
+  originFromRequest,
   randomToken,
-  siteOrigin,
   verifyState,
 } from "@/lib/mcp-oauth";
 
@@ -42,12 +42,17 @@ interface GoogleUserInfo {
   sub?: string;
 }
 
-async function fetchGoogleEmail(code: string): Promise<string | null> {
+async function fetchGoogleEmail(
+  code: string,
+  redirectUri: string,
+): Promise<string | null> {
   const params = new URLSearchParams({
     code,
     client_id: process.env.GOOGLE_CLIENT_ID_PUBLIC ?? "",
     client_secret: process.env.GOOGLE_CLIENT_SECRET_PUBLIC ?? "",
-    redirect_uri: `${siteOrigin()}${MCP_OAUTH_BASE_PATH}/callback`,
+    // Must match the redirect_uri we sent at /authorize time, otherwise
+    // Google returns redirect_uri_mismatch.
+    redirect_uri: redirectUri,
     grant_type: "authorization_code",
   });
 
@@ -96,7 +101,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const email = await fetchGoogleEmail(googleCode);
+  const redirectUri = `${originFromRequest(req)}${MCP_OAUTH_BASE_PATH}/callback`;
+  const email = await fetchGoogleEmail(googleCode, redirectUri);
   if (!email) {
     return errorPage(
       "ההזדהות נכשלה",

@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
-import { siteOrigin, MCP_OAUTH_BASE_PATH } from "@/lib/mcp-oauth";
+import { NextRequest, NextResponse } from "next/server";
+import { originFromRequest, MCP_OAUTH_BASE_PATH } from "@/lib/mcp-oauth";
 
 // RFC 8414 — Authorization Server Metadata.
-// MCP clients use this to discover the authorize/token/registration endpoints.
+// See oauth-protected-resource/route.ts for why the origin must be derived
+// from the request (host) rather than from env vars.
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
-export function GET() {
-  const origin = siteOrigin();
+export function GET(req: NextRequest) {
+  const origin = originFromRequest(req);
   return NextResponse.json({
     issuer: origin,
     authorization_endpoint: `${origin}${MCP_OAUTH_BASE_PATH}/authorize`,
