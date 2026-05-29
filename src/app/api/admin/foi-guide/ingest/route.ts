@@ -75,10 +75,13 @@ export async function POST(req: NextRequest) {
   }
 
   // 2. Load existing per-doc state so unchanged chapters are skipped cheaply.
+  //    Look up by URL (the authoritative key) — two chapters on foiguide.org.il
+  //    can share the same last-segment slug because of source-site URL
+  //    aliasing, so URL is the only safe match.
   const existingDocs = await prisma.foiGuideDoc.findMany({
-    select: { id: true, slug: true, contentHash: true },
+    select: { id: true, url: true, contentHash: true },
   });
-  const existingBySlug = new Map(existingDocs.map((d) => [d.slug, d]));
+  const existingByUrl = new Map(existingDocs.map((d) => [d.url, d]));
 
   const stats = {
     total: index.length,
@@ -117,7 +120,7 @@ export async function POST(req: NextRequest) {
       const contentHash = await hashText(
         `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
       );
-      const prior = existingBySlug.get(ref.slug);
+      const prior = existingByUrl.get(ref.url);
       if (!force && prior?.contentHash === contentHash) {
         // Touch lastFetchedAt so the admin UI can show "checked X minutes ago"
         // even on a no-op cycle.
@@ -159,6 +162,9 @@ export async function POST(req: NextRequest) {
           await tx.foiGuideDoc.update({
             where: { id: docId },
             data: {
+              // Update the slug too — older rows may have been written with
+              // the last-segment-only slug strategy that wasn't unique.
+              slug: ref.slug,
               url: ref.url,
               title: ref.title || parsed.title,
               order: ref.order,

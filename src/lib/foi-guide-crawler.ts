@@ -150,8 +150,11 @@ function urlToSlug(url: string): string {
     const u = new URL(url);
     const segs = u.pathname.split("/").filter(Boolean);
     if (segs.length === 0) return "";
-    const last = segs[segs.length - 1];
-    return decodeURIComponent(last);
+    // Join the full path — two FOI Guide chapters share the same last
+    // segment (the source site has aliasing on /11-סעיף-9ב-…/ pointing at
+    // both chapter 11 and chapter 12), so the last segment alone is not
+    // unique. The full decoded path is.
+    return decodeURIComponent(segs.join("/"));
   } catch {
     return "";
   }
