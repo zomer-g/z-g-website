@@ -208,7 +208,13 @@ function fuseRankings(semantic: ChunkHit[], substring: SubstringHit[]): DocAggre
   return Array.from(aggregates.values()).sort((a, b) => b.rrfScore - a.rrfScore);
 }
 
-function buildSnippet(text: string, queryTerms: string[], maxLen = 320): string {
+// We want the snippet to be wide enough that the model can write a full
+// legal analysis without re-querying. 320 chars (the old default, copied
+// from the Guidelines pipeline) was too narrow: the model produced
+// "based on two cases" answers when the chapter cited dozens. 2000 chars
+// ≈ one full body chunk = the most relevant paragraph + surrounding
+// context, while keeping the response under MCP's per-call token limits.
+function buildSnippet(text: string, queryTerms: string[], maxLen = 2000): string {
   if (!text) return "";
   if (text.length <= maxLen) return text;
   const lower = text.toLocaleLowerCase("he-IL");
@@ -258,8 +264,17 @@ export interface FoiSearchResponse {
   source: { name: string; url: string };
 }
 
+// This text is surfaced both at the top of the model-facing markdown and in
+// the structured JSON. It's written as a directive to the model — not just
+// a passive footer — because we observed Claude summarising results with
+// "based on two cases" while the chapter actually cited 75+ rulings.
 const DISCLAIMER =
-  "המידע מבוסס על מדריך חופש המידע (foiguide.org.il), עותק שאוחסן במערכת. אנא ודא מול הפרק המקורי לפני כל הסתמכות, במיוחד ביחס לפסיקה.";
+  "המידע מבוסס על מדריך חופש המידע (foiguide.org.il), עותק שאוחסן במערכת. " +
+  "**הוראות לנותן המענה:** (1) הצמד את המסקנה המשפטית לטקסט שהוחזר; " +
+  "(2) **חובה לצטט בתשובה את כל פסקי הדין הרלוונטיים מרשימת ה-caseLaw — " +
+  "מילה במילה, כולל מספר הערת השוליים [N] והקישור.** אל תסתפק בשני " +
+  "פסקי דין כשבמדריך מנויים עשרות; (3) צרף קישור לפרק המקור במדריך " +
+  "כדי שהמשתמש יוכל לאמת מול foiguide.org.il.";
 
 export async function searchFoiGuide(
   query: string,
