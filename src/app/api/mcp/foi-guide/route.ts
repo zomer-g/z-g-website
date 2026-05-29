@@ -273,13 +273,17 @@ async function handleRpc(
   }
 }
 
-// Methods that don't require authentication. The MCP spec treats
-// `initialize` as the protocol handshake — Claude expects it to succeed
-// before it will start sending Bearer tokens on subsequent messages.
-// Same for ping and the notifications/* notifications. tools/list and
-// tools/call ALWAYS require auth.
+// Methods that don't require authentication.
+// - initialize: protocol handshake; Claude calls it before having a token.
+// - tools/list: tool discovery; Claude's connector UI calls it to surface
+//   available tools. If we 401 here, Claude shows "no tools available" and
+//   never gets the chance to invoke them with an authenticated tools/call.
+// - ping / notifications/*: housekeeping.
+// Only tools/call requires a valid Bearer token — that's the actual
+// authenticated operation that runs the search.
 const PUBLIC_METHODS = new Set([
   "initialize",
+  "tools/list",
   "ping",
   "notifications/initialized",
   "notifications/cancelled",
