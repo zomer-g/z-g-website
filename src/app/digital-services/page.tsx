@@ -14,6 +14,7 @@ import {
   BarChart3,
   MessageSquare,
   Activity,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
@@ -212,7 +213,7 @@ export default async function DigitalServicesPage() {
             subtitle="ממשקים פעילים — אפשר ללחוץ ולהתרשם. הנתונים בהדגמה הם סינתטיים בלבד."
           />
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2">
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* WhatsApp showcase */}
             <Link
               href="/whatsapp"
@@ -292,6 +293,50 @@ export default async function DigitalServicesPage() {
                       וייצוא WhatsApp ZIP.
                     </p>
                     <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-amber-700 group-hover:text-amber-800">
+                      להדגמה
+                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Workflows showcase */}
+            <Link
+              href="/workflows"
+              className={cn(
+                "group relative block overflow-hidden rounded-xl border border-border/60 bg-white",
+                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
+              )}
+            >
+              <div
+                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-violet-400 via-violet-500 to-violet-600"
+                aria-hidden="true"
+              />
+              <div className="p-6 sm:p-8">
+                <div className="flex items-start gap-4">
+                  <div
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                      "bg-violet-100 text-violet-700",
+                      "transition-colors duration-300 group-hover:bg-violet-200",
+                    )}
+                  >
+                    <Workflow className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xl font-bold leading-snug text-primary-dark">
+                      ניהול תהליכי עבודה
+                    </h3>
+                    <p className="mt-1 text-sm font-medium text-accent-text">
+                      אירוע אחד — שני מימדים: ישות + תהליך
+                    </p>
+                    <p className="mt-3 text-sm leading-relaxed text-foreground/80">
+                      תצוגת ווטסאפ של אירועי משרד. אותו אירוע מתויג ללקוח,
+                      לתחנת משטרה ולתהליך — וצף תחת כל אחד מהממדים. אפשר
+                      להוסיף אירוע חדש ולתייגו תוך כדי.
+                    </p>
+                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-700 group-hover:text-violet-800">
                       להדגמה
                       <ArrowLeft className="h-4 w-4" aria-hidden="true" />
                     </span>
