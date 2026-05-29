@@ -619,3 +619,127 @@ model CaRecord {
   @@index([source, offense])
   @@map("ca_records")
 }
+
+// ─── מדריך חופש המידע (FOI Guide) ─── //
+// Local mirror of https://foiguide.org.il/ — 21 chapter pages crawled,
+// chunked, and embedded for semantic search. Surfaced through an OAuth-gated
+// MCP server so external tools can query the guide and get back both the
+// chapter URL and any case-law citations the chapter referenced.
+
+model FoiGuideDoc {
+  id            Int       @id @default(autoincrement())
+  // Slug derived from the chapter URL's last segment (Hebrew is preserved).
+  slug          String    @unique
+  // Canonical URL on foiguide.org.il — returned with every MCP search hit.
+  url           String    @unique
+  title         String
+  // 0 = הקדמה, 1..17 = chapters, 18..20 = appendices A/B/C.
+  order         Int
+  contentHash   String    @map("content_hash")
+  textChars     Int       @map("text_chars")
+  chunkCount    Int       @default(0) @map("chunk_count")
+  // Case-law citations extracted from the "דוגמאות שהוכרעו בבתי-המשפט"
+  // section + any inline links to Nevo / takdin / פסקדין. Stored as
+  // [{ text, link?, courtRef? }] so MCP responses can attach them verbatim
+  // without re-running the parser.
+  caseLawJson   Json      @default("[]") @map("case_law_json")
+  lastFetchedAt DateTime? @map("last_fetched_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  chunks FoiGuideChunk[]
+
+  @@map("foi_guide_docs")
+}
+
+model FoiGuideChunk {
+  id        Int     @id @default(autoincrement())
+  docId     Int     @map("doc_id")
+  chunkIdx  Int     @map("chunk_idx")
+  text      String
+  embedding Json
+  model     String
+  // "body" (default) | "case-law" — lets the MCP boost or filter
+  // case-law-derived chunks separately when assembling a response.
+  section   String?
+
+  doc FoiGuideDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+
+  @@unique([docId, chunkIdx])
+  @@index([docId])
+  @@index([section])
+  @@map("foi_guide_chunks")
+}
+
+// ─── MCP Access Control ─── //
+// Invite-only allowlist for the FOI Guide MCP server. Anyone authenticating
+// via OAuth whose email is NOT here gets 403 from the MCP token endpoint.
+
+model McpInvite {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  invitedBy String?  @map("invited_by")
+
+  @@map("mcp_invites")
+}
+
+// Per-call usage log — the seed for future per-user billing/quotas.
+model McpUsage {
+  id          Int      @id @default(autoincrement())
+  email       String
+  tool        String // e.g. "foi_guide_search"
+  query       String?
+  resultCount Int      @default(0) @map("result_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([email, createdAt])
+  @@map("mcp_usage")
+}
+
+// OAuth 2.1 client + authorization-code state for the MCP server. The
+// server speaks dynamic client registration (RFC 7591) per the MCP spec,
+// then runs a standard authorization-code + PKCE flow with Google as the
+// upstream identity provider.
+
+model McpOauthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique @map("client_id")
+  // Public clients (Claude.ai / ChatGPT) don't get a secret. Stored only
+  // when set so dynamic-registered confidential clients can authenticate
+  // their token requests.
+  clientSecret String?  @map("client_secret")
+  clientName   String?  @map("client_name")
+  redirectUris String[] @map("redirect_uris")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("mcp_oauth_clients")
+}
+
+model McpOauthAuthCode {
+  code                String   @id
+  clientId            String   @map("client_id")
+  redirectUri         String   @map("redirect_uri")
+  // PKCE — required by MCP spec. We only support S256 (plain rejected).
+  codeChallenge       String   @map("code_challenge")
+  codeChallengeMethod String   @map("code_challenge_method")
+  email               String
+  expiresAt           DateTime @map("expires_at")
+  used                Boolean  @default(false)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("mcp_oauth_auth_codes")
+}
+
+model McpOauthAccessToken {
+  token     String   @id
+  clientId  String   @map("client_id")
+  email     String
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("mcp_oauth_access_tokens")
+}

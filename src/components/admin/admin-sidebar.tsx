@@ -24,6 +24,7 @@ import {
   MessageCircle,
   Calendar,
   Gavel,
+  BookOpen,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
@@ -38,6 +39,7 @@ const navItems = [
   { label: "ווטסאפ", href: "/admin/whatsapp", icon: MessageCircle },
   { label: "ציר זמן", href: "/admin/timeline", icon: Calendar },
   { label: "הסדרים מותנים", href: "/conditional-arrangements", icon: Gavel },
+  { label: "מדריך חופש המידע", href: "/admin/foi-guide", icon: BookOpen },
   { label: "העלאת קבצים", href: "/admin/media", icon: Image },
   { label: "פניות", href: "/admin/submissions", icon: Inbox },
   { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
