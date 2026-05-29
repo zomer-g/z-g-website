@@ -213,17 +213,21 @@ export default async function DigitalServicesPage() {
             subtitle="ממשקים פעילים — אפשר ללחוץ ולהתרשם. הנתונים בהדגמה הם סינתטיים בלבד."
           />
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {/* WhatsApp showcase */}
-            <Link
-              href="/whatsapp"
+          {/* Two stacked feature cards. The first is the case
+              visualization (which itself fans out into two concrete
+              demos — WhatsApp-style chat view and multi-layer timeline
+              view of the same case). The second is workflow/contact
+              management for ongoing communication with enforcement. */}
+          <div className="mt-10 flex flex-col gap-6">
+            {/* ── Card 1: Case visualization (combines WhatsApp + Timeline) ── */}
+            <article
               className={cn(
-                "group relative block overflow-hidden rounded-xl border border-border/60 bg-white",
-                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
+                "relative overflow-hidden rounded-xl border border-border/60 bg-white",
+                "transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/5",
               )}
             >
               <div
-                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-400 via-emerald-500 to-emerald-600"
+                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-400 via-amber-500 to-emerald-600"
                 aria-hidden="true"
               />
               <div className="p-6 sm:p-8">
@@ -232,81 +236,68 @@ export default async function DigitalServicesPage() {
                     className={cn(
                       "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
                       "bg-emerald-100 text-emerald-700",
-                      "transition-colors duration-300 group-hover:bg-emerald-200",
                     )}
+                    aria-hidden="true"
                   >
-                    <MessageSquare className="h-6 w-6" aria-hidden="true" />
+                    <Eye className="h-6 w-6" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-xl font-bold leading-snug text-primary-dark">
-                      ממשק WhatsApp לחומר חקירה
+                      ויזואליזציה של תיק משפטי
                     </h3>
                     <p className="mt-1 text-sm font-medium text-accent-text">
-                      צפייה, תיוג וחיפוש מהיר בייצוא צ&apos;אטים
+                      שני מבטים על אותו תיק — שיחות וציר זמן
                     </p>
                     <p className="mt-3 text-sm leading-relaxed text-foreground/80">
-                      יבוא ZIP מקורי של WhatsApp, צפייה בממשק זהה לטלפון,
-                      תיוג הודעות ושיתוף תצוגה מסוננת עם הצדדים הרלוונטיים בתיק.
+                      איסוף, ארגון והצגה ויזואלית של חומרי תיק יחיד.
+                      בדוגמה — שתי תצוגות משלימות על אותם נתונים: שיחות
+                      WhatsApp מסוננות ומתויגות, וציר זמן רב-שכבתי שמאחד
+                      פעולות חקירה, תכתובות, פגישות והערות.
                     </p>
-                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:text-emerald-800">
-                      להדגמה
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    </span>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <Link
+                        href="/whatsapp"
+                        className={cn(
+                          "group inline-flex items-center gap-1.5 rounded-full px-4 py-2",
+                          "border border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-800",
+                          "transition-colors hover:bg-emerald-100",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
+                        )}
+                      >
+                        <MessageSquare className="h-4 w-4" aria-hidden="true" />
+                        <span>הדגמה: ממשק WhatsApp</span>
+                        <ArrowLeft
+                          className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                      <Link
+                        href="/timeline"
+                        className={cn(
+                          "group inline-flex items-center gap-1.5 rounded-full px-4 py-2",
+                          "border border-amber-300 bg-amber-50 text-sm font-semibold text-amber-800",
+                          "transition-colors hover:bg-amber-100",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1",
+                        )}
+                      >
+                        <Activity className="h-4 w-4" aria-hidden="true" />
+                        <span>הדגמה: ציר זמן רב-שכבתי</span>
+                        <ArrowLeft
+                          className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </article>
 
-            {/* Timeline showcase */}
-            <Link
-              href="/timeline"
+            {/* ── Card 2: Relationship management with enforcement ── */}
+            <article
               className={cn(
-                "group relative block overflow-hidden rounded-xl border border-border/60 bg-white",
-                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
-              )}
-            >
-              <div
-                className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-amber-400 via-amber-500 to-amber-600"
-                aria-hidden="true"
-              />
-              <div className="p-6 sm:p-8">
-                <div className="flex items-start gap-4">
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
-                      "bg-amber-100 text-amber-700",
-                      "transition-colors duration-300 group-hover:bg-amber-200",
-                    )}
-                  >
-                    <Activity className="h-6 w-6" aria-hidden="true" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-xl font-bold leading-snug text-primary-dark">
-                      ציר זמן רב-שכבתי
-                    </h3>
-                    <p className="mt-1 text-sm font-medium text-accent-text">
-                      איסוף וניתוח אירועי חקירה ותכתובות
-                    </p>
-                    <p className="mt-3 text-sm leading-relaxed text-foreground/80">
-                      תצוגת ציר זמן רב-שכבתי לאיחוד אירועי חקירה, פגישות,
-                      תכתובות והערות סביב תיק יחיד. יבוא מ-CSV, Excel
-                      וייצוא WhatsApp ZIP.
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-amber-700 group-hover:text-amber-800">
-                      להדגמה
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Workflows showcase */}
-            <Link
-              href="/workflows"
-              className={cn(
-                "group relative block overflow-hidden rounded-xl border border-border/60 bg-white",
-                "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5",
+                "relative overflow-hidden rounded-xl border border-border/60 bg-white",
+                "transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/5",
               )}
             >
               <div
@@ -319,31 +310,46 @@ export default async function DigitalServicesPage() {
                     className={cn(
                       "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
                       "bg-violet-100 text-violet-700",
-                      "transition-colors duration-300 group-hover:bg-violet-200",
                     )}
+                    aria-hidden="true"
                   >
-                    <Workflow className="h-6 w-6" aria-hidden="true" />
+                    <Workflow className="h-6 w-6" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-xl font-bold leading-snug text-primary-dark">
-                      ניהול תהליכי עבודה
+                      ניהול קשרים מול גורמי האכיפה
                     </h3>
                     <p className="mt-1 text-sm font-medium text-accent-text">
-                      אירוע אחד — שני מימדים: ישות + תהליך
+                      תקשורת מתמשכת עם משטרה, פרקליטות ולקוחות — עם התראות
                     </p>
                     <p className="mt-3 text-sm leading-relaxed text-foreground/80">
-                      תצוגת ווטסאפ של אירועי משרד. אותו אירוע מתויג ללקוח,
-                      לתחנת משטרה ולתהליך — וצף תחת כל אחד מהממדים. אפשר
-                      להוסיף אירוע חדש ולתייגו תוך כדי.
+                      ניהול ושימור של כל ההתקשרויות סביב לקוחות, תחנות
+                      משטרה ויחידות פרקליטות. אותו אירוע יכול להופיע תחת
+                      מספר ישויות ומספר תהליכים, ולקבל התראה שתופיע כשמועד
+                      היעד יגיע.
                     </p>
-                    <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-700 group-hover:text-violet-800">
-                      להדגמה
-                      <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    </span>
+                    <div className="mt-5">
+                      <Link
+                        href="/workflows"
+                        className={cn(
+                          "group inline-flex items-center gap-1.5 rounded-full px-4 py-2",
+                          "border border-violet-300 bg-violet-50 text-sm font-semibold text-violet-800",
+                          "transition-colors hover:bg-violet-100",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-1",
+                        )}
+                      >
+                        <Workflow className="h-4 w-4" aria-hidden="true" />
+                        <span>הדגמה: ניהול תהליכי עבודה</span>
+                        <ArrowLeft
+                          className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
-            </Link>
+            </article>
           </div>
         </Container>
       </section>

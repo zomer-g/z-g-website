@@ -105,7 +105,12 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
   );
 
   const handleAddEvent = useCallback(
-    (input: { text: string; entityIds: string[]; processIds: string[] }) => {
+    (input: {
+      text: string;
+      entityIds: string[];
+      processIds: string[];
+      reminderAt?: string;
+    }) => {
       // Always tag the active context, so the new event will show up
       // under the lane the user is currently viewing — even if they
       // forgot to pick it explicitly in the compose bar.
@@ -123,6 +128,7 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
         entityIds: [...entityIds],
         processIds: [...processIds],
         isSessionLocal: true,
+        reminderAt: input.reminderAt,
       };
       setEvents((prev) => [...prev, evt]);
     },

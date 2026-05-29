@@ -11,7 +11,7 @@
 // in component state — so it's gone on refresh, exactly per spec.
 
 import { useRef, useState } from "react";
-import { Send, X, Tag } from "lucide-react";
+import { Send, X, Tag, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WorkflowEntity, WorkflowProcess } from "./types";
 
@@ -26,7 +26,30 @@ interface ComposeBarProps {
     text: string;
     entityIds: string[];
     processIds: string[];
+    // ISO timestamp for the optional reminder. Undefined = no alert.
+    reminderAt?: string;
   }) => void;
+}
+
+// Returns "YYYY-MM-DDTHH:mm" string suitable as a default value for an
+// <input type="datetime-local"> control. We default to tomorrow 09:00
+// in the user's local TZ — the typical "remind me when the day starts".
+function defaultReminderLocal(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(9, 0, 0, 0);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Convert datetime-local string (no TZ) → ISO with local TZ applied,
+// then to UTC. Works because new Date(localStr) parses as local time
+// when there's no Z/offset suffix.
+function localDatetimeToISO(local: string): string {
+  return new Date(local).toISOString();
 }
 
 export function ComposeBar({
@@ -39,9 +62,10 @@ export function ComposeBar({
   const [text, setText] = useState("");
   const [entityIds, setEntityIds] = useState<string[]>(defaultEntityIds);
   const [processIds, setProcessIds] = useState<string[]>(defaultProcessIds);
-  const [openPicker, setOpenPicker] = useState<null | "entity" | "process">(
-    null,
-  );
+  const [reminderLocal, setReminderLocal] = useState<string | null>(null);
+  const [openPicker, setOpenPicker] = useState<
+    null | "entity" | "process" | "reminder"
+  >(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync defaults when the user switches the active context. We only
@@ -68,10 +92,13 @@ export function ComposeBar({
       text: text.trim(),
       entityIds: [...entityIds],
       processIds: [...processIds],
+      reminderAt: reminderLocal ? localDatetimeToISO(reminderLocal) : undefined,
     });
     setText("");
-    // Keep tag selections — the user usually wants to log several events
-    // against the same context.
+    // Clear the reminder too — alerts are per-event, not sticky.
+    setReminderLocal(null);
+    // Keep entity/process tag selections — the user usually wants to
+    // log several events against the same context.
     taRef.current?.focus();
   };
 
@@ -94,7 +121,9 @@ export function ComposeBar({
       aria-label="הוספת אירוע חדש"
     >
       {/* Selected-tags row */}
-      {(entityIds.length > 0 || processIds.length > 0) && (
+      {(entityIds.length > 0 ||
+        processIds.length > 0 ||
+        reminderLocal !== null) && (
         <div className="flex flex-wrap gap-1.5 mb-2">
           {entityIds.map((id) => {
             const e = entities.find((x) => x.id === id);
@@ -120,6 +149,14 @@ export function ComposeBar({
               />
             );
           })}
+          {reminderLocal !== null ? (
+            <TagChip
+              key="reminder"
+              label={`התראה: ${formatReminderShort(reminderLocal)}`}
+              kind="reminder"
+              onRemove={() => setReminderLocal(null)}
+            />
+          ) : null}
         </div>
       )}
 
@@ -201,6 +238,25 @@ export function ComposeBar({
             />
           </PickerButton>
 
+          {/* Reminder/alert picker — a third dimension of tagging that
+              records a future-or-past timestamp. Visually distinct (red)
+              so it doesn't get confused with the entity/process tags. */}
+          <PickerButton
+            label="התראה"
+            color="red"
+            count={reminderLocal !== null ? 1 : 0}
+            open={openPicker === "reminder"}
+            onToggle={() =>
+              setOpenPicker((cur) => (cur === "reminder" ? null : "reminder"))
+            }
+          >
+            <ReminderPicker
+              value={reminderLocal}
+              onChange={(v) => setReminderLocal(v)}
+              onClose={() => setOpenPicker(null)}
+            />
+          </PickerButton>
+
           <button
             type="button"
             onClick={handleSubmit}
@@ -235,19 +291,26 @@ function TagChip({
   onRemove,
 }: {
   label: string;
-  kind: "entity" | "process";
+  kind: "entity" | "process" | "reminder";
   onRemove: () => void;
 }) {
+  const styles =
+    kind === "entity"
+      ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+      : kind === "process"
+        ? "border-amber-300 bg-amber-50 text-amber-900"
+        : "border-red-300 bg-red-50 text-red-900";
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
-        kind === "entity"
-          ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-          : "border-amber-300 bg-amber-50 text-amber-900",
+        styles,
       )}
     >
-      <span className="max-w-[12rem] truncate">{label}</span>
+      {kind === "reminder" ? (
+        <Bell className="h-3 w-3" aria-hidden="true" />
+      ) : null}
+      <span className="max-w-[14rem] truncate">{label}</span>
       <button
         type="button"
         onClick={onRemove}
@@ -260,6 +323,18 @@ function TagChip({
   );
 }
 
+// Short representation of a reminder for chip display.
+function formatReminderShort(localStr: string): string {
+  const d = new Date(localStr);
+  if (Number.isNaN(d.getTime())) return localStr;
+  return d.toLocaleString("he-IL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function PickerButton({
   label,
   color,
@@ -269,12 +344,26 @@ function PickerButton({
   children,
 }: {
   label: string;
-  color: "emerald" | "amber";
+  color: "emerald" | "amber" | "red";
   count: number;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
 }) {
+  const COLOR_BTN = {
+    emerald:
+      "border-emerald-400 bg-white text-emerald-800 hover:bg-emerald-50 focus-visible:ring-emerald-600",
+    amber:
+      "border-amber-400 bg-white text-amber-800 hover:bg-amber-50 focus-visible:ring-amber-600",
+    red: "border-red-400 bg-white text-red-800 hover:bg-red-50 focus-visible:ring-red-600",
+  } as const;
+  const COLOR_BADGE = {
+    emerald: "bg-emerald-600",
+    amber: "bg-amber-600",
+    red: "bg-red-600",
+  } as const;
+  // Reminder gets a bell icon — the standard "alert/notification" affordance.
+  const Icon = color === "red" ? Bell : Tag;
   return (
     <div className="relative">
       <button
@@ -282,22 +371,20 @@ function PickerButton({
         onClick={onToggle}
         aria-expanded={open}
         aria-haspopup="dialog"
-        title={`תיוג ${label}`}
+        title={color === "red" ? "הגדרת התראה" : `תיוג ${label}`}
         className={cn(
           "inline-flex h-10 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
-          color === "emerald"
-            ? "border-emerald-400 bg-white text-emerald-800 hover:bg-emerald-50 focus-visible:ring-emerald-600"
-            : "border-amber-400 bg-white text-amber-800 hover:bg-amber-50 focus-visible:ring-amber-600",
+          COLOR_BTN[color],
         )}
       >
-        <Tag className="h-3.5 w-3.5" aria-hidden="true" />
+        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         <span>{label}</span>
         {count > 0 ? (
           <span
             className={cn(
               "rounded-full text-[10px] leading-none px-1.5 py-0.5 text-white",
-              color === "emerald" ? "bg-emerald-600" : "bg-amber-600",
+              COLOR_BADGE[color],
             )}
           >
             {count}
@@ -305,6 +392,94 @@ function PickerButton({
         ) : null}
       </button>
       {open ? children : null}
+    </div>
+  );
+}
+
+function ReminderPicker({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: string | null;
+  onChange: (v: string | null) => void;
+  onClose: () => void;
+}) {
+  // Initialize the input with either the existing value or a sensible
+  // default (tomorrow 9am). We don't auto-commit the default — the user
+  // must press "הגדרה" to confirm, so we keep onChange decoupled from
+  // the input state until then.
+  const [draft, setDraft] = useState<string>(value ?? defaultReminderLocal());
+  return (
+    <div
+      role="dialog"
+      aria-label="הגדרת מועד התראה"
+      className={cn(
+        "absolute bottom-full mb-2 end-0 z-50 w-72 max-w-[80vw]",
+        "rounded-lg border border-gray-200 bg-white shadow-lg p-3",
+      )}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs font-semibold text-gray-800">
+          הגדרת התראה
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="סגירה"
+          className="rounded-full p-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-600 leading-snug mb-2">
+        בחירה במועד עתידי תיצור התראה על האירוע. גם תאריכים שעברו
+        נתמכים — שימושי לתיעוד פעולות באיחור.
+      </p>
+      <label className="block mb-2">
+        <span className="sr-only">תאריך ושעה להתראה</span>
+        <input
+          type="datetime-local"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className={cn(
+            "w-full rounded-md border border-gray-300 bg-white px-2 py-1.5",
+            "text-sm text-gray-900",
+            "focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200",
+          )}
+        />
+      </label>
+      <div className="flex items-center justify-end gap-2">
+        {value !== null ? (
+          <button
+            type="button"
+            onClick={() => {
+              onChange(null);
+              onClose();
+            }}
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+          >
+            הסרת התראה
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            if (!draft) return;
+            onChange(draft);
+            onClose();
+          }}
+          className={cn(
+            "rounded-md px-3 py-1 text-xs font-semibold text-white",
+            "bg-red-600 hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-1",
+          )}
+        >
+          {value !== null ? "עדכון" : "הגדרת התראה"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -148,6 +148,8 @@ export const SEED_EVENTS: WorkflowEvent[] = [
       "ועדויות נוספות מהזירה.",
     entityIds: ["client-levi", "police-jerusalem"],
     processIds: ["proc-discovery-levi"],
+    // Overdue reminder — shows how past-due alerts surface in red.
+    reminderAt: day(-2, 12, 0),
   },
   {
     id: "evt-5",
@@ -181,6 +183,8 @@ export const SEED_EVENTS: WorkflowEvent[] = [
       "תל אביב, אולם 304. נוכחות חובה.",
     entityIds: ["client-cohen", "prosecution-ta"],
     processIds: ["proc-evidence-cohen"],
+    // Future reminder — gives the user a "upcoming alert" to look at.
+    reminderAt: day(14, 9, 0),
   },
   {
     id: "evt-8",

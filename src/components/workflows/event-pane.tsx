@@ -16,6 +16,8 @@ import {
   Scale,
   Briefcase,
   Workflow,
+  Bell,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type {
@@ -39,6 +41,56 @@ interface EventPaneProps {
   // resolve entity/process ids → display names.
   entityById: Map<string, WorkflowEntity>;
   processById: Map<string, WorkflowProcess>;
+}
+
+/* ─── Reminder formatting helpers ─── */
+
+// "בעוד 3 ימים", "באיחור 2 ימים", "היום", "מחר" — turns the absolute
+// ISO timestamp into a human-readable relative phrase. Returns the
+// label + whether the reminder is past-due, which the caller uses to
+// pick the visual treatment (red for overdue, amber for upcoming).
+function describeReminder(iso: string): {
+  label: string;
+  overdue: boolean;
+} {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return { label: "—", overdue: false };
+  const now = new Date();
+  // Diff in full calendar days, using local midnight as the anchor.
+  const midnightToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const midnightTarget = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate(),
+  );
+  const dayDiff = Math.round(
+    (midnightTarget.getTime() - midnightToday.getTime()) /
+      (24 * 60 * 60 * 1000),
+  );
+  const overdue = d.getTime() < now.getTime();
+  let rel: string;
+  if (dayDiff === 0) rel = overdue ? "באיחור (היום)" : "היום";
+  else if (dayDiff === 1) rel = "מחר";
+  else if (dayDiff === -1) rel = "באיחור (אתמול)";
+  else if (dayDiff > 1) rel = `בעוד ${dayDiff} ימים`;
+  else rel = `באיחור ${Math.abs(dayDiff)} ימים`;
+  return { label: rel, overdue };
+}
+
+function formatReminderAbs(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("he-IL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function dayKey(iso: string): string {
@@ -319,6 +371,14 @@ function EventBubble({
           {evt.text}
         </div>
 
+        {/* Reminder badge — appears ABOVE the tag chips so it's the
+            first thing the eye lands on after the body text. Past-due
+            alerts go red with a ringing-bell icon; upcoming ones go
+            amber with a quiet bell. */}
+        {evt.reminderAt ? (
+          <ReminderBadge iso={evt.reminderAt} />
+        ) : null}
+
         {(entityChips.length > 0 || processChips.length > 0) && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {entityChips.map((e) => (
@@ -346,6 +406,35 @@ function EventBubble({
           <time dateTime={evt.timestamp}>{formatTime(evt.timestamp)}</time>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ─── Reminder badge rendered inside an event bubble ─── */
+
+function ReminderBadge({ iso }: { iso: string }) {
+  const { label, overdue } = describeReminder(iso);
+  const abs = formatReminderAbs(iso);
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 mt-1.5 mb-0.5 rounded-md px-2 py-1",
+        overdue
+          ? "bg-red-50 border border-red-200 text-red-800"
+          : "bg-amber-50 border border-amber-200 text-amber-800",
+      )}
+      title={abs}
+      role="note"
+      aria-label={`התראה: ${label} (${abs})`}
+    >
+      {overdue ? (
+        <BellRing className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      ) : (
+        <Bell className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      )}
+      <span className="text-[11px] font-semibold">{label}</span>
+      <span className="text-[10px] opacity-75 truncate">{abs}</span>
     </div>
   );
 }

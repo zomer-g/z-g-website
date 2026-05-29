@@ -42,4 +42,9 @@ export interface WorkflowEvent {
   // Marks user-created events from the compose bar. Used only for the
   // small "נוסף בסשן זה" badge — everything else is identical.
   isSessionLocal?: boolean;
+  // Optional reminder/alert. ISO timestamp at which the event becomes
+  // "due". Rendered on the bubble as a bell badge with relative
+  // phrasing ("בעוד 3 ימים" / "באיחור 2 ימים"). Past-due alerts get a
+  // red treatment; upcoming alerts get amber.
+  reminderAt?: string;
 }
