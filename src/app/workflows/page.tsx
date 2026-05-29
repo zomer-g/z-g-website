@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { WorkflowsShell } from "@/components/workflows/workflows-shell";
@@ -26,6 +28,15 @@ export default function WorkflowsLandingPage() {
           the bottom spacing modest. */}
       <Container className="pt-12 sm:pt-16 pb-8">
         <div dir="rtl" className="space-y-4">
+          <div>
+            <Link
+              href="/digital-services"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary-dark transition-colors mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded"
+            >
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              <span>חזרה לשירותים דיגיטליים</span>
+            </Link>
+          </div>
           <header className="text-center max-w-2xl mx-auto">
             <h1 className="text-2xl sm:text-3xl font-bold text-primary-dark">
               ניהול תהליכי עבודה

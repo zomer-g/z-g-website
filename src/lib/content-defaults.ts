@@ -120,7 +120,17 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
   navItems: [
     { label: "ראשי", href: "/" },
     { label: "אודות", href: "/about" },
-    { label: "שירותים דיגיטליים", href: "/digital-services" },
+    // "שירותים דיגיטליים" carries hardcoded children so the demo
+    // pages are always reachable from the header without a DB entry.
+    {
+      label: "שירותים דיגיטליים",
+      href: "/digital-services",
+      children: [
+        { label: "ויזואליזציה של תיק — ממשק WhatsApp", href: "/whatsapp" },
+        { label: "ויזואליזציה של תיק — ציר זמן", href: "/timeline" },
+        { label: "ניהול קשרים מול גורמי אכיפה", href: "/workflows" },
+      ],
+    },
     // "מיזמים" + "תחומי עיסוק" both carry `children: []` as a marker
     // so PublicLayout knows to populate them at runtime. "מיזמים"
     // children come from DEFAULT_PROJECTS_CONTENT.projects; "תחומי
@@ -365,10 +375,10 @@ export const DEFAULT_DIGITAL_SERVICES_CONTENT: DigitalServicesPageContent = {
     },
     {
       title: "הגנת פרטיות ורגולציה",
-      subtitle: "ייעוץ GDPR וחוק הגנת הפרטיות",
-      description: "ייעוץ ויישום דרישות הגנת הפרטיות — מהטמעת נהלים פנימיים ועד מינוי ממונה הגנת פרטיות חיצוני. התאמה לחוק הגנת הפרטיות הישראלי, ל-GDPR ולדרישות רגולטוריות ספציפיות לענף.",
+      subtitle: "הגשר בין הוראות משפטיות לפתרונות טכנולוגיים",
+      description: "הנקודה שבה הדין פוגש את הקוד — תרגום דרישות חוק הגנת הפרטיות הישראלי וה-GDPR לאפיון טכני ממשי: ארכיטקטורת מידע, מדיניות גישה ומנגנוני מחיקה. היכולת לקרוא גם את החקיקה וגם את הקוד מאפשרת לתת ייעוץ שאינו נעצר בהמלצה המשפטית, אלא מתרגם אותה ליישום שעובד — וזה בדיוק החיבור שבין משפט, מידע וטכנולוגיה.",
       icon: "Scale",
-      tags: ["הגנת פרטיות", "GDPR", "רגולציה"],
+      tags: ["הגנת פרטיות", "GDPR", "חוק × קוד"],
     },
   ],
   credentials: {
