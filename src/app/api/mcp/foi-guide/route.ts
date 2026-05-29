@@ -213,8 +213,9 @@ function renderResultsMarkdown(
         `**פסיקה רלוונטית — ${res.caseLaw.length} פסקי דין מהערות השוליים של הפרק:**`,
       );
       lines.push(
-        `*(חובה לצטט בתשובה את הפסיקה הרלוונטית לשאלה — כולל מספר ההערה ` +
-          `(${"[N]"}), הציטוט המלא, והקישור — כפי שהם מופיעים כאן.)*`,
+        `*(בעת הציטוט בתשובה: השתמש בנוסח המלא של פסק הדין — שם הצדדים, ` +
+          `ערכאה ותאריך — כפי שמופיע כאן. **אל תכתוב מספרי הערות כמו [32].** ` +
+          `קישור לפסק הדין המלא הוא בשדה url — צרף אותו רק אם המשתמש ביקש קישור.)*`,
       );
       // No slicing — return every footnote we extracted from the chapter.
       // Chapter 11 (סעיף 9(ב)) alone has ~75 footnotes; if the model only
@@ -223,10 +224,11 @@ function renderResultsMarkdown(
       // acceptable because the user explicitly chose to invoke the tool.
       for (const c of res.caseLaw) {
         const link = c.links[0];
+        // Emit as "citation (url: ...)" — the url label makes it obvious to
+        // the model that the link is data, not part of the citation, so it
+        // won't paste the raw URL into the answer unless the user asks.
         lines.push(
-          link
-            ? `- [${c.footnoteId}] ${c.text} — ${link}`
-            : `- [${c.footnoteId}] ${c.text}`,
+          link ? `- ${c.text} (url: ${link})` : `- ${c.text}`,
         );
       }
     }
@@ -257,12 +259,17 @@ async function handleRpc(
           "את הכלי foi_guide_search לפני כל חיפוש web. " +
           "\n\nכשאתה משיב על בסיס תוצאות הכלי:\n" +
           "1. הצג מסקנה משפטית מבוססת על הטקסט המוחזר.\n" +
-          "2. **חובה** לצטט את הפסיקה כפי שהיא מופיעה ב-caseLaw של התוצאה — " +
-          "מילה במילה, כולל הקישור לפסק הדין כפי שניתן בהערת השוליים. " +
-          "אל תמציא, אל תקצר, אל תשנה ניסוח של ציטוט פסיקה.\n" +
-          "3. **חובה** לציין קישור לפרק המקור במדריך " +
+          "2. **חובה** לצטט את הפסיקה הרלוונטית מרשימת ה-caseLaw של " +
+          "התוצאה. ציטוט = הנוסח המלא של פסק הדין (שם הצדדים, ערכאה, " +
+          'מספר תיק, ותאריך) כפי שהוא מופיע ב-text — למשל: עע"מ 5427/21 ' +
+          "**משרד הבריאות נ' פלוני** (31/5/2022). " +
+          "**אל תציין מספרי הערות שוליים** כמו [32]/[33א] בתשובה — " +
+          "אלה רק מזהים פנימיים במדריך.\n" +
+          "3. הקישור לפסק הדין (שדה url / links) הוא **data בלבד** — " +
+          "צרף אותו לציטוט רק אם המשתמש ביקש קישור.\n" +
+          "4. **חובה** לציין קישור לפרק המקור במדריך " +
           "(foiguide.org.il) שממנו לקוחה התשובה.\n" +
-          "4. אם הכלי החזיר 0 תוצאות, אמור זאת מפורשות לפני שתפנה למקור אחר.",
+          "5. אם הכלי החזיר 0 תוצאות, אמור זאת מפורשות לפני שתפנה למקור אחר.",
       });
 
     case "notifications/initialized":
