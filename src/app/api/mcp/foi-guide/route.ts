@@ -272,10 +272,25 @@ async function handleRpc(
 export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") ?? "<none>";
   const authHeader = req.headers.get("authorization");
+  // Dump every header so we can see if Claude sends the token under a
+  // non-standard name (X-Authorization, Mcp-Bearer, cookie, etc.) or if a
+  // proxy strips it before reaching our handler.
+  const headerList: string[] = [];
+  req.headers.forEach((v, k) => {
+    const lower = k.toLowerCase();
+    if (lower === "authorization") {
+      headerList.push(`${k}=Bearer ${v.slice(7, 15)}…`);
+    } else if (lower === "cookie") {
+      headerList.push(`${k}=<${v.length} chars>`);
+    } else {
+      headerList.push(`${k}=${v.slice(0, 80)}`);
+    }
+  });
   console.error(
     `[mcp/foi-guide] POST ua="${ua.slice(0, 40)}" ` +
       `has-auth=${authHeader ? "yes" : "no"} ` +
-      `ct=${req.headers.get("content-type") ?? "<none>"}`,
+      `ct=${req.headers.get("content-type") ?? "<none>"} ` +
+      `headers=[${headerList.join(" | ")}]`,
   );
 
   const auth = await authenticate(req);
