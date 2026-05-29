@@ -51,6 +51,15 @@ interface McpInvite {
   callsLast7Days: number;
 }
 
+interface McpUsage {
+  id: number;
+  email: string;
+  tool: string;
+  query: string | null;
+  resultCount: number;
+  createdAt: string;
+}
+
 const MCP_DOCS_URL = "https://modelcontextprotocol.io/";
 
 export default function AdminFoiGuidePage() {
@@ -63,6 +72,8 @@ export default function AdminFoiGuidePage() {
   const [invites, setInvites] = useState<McpInvite[]>([]);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSaving, setInviteSaving] = useState(false);
+
+  const [usage, setUsage] = useState<McpUsage[]>([]);
 
   const fetchDocs = useCallback(async () => {
     try {
@@ -88,10 +99,22 @@ export default function AdminFoiGuidePage() {
     }
   }, []);
 
+  const fetchUsage = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/mcp-usage?limit=30", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { usage: McpUsage[] };
+      setUsage(data.usage);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDocs();
     fetchInvites();
-  }, [fetchDocs, fetchInvites]);
+    fetchUsage();
+  }, [fetchDocs, fetchInvites, fetchUsage]);
 
   async function runIngest(force: boolean) {
     setIngestRunning(true);
@@ -392,6 +415,67 @@ export default function AdminFoiGuidePage() {
             </ul>
           )}
         </div>
+      </section>
+
+      {/* ── MCP recent calls ── */}
+      <section className="rounded-lg border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              קריאות MCP אחרונות
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              30 הקריאות האחרונות לכלי <code>foi_guide_search</code>. שימושי
+              לאבחון hallucination — מה Claude שאל, ואיזה מספר תוצאות הוחזרו.
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={fetchUsage}>
+            <RefreshCw size={14} /> רענן
+          </Button>
+        </div>
+        {usage.length === 0 ? (
+          <p className="px-6 py-8 text-center text-sm text-muted">
+            אין עדיין קריאות. כשתשאל את Claude שאלה שתפעיל את הכלי,
+            הקריאה תופיע כאן.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-right">
+              <thead>
+                <tr className="border-b border-border bg-gray-50 text-sm">
+                  <th className="px-4 py-3 font-semibold">זמן</th>
+                  <th className="px-4 py-3 font-semibold">משתמש</th>
+                  <th className="px-4 py-3 font-semibold">שאילתה</th>
+                  <th className="px-4 py-3 font-semibold">תוצאות</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usage.map((u) => (
+                  <tr key={u.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-2 text-xs text-muted whitespace-nowrap">
+                      {formatDate(u.createdAt)}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-muted" dir="ltr">
+                      {u.email}
+                    </td>
+                    <td className="px-4 py-2 text-sm text-foreground">
+                      <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs">
+                        {u.query ?? "—"}
+                      </code>
+                    </td>
+                    <td className="px-4 py-2 text-sm">
+                      {u.resultCount === 0 ? (
+                        <Badge variant="error">0</Badge>
+                      ) : (
+                        <Badge variant="success">{u.resultCount}</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );
