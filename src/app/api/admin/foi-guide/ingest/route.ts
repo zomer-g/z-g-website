@@ -15,6 +15,46 @@ import {
   type ChapterRef,
 } from "@/lib/foi-guide-crawler";
 import { chunkFoiChapter } from "@/lib/foi-guide-chunker";
+import { extractLawSections, type LawSection } from "@/lib/foi-guide-structure";
+import type { Prisma } from "@/generated/prisma/client";
+
+// Persists the structured law-section → decided-example model for one chapter.
+// Cheap (no API calls), so it runs on every fetched chapter — including the
+// hash-skip path — to guarantee the structure stays in sync even when the
+// embeddings are unchanged. Replaces the chapter's sections wholesale inside
+// the caller's transaction.
+async function persistStructure(
+  tx: Prisma.TransactionClient,
+  docId: number,
+  chapterUrl: string,
+  sections: LawSection[],
+): Promise<number> {
+  await tx.foiLawSection.deleteMany({ where: { docId } });
+  let examples = 0;
+  for (let i = 0; i < sections.length; i++) {
+    const s = sections[i];
+    await tx.foiLawSection.create({
+      data: {
+        sectionRef: s.sectionRef,
+        heading: s.heading,
+        anchorUrl: s.anchorUrl,
+        docId,
+        chapterUrl,
+        order: i,
+        examples: {
+          create: s.examples.map((ex) => ({
+            description: ex.description,
+            outcome: ex.outcome,
+            rulingsJson: ex.rulings as unknown as object,
+            order: ex.order,
+          })),
+        },
+      },
+    });
+    examples += s.examples.length;
+  }
+  return examples;
+}
 
 // Mirrors the Guidelines embed route's incremental-rebuild design: per-doc
 // content hash → skip unchanged chapters; embed in batched OpenAI calls;
@@ -89,6 +129,8 @@ export async function POST(req: NextRequest) {
     skipped: 0,
     rebuilt: 0,
     chunksCreated: 0,
+    sectionsCreated: 0,
+    examplesCreated: 0,
     failed: 0,
     failedSlugs: [] as string[],
     firstError: null as { slug: string; message: string } | null,
@@ -117,16 +159,26 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Structured law-section model — cheap (no API), so extract it for every
+      // fetched chapter.
+      const sections = extractLawSections(html, ref.url, parsed.footnotes);
+
       const contentHash = await hashText(
         `${EMBED_MODEL}\n${chunks.map((c) => c.embeddingInput).join("\n---\n")}`,
       );
       const prior = existingByUrl.get(ref.url);
       if (!force && prior?.contentHash === contentHash) {
-        // Touch lastFetchedAt so the admin UI can show "checked X minutes ago"
-        // even on a no-op cycle.
-        await prisma.foiGuideDoc.update({
-          where: { id: prior.id },
-          data: { lastFetchedAt: new Date() },
+        // Embeddings unchanged — skip the expensive rebuild, but still refresh
+        // the structured sections (cheap) so this feature populates even when
+        // the chapter text hasn't changed since the last ingest.
+        await prisma.$transaction(async (tx) => {
+          await tx.foiGuideDoc.update({
+            where: { id: prior.id },
+            data: { lastFetchedAt: new Date() },
+          });
+          const ex = await persistStructure(tx, prior.id, ref.url, sections);
+          stats.sectionsCreated += sections.length;
+          stats.examplesCreated += ex;
         });
         stats.skipped += 1;
         continue;
@@ -204,6 +256,10 @@ export async function POST(req: NextRequest) {
             section: p.section,
           })),
         });
+
+        const ex = await persistStructure(tx, id, ref.url, sections);
+        stats.sectionsCreated += sections.length;
+        stats.examplesCreated += ex;
       });
 
       stats.rebuilt += 1;

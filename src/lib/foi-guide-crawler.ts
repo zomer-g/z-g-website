@@ -71,8 +71,9 @@ function decodeEntities(s: string): string {
 
 // Strip HTML tags while keeping paragraph/line structure. Block-level tags
 // (h1-h6, p, li, br, div) emit newlines so plain-text chunks still split on
-// paragraph boundaries.
-function htmlToText(html: string): string {
+// paragraph boundaries. Exported so the structured-section parser can reuse
+// the same normalisation.
+export function htmlToText(html: string): string {
   return html
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
     .replace(/<br\s*\/?>/gi, "\n")
@@ -81,7 +82,7 @@ function htmlToText(html: string): string {
     .replace(/&nbsp;/g, " ");
 }
 
-function cleanText(s: string): string {
+export function cleanText(s: string): string {
   return decodeEntities(s)
     .replace(/ /g, " ")
     // Strip BIDI/zero-width marks: they break literal-substring search.
@@ -217,12 +218,17 @@ export function parseChapter(html: string, url: string): ParsedChapter {
   const articleEnd = findArticleEnd(tail);
   const articleHtml = tail.slice(0, articleEnd);
 
-  // 3. Separate body from footnotes. Footnotes are the paragraphs that
-  //    contain `name="_ftnN"` (note: not _ftnrefN — that's the inline marker
-  //    inside the body). The first such paragraph marks the start of the
-  //    footnotes block.
+  // 3. Separate body from footnotes. The footnote DEFINITIONS at the bottom
+  //    of the page are the only anchors carrying `id="#_ftn…"` (with the
+  //    leading '#'); the inline body markers don't. This holds for BOTH
+  //    formats the guide uses:
+  //      • most chapters: definition is `<a id="#_ftnref1" name="_ftn1">`
+  //      • chapter 10 etc: definition is `<a id="#_ftn1" name="_ftnref1">`
+  //    Matching on `id="#_ftn` (which prefixes both `#_ftn1` and `#_ftnref1`)
+  //    reliably finds where the footnotes block starts in either format —
+  //    the previous `name="_ftn\d+"` test missed chapter 10 entirely.
   const firstFootnoteAnchor = articleHtml.search(
-    /<a[^>]*\bname="_ftn\d+"[^>]*>/i,
+    /<a[^>]*\bid="#_ftn/i,
   );
   const bodyHtml =
     firstFootnoteAnchor > 0 ? articleHtml.slice(0, firstFootnoteAnchor) : articleHtml;
@@ -295,7 +301,12 @@ function extractFootnotes(html: string): CaseLawCitation[] {
 }
 
 function extractFootnoteId(paragraphHtml: string): string | null {
-  // Standard anchored footnote: <a ... name="_ftnN">[N]</a>
+  // The footnote definition anchor carries id="#_ftn1" or id="#_ftnref1"
+  // depending on the chapter's format. Pull the numeric id from either.
+  const byId = paragraphHtml.match(/\bid="#_ftn(?:ref)?(\d+)"/i);
+  if (byId) return byId[1];
+
+  // Older/standard anchored footnote: <a ... name="_ftnN">[N]</a>.
   const anchored = paragraphHtml.match(/\bname="_ftn(\d+)"[^>]*>\[(\d+)\]/i);
   if (anchored) return anchored[1];
 

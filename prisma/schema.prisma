@@ -671,6 +671,56 @@ model FoiGuideChunk {
   @@map("foi_guide_chunks")
 }
 
+// ─── Structured statute-clause model ─── //
+// Built ALONGSIDE the chunk/embedding index (not instead of it). The guide is
+// organised as: law clause → "דוגמאות שהוכרעו בבתי-המשפט" → each example cites
+// a ruling in its footnote. We persist that structure so the MCP can return a
+// clean, deterministic table of decided cases for a specific clause (e.g.
+// "9(ב)(4)") — which prevents the model from attaching a 9(ב)(3) ruling to a
+// claim about 9(ב)(4), the cross-clause leakage we saw with pure semantic
+// search.
+
+model FoiLawSection {
+  id         Int    @id @default(autoincrement())
+  // Statute clause, normalised, e.g. "9(ב)(4)", "14(א)(8)".
+  sectionRef String @map("section_ref")
+  // The guide's heading text for this clause's subsection.
+  heading    String
+  // Deep link into the guide (chapter URL + #anchor when available).
+  anchorUrl  String @map("anchor_url")
+  // Which chapter doc this clause lives in (for "open in guide" + re-ingest).
+  docId      Int    @map("doc_id")
+  chapterUrl String @map("chapter_url")
+  order      Int    @default(0)
+
+  examples FoiDecidedExample[]
+
+  // A clause appears once per chapter; the parser already merges duplicates.
+  @@unique([docId, sectionRef])
+  @@index([sectionRef])
+  @@map("foi_law_sections")
+}
+
+model FoiDecidedExample {
+  id          Int    @id @default(autoincrement())
+  sectionId   Int    @map("section_id")
+  // The guide's prose: the situation + how the court ruled.
+  description String
+  // "rejected" (court rejected reliance on the exemption → disclosure) |
+  // "accepted" (court accepted reliance → non-disclosure) | "mixed" |
+  // "unspecified".
+  outcome     String
+  // Rulings cited by this example, from its footnote(s):
+  // [{ footnoteId, text, links[] }]. Usually one, sometimes two.
+  rulingsJson Json   @default("[]") @map("rulings_json")
+  order       Int    @default(0)
+
+  section FoiLawSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@map("foi_decided_examples")
+}
+
 // ─── MCP Access Control ─── //
 // Invite-only allowlist for the FOI Guide MCP server. Anyone authenticating
 // via OAuth whose email is NOT here gets 403 from the MCP token endpoint.

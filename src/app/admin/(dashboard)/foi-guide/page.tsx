@@ -25,6 +25,8 @@ interface FoiDoc {
   chunkCount: number;
   textChars: number;
   caseLawCount: number;
+  sectionCount: number;
+  exampleCount: number;
   lastFetchedAt: string | null;
   updatedAt: string;
 }
@@ -294,6 +296,7 @@ export default function AdminFoiGuidePage() {
                   <th className="px-4 py-3 font-semibold">כותרת</th>
                   <th className="px-4 py-3 font-semibold">chunks</th>
                   <th className="px-4 py-3 font-semibold">פסיקה</th>
+                  <th className="px-4 py-3 font-semibold">סעיפים/דוגמאות</th>
                   <th className="px-4 py-3 font-semibold">סונכרן</th>
                   <th className="px-4 py-3 font-semibold">פעולות</th>
                 </tr>
@@ -318,6 +321,11 @@ export default function AdminFoiGuidePage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-muted">
                       {d.caseLawCount > 0 ? `${d.caseLawCount} פסקי דין` : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted">
+                      {d.sectionCount > 0
+                        ? `${d.sectionCount} סעיפים · ${d.exampleCount} דוגמאות`
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 text-sm text-muted">
                       {d.lastFetchedAt ? formatDate(d.lastFetchedAt) : "—"}

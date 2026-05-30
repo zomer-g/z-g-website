@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { originFromRequest } from "@/lib/mcp-oauth";
 import { searchFoiGuide } from "@/lib/foi-guide-search";
+import {
+  listLawSections,
+  getExamplesByClause,
+} from "@/lib/foi-guide-structured";
 
 // MCP server (Streamable HTTP transport). Implements the minimum JSON-RPC
 // surface needed for the FOI Guide:
 //   - initialize
 //   - tools/list
-//   - tools/call (foi_guide_search)
+//   - tools/call: foi_guide_search (semantic), foi_list_sections +
+//     foi_examples_by_section (structured statute-clause tables)
 //
 // Spec: https://modelcontextprotocol.io/docs/specs
 
@@ -16,7 +21,7 @@ export const maxDuration = 60;
 
 const PROTOCOL_VERSION = "2024-11-05";
 const SERVER_NAME = "foi-guide";
-const SERVER_VERSION = "0.1.0";
+const SERVER_VERSION = "0.2.0";
 
 interface JsonRpcRequest {
   jsonrpc: "2.0";
@@ -145,11 +150,48 @@ const TOOLS = [
       required: ["query"],
     },
   },
+  {
+    name: "foi_list_sections",
+    description:
+      "מחזיר את רשימת סעיפי החוק במדריך חופש המידע שיש להם דוגמאות שהוכרעו " +
+      "בבתי-המשפט (למשל 9(א)(3), 9(ב)(4), 9(ב)(6), 14(ד)), עם מספר הדוגמאות " +
+      "לכל סעיף וקישור לפרק. השתמש בו כדי לדעת אילו סעיפים זמינים לפני קריאה " +
+      "ל-foi_examples_by_section.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "foi_examples_by_section",
+    description:
+      "**שליפה מובנית ודטרמיניסטית של הדוגמאות שהוכרעו בבתי-המשפט לסעיף חוק " +
+      "ספציפי.** עדיף על foi_guide_search כשהשאלה ממוקדת בסעיף חוק מסוים " +
+      "(למשל ניתוח דחיית בקשה בעילת 9(ב)(4)). מחזיר טבלה: לכל דוגמה — " +
+      "description (העובדות + ההכרעה), outcome (rejected=ביהמ\"ש דחה את " +
+      "ההסתמכות על הסייג/הורה לגלות, accepted=קיבל את ההסתמכות/אישר חיסיון), " +
+      "ו-rulings (שם פסק הדין + תאריך + קישור, מהערת השוליים). **כל הציטוטים " +
+      "כאן שייכים אך ורק לסעיף שביקשת — אין דליפה בין סעיפים.** אסור להמציא " +
+      "ציטוט שלא ברשימה.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        law_section: {
+          type: "string",
+          description:
+            'סעיף החוק, למשל "9(ב)(4)" או "14(ד)". ניתן גם prefix כמו "9(ב)" ' +
+            "כדי לקבל את כל תתי-הסעיפים.",
+        },
+      },
+      required: ["law_section"],
+    },
+  },
 ] as const;
 
 interface FoiGuideSearchArgs {
   query?: string;
   top_k?: number;
+}
+
+interface FoiExamplesArgs {
+  law_section?: string;
 }
 
 async function callFoiGuideSearch(args: FoiGuideSearchArgs, email: string) {
@@ -187,6 +229,89 @@ async function callFoiGuideSearch(args: FoiGuideSearchArgs, email: string) {
       },
     ],
     structuredContent: response,
+  };
+}
+
+const OUTCOME_LABEL: Record<string, string> = {
+  rejected: "ביהמ״ש דחה את ההסתמכות על הסייג (הורה לגלות)",
+  accepted: "ביהמ״ש קיבל את ההסתמכות על הסייג (אישר חיסיון)",
+  mixed: "מעורב",
+  unspecified: "לא צוין",
+};
+
+async function callListSections(email: string) {
+  const sections = await listLawSections();
+  await prisma.mcpUsage.create({
+    data: { email, tool: "foi_list_sections", query: null, resultCount: sections.length },
+  });
+  const lines = ["# סעיפי חוק עם דוגמאות שהוכרעו במדריך חופש המידע", ""];
+  for (const s of sections) {
+    lines.push(`- **${s.sectionRef}** — ${s.heading} (${s.exampleCount} דוגמאות) — ${s.chapterUrl}`);
+  }
+  return {
+    content: [
+      { type: "text" as const, text: lines.join("\n") },
+      { type: "text" as const, text: JSON.stringify({ sections }, null, 2) },
+    ],
+    structuredContent: { sections },
+  };
+}
+
+async function callExamplesBySection(args: FoiExamplesArgs, email: string) {
+  const clause = typeof args.law_section === "string" ? args.law_section.trim() : "";
+  if (!clause) {
+    return {
+      content: [{ type: "text" as const, text: "Missing required field: law_section" }],
+      isError: true,
+    };
+  }
+  const sections = await getExamplesByClause(clause);
+  const total = sections.reduce((n, s) => n + s.examples.length, 0);
+  await prisma.mcpUsage.create({
+    data: { email, tool: "foi_examples_by_section", query: clause, resultCount: total },
+  });
+
+  const lines: string[] = [];
+  lines.push(`# דוגמאות שהוכרעו — סעיף ${clause}`);
+  lines.push(
+    "*כל הדוגמאות והציטוטים שלהלן שייכים אך ורק לסעיף המבוקש. " +
+      "בנה את הניתוח על אלה: לכל דוגמה — הכלל/המבחן, העובדות וההכרעה, " +
+      "הציטוט (שם תיק + תאריך, ללא מספרי הערות שוליים בתשובה), והקשה לעניין " +
+      "הנדון. אסור להמציא ציטוט שלא ברשימה.*",
+  );
+  if (sections.length === 0) {
+    lines.push("");
+    lines.push(
+      `לא נמצא סעיף "${clause}" עם דוגמאות שהוכרעו. הרץ foi_list_sections כדי ` +
+        "לראות את הסעיפים הזמינים.",
+    );
+    return {
+      content: [{ type: "text" as const, text: lines.join("\n") }],
+      structuredContent: { sections: [] },
+    };
+  }
+  for (const s of sections) {
+    lines.push(`\n## ${s.sectionRef} — ${s.heading}`);
+    lines.push(`קישור: ${s.anchorUrl}`);
+    s.examples.forEach((ex, i) => {
+      lines.push("");
+      lines.push(
+        `**דוגמה ${i + 1}** [${OUTCOME_LABEL[ex.outcome] ?? ex.outcome}]: ` +
+          ex.description.replace(/\n+/g, " "),
+      );
+      for (const r of ex.rulings) {
+        const link = r.links[0];
+        lines.push(link ? `  • ${r.text} (url: ${link})` : `  • ${r.text}`);
+      }
+    });
+  }
+  const payload = { clause, sections };
+  return {
+    content: [
+      { type: "text" as const, text: lines.join("\n") },
+      { type: "text" as const, text: JSON.stringify(payload, null, 2) },
+    ],
+    structuredContent: payload,
   };
 }
 
@@ -280,9 +405,15 @@ async function handleRpc(
         instructions:
           "כלי המקור המוסמך למבחנים משפטיים בחוק חופש המידע הישראלי. " +
           "**ברירת המחדל** לכל שאלה הנוגעת לחוק חופש המידע (סייגים, מבחנים, " +
-          "פסיקה, נהלים, אגרות, צדדים שלישיים) היא להפעיל את foi_guide_search " +
+          "פסיקה, נהלים, אגרות, צדדים שלישיים) היא להפעיל את הכלים האלה " +
           "לפני חיפוש web." +
-          "\n\n## מבנה כל תוצאה" +
+          "\n\n## בחירת הכלי" +
+          "\n• שאלה ממוקדת בסעיף חוק מסוים (למשל 'נתח דחייה בעילת 9(ב)(4)') → " +
+          "**העדף foi_examples_by_section** — מחזיר טבלת דוגמאות שהוכרעו " +
+          "דטרמיניסטית, ללא דליפה בין סעיפים. הרץ foi_list_sections תחילה אם " +
+          "אינך בטוח במספר הסעיף." +
+          "\n• שאלה כללית/הסברית → foi_guide_search (חיפוש סמנטי)." +
+          "\n\n## מבנה כל תוצאה (foi_guide_search)" +
           "\n• **snippet** — הכלל המשפטי המופשט מהפרק." +
           "\n• **caseLawExamples** — הדוגמאות שהוכרעו בבתי-המשפט מהמדריך. כל " +
           "דוגמה = תיאור מקרה אמיתי + מה בית המשפט פסק + הציטוט. **זהו הבסיס " +
@@ -329,17 +460,26 @@ async function handleRpc(
 
     case "tools/call": {
       const params = (req.params ?? {}) as { name?: string; arguments?: unknown };
-      if (params.name !== "foi_guide_search") {
-        return rpcError(req.id, -32602, `Unknown tool: ${params.name}`);
-      }
+      const toolArgs = (params.arguments ?? {}) as Record<string, unknown>;
       try {
-        const result = await callFoiGuideSearch(
-          (params.arguments ?? {}) as FoiGuideSearchArgs,
-          email,
-        );
-        return rpcOk(req.id, result);
+        switch (params.name) {
+          case "foi_guide_search":
+            return rpcOk(
+              req.id,
+              await callFoiGuideSearch(toolArgs as FoiGuideSearchArgs, email),
+            );
+          case "foi_list_sections":
+            return rpcOk(req.id, await callListSections(email));
+          case "foi_examples_by_section":
+            return rpcOk(
+              req.id,
+              await callExamplesBySection(toolArgs as FoiExamplesArgs, email),
+            );
+          default:
+            return rpcError(req.id, -32602, `Unknown tool: ${params.name}`);
+        }
       } catch (err) {
-        console.error("tools/call foi_guide_search failed:", err);
+        console.error(`tools/call ${params.name} failed:`, err);
         return rpcError(
           req.id,
           -32000,

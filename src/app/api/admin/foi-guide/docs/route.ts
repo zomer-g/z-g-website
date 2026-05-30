@@ -26,13 +26,26 @@ export async function GET() {
     },
   });
 
+  // Structured-model summary per chapter: number of law clauses and decided
+  // examples extracted. Lets the admin verify the structured extraction ran.
+  const sections = await prisma.foiLawSection.findMany({
+    select: { docId: true, _count: { select: { examples: true } } },
+  });
+  const sectionCount = new Map<number, number>();
+  const exampleCount = new Map<number, number>();
+  for (const s of sections) {
+    sectionCount.set(s.docId, (sectionCount.get(s.docId) ?? 0) + 1);
+    exampleCount.set(s.docId, (exampleCount.get(s.docId) ?? 0) + s._count.examples);
+  }
+
   return NextResponse.json({
     docs: docs.map((d) => ({
       ...d,
       caseLawCount: Array.isArray(d.caseLawJson) ? d.caseLawJson.length : 0,
+      sectionCount: sectionCount.get(d.id) ?? 0,
+      exampleCount: exampleCount.get(d.id) ?? 0,
       // Don't ship the full footnote JSON to the list view — it can be heavy
-      // and the admin page doesn't need it. The /api/foi-guide/doc/[slug]
-      // endpoint can return it on demand if we ever build a doc-detail page.
+      // and the admin page doesn't need it.
       caseLawJson: undefined,
     })),
   });
