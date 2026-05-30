@@ -273,32 +273,26 @@ export interface FoiSearchResponse {
   source: { name: string; url: string };
 }
 
-// This text is surfaced both at the top of the model-facing markdown and in
-// the structured JSON. Written as a hard directive — Claude has previously
-// pulled cases from one chapter's case-law list and attached them to a
-// rule discussed in a different chapter's snippet. The cited→snippet
-// mapping below + this wording together close that hole.
+// Per-call directive injected into every search response. The structure
+// section here mirrors what's in initialize.instructions — printed at the
+// top of the markdown so Claude sees it again right before it generates
+// the answer. Together with the citedInSnippet/otherInChapter split,
+// this closes the failure mode where Claude pulled cases from chapter X's
+// case-law and attached them to a rule in chapter Y's snippet.
 const DISCLAIMER =
   "המידע מבוסס על מדריך חופש המידע (foiguide.org.il), עותק שאוחסן במערכת. " +
-  "**הוראות מחייבות לנותן המענה:**\n" +
-  "(1) הצמד כל מסקנה משפטית לטקסט הספציפי ב-`snippet`. אל תוסיף כללים שאינם " +
-  "במפורש בטקסט.\n" +
-  "(2) **כל ציטוט פסיקה חייב להגיע מ-`citedInSnippet` של אותה תוצאה בדיוק.** " +
-  "`citedInSnippet` מכיל רק פסקי דין שהערת השוליים שלהם ([N]) מופיעה בטקסט " +
-  "ה-snippet — כלומר אך ורק תיקים שתומכים בכלל שמופיע בטקסט שאתה מצטט.\n" +
-  "(3) **אסור לצטט מ-`otherInChapter`** — אלה תיקים מאותו פרק שלא תומכים " +
-  "בטקסט המוחזר; הם נשלחים רק לצורך הקשר.\n" +
-  "(4) **אסור לצטט תיק מ-`citedInSnippet` של תוצאה אחת כתמיכה לכלל שמופיע " +
-  "בתוצאה אחרת.** כל תוצאה היא פרק עצמאי. אם הכלל לא מופיע בטקסט של תוצאה X, " +
-  "אסור לצטט פסיקה מ-X לאותו כלל.\n" +
-  "(5) פורמט הציטוט: הנוסח המלא בלבד — שם הצדדים, ערכאה, מספר תיק, תאריך — " +
-  "כפי שמופיע בשדה `text`. **אסור** לכתוב מספרי הערות שוליים כמו [32]/[33א] " +
-  "בתשובה.\n" +
-  "(6) הקישור (`url`) הוא data בלבד — צרף לציטוט רק אם המשתמש ביקש קישור.\n" +
-  "(7) צרף קישור לפרק המקור במדריך כדי שהמשתמש יוכל לאמת מול foiguide.org.il.\n" +
-  "(8) אם `citedInSnippet` ריק, אמור מפורשות 'הכלל מופיע במדריך אך ללא ציטוט " +
-  "פסיקה ב-snippet שהוחזר' — **אל תמציא ציטוט** ואל תיקח מ-otherInChapter " +
-  "או מהזיכרון.";
+  "**מבנה התשובה הנדרש**: לכל מבחן משפטי בנפרד — " +
+  "(א) ניסוח המבחן מתוך snippet, (ב) ציטוט פסק הדין שמבסס אותו מ-citedInSnippet " +
+  "(שם תיק + צדדים + תאריך, ללא מספרי הערות שוליים בתשובה), (ג) יישום המבחן " +
+  "לעובדות. חזור על המבנה למבחן הבא. אל תכניס כמה מבחנים לפסקה אחת. " +
+  "**חוקי ציטוט (חובה):** " +
+  "(1) פסיקה רק מ-citedInSnippet של אותה תוצאה בדיוק; " +
+  "(2) אסור לחצות בין תוצאות — תיק מ-citedInSnippet של X לא מבסס כלל מ-Y; " +
+  "(3) אסור לצטט מ-otherInChapter (הקשר בלבד); " +
+  "(4) **אסור להמציא ציטוט**, גם אם הוא נשמע סביר; " +
+  "(5) אם citedInSnippet ריק לכלל מסוים — ציין זאת מפורשות במקום להמציא; " +
+  "(6) url הוא data בלבד — צרף רק אם המשתמש ביקש; " +
+  "(7) חובה לציין chapterUrl בסוף.";
 
 export async function searchFoiGuide(
   query: string,
