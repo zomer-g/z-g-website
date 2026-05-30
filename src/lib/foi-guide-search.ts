@@ -249,7 +249,16 @@ export interface FoiSearchResult {
   rrfScore: number;
   semanticScore?: number;
   matchCount?: number;
-  caseLaw: FoiSearchResultCaseLaw[];
+  // **The list to cite from.** Only the footnotes whose [N] markers
+  // actually appear in `snippet` — i.e. case law that supports a claim
+  // present in the returned text. Avoids the failure mode where Claude
+  // pulled an unrelated case from a different chapter's case-law list and
+  // attached it to a rule it didn't actually support.
+  citedInSnippet: FoiSearchResultCaseLaw[];
+  // The remaining case law in the chapter (not referenced by the snippet),
+  // kept for chapter-level context. Should NOT be cited as authority for
+  // any specific claim — that's what `citedInSnippet` is for.
+  otherInChapter: FoiSearchResultCaseLaw[];
 }
 
 export interface FoiSearchOptions {
@@ -265,19 +274,31 @@ export interface FoiSearchResponse {
 }
 
 // This text is surfaced both at the top of the model-facing markdown and in
-// the structured JSON. It's written as a directive to the model — not just
-// a passive footer — because we observed Claude summarising results with
-// "based on two cases" while the chapter actually cited 75+ rulings.
+// the structured JSON. Written as a hard directive — Claude has previously
+// pulled cases from one chapter's case-law list and attached them to a
+// rule discussed in a different chapter's snippet. The cited→snippet
+// mapping below + this wording together close that hole.
 const DISCLAIMER =
   "המידע מבוסס על מדריך חופש המידע (foiguide.org.il), עותק שאוחסן במערכת. " +
-  "**הוראות לנותן המענה:** " +
-  '(1) הצמד את המסקנה המשפטית לטקסט שהוחזר; ' +
-  '(2) **צטט את כל פסקי הדין הרלוונטיים מרשימת ה-caseLaw בנוסחם המלא** — ' +
-  "שם הצדדים, ערכאה, מספר תיק ותאריך — כפי שמופיעים בשדה text. " +
-  '**אל תכתוב מספרי הערות שוליים ([N]) בתשובה.** ' +
-  "אל תסתפק בשני פסקי דין כשבמדריך מנויים עשרות; " +
-  '(3) הקישור לפסק הדין (url) הוא data בלבד — צרף לציטוט רק אם המשתמש ביקש קישור; ' +
-  '(4) צרף קישור לפרק המקור במדריך כדי שהמשתמש יוכל לאמת מול foiguide.org.il.';
+  "**הוראות מחייבות לנותן המענה:**\n" +
+  "(1) הצמד כל מסקנה משפטית לטקסט הספציפי ב-`snippet`. אל תוסיף כללים שאינם " +
+  "במפורש בטקסט.\n" +
+  "(2) **כל ציטוט פסיקה חייב להגיע מ-`citedInSnippet` של אותה תוצאה בדיוק.** " +
+  "`citedInSnippet` מכיל רק פסקי דין שהערת השוליים שלהם ([N]) מופיעה בטקסט " +
+  "ה-snippet — כלומר אך ורק תיקים שתומכים בכלל שמופיע בטקסט שאתה מצטט.\n" +
+  "(3) **אסור לצטט מ-`otherInChapter`** — אלה תיקים מאותו פרק שלא תומכים " +
+  "בטקסט המוחזר; הם נשלחים רק לצורך הקשר.\n" +
+  "(4) **אסור לצטט תיק מ-`citedInSnippet` של תוצאה אחת כתמיכה לכלל שמופיע " +
+  "בתוצאה אחרת.** כל תוצאה היא פרק עצמאי. אם הכלל לא מופיע בטקסט של תוצאה X, " +
+  "אסור לצטט פסיקה מ-X לאותו כלל.\n" +
+  "(5) פורמט הציטוט: הנוסח המלא בלבד — שם הצדדים, ערכאה, מספר תיק, תאריך — " +
+  "כפי שמופיע בשדה `text`. **אסור** לכתוב מספרי הערות שוליים כמו [32]/[33א] " +
+  "בתשובה.\n" +
+  "(6) הקישור (`url`) הוא data בלבד — צרף לציטוט רק אם המשתמש ביקש קישור.\n" +
+  "(7) צרף קישור לפרק המקור במדריך כדי שהמשתמש יוכל לאמת מול foiguide.org.il.\n" +
+  "(8) אם `citedInSnippet` ריק, אמור מפורשות 'הכלל מופיע במדריך אך ללא ציטוט " +
+  "פסיקה ב-snippet שהוחזר' — **אל תמציא ציטוט** ואל תיקח מ-otherInChapter " +
+  "או מהזיכרון.";
 
 export async function searchFoiGuide(
   query: string,
@@ -348,17 +369,31 @@ export async function searchFoiGuide(
   for (const f of fused) {
     const doc = docById.get(f.docId);
     if (!doc) continue;
+    const snippet = buildSnippet(f.bestSnippet, queryTerms);
+    const chapterCaseLaw = normaliseCaseLaw(doc.caseLawJson);
+    // Pull footnote IDs that actually appear in the snippet, e.g. [33א], [47].
+    // Anything in the chapter's case law list that isn't referenced here is
+    // demoted to otherInChapter so the model treats it as context, not as
+    // authority for a claim in this snippet.
+    const referencedIds = extractFootnoteRefs(snippet);
+    const citedInSnippet: FoiSearchResultCaseLaw[] = [];
+    const otherInChapter: FoiSearchResultCaseLaw[] = [];
+    for (const c of chapterCaseLaw) {
+      if (referencedIds.has(c.footnoteId)) citedInSnippet.push(c);
+      else otherInChapter.push(c);
+    }
     results.push({
       chapter: doc.title,
       chapterSlug: doc.slug,
       chapterUrl: doc.url,
       order: doc.order,
-      snippet: buildSnippet(f.bestSnippet, queryTerms),
+      snippet,
       matchedSection: f.bestSection,
       rrfScore: f.rrfScore,
       semanticScore: f.semanticScore,
       matchCount: f.matchCount,
-      caseLaw: normaliseCaseLaw(doc.caseLawJson),
+      citedInSnippet,
+      otherInChapter,
     });
   }
 
@@ -367,6 +402,21 @@ export async function searchFoiGuide(
     resultCount: results.length,
     results,
   };
+}
+
+// Footnote markers in the chapter body look like [32] [33א] [32א1] [34א] etc.
+// Extract them all so we can pair the snippet with the specific case-law
+// entries it cites — instead of dumping the whole chapter's footnote list
+// and letting the model guess which case supports which claim.
+function extractFootnoteRefs(text: string): Set<string> {
+  const out = new Set<string>();
+  // [N], [Nא], [Nא1], [Nא...] — allow Hebrew suffix and trailing digit.
+  const re = /\[(\d+[א-ת]?\d*[א-ת]?)\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    out.add(m[1]);
+  }
+  return out;
 }
 
 function normaliseCaseLaw(raw: Prisma.JsonValue): FoiSearchResultCaseLaw[] {
