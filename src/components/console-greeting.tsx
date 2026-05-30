@@ -16,7 +16,7 @@ const BODY =
   "אם משהו כאן מעניין אותך — בעבודה, ביצירת קשר או בשיתוף פעולה —\n" +
   "אני זמין כאן:";
 
-const EMAIL = "zomerg@gmail.com";
+const EMAIL = "Guy@z-g.co.il";
 
 const STYLE_TITLE =
   "font-size: 22px; font-weight: 700; color: #1a4d8f; padding: 8px 0;";
