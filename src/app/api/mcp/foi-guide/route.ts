@@ -194,6 +194,21 @@ interface FoiExamplesArgs {
   law_section?: string;
 }
 
+// Detect a statute clause inside a free-text query, e.g. "9(ב)(4)" / "14(ד)".
+// When present, we route to the structured table for that exact clause so the
+// answer can't be contaminated by case law from neighbouring clauses (the
+// 9(ב)(8) ruling that leaked into a 9(ב)(4) answer).
+const QUERY_CLAUSE_RE = /(\d+[א-ת]?\s*(?:\([^)]{1,8}\)\s*){1,3})/;
+
+function detectClause(query: string): string | null {
+  const m = query.match(QUERY_CLAUSE_RE);
+  if (!m) return null;
+  const ref = m[1].replace(/\s+/g, "");
+  // Require at least one parenthesised group (already guaranteed by the regex)
+  // and a leading digit — guards against matching stray "(…)" fragments.
+  return /^\d/.test(ref) ? ref : null;
+}
+
 async function callFoiGuideSearch(args: FoiGuideSearchArgs, email: string) {
   const query = typeof args.query === "string" ? args.query.trim() : "";
   if (!query) {
@@ -202,6 +217,29 @@ async function callFoiGuideSearch(args: FoiGuideSearchArgs, email: string) {
       isError: true,
     };
   }
+
+  // If the query names a specific statute clause that has a structured
+  // decided-case table, serve THAT — deterministic, no cross-clause leakage —
+  // instead of the semantic search whose case-law spans many chapters. This
+  // makes "search" do the right thing even when the model never calls the
+  // dedicated structured tool.
+  const clause = detectClause(query);
+  if (clause) {
+    const detail = await getExamplesByClause(clause);
+    const total = detail.reduce((n, s) => n + s.examples.length, 0);
+    if (total > 0) {
+      await prisma.mcpUsage.create({
+        data: {
+          email,
+          tool: "foi_guide_search→examples_by_section",
+          query,
+          resultCount: total,
+        },
+      });
+      return renderExamplesResult(clause, detail, /*viaSearch*/ true);
+    }
+  }
+
   const topK = typeof args.top_k === "number" ? args.top_k : undefined;
 
   const response = await searchFoiGuide(query, { topK });
@@ -257,6 +295,75 @@ async function callListSections(email: string) {
   };
 }
 
+// Shared renderer for the structured decided-case table, used both by the
+// dedicated foi_examples_by_section tool and by foi_guide_search when it
+// routes a clause-specific query here.
+function renderExamplesResult(
+  clause: string,
+  sections: Awaited<ReturnType<typeof getExamplesByClause>>,
+  viaSearch: boolean,
+) {
+  const total = sections.reduce((n, s) => n + s.examples.length, 0);
+  const lines: string[] = [];
+  lines.push(`# דוגמאות שהוכרעו בבתי-המשפט — סעיף ${clause} (${total})`);
+  if (viaSearch) {
+    lines.push(
+      `*זוהה שהשאלה נוגעת לסעיף ${clause}. במקום חיפוש סמנטי (שמערבב פסיקה ` +
+        `מסעיפים אחרים), הוחזרה הטבלה המובנית והמדויקת של סעיף זה בלבד.*`,
+    );
+  }
+  lines.push("");
+  lines.push("> ⚠️ **הוראות מחייבות:**");
+  lines.push(
+    `> 1. בנה את הניתוח על **כל ${total} הדוגמאות** שלהלן הרלוונטיות לשאלה — ` +
+      "לא על 2-3 נבחרות. כל דוגמה היא מקרה אמיתי שהוכרע.\n" +
+      "> 2. לכל דוגמה: הצג את העובדות + ההכרעה (outcome), צטט את פסק הדין " +
+      "**בנוסח המלא כפי שמופיע בשדה הציטוט** (סוג הליך + מספר תיק + שמות " +
+      "הצדדים + תאריך) — **אל תקצר למספר ההליך בלבד**, ואז הקש לעניין הנדון.\n" +
+      "> 3. **אסור** לכתוב מספרי הערות שוליים ([N]) בתשובה.\n" +
+      "> 4. **אסור** לצטט פסק דין שאינו ברשימה כאן — גם לא אחד שנשמע סביר " +
+      "לפי הזיכרון. כל הציטוטים כאן שייכים אך ורק לסעיף שביקשת; אין דליפה " +
+      "מסעיפים אחרים, ואין להוסיף ממקור אחר.",
+  );
+
+  if (sections.length === 0) {
+    lines.push("");
+    lines.push(
+      `לא נמצא סעיף "${clause}" עם דוגמאות שהוכרעו. הרץ foi_list_sections כדי ` +
+        "לראות את הסעיפים הזמינים.",
+    );
+    return {
+      content: [{ type: "text" as const, text: lines.join("\n") }],
+      structuredContent: { clause, sections: [] },
+    };
+  }
+  for (const s of sections) {
+    lines.push(`\n## ${s.sectionRef} — ${s.heading}`);
+    lines.push(`chapterUrl: ${s.anchorUrl}`);
+    s.examples.forEach((ex, i) => {
+      lines.push("");
+      lines.push(
+        `**דוגמה ${i + 1}** [${OUTCOME_LABEL[ex.outcome] ?? ex.outcome}]: ` +
+          ex.description.replace(/\n+/g, " "),
+      );
+      for (const r of ex.rulings) {
+        const link = r.links[0];
+        lines.push(
+          link ? `  • ציטוט מלא: ${r.text} (url: ${link})` : `  • ציטוט מלא: ${r.text}`,
+        );
+      }
+    });
+  }
+  const payload = { clause, sections };
+  return {
+    content: [
+      { type: "text" as const, text: lines.join("\n") },
+      { type: "text" as const, text: JSON.stringify(payload, null, 2) },
+    ],
+    structuredContent: payload,
+  };
+}
+
 async function callExamplesBySection(args: FoiExamplesArgs, email: string) {
   const clause = typeof args.law_section === "string" ? args.law_section.trim() : "";
   if (!clause) {
@@ -270,49 +377,7 @@ async function callExamplesBySection(args: FoiExamplesArgs, email: string) {
   await prisma.mcpUsage.create({
     data: { email, tool: "foi_examples_by_section", query: clause, resultCount: total },
   });
-
-  const lines: string[] = [];
-  lines.push(`# דוגמאות שהוכרעו — סעיף ${clause}`);
-  lines.push(
-    "*כל הדוגמאות והציטוטים שלהלן שייכים אך ורק לסעיף המבוקש. " +
-      "בנה את הניתוח על אלה: לכל דוגמה — הכלל/המבחן, העובדות וההכרעה, " +
-      "הציטוט (שם תיק + תאריך, ללא מספרי הערות שוליים בתשובה), והקשה לעניין " +
-      "הנדון. אסור להמציא ציטוט שלא ברשימה.*",
-  );
-  if (sections.length === 0) {
-    lines.push("");
-    lines.push(
-      `לא נמצא סעיף "${clause}" עם דוגמאות שהוכרעו. הרץ foi_list_sections כדי ` +
-        "לראות את הסעיפים הזמינים.",
-    );
-    return {
-      content: [{ type: "text" as const, text: lines.join("\n") }],
-      structuredContent: { sections: [] },
-    };
-  }
-  for (const s of sections) {
-    lines.push(`\n## ${s.sectionRef} — ${s.heading}`);
-    lines.push(`קישור: ${s.anchorUrl}`);
-    s.examples.forEach((ex, i) => {
-      lines.push("");
-      lines.push(
-        `**דוגמה ${i + 1}** [${OUTCOME_LABEL[ex.outcome] ?? ex.outcome}]: ` +
-          ex.description.replace(/\n+/g, " "),
-      );
-      for (const r of ex.rulings) {
-        const link = r.links[0];
-        lines.push(link ? `  • ${r.text} (url: ${link})` : `  • ${r.text}`);
-      }
-    });
-  }
-  const payload = { clause, sections };
-  return {
-    content: [
-      { type: "text" as const, text: lines.join("\n") },
-      { type: "text" as const, text: JSON.stringify(payload, null, 2) },
-    ],
-    structuredContent: payload,
-  };
+  return renderExamplesResult(clause, sections, /*viaSearch*/ false);
 }
 
 function renderResultsMarkdown(
