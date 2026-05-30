@@ -14,7 +14,6 @@ import {
   Settings,
   LogOut,
   ExternalLink,
-  ArrowUpLeft,
   Menu,
   X,
   PenTool,
@@ -27,20 +26,21 @@ import {
   Gavel,
   BookOpen,
   ScrollText,
+  Scale,
   type LucideIcon,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
 //
-// Grouped so related screens sit together instead of one flat list. `external`
-// marks items that point at a PUBLIC route (not /admin/*) — they get an
-// out-arrow so it's clear you're leaving the admin area.
+// Grouped so related screens sit together instead of one flat list. Every
+// item points at an /admin/* screen — the data-dashboard items (class actions,
+// conditional arrangements, guidelines) open their editor/settings page under
+// /admin/site-editor, consistent with the rest of the menu.
 
 interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  external?: boolean;
 }
 
 interface NavGroup {
@@ -69,10 +69,14 @@ const navGroups: NavGroup[] = [
       { label: "מדריך חופש המידע", href: "/admin/foi-guide", icon: BookOpen },
       { label: "הנחיות", href: "/admin/site-editor/guidelines", icon: ScrollText },
       {
+        label: "תובענות ייצוגיות",
+        href: "/admin/site-editor/class-actions",
+        icon: Scale,
+      },
+      {
         label: "הסדרים מותנים",
-        href: "/conditional-arrangements",
+        href: "/admin/site-editor/conditional-arrangements",
         icon: Gavel,
-        external: true,
       },
       { label: "פח המשפט", href: "/admin/pach-hamishpat", icon: Trash2 },
     ],
@@ -194,9 +198,6 @@ export default function AdminSidebar() {
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          {...(item.external
-                            ? { target: "_blank", rel: "noopener noreferrer" }
-                            : {})}
                           onClick={() => setMobileOpen(false)}
                           className={cn(
                             "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium",
@@ -209,13 +210,6 @@ export default function AdminSidebar() {
                         >
                           <Icon size={18} className="shrink-0" />
                           <span className="flex-1">{item.label}</span>
-                          {item.external && (
-                            <ArrowUpLeft
-                              size={14}
-                              className="shrink-0 text-white/40"
-                              aria-label="עמוד ציבורי (נפתח בלשונית חדשה)"
-                            />
-                          )}
                         </Link>
                       </li>
                     );
