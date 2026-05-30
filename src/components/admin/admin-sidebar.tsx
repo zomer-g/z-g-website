@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   ExternalLink,
+  ArrowUpLeft,
   Menu,
   X,
   PenTool,
@@ -25,27 +26,81 @@ import {
   Calendar,
   Gavel,
   BookOpen,
+  ScrollText,
+  type LucideIcon,
 } from "lucide-react";
 
 /* ─── Navigation Items ─── */
+//
+// Grouped so related screens sit together instead of one flat list. `external`
+// marks items that point at a PUBLIC route (not /admin/*) — they get an
+// out-arrow so it's clear you're leaving the admin area.
 
-const navItems = [
-  { label: "לוח בקרה", href: "/admin", icon: LayoutDashboard },
-  { label: "עורך האתר", href: "/admin/site-editor", icon: PenTool },
-  { label: "מאמרים", href: "/admin/posts", icon: FileText },
-  { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
-  { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
-  { label: "פח המשפט", href: "/admin/pach-hamishpat", icon: Trash2 },
-  { label: "ווטסאפ", href: "/admin/whatsapp", icon: MessageCircle },
-  { label: "ציר זמן", href: "/admin/timeline", icon: Calendar },
-  { label: "הסדרים מותנים", href: "/conditional-arrangements", icon: Gavel },
-  { label: "מדריך חופש המידע", href: "/admin/foi-guide", icon: BookOpen },
-  { label: "העלאת קבצים", href: "/admin/media", icon: Image },
-  { label: "פניות", href: "/admin/submissions", icon: Inbox },
-  { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
-  { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
-  { label: "הגדרות", href: "/admin/settings", icon: Settings },
-] as const;
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  external?: boolean;
+}
+
+interface NavGroup {
+  title: string | null; // null = ungrouped (rendered without a header)
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: null,
+    items: [{ label: "לוח בקרה", href: "/admin", icon: LayoutDashboard }],
+  },
+  {
+    title: "תוכן האתר",
+    items: [
+      { label: "עורך האתר", href: "/admin/site-editor", icon: PenTool },
+      { label: "מאמרים", href: "/admin/posts", icon: FileText },
+      { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
+      { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
+      { label: "העלאת קבצים", href: "/admin/media", icon: Image },
+    ],
+  },
+  {
+    title: "מאגרים וכלי AI",
+    items: [
+      { label: "מדריך חופש המידע", href: "/admin/foi-guide", icon: BookOpen },
+      { label: "הנחיות", href: "/admin/site-editor/guidelines", icon: ScrollText },
+      {
+        label: "הסדרים מותנים",
+        href: "/conditional-arrangements",
+        icon: Gavel,
+        external: true,
+      },
+      { label: "פח המשפט", href: "/admin/pach-hamishpat", icon: Trash2 },
+    ],
+  },
+  {
+    title: "תקשורת ופרויקטים",
+    items: [
+      { label: "ווטסאפ", href: "/admin/whatsapp", icon: MessageCircle },
+      { label: "ציר זמן", href: "/admin/timeline", icon: Calendar },
+      { label: "פניות", href: "/admin/submissions", icon: Inbox },
+    ],
+  },
+  {
+    title: "כלים והגדרות",
+    items: [
+      { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
+      { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
+      { label: "הגדרות", href: "/admin/settings", icon: Settings },
+    ],
+  },
+];
+
+// Flattened list of hrefs, longest first — used so the active item is the most
+// specific match (e.g. /admin/site-editor/guidelines wins over
+// /admin/site-editor, instead of both lighting up).
+const allHrefs = navGroups
+  .flatMap((g) => g.items.map((i) => i.href))
+  .sort((a, b) => b.length - a.length);
 
 /* ─── Component ─── */
 
@@ -53,10 +108,18 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isActive = (href: string) => {
-    if (href === "/admin") return pathname === "/admin";
-    return pathname.startsWith(href);
-  };
+  // The active item is the longest href that prefixes the current path, so a
+  // nested route (…/site-editor/guidelines) doesn't also activate its parent
+  // (…/site-editor). "/admin" only matches exactly.
+  const activeHref = (() => {
+    if (pathname === "/admin") return "/admin";
+    return (
+      allHrefs.find(
+        (h) => h !== "/admin" && (pathname === h || pathname.startsWith(h + "/")),
+      ) ?? null
+    );
+  })();
+  const isActive = (href: string) => href === activeHref;
 
   const handleSignOut = () => {
     signOut({ callbackUrl: "/admin/login" });
@@ -114,32 +177,53 @@ export default function AdminSidebar() {
 
         {/* ── Navigation ── */}
         <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="ניווט ראשי">
-          <ul className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
+          <div className="flex flex-col gap-4">
+            {navGroups.map((group, gi) => (
+              <div key={group.title ?? `group-${gi}`}>
+                {group.title && (
+                  <h2 className="px-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                    {group.title}
+                  </h2>
+                )}
+                <ul className="flex flex-col gap-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
 
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium",
-                      "transition-colors duration-150",
-                      active
-                        ? "bg-white/15 text-white"
-                        : "text-white/70 hover:bg-white/10 hover:text-white",
-                    )}
-                    aria-current={active ? "page" : undefined}
-                  >
-                    <Icon size={18} className="shrink-0" />
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          {...(item.external
+                            ? { target: "_blank", rel: "noopener noreferrer" }
+                            : {})}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium",
+                            "transition-colors duration-150",
+                            active
+                              ? "bg-white/15 text-white"
+                              : "text-white/70 hover:bg-white/10 hover:text-white",
+                          )}
+                          aria-current={active ? "page" : undefined}
+                        >
+                          <Icon size={18} className="shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          {item.external && (
+                            <ArrowUpLeft
+                              size={14}
+                              className="shrink-0 text-white/40"
+                              aria-label="עמוד ציבורי (נפתח בלשונית חדשה)"
+                            />
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </nav>
 
         {/* ── Footer Actions ── */}
