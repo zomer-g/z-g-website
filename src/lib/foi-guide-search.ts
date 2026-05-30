@@ -239,25 +239,42 @@ export interface FoiSearchResultCaseLaw {
   links: string[];
 }
 
+// One decided case example from the chapter's "דוגמאות שהוכרעו בבתי-המשפט"
+// subsection: the guide's own narrative of what the court held, paired with
+// the footnote citation(s) for that example. This is the unit the model
+// should reason from — the guide already writes each example as
+// "situation → what the court ruled → [citation]", which is exactly the
+// petition structure the user wants.
+export interface FoiCaseLawExample {
+  // The guide's prose describing the case and the ruling.
+  text: string;
+  // Citations ([N]) that appear in this example's text.
+  citations: FoiSearchResultCaseLaw[];
+}
+
 export interface FoiSearchResult {
   chapter: string;
   chapterSlug: string;
   chapterUrl: string;
   order: number;
+  // The legal rule / test text (best-matching body chunk).
   snippet: string;
   matchedSection: string | null;
   rrfScore: number;
   semanticScore?: number;
   matchCount?: number;
-  // **The list to cite from.** Only the footnotes whose [N] markers
-  // actually appear in `snippet` — i.e. case law that supports a claim
-  // present in the returned text. Avoids the failure mode where Claude
-  // pulled an unrelated case from a different chapter's case-law list and
-  // attached it to a rule it didn't actually support.
+  // **The decided-cases the answer should be built on.** Full text of the
+  // chapter's "דוגמאות שהוכרעו בבתי-המשפט" subsection, split into individual
+  // examples, each with its own citation. The guide writes these as
+  // "the court rejected/accepted reliance on the exemption in case X
+  // because… [citation]" — so the model can present rule → decided example →
+  // application without inventing precedent.
+  caseLawExamples: FoiCaseLawExample[];
+  // Citations whose [N] marker appears in `snippet` (the rule text). Safe to
+  // cite as authority for a claim made in the snippet.
   citedInSnippet: FoiSearchResultCaseLaw[];
-  // The remaining case law in the chapter (not referenced by the snippet),
-  // kept for chapter-level context. Should NOT be cited as authority for
-  // any specific claim — that's what `citedInSnippet` is for.
+  // Remaining chapter footnotes not referenced by snippet or any example.
+  // Context only — must not be cited as authority.
   otherInChapter: FoiSearchResultCaseLaw[];
 }
 
@@ -281,16 +298,16 @@ export interface FoiSearchResponse {
 // case-law and attached them to a rule in chapter Y's snippet.
 const DISCLAIMER =
   "המידע מבוסס על מדריך חופש המידע (foiguide.org.il), עותק שאוחסן במערכת. " +
-  "**מבנה התשובה הנדרש**: לכל מבחן משפטי בנפרד — " +
-  "(א) ניסוח המבחן מתוך snippet, (ב) ציטוט פסק הדין שמבסס אותו מ-citedInSnippet " +
-  "(שם תיק + צדדים + תאריך, ללא מספרי הערות שוליים בתשובה), (ג) יישום המבחן " +
-  "לעובדות. חזור על המבנה למבחן הבא. אל תכניס כמה מבחנים לפסקה אחת. " +
-  "**חוקי ציטוט (חובה):** " +
-  "(1) פסיקה רק מ-citedInSnippet של אותה תוצאה בדיוק; " +
-  "(2) אסור לחצות בין תוצאות — תיק מ-citedInSnippet של X לא מבסס כלל מ-Y; " +
+  "**מבנה התשובה הנדרש**: בנה את הניתוח על **caseLawExamples** (הדוגמאות " +
+  "שהוכרעו בבתי-המשפט). לכל דוגמה רלוונטית בפסקה נפרדת — (א) הכלל שהדוגמה " +
+  "ממחישה, (ב) העובדות + מה בית המשפט פסק + הציטוט מהדוגמה (שם תיק + צדדים + " +
+  "תאריך, ללא מספרי הערות שוליים בתשובה), (ג) הקשה לעניין הנדון. חזור לדוגמה " +
+  "הבאה. **חוקי ציטוט (חובה):** " +
+  "(1) פסיקה רק מ-caseLawExamples או מ-citedInSnippet של אותה תוצאה; " +
+  "(2) אסור לחצות בין תוצאות; " +
   "(3) אסור לצטט מ-otherInChapter (הקשר בלבד); " +
   "(4) **אסור להמציא ציטוט**, גם אם הוא נשמע סביר; " +
-  "(5) אם citedInSnippet ריק לכלל מסוים — ציין זאת מפורשות במקום להמציא; " +
+  "(5) אם אין דוגמה/ציטוט לנקודה מסוימת — ציין זאת מפורשות במקום להמציא; " +
   "(6) url הוא data בלבד — צרף רק אם המשתמש ביקש; " +
   "(7) חובה לציין chapterUrl בסוף.";
 
@@ -358,6 +375,21 @@ export async function searchFoiGuide(
   });
   const docById = new Map(docs.map((d) => [d.id, d]));
 
+  // Fetch the "דוגמאות שהוכרעו בבתי-המשפט" chunks for every result doc in one
+  // query. These hold the guide's narrative of each decided case — the unit
+  // the model should reason from. Without them the model only sees the
+  // abstract rule and invents precedent to "apply" it.
+  const caseLawChunks = await prisma.foiGuideChunk.findMany({
+    where: { docId: { in: docIds }, section: "case-law" },
+    orderBy: [{ docId: "asc" }, { chunkIdx: "asc" }],
+    select: { docId: true, text: true },
+  });
+  const caseLawTextByDoc = new Map<number, string>();
+  for (const c of caseLawChunks) {
+    const prev = caseLawTextByDoc.get(c.docId);
+    caseLawTextByDoc.set(c.docId, prev ? `${prev}\n\n${c.text}` : c.text);
+  }
+
   const queryTerms = collectTerms(parsed);
   const results: FoiSearchResult[] = [];
   for (const f of fused) {
@@ -365,17 +397,53 @@ export async function searchFoiGuide(
     if (!doc) continue;
     const snippet = buildSnippet(f.bestSnippet, queryTerms);
     const chapterCaseLaw = normaliseCaseLaw(doc.caseLawJson);
-    // Pull footnote IDs that actually appear in the snippet, e.g. [33א], [47].
-    // Anything in the chapter's case law list that isn't referenced here is
-    // demoted to otherInChapter so the model treats it as context, not as
-    // authority for a claim in this snippet.
+    const caseLawById = new Map(chapterCaseLaw.map((c) => [c.footnoteId, c]));
+
+    // Split the case-law subsection into individual decided-case examples and
+    // pair each with the citations its [N] markers point to. The guide writes
+    // each example as a short paragraph ending in a footnote reference, so a
+    // paragraph that contains at least one case-law footnote IS a decided-case
+    // example; paragraphs without one are headers/intro text and are skipped.
+    // Only the top few results carry full examples — a large chapter has 60+
+    // case-law chunks and returning them for all 8 results blows the token
+    // budget. The #1 result is almost always the relevant one.
+    const EXAMPLES_FOR_TOP_N = 3;
+    const MAX_EXAMPLES_PER_DOC = 20;
+    const rankIdx = results.length; // 0-based position in the result list
+    const caseLawText =
+      rankIdx < EXAMPLES_FOR_TOP_N ? caseLawTextByDoc.get(f.docId) ?? "" : "";
+    const caseLawExamples: FoiCaseLawExample[] = [];
+    const usedInExamples = new Set<string>();
+    if (caseLawText) {
+      for (const para of caseLawText.split(/\n\s*\n/)) {
+        if (caseLawExamples.length >= MAX_EXAMPLES_PER_DOC) break;
+        const text = para.trim();
+        if (text.length < 30) continue; // skip headings / stray lines
+        const refs = extractFootnoteRefs(text);
+        const citations: FoiSearchResultCaseLaw[] = [];
+        for (const id of refs) {
+          const c = caseLawById.get(id);
+          if (c) {
+            citations.push(c);
+            usedInExamples.add(id);
+          }
+        }
+        // A real decided-case example cites at least one ruling. Skip the
+        // intro line ("הערה: הדוגמאות ממחישות…") and any non-citing prose.
+        if (citations.length === 0) continue;
+        caseLawExamples.push({ text, citations });
+      }
+    }
+
+    // Footnotes referenced by the rule snippet itself.
     const referencedIds = extractFootnoteRefs(snippet);
     const citedInSnippet: FoiSearchResultCaseLaw[] = [];
     const otherInChapter: FoiSearchResultCaseLaw[] = [];
     for (const c of chapterCaseLaw) {
       if (referencedIds.has(c.footnoteId)) citedInSnippet.push(c);
-      else otherInChapter.push(c);
+      else if (!usedInExamples.has(c.footnoteId)) otherInChapter.push(c);
     }
+
     results.push({
       chapter: doc.title,
       chapterSlug: doc.slug,
@@ -386,6 +454,7 @@ export async function searchFoiGuide(
       rrfScore: f.rrfScore,
       semanticScore: f.semanticScore,
       matchCount: f.matchCount,
+      caseLawExamples,
       citedInSnippet,
       otherInChapter,
     });
