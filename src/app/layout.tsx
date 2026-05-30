@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Heebo } from "next/font/google";
 import { AttorneySchema, OrganizationSchema, WebSiteSchema } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
+import ConsoleGreeting from "@/components/console-greeting";
 import "./globals.css";
 
 const GA_ID = "G-W3B12VYHCK";
@@ -135,6 +136,7 @@ export default function RootLayout({
         >
           מעבר לתוכן הראשי
         </a>
+        <ConsoleGreeting />
         <Providers>{children}</Providers>
       </body>
     </html>
