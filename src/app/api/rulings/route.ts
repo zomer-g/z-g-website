@@ -1,121 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
-const TAGIT_USER = process.env.TAGIT_USERNAME || "";
-const TAGIT_PASS = process.env.TAGIT_PASSWORD || "";
 
 /* ── Scope IDs for each category ── */
 const SCOPE_MAP: Record<string, number> = {
-  "defamation": 4,     // לשון הרע
-  "foi": 6,            // חופש מידע
+  defamation: 4, // לשון הרע
+  foi: 6,        // חופש מידע
 };
 
-/* ── Token cache ── */
-let cachedToken: { token: string; expiresAt: number } | null = null;
-
-async function getToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) {
-    return cachedToken.token;
-  }
-
-  const res = await fetch(`${TAGIT_API}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ username: TAGIT_USER, password: TAGIT_PASS }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`TAG-IT auth failed: HTTP ${res.status} ${body.slice(0, 200)}`);
-  }
-
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + 25 * 60 * 1000, // 25 min (token lasts 30)
-  };
-  return cachedToken.token;
+function getApiKey() {
+  return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;
 }
 
-/* ── Fetch rulings from Tag-It ── */
-async function fetchRulings(scopeId: number, page: number, size: number) {
-  const token = await getToken();
+interface UpstreamItem {
+  id: number;
+  filename?: string;
+  ai_analysis?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
-  const body: Record<string, unknown> = {
-    filters: [],
-    sort: "newest",
-    page,
-    size,
-    scope_id: scopeId,
+interface NormalizedRuling {
+  id: number;
+  caseName: string;
+  court: string;
+  judges: string[];
+  date: string;
+  summary: string;
+  title: string;
+  documentUrl: string;
+}
+
+function pickString(...vals: unknown[]): string {
+  for (const v of vals) {
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return "";
+}
+
+function pickArray(...vals: unknown[]): string[] {
+  for (const v of vals) {
+    if (Array.isArray(v)) return v.map((x) => String(x));
+  }
+  return [];
+}
+
+function normalize(doc: UpstreamItem): NormalizedRuling {
+  const ai = (doc.ai_analysis || {}) as Record<string, unknown>;
+  // Accept either Hebrew AI-keys (current TAG-IT output) or flattened
+  // English keys, so the route works with either response shape.
+  return {
+    id: doc.id,
+    caseName: pickString(
+      ai["שם_התיק"],
+      (doc as Record<string, unknown>).case_name,
+      doc.filename,
+    ) || "ללא שם",
+    court: pickString(ai["בית_משפט"], (doc as Record<string, unknown>).court),
+    judges: pickArray(ai["שופטים"], (doc as Record<string, unknown>).judges),
+    date: pickString(ai["תאריך_המסמך"], (doc as Record<string, unknown>).date),
+    summary: pickString(ai["תקציר"], (doc as Record<string, unknown>).summary),
+    title: pickString(ai["כותרת_המסמך"], (doc as Record<string, unknown>).title),
+    documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
   };
+}
 
-  const res = await fetch(`${TAGIT_API}/search/parametric`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
+async function fetchRulings(scopeId: number, page: number, size: number) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured in environment",
+    );
+  }
+
+  const url = new URL(`${TAGIT_API}/api/public/rulings/documents`);
+  url.searchParams.set("scope", String(scopeId));
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("size", String(size));
+
+  const res = await fetch(url, {
+    headers: { "X-API-Key": apiKey, Accept: "application/json" },
+    cache: "no-store",
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`TAG-IT parametric search failed: HTTP ${res.status} ${body.slice(0, 200)}`);
+    throw new Error(
+      `TAG-IT rulings API failed: HTTP ${res.status} ${body.slice(0, 200)}`,
+    );
   }
 
-  const data = await res.json();
-  const docs = (data.documents || []) as Array<Record<string, unknown>>;
-
-  // Fetch metadata in batches to avoid overwhelming TAG-IT (and running into
-  // serverless function timeouts when N is large). Each request also has its
-  // own short timeout so a single slow doc doesn't block the whole page.
-  const BATCH = 6;
-  const META_TIMEOUT_MS = 5000;
-
-  const fetchMeta = async (doc: Record<string, unknown>) => {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), META_TIMEOUT_MS);
-    try {
-      const metaRes = await fetch(`${TAGIT_API}/documents/${doc.id}/metadata`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: ctrl.signal,
-      });
-      const meta = await metaRes.json();
-      const ai = (meta.ai_analysis || {}) as Record<string, unknown>;
-      return {
-        id: doc.id,
-        caseName: ai["שם_התיק"] || doc.filename || "ללא שם",
-        court: ai["בית_משפט"] || "",
-        judges: ai["שופטים"] || [],
-        date: ai["תאריך_המסמך"] || "",
-        summary: ai["תקציר"] || "",
-        title: ai["כותרת_המסמך"] || "",
-        documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
-      };
-    } catch {
-      return {
-        id: doc.id,
-        caseName: (doc.filename as string) || "ללא שם",
-        court: "",
-        judges: [],
-        date: "",
-        summary: "",
-        title: "",
-        documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
-      };
-    } finally {
-      clearTimeout(t);
-    }
+  const data = (await res.json()) as {
+    total?: number;
+    items?: UpstreamItem[];
+    documents?: UpstreamItem[];
   };
-
-  const rulings: Awaited<ReturnType<typeof fetchMeta>>[] = [];
-  for (let i = 0; i < docs.length; i += BATCH) {
-    const batch = docs.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map(fetchMeta));
-    rulings.push(...results);
-  }
-
-  return { total: data.total || 0, rulings };
+  const items = data.items || data.documents || [];
+  return { total: Number(data.total) || items.length, rulings: items.map(normalize) };
 }
 
 /* ── GET /api/rulings?category=defamation|foi&page=1&limit=20 ── */
@@ -124,7 +104,10 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category") || "defamation";
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+    );
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
     const scopeId = SCOPE_MAP[category];
@@ -137,7 +120,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       { ...data, page, size: limit },
       {
-        headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        },
       },
     );
   } catch (err) {
