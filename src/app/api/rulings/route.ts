@@ -58,42 +58,56 @@ async function fetchRulings(scopeId: number, page: number, size: number) {
   if (!res.ok) throw new Error(`Tag-It API error: ${res.status}`);
 
   const data = await res.json();
-  const docs = data.documents || [];
+  const docs = (data.documents || []) as Array<Record<string, unknown>>;
 
-  // Fetch metadata for each document
-  const rulings = await Promise.all(
-    docs.map(async (doc: Record<string, unknown>) => {
-      try {
-        const metaRes = await fetch(`${TAGIT_API}/documents/${doc.id}/metadata`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const meta = await metaRes.json();
-        const ai = (meta.ai_analysis || {}) as Record<string, unknown>;
+  // Fetch metadata in batches to avoid overwhelming TAG-IT (and running into
+  // serverless function timeouts when N is large). Each request also has its
+  // own short timeout so a single slow doc doesn't block the whole page.
+  const BATCH = 6;
+  const META_TIMEOUT_MS = 5000;
 
-        return {
-          id: doc.id,
-          caseName: ai["שם_התיק"] || doc.filename || "ללא שם",
-          court: ai["בית_משפט"] || "",
-          judges: ai["שופטים"] || [],
-          date: ai["תאריך_המסמך"] || "",
-          summary: ai["תקציר"] || "",
-          title: ai["כותרת_המסמך"] || "",
-          documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
-        };
-      } catch {
-        return {
-          id: doc.id,
-          caseName: (doc.filename as string) || "ללא שם",
-          court: "",
-          judges: [],
-          date: "",
-          summary: "",
-          title: "",
-          documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
-        };
-      }
-    }),
-  );
+  const fetchMeta = async (doc: Record<string, unknown>) => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), META_TIMEOUT_MS);
+    try {
+      const metaRes = await fetch(`${TAGIT_API}/documents/${doc.id}/metadata`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: ctrl.signal,
+      });
+      const meta = await metaRes.json();
+      const ai = (meta.ai_analysis || {}) as Record<string, unknown>;
+      return {
+        id: doc.id,
+        caseName: ai["שם_התיק"] || doc.filename || "ללא שם",
+        court: ai["בית_משפט"] || "",
+        judges: ai["שופטים"] || [],
+        date: ai["תאריך_המסמך"] || "",
+        summary: ai["תקציר"] || "",
+        title: ai["כותרת_המסמך"] || "",
+        documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
+      };
+    } catch {
+      return {
+        id: doc.id,
+        caseName: (doc.filename as string) || "ללא שם",
+        court: "",
+        judges: [],
+        date: "",
+        summary: "",
+        title: "",
+        documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
+      };
+    } finally {
+      clearTimeout(t);
+    }
+  };
+
+  const rulings: Awaited<ReturnType<typeof fetchMeta>>[] = [];
+  for (let i = 0; i < docs.length; i += BATCH) {
+    const batch = docs.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(fetchMeta));
+    rulings.push(...results);
+  }
 
   return { total: data.total || 0, rulings };
 }

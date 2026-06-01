@@ -20,9 +20,10 @@ interface RulingsResponse {
   rulings: Ruling[];
 }
 
-// 24 = LCM(1,2,3) × 4 — keeps every full page row-aligned across the
-// 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
-const PAGE_SIZE = 24;
+// 12 = LCM(1,2,3) × 2 — keeps every full page row-aligned across the
+// 1-col / 2-col / 3-col breakpoints. Half the load of 24 to stay under
+// the serverless timeout, since each doc triggers a metadata round-trip.
+const PAGE_SIZE = 12;
 
 const C_PRIMARY = "#1a365d";
 const C_PD = "#2a6f97";
