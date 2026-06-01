@@ -64,7 +64,9 @@ function normalize(doc: UpstreamRulingItem): NormalizedRuling {
       ai["כותרת_המסמך"],
       (doc as Record<string, unknown>).title,
     ),
-    documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
+    // Point at our proxy route, not the upstream /documents/{id}/view (that
+     // endpoint requires session auth and would 401 for public visitors).
+    documentUrl: `/api/rulings/documents/${doc.id}/file`,
   };
 }
 
