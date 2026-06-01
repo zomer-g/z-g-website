@@ -24,7 +24,10 @@ async function getToken(): Promise<string> {
     body: new URLSearchParams({ username: TAGIT_USER, password: TAGIT_PASS }),
   });
 
-  if (!res.ok) throw new Error("Failed to authenticate with Tag-It API");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`TAG-IT auth failed: HTTP ${res.status} ${body.slice(0, 200)}`);
+  }
 
   const data = await res.json();
   cachedToken = {
@@ -55,7 +58,10 @@ async function fetchRulings(scopeId: number, page: number, size: number) {
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) throw new Error(`Tag-It API error: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`TAG-IT parametric search failed: HTTP ${res.status} ${body.slice(0, 200)}`);
+  }
 
   const data = await res.json();
   const docs = (data.documents || []) as Array<Record<string, unknown>>;
@@ -135,7 +141,11 @@ export async function GET(req: NextRequest) {
       },
     );
   } catch (err) {
-    console.error("Rulings API error:", err);
-    return NextResponse.json({ error: "שגיאה בטעינת פסיקה" }, { status: 500 });
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("Rulings API error:", detail);
+    return NextResponse.json(
+      { error: "שגיאה בטעינת פסיקה", detail },
+      { status: 500 },
+    );
   }
 }
