@@ -7,7 +7,7 @@ const TAGIT_PASS = process.env.TAGIT_PASSWORD || "";
 /* ── Scope IDs for each category ── */
 const SCOPE_MAP: Record<string, number> = {
   "defamation": 4,     // לשון הרע
-  "foi": 1,            // חופש מידע - uses text search within scope 1
+  "foi": 6,            // חופש מידע
 };
 
 /* ── Token cache ── */
@@ -35,20 +35,16 @@ async function getToken(): Promise<string> {
 }
 
 /* ── Fetch rulings from Tag-It ── */
-async function fetchRulings(scopeId: number, limit: number, textQuery?: string) {
+async function fetchRulings(scopeId: number, page: number, size: number) {
   const token = await getToken();
 
   const body: Record<string, unknown> = {
     filters: [],
     sort: "newest",
-    page: 1,
-    size: limit,
+    page,
+    size,
     scope_id: scopeId,
   };
-
-  if (textQuery) {
-    body.text_query = textQuery;
-  }
 
   const res = await fetch(`${TAGIT_API}/search/parametric`, {
     method: "POST",
@@ -102,27 +98,28 @@ async function fetchRulings(scopeId: number, limit: number, textQuery?: string) 
   return { total: data.total || 0, rulings };
 }
 
-/* ── GET /api/rulings?category=defamation|foi&limit=5 ── */
+/* ── GET /api/rulings?category=defamation|foi&page=1&limit=20 ── */
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category") || "defamation";
-    const limit = Math.min(20, Math.max(1, parseInt(searchParams.get("limit") || "5", 10)));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
     const scopeId = SCOPE_MAP[category];
     if (!scopeId) {
       return NextResponse.json({ error: "קטגוריה לא תקינה" }, { status: 400 });
     }
 
-    // For FOI, search within the general scope using text
-    const textQuery = category === "foi" ? "חופש מידע" : undefined;
+    const data = await fetchRulings(scopeId, page, limit);
 
-    const data = await fetchRulings(scopeId, limit, textQuery);
-
-    return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
-    });
+    return NextResponse.json(
+      { ...data, page, size: limit },
+      {
+        headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" },
+      },
+    );
   } catch (err) {
     console.error("Rulings API error:", err);
     return NextResponse.json({ error: "שגיאה בטעינת פסיקה" }, { status: 500 });

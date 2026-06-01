@@ -6,6 +6,7 @@ import { getPageContent } from "@/lib/content";
 import { auth } from "@/lib/auth";
 import type { DefamationRulingsPageContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
+import { RulingsList } from "../rulings/rulings-list";
 
 export const dynamic = "force-dynamic";
 
@@ -41,17 +42,7 @@ export default async function DefamationRulingsPage() {
         </section>
       </EditableSection>
       <Container className="py-8">
-        <div
-          dir="rtl"
-          className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-700"
-        >
-          <p className="text-lg font-semibold mb-2">
-            הדף בהקמה — הנתונים יוזנו בקרוב
-          </p>
-          <p className="text-sm leading-relaxed">
-            פסקי הדין בעניין לשון הרע יישאבו אוטומטית מבתי המשפט וייכנסו לכאן ברגע שהמקור יתייצב.
-          </p>
-        </div>
+        <RulingsList category="defamation" />
       </Container>
     </PublicLayout>
   );
