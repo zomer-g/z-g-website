@@ -17,6 +17,7 @@ import {
   Brain,
   Database,
   Square,
+  Filter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -216,6 +217,9 @@ interface DashboardPageContent {
   hero: { title: string; subtitle: string };
   disclaimer?: { paragraphs: string[] };
   cacheTtlMinutes?: number;
+  // Optional substring-match filter (used by rulings pages). Surfaced via
+  // the `docTypeFilter` editor prop. Empty array = no filtering.
+  allowedDocTypes?: string[];
 }
 
 interface CacheControls {
@@ -229,12 +233,26 @@ interface EmbedAction {
   endpoint: string;
 }
 
+interface DocTypeFilterControls {
+  // Field on the content object that holds the substring patterns. Always
+  // "allowedDocTypes" today, kept configurable to match the rest of this
+  // component's prop style.
+  field: "allowedDocTypes";
+  // Hint shown above the field. e.g. "מציג רק מסמכים שהכותרת שלהם
+  // כוללת אחת מהמילים האלה."
+  description?: string;
+  // Pre-filled chips the admin can add/remove with one click. Each entry is
+  // a substring pattern; clicking adds it if missing, otherwise removes it.
+  presets?: string[];
+}
+
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
   content: T;
   onChange: (content: T) => void;
   showDisclaimer?: boolean;
   cacheControls?: CacheControls;
   embedAction?: EmbedAction;
+  docTypeFilter?: DocTypeFilterControls;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
@@ -243,6 +261,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   showDisclaimer = false,
   cacheControls,
   embedAction,
+  docTypeFilter,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
   const paragraphs = content.disclaimer?.paragraphs ?? [];
@@ -600,6 +619,19 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         </SectionCard>
       ) : null}
 
+      {docTypeFilter ? (
+        <DocTypeFilterSection
+          patterns={Array.isArray(content[docTypeFilter.field])
+            ? (content[docTypeFilter.field] as string[])
+            : []}
+          presets={docTypeFilter.presets || []}
+          description={docTypeFilter.description}
+          onChange={(next) =>
+            onChange({ ...content, [docTypeFilter.field]: next } as T)
+          }
+        />
+      ) : null}
+
       {embedAction ? (
         <SectionCard title="חיפוש סמנטי (AI)" icon={Brain}>
           <div className="space-y-3">
@@ -850,5 +882,141 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
         </SectionCard>
       ) : null}
     </div>
+  );
+}
+
+/* ─── Document-type filter section ─────────────────────────────────────────
+   Used by rulings pages (FOI / defamation) to let the admin restrict the
+   displayed documents to a list of substring patterns matched against the
+   AI-extracted title. Empty list = show everything. */
+
+function DocTypeFilterSection({
+  patterns,
+  presets,
+  description,
+  onChange,
+}: {
+  patterns: string[];
+  presets: string[];
+  description?: string;
+  onChange: (next: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const add = (raw: string) => {
+    const v = raw.trim();
+    if (!v) return;
+    if (patterns.some((p) => p === v)) return;
+    onChange([...patterns, v]);
+    setDraft("");
+  };
+
+  const remove = (idx: number) => {
+    onChange(patterns.filter((_, i) => i !== idx));
+  };
+
+  const togglePreset = (preset: string) => {
+    const idx = patterns.indexOf(preset);
+    if (idx >= 0) remove(idx);
+    else add(preset);
+  };
+
+  return (
+    <SectionCard title="סינון לפי סוג מסמך" icon={Filter} defaultOpen>
+      <div className="space-y-3">
+        {description ? (
+          <p className="text-xs text-muted leading-relaxed">{description}</p>
+        ) : (
+          <p className="text-xs text-muted leading-relaxed">
+            מציג רק מסמכים שכותרת ה-AI שלהם כוללת אחת מהמילים למטה. רשימה
+            ריקה = להציג הכל.
+          </p>
+        )}
+
+        {/* Current patterns as removable chips */}
+        {patterns.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {patterns.map((p, idx) => (
+              <button
+                key={`${p}-${idx}`}
+                type="button"
+                onClick={() => remove(idx)}
+                className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-semibold text-primary hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition"
+                title="הסרה"
+              >
+                <span>{p}</span>
+                <Trash2 size={12} />
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted italic">
+            אין מסננים מוגדרים — כרגע מוצגים כל סוגי המסמכים.
+          </p>
+        )}
+
+        {/* Add new pattern */}
+        <div className="flex items-center gap-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add(draft);
+              }
+            }}
+            placeholder="לדוגמה: פסק דין"
+            dir="rtl"
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            onClick={() => add(draft)}
+            disabled={!draft.trim()}
+            variant="ghost"
+            size="sm"
+            className="border border-border whitespace-nowrap"
+          >
+            <Plus size={14} />
+            הוסף
+          </Button>
+        </div>
+
+        {/* Preset toggles */}
+        {presets.length > 0 ? (
+          <div>
+            <div className="text-xs font-semibold text-muted mb-1.5">
+              הוספה מהירה:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((preset) => {
+                const active = patterns.includes(preset);
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => togglePreset(preset)}
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium transition",
+                      active
+                        ? "border-primary bg-primary text-white"
+                        : "border-border bg-white text-foreground hover:bg-muted-bg/30",
+                    )}
+                  >
+                    {active ? (
+                      <CheckCircle size={12} />
+                    ) : (
+                      <Plus size={12} />
+                    )}
+                    {preset}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </SectionCard>
   );
 }

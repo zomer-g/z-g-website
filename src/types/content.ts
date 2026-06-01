@@ -417,6 +417,10 @@ export interface DefamationRulingsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  // Substring patterns matched against ai_analysis["כותרת_המסמך"].
+  // A document is shown only if its title includes at least one pattern.
+  // Empty array = show everything.
+  allowedDocTypes: string[];
 }
 
 // ── FOI Petitions Rulings Dashboard Page Content ──
@@ -425,6 +429,7 @@ export interface FoiRulingsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  allowedDocTypes: string[];
 }
 
 // ── Conditional Arrangements Dashboard Page Content ──

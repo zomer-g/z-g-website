@@ -406,12 +406,36 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<DefamationRulingsPageContent>
               content={content as DefamationRulingsPageContent}
               onChange={setContent}
+              cacheControls={{
+                refreshEndpoint: "/api/rulings/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
+              docTypeFilter={{
+                field: "allowedDocTypes",
+                description:
+                  "סינון לפי כותרת ה-AI של המסמך (ai_analysis.כותרת_המסמך). השוואה לפי הכלה — \"פסק דין\" תתפוס גם \"פסק דין חלקי\". רשימה ריקה = להציג הכל.",
+                presets: ["פסק דין", "החלטה", "החלטה בבקשה", "פשרה"],
+              }}
             />
           )}
           {slug === "foi-rulings" && (
             <DashboardPageEditor<FoiRulingsPageContent>
               content={content as FoiRulingsPageContent}
               onChange={setContent}
+              cacheControls={{
+                refreshEndpoint: "/api/rulings/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
+              docTypeFilter={{
+                field: "allowedDocTypes",
+                description:
+                  "סינון לפי כותרת ה-AI של המסמך (ai_analysis.כותרת_המסמך). השוואה לפי הכלה — \"פסק דין\" תתפוס גם \"פסק דין חלקי\". רשימה ריקה = להציג הכל.",
+                presets: ["פסק דין", "החלטה", "החלטה בבקשה", "פשרה"],
+              }}
             />
           )}
           {slug === "leam" && (

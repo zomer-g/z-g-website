@@ -445,6 +445,7 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
     subtitle: "פסקי דין אחרונים בעניין לשון הרע",
   },
   cacheTtlMinutes: 60,
+  allowedDocTypes: ["פסק דין"],
 };
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */
@@ -456,6 +457,7 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
     subtitle: "פסקי דין אחרונים בעתירות לפי חוק חופש המידע",
   },
   cacheTtlMinutes: 60,
+  allowedDocTypes: ["פסק דין"],
 };
 
 /* ─── Conditional Arrangements Dashboard Page ─── */

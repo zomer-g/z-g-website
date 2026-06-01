@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  fetchAllUpstreamRulings,
+  type UpstreamRulingItem,
+} from "@/lib/rulings-upstream";
+import { getCached, setCached } from "@/lib/rulings-cache";
+import { getPageContent } from "@/lib/content";
+import type {
+  DefamationRulingsPageContent,
+  FoiRulingsPageContent,
+} from "@/types/content";
 
 const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
-/* ── Scope IDs for each category ── */
-const SCOPE_MAP: Record<string, number> = {
-  defamation: 4, // לשון הרע
-  foi: 6,        // חופש מידע
+const SCOPE_MAP: Record<string, { id: number; pageSlug: string }> = {
+  defamation: { id: 4, pageSlug: "defamation-rulings" },
+  foi:        { id: 6, pageSlug: "foi-rulings" },
 };
 
-function getApiKey() {
-  return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;
-}
-
-interface UpstreamItem {
-  id: number;
-  filename?: string;
-  ai_analysis?: Record<string, unknown>;
-  [key: string]: unknown;
-}
+const DEFAULT_TTL_MINUTES = 60;
+const MIN_TTL_MINUTES = 1;
+const MAX_TTL_MINUTES = 1440;
 
 interface NormalizedRuling {
   id: number;
@@ -44,61 +46,78 @@ function pickArray(...vals: unknown[]): string[] {
   return [];
 }
 
-function normalize(doc: UpstreamItem): NormalizedRuling {
+function normalize(doc: UpstreamRulingItem): NormalizedRuling {
   const ai = (doc.ai_analysis || {}) as Record<string, unknown>;
-  // Accept either Hebrew AI-keys (current TAG-IT output) or flattened
-  // English keys, so the route works with either response shape.
   return {
     id: doc.id,
-    caseName: pickString(
-      ai["שם_התיק"],
-      (doc as Record<string, unknown>).case_name,
-      doc.filename,
-    ) || "ללא שם",
+    caseName:
+      pickString(
+        ai["שם_התיק"],
+        (doc as Record<string, unknown>).case_name,
+        doc.filename,
+      ) || "ללא שם",
     court: pickString(ai["בית_משפט"], (doc as Record<string, unknown>).court),
     judges: pickArray(ai["שופטים"], (doc as Record<string, unknown>).judges),
     date: pickString(ai["תאריך_המסמך"], (doc as Record<string, unknown>).date),
     summary: pickString(ai["תקציר"], (doc as Record<string, unknown>).summary),
-    title: pickString(ai["כותרת_המסמך"], (doc as Record<string, unknown>).title),
+    title: pickString(
+      ai["כותרת_המסמך"],
+      (doc as Record<string, unknown>).title,
+    ),
     documentUrl: `${TAGIT_API}/documents/${doc.id}/view`,
   };
 }
 
-async function fetchRulings(scopeId: number, page: number, size: number) {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error(
-      "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured in environment",
-    );
-  }
-
-  const url = new URL(`${TAGIT_API}/api/public/rulings/documents`);
-  url.searchParams.set("scope", String(scopeId));
-  url.searchParams.set("page", String(page));
-  url.searchParams.set("size", String(size));
-
-  const res = await fetch(url, {
-    headers: { "X-API-Key": apiKey, Accept: "application/json" },
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(
-      `TAG-IT rulings API failed: HTTP ${res.status} ${body.slice(0, 200)}`,
-    );
-  }
-
-  const data = (await res.json()) as {
-    total?: number;
-    items?: UpstreamItem[];
-    documents?: UpstreamItem[];
-  };
-  const items = data.items || data.documents || [];
-  return { total: Number(data.total) || items.length, rulings: items.map(normalize) };
+interface PageConfig {
+  ttlMs: number;
+  allowedDocTypes: string[];
 }
 
-/* ── GET /api/rulings?category=defamation|foi&page=1&limit=20 ── */
+async function readPageConfig(pageSlug: string): Promise<PageConfig> {
+  try {
+    const content =
+      pageSlug === "foi-rulings"
+        ? await getPageContent<FoiRulingsPageContent>("foi-rulings")
+        : await getPageContent<DefamationRulingsPageContent>(
+            "defamation-rulings",
+          );
+    const ttlRaw = Number(content?.cacheTtlMinutes);
+    const ttlMinutes = Number.isFinite(ttlRaw)
+      ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, ttlRaw))
+      : DEFAULT_TTL_MINUTES;
+    const allowed = Array.isArray(content?.allowedDocTypes)
+      ? content.allowedDocTypes.map((s) => String(s).trim()).filter(Boolean)
+      : [];
+    return { ttlMs: ttlMinutes * 60_000, allowedDocTypes: allowed };
+  } catch {
+    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, allowedDocTypes: [] };
+  }
+}
+
+function matchesAllowedType(
+  item: UpstreamRulingItem,
+  patterns: string[],
+): boolean {
+  if (patterns.length === 0) return true; // empty = allow everything
+  const ai = (item.ai_analysis || {}) as Record<string, unknown>;
+  const title = String(ai["כותרת_המסמך"] || "");
+  if (!title) return false; // strict: no title = excluded when a filter is active
+  return patterns.some((p) => title.includes(p));
+}
+
+function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
+  return [...items].sort((a, b) => {
+    const da = String(
+      ((a.ai_analysis as Record<string, unknown>) || {})["תאריך_המסמך"] || "",
+    );
+    const db = String(
+      ((b.ai_analysis as Record<string, unknown>) || {})["תאריך_המסמך"] || "",
+    );
+    return db.localeCompare(da);
+  });
+}
+
+/* ── GET /api/rulings?category=defamation|foi&page=1&limit=12 ── */
 
 export async function GET(req: NextRequest) {
   try {
@@ -106,22 +125,56 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get("category") || "defamation";
     const limit = Math.min(
       50,
-      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
+      Math.max(1, parseInt(searchParams.get("limit") || "12", 10)),
     );
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
-    const scopeId = SCOPE_MAP[category];
-    if (!scopeId) {
+    const scope = SCOPE_MAP[category];
+    if (!scope) {
       return NextResponse.json({ error: "קטגוריה לא תקינה" }, { status: 400 });
     }
 
-    const data = await fetchRulings(scopeId, page, limit);
+    const config = await readPageConfig(scope.pageSlug);
+
+    // Cache the FULL upstream snapshot per scope. Filtering and pagination
+    // happen in memory — so changing the admin's allowedDocTypes takes effect
+    // immediately without re-fetching upstream.
+    const cacheKey = `scope:${scope.id}`;
+    let all = getCached(cacheKey);
+    let cacheStatus = all ? "HIT" : "MISS";
+
+    if (!all) {
+      const fetched = await fetchAllUpstreamRulings({ scopeId: scope.id });
+      if (fetched === null) {
+        return NextResponse.json(
+          {
+            error: "שגיאה בטעינת פסיקה",
+            detail: "Upstream fetch failed or RULINGS_API_KEY not configured",
+          },
+          { status: 502 },
+        );
+      }
+      setCached(cacheKey, fetched, config.ttlMs);
+      all = fetched;
+      cacheStatus = "MISS";
+    }
+
+    const filtered = all.filter((it) =>
+      matchesAllowedType(it, config.allowedDocTypes),
+    );
+    const sorted = sortByDateDesc(filtered);
+
+    const total = sorted.length;
+    const start = (page - 1) * limit;
+    const pageSlice = sorted.slice(start, start + limit);
+    const rulings = pageSlice.map(normalize);
 
     return NextResponse.json(
-      { ...data, page, size: limit },
+      { total, page, size: limit, rulings },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
+          "X-Cache": cacheStatus,
         },
       },
     );
