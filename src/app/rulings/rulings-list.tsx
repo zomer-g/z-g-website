@@ -1,17 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import {
-  Calendar,
-  Scale,
-  FileText,
-  ExternalLink,
-  Loader2,
-  Users,
-  AlertCircle,
-} from "lucide-react";
 
 interface Ruling {
   id: number;
@@ -31,26 +20,154 @@ interface RulingsResponse {
   rulings: Ruling[];
 }
 
-const PAGE_SIZE = 12;
+// 24 = LCM(1,2,3) × 4 — keeps every full page row-aligned across the
+// 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
+const PAGE_SIZE = 24;
+
+const C_PRIMARY = "#1a365d";
+const C_PD = "#2a6f97";
+const C_MUTED = "#4b5563";
+
+const dateFmt = new Intl.DateTimeFormat("he-IL", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+function fmtDate(s: string | null | undefined) {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return s;
+  return dateFmt.format(d);
+}
+
+function SkeletonCard() {
+  return (
+    <div className="rounded-xl shadow-md border border-gray-200 bg-white p-5 animate-pulse">
+      <div className="h-4 w-3/4 bg-gray-200 rounded mb-3" />
+      <div className="h-3 w-1/2 bg-gray-200 rounded mb-2" />
+      <div className="h-3 w-1/3 bg-gray-200 rounded mb-4" />
+      <div className="h-3 w-2/3 bg-gray-200 rounded" />
+    </div>
+  );
+}
+
+function Badge({
+  children,
+  color = C_PRIMARY,
+  bg = "#e6edf5",
+}: {
+  children: React.ReactNode;
+  color?: string;
+  bg?: string;
+}) {
+  return (
+    <span
+      className="inline-block text-xs font-semibold rounded-md px-2 py-0.5"
+      style={{ color, background: bg }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function RulingCard({ ruling }: { ruling: Ruling }) {
+  const [open, setOpen] = useState(false);
+  const hasLongSummary = (ruling.summary || "").length > 220;
+
+  return (
+    <article
+      className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
+      dir="rtl"
+    >
+      <div className="flex items-start gap-2 mb-2 flex-wrap">
+        {ruling.court ? (
+          <Badge color={C_PD} bg="#e1ecf3">
+            {ruling.court}
+          </Badge>
+        ) : null}
+        {ruling.date ? (
+          <Badge color={C_MUTED} bg="#eef0f3">
+            {fmtDate(ruling.date)}
+          </Badge>
+        ) : null}
+      </div>
+
+      <h3
+        className="text-base font-bold leading-snug mb-2"
+        style={{ color: C_PRIMARY }}
+      >
+        {ruling.caseName || "ללא שם תיק"}
+      </h3>
+
+      {ruling.title && ruling.title !== ruling.caseName ? (
+        <div className="text-sm font-medium text-gray-700 mb-2">{ruling.title}</div>
+      ) : null}
+
+      {Array.isArray(ruling.judges) && ruling.judges.length > 0 ? (
+        <div className="text-sm text-gray-700 mb-2">
+          <span className="font-semibold">שופטים:</span> {ruling.judges.join(", ")}
+        </div>
+      ) : null}
+
+      {ruling.summary ? (
+        <p
+          className={
+            open
+              ? "text-sm text-gray-700 leading-relaxed mb-3"
+              : "text-sm text-gray-700 leading-relaxed mb-3 line-clamp-4"
+          }
+        >
+          {ruling.summary}
+        </p>
+      ) : null}
+
+      <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+        {hasLongSummary ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="text-xs font-semibold rounded-md px-3 py-1.5 border transition"
+            style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
+          >
+            {open ? "צמצם" : "תקציר מלא"}
+          </button>
+        ) : (
+          <span />
+        )}
+        <a
+          href={ruling.documentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-semibold rounded-md px-3 py-1.5 text-white transition"
+          style={{ background: C_PRIMARY }}
+        >
+          צפייה במסמך
+        </a>
+      </div>
+    </article>
+  );
+}
 
 export function RulingsList({ category }: { category: "foi" | "defamation" }) {
   const [data, setData] = useState<RulingsResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchRulings = useCallback(async (cat: string, p: number) => {
+  const fetchData = useCallback(async (cat: string, p: number) => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await fetch(
         `/api/rulings?category=${cat}&limit=${PAGE_SIZE}&page=${p}`,
       );
-      if (!res.ok) throw new Error("שגיאה בטעינת נתונים");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = (await res.json()) as RulingsResponse;
       setData(json);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "שגיאה");
+    } catch (e) {
+      console.error(e);
+      setError("שגיאה בטעינת פסיקה. נסו שוב מאוחר יותר.");
       setData(null);
     } finally {
       setLoading(false);
@@ -58,17 +175,20 @@ export function RulingsList({ category }: { category: "foi" | "defamation" }) {
   }, []);
 
   useEffect(() => {
-    fetchRulings(category, page);
-  }, [fetchRulings, category, page]);
+    fetchData(category, page);
+  }, [fetchData, category, page]);
 
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const canPrev = page > 1;
   const canNext = page < totalPages;
+  const pageStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const pageEnd = Math.min(page * PAGE_SIZE, total);
 
   return (
     <div dir="rtl">
-      <div className="mb-4 text-sm text-gray-600">
+      {/* Results header */}
+      <div className="mb-3 text-sm text-gray-600">
         {loading ? (
           <span>בטעינה…</span>
         ) : error ? (
@@ -77,109 +197,27 @@ export function RulingsList({ category }: { category: "foi" | "defamation" }) {
           <span>לא נמצאו פסקי דין</span>
         ) : (
           <span>
-            עמוד {page} מתוך {totalPages} — סה״כ {total.toLocaleString("he-IL")} מסמכים במאגר
+            מציג פסקי דין {pageStart}–{pageEnd} מתוך {total.toLocaleString("he-IL")}
           </span>
         )}
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
+      {/* Cards grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+          : data?.rulings.map((r) => <RulingCard key={r.id} ruling={r} />)}
+      </div>
 
-      {error && !loading && (
-        <div className="flex items-center justify-center gap-2 py-16 text-red-500">
-          <AlertCircle className="h-5 w-5" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {!loading && !error && data && data.rulings.length > 0 && (
-        <div className="space-y-4">
-          {data.rulings.map((ruling) => (
-            <Card
-              key={ruling.id}
-              className="group border border-border/60 transition-shadow duration-200 hover:shadow-md"
-            >
-              <CardContent className="p-5 sm:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-bold leading-snug text-primary-dark sm:text-lg">
-                      {ruling.caseName}
-                    </h3>
-
-                    {ruling.title && ruling.title !== ruling.caseName && (
-                      <p className="mt-0.5 text-sm font-medium text-accent-text">
-                        {ruling.title}
-                      </p>
-                    )}
-
-                    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                      {ruling.court && (
-                        <span className="flex items-center gap-1">
-                          <Scale className="h-3.5 w-3.5" aria-hidden="true" />
-                          {ruling.court}
-                        </span>
-                      )}
-                      {ruling.date && (
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                          {ruling.date}
-                        </span>
-                      )}
-                      {Array.isArray(ruling.judges) && ruling.judges.length > 0 && (
-                        <span className="flex items-center gap-1">
-                          <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                          {ruling.judges.join(", ")}
-                        </span>
-                      )}
-                    </div>
-
-                    {ruling.summary && (
-                      <p className="mt-3 text-sm leading-relaxed text-foreground/80 line-clamp-3">
-                        {ruling.summary}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="shrink-0">
-                    <a
-                      href={ruling.documentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2",
-                        "text-xs font-semibold text-primary transition-all duration-200",
-                        "hover:bg-primary hover:text-white",
-                      )}
-                    >
-                      <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-                      צפייה במסמך
-                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                    </a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {!loading && !error && data && data.rulings.length === 0 && (
-        <div className="py-16 text-center text-muted">
-          <FileText className="mx-auto h-12 w-12 text-muted/30" />
-          <p className="mt-4">לא נמצאו פסקי דין</p>
-        </div>
-      )}
-
-      {!loading && !error && totalPages > 1 && (
-        <div className="mt-8 flex items-center justify-center gap-3">
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 ? (
+        <div className="flex items-center justify-center gap-3 mt-8">
           <button
             type="button"
             disabled={!canPrev}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-md border border-primary px-4 py-2 text-sm font-semibold text-primary disabled:cursor-not-allowed disabled:opacity-40"
+            className="text-sm font-semibold rounded-md px-4 py-2 border disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
           >
             הקודם
           </button>
@@ -190,16 +228,17 @@ export function RulingsList({ category }: { category: "foi" | "defamation" }) {
             type="button"
             disabled={!canNext}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className="text-sm font-semibold rounded-md px-4 py-2 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: C_PRIMARY }}
           >
             הבא
           </button>
         </div>
-      )}
+      ) : null}
 
-      <p className="mt-8 text-xs leading-relaxed text-gray-700">
-        המידע נשאב ממאגר TAG-IT ומוצג כמות שהוא. תקציר, שם תיק וזיהוי שופטים
-        חולצו על-ידי AI ויכולים לכלול שגיאות — יש לוודא מול המסמך המקורי.
+      <p className="text-xs text-gray-700 mt-8 leading-relaxed">
+        המידע נשאב ממאגר TAG-IT. שם תיק, בית משפט, שופטים ותקציר חולצו על-ידי AI ויכולים
+        לכלול שגיאות — יש לוודא מול המסמך המקורי.
       </p>
     </div>
   );
