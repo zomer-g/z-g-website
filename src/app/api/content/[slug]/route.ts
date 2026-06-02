@@ -3,6 +3,44 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { CONTENT_DEFAULTS } from "@/lib/content-defaults";
 
+/**
+ * Recursive merge so the editor sees every field — even ones that were
+ * added to the defaults after the DB row was last saved. Without this,
+ * adding a new section to content-defaults silently breaks the admin UI
+ * for any page already in the DB (the new field arrives as `undefined`).
+ * Matches the deepMerge in src/lib/content.ts which is used by the public
+ * pages.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deepMerge(defaults: any, overrides: any): any {
+  if (overrides === undefined || overrides === null) return defaults;
+  if (
+    typeof defaults !== "object" ||
+    defaults === null ||
+    Array.isArray(defaults)
+  ) {
+    return overrides;
+  }
+  const result = { ...defaults };
+  for (const key of Object.keys(overrides)) {
+    if (overrides[key] !== undefined) {
+      result[key] =
+        typeof defaults[key] === "object" &&
+        defaults[key] !== null &&
+        !Array.isArray(defaults[key])
+          ? deepMerge(defaults[key], overrides[key])
+          : overrides[key];
+    }
+  }
+  return result;
+}
+
+function mergeWithDefaults(slug: string, content: unknown): unknown {
+  const defaults = CONTENT_DEFAULTS[slug];
+  if (!defaults) return content;
+  return deepMerge(defaults, content);
+}
+
 /* ─── Page title labels ─── */
 
 const PAGE_TITLES: Record<string, string> = {
@@ -69,7 +107,7 @@ export async function GET(
         );
       }
       return NextResponse.json({
-        content: page.draftContent ?? page.content,
+        content: mergeWithDefaults(slug, page.draftContent ?? page.content),
         status: page.status,
         publishedAt: page.publishedAt,
         updatedAt: page.updatedAt,
@@ -78,7 +116,7 @@ export async function GET(
     }
 
     return NextResponse.json({
-      content: page.content,
+      content: mergeWithDefaults(slug, page.content),
       status: page.status,
       publishedAt: page.publishedAt,
       updatedAt: page.updatedAt,
