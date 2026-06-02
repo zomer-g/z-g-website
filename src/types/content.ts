@@ -332,12 +332,28 @@ export interface DigitalServiceItem {
   tags: string[];
 }
 
+export interface CareerTimelineEntry {
+  period: string;       // e.g. "2016–2017", "2023–היום"
+  role: string;         // e.g. "ראש צוות דאטה"
+  organization: string; // e.g. 'בוגאטון (Bugatone)'
+  description?: string; // optional short context line
+}
+
+export interface CareerTimeline {
+  title: string;
+  subtitle: string;
+  entries: CareerTimelineEntry[];
+}
+
 export interface DigitalServicesPageContent {
   hero: { title: string; subtitle: string };
   intro: { title: string; paragraphs: string[] };
   services: { title: string; subtitle: string };
   items: DigitalServiceItem[];
   credentials: { title: string; items: string[] };
+  // Vertical CV-style timeline shown below the credentials block. Empty
+  // entries array hides the section entirely.
+  careerTimeline: CareerTimeline;
   cta: { title: string; description: string; ctaText: string; ctaLink: string };
 }
 

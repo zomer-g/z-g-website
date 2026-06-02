@@ -3,9 +3,13 @@
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "./section-card";
-import { Sparkles, FolderOpen, Megaphone, Plus, Trash2, Award, FileText } from "lucide-react";
+import { Sparkles, FolderOpen, Megaphone, Plus, Trash2, Award, FileText, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DigitalServicesPageContent, DigitalServiceItem } from "@/types/content";
+import type {
+  DigitalServicesPageContent,
+  DigitalServiceItem,
+  CareerTimelineEntry,
+} from "@/types/content";
 
 interface DigitalServicesEditorsProps {
   content: DigitalServicesPageContent;
@@ -67,6 +71,62 @@ export function DigitalServicesEditors({ content, onChange }: DigitalServicesEdi
         items: content.credentials.items.filter((_, i) => i !== index),
       },
     });
+  };
+
+  /* ── Career timeline helpers ── */
+  const timeline = content.careerTimeline || {
+    title: "",
+    subtitle: "",
+    entries: [],
+  };
+
+  const updateTimelineMeta = (
+    data: Partial<Pick<DigitalServicesPageContent["careerTimeline"], "title" | "subtitle">>,
+  ) => {
+    onChange({
+      ...content,
+      careerTimeline: { ...timeline, ...data },
+    });
+  };
+
+  const updateTimelineEntry = (
+    index: number,
+    data: Partial<CareerTimelineEntry>,
+  ) => {
+    const entries = [...timeline.entries];
+    entries[index] = { ...entries[index], ...data };
+    onChange({ ...content, careerTimeline: { ...timeline, entries } });
+  };
+
+  const addTimelineEntry = () => {
+    onChange({
+      ...content,
+      careerTimeline: {
+        ...timeline,
+        entries: [
+          ...timeline.entries,
+          { period: "", role: "", organization: "", description: "" },
+        ],
+      },
+    });
+  };
+
+  const removeTimelineEntry = (index: number) => {
+    onChange({
+      ...content,
+      careerTimeline: {
+        ...timeline,
+        entries: timeline.entries.filter((_, i) => i !== index),
+      },
+    });
+  };
+
+  const moveTimelineEntry = (index: number, dir: -1 | 1) => {
+    const entries = [...timeline.entries];
+    const target = index + dir;
+    if (target < 0 || target >= entries.length) return;
+    [entries[index], entries[target]] = [entries[target], entries[index]];
+    onChange({ ...content, careerTimeline: { ...timeline, entries } });
   };
 
   const updateIntroParagraph = (index: number, value: string) => {
@@ -285,6 +345,122 @@ export function DigitalServicesEditors({ content, onChange }: DigitalServicesEdi
             <Plus size={14} />
             הוסף הסמכה
           </Button>
+        </div>
+      </SectionCard>
+
+      {/* ── Career Timeline ── */}
+      <SectionCard title="ציר זמן מקצועי" icon={History}>
+        <div className="space-y-3">
+          <Input
+            label="כותרת הסקציה"
+            value={timeline.title}
+            onChange={(e) => updateTimelineMeta({ title: e.target.value })}
+            dir="rtl"
+          />
+          <Textarea
+            label="תת-כותרת"
+            value={timeline.subtitle}
+            onChange={(e) => updateTimelineMeta({ subtitle: e.target.value })}
+            dir="rtl"
+            rows={2}
+          />
+
+          <div className="mt-4 space-y-6">
+            {timeline.entries.map((entry, i) => (
+              <div
+                key={i}
+                className="relative rounded-lg border border-border bg-white p-4"
+              >
+                <button
+                  type="button"
+                  onClick={() => removeTimelineEntry(i)}
+                  className={cn(
+                    "absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full",
+                    "bg-red-100 text-red-600 hover:bg-red-200 transition-colors",
+                  )}
+                  title="מחק תחנה"
+                >
+                  <Trash2 size={12} />
+                </button>
+
+                <div className="space-y-2">
+                  <Input
+                    label='תקופה (לדוגמה: "2018–2020" או "2023–היום")'
+                    value={entry.period}
+                    onChange={(e) =>
+                      updateTimelineEntry(i, { period: e.target.value })
+                    }
+                    dir="rtl"
+                  />
+                  <Input
+                    label="תפקיד"
+                    value={entry.role}
+                    onChange={(e) =>
+                      updateTimelineEntry(i, { role: e.target.value })
+                    }
+                    dir="rtl"
+                  />
+                  <Input
+                    label="ארגון / מקום"
+                    value={entry.organization}
+                    onChange={(e) =>
+                      updateTimelineEntry(i, { organization: e.target.value })
+                    }
+                    dir="rtl"
+                  />
+                  <Textarea
+                    label="תיאור (אופציונלי)"
+                    value={entry.description || ""}
+                    onChange={(e) =>
+                      updateTimelineEntry(i, { description: e.target.value })
+                    }
+                    dir="rtl"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="mt-3 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => moveTimelineEntry(i, -1)}
+                    disabled={i === 0}
+                    className="text-xs"
+                    title="הזז למעלה"
+                  >
+                    ↑ למעלה
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => moveTimelineEntry(i, 1)}
+                    disabled={i === timeline.entries.length - 1}
+                    className="text-xs"
+                    title="הזז למטה"
+                  >
+                    ↓ למטה
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={addTimelineEntry}
+            className="gap-1.5"
+          >
+            <Plus size={14} />
+            הוסף תחנה
+          </Button>
+
+          <p className="text-xs text-muted leading-relaxed">
+            הסדר בעורך = הסדר בדף. אם הרשימה ריקה — הסקציה כולה לא תוצג.
+          </p>
         </div>
       </SectionCard>
 

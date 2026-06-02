@@ -285,6 +285,68 @@ export default async function DigitalServicesPage() {
       </section>
       </EditableSection>
 
+      {/* ── Career Timeline ── */}
+      {content.careerTimeline && content.careerTimeline.entries.length > 0 ? (
+        <EditableSection
+          editHref="/admin/site-editor/digital-services"
+          editLabel="ציר זמן"
+        >
+          <section
+            aria-labelledby="ds-timeline-heading"
+            className="relative bg-muted-bg py-16 sm:py-20"
+          >
+            <Container narrow>
+              <div className="mb-4 h-1 w-16 rounded-full bg-accent" aria-hidden="true" />
+              <h2
+                id="ds-timeline-heading"
+                className="text-2xl font-bold leading-snug tracking-tight text-primary-dark sm:text-3xl"
+              >
+                {content.careerTimeline.title}
+              </h2>
+              {content.careerTimeline.subtitle ? (
+                <p className="mt-3 text-base leading-relaxed text-muted">
+                  {content.careerTimeline.subtitle}
+                </p>
+              ) : null}
+
+              {/* Vertical timeline. Spine on the right edge (RTL); each entry
+                  pulls left of it with a connector dot anchored on the spine.
+                  Period sits above role, role above org, description below. */}
+              <ol className="relative mt-10 space-y-8 border-r-2 border-primary/15 pr-6 sm:pr-8">
+                {content.careerTimeline.entries.map((entry, i) => (
+                  <li key={i} className="relative">
+                    {/* Dot on the spine */}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute right-[-1.86rem] sm:right-[-2.36rem] top-1.5 h-3.5 w-3.5 rounded-full",
+                        "border-2 border-primary bg-white shadow-sm",
+                      )}
+                    />
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <span className="font-mono text-sm font-semibold text-accent-text whitespace-nowrap">
+                        {entry.period}
+                      </span>
+                      <span className="text-lg font-bold leading-snug text-primary-dark">
+                        {entry.role}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-base font-medium text-foreground/85">
+                      {entry.organization}
+                    </div>
+                    {entry.description ? (
+                      <p className="mt-2 text-sm leading-relaxed text-muted">
+                        {entry.description}
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </Container>
+          </section>
+        </EditableSection>
+      ) : null}
+
       {/* ── CTA ── */}
       <EditableSection editHref="/admin/site-editor/digital-services" editLabel="קריאה לפעולה">
       <section
