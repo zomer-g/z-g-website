@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchAllUpstreamRulings,
+  UpstreamError,
   type UpstreamRulingItem,
 } from "@/lib/rulings-upstream";
 import { getCached, setCached } from "@/lib/rulings-cache";
@@ -196,28 +197,51 @@ export async function GET(req: NextRequest) {
     let cacheStatus = all ? "HIT" : "MISS";
 
     if (!all) {
-      const fetched = await fetchAllUpstreamRulings({
-        scopeId: scope.id,
-        filterJson: filterJson || undefined,
-      });
-      if (fetched === null) {
-        return NextResponse.json(
-          {
-            error: "שגיאה בטעינת פסיקה",
-            detail: "Upstream fetch failed or RULINGS_API_KEY not configured",
-          },
-          { status: 502 },
-        );
+      try {
+        // Always send a sort key — TAG-IT only switches to the new
+        // ai/sql/meta-grouped response shape when at least one of
+        // filter/fields/sort is present. We need that shape so sql.* and
+        // meta.* are accessible for admin-configured displayFields.
+        const fetched = await fetchAllUpstreamRulings({
+          scopeId: scope.id,
+          filterJson: filterJson || undefined,
+          sortKey: "-ai.תאריך_המסמך",
+        });
+        if (fetched === null) {
+          return NextResponse.json(
+            {
+              error: "שגיאה בטעינת פסיקה",
+              detail:
+                "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured",
+            },
+            { status: 502 },
+          );
+        }
+        setCached(cacheKey, fetched, config.ttlMs);
+        all = fetched;
+        cacheStatus = "MISS";
+      } catch (err) {
+        if (err instanceof UpstreamError) {
+          // Pass TAG-IT's flat error body through so the admin can see
+          // {"error":"unknown_field","field":"ai.X"} directly.
+          return NextResponse.json(
+            {
+              error: "שגיאה ב-TAG-IT",
+              upstreamStatus: err.status,
+              upstreamBody: err.body.slice(0, 500),
+            },
+            { status: 502 },
+          );
+        }
+        throw err;
       }
-      setCached(cacheKey, fetched, config.ttlMs);
-      all = fetched;
-      cacheStatus = "MISS";
     }
 
     // Apply both filters in memory. allowedDocTypes is the simple chip UX;
-    // customQuery is the structured FilterExpression. We always apply both
-    // here — if TAG-IT has already filtered server-side the second pass is
-    // a no-op; if not, this is where the filtering actually happens.
+    // customQuery is the structured FilterExpression that TAG-IT already
+    // applied server-side. We still run evaluateFilter as a safety net in
+    // case the upstream version diverges, and to keep the in-memory path
+    // working if TAG-IT ever returns the legacy shape.
     const filtered = all
       .filter((it) => matchesAllowedType(it, config.allowedDocTypes))
       .filter((it) => evaluateFilter(it, config.customQuery));

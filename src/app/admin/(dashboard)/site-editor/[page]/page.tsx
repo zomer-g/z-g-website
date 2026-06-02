@@ -420,6 +420,7 @@ export default function SiteEditorPageEditor({
               }}
               advancedQuery={{
                 field: "query",
+                schemaHintUrl: "/api/rulings/schema?category=defamation",
                 examples: [
                   {
                     label: "פסק דין בערעור",
@@ -457,6 +458,7 @@ export default function SiteEditorPageEditor({
               }}
               advancedQuery={{
                 field: "query",
+                schemaHintUrl: "/api/rulings/schema?category=foi",
                 examples: [
                   {
                     label: "החלטה עם הוצאות משפט > 0",

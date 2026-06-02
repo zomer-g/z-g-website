@@ -33,10 +33,28 @@ export interface FetchAllRulingsOptions {
   scopeId: number;
   signal?: AbortSignal;
   // Optional server-side filter — opaque JSON-encoded FilterExpression.
-  // We forward it to TAG-IT untouched. When TAG-IT doesn't support it yet,
-  // the upstream simply ignores the param and returns the full snapshot;
-  // the route then applies the same filter in memory via rulings-filter-eval.
+  // We forward it to TAG-IT untouched. TAG-IT returns flat error JSON
+  // for bad filters; we propagate it via UpstreamError below.
   filterJson?: string;
+  // Sort key, e.g. "-ai.תאריך_המסמך". Sending sort is enough to force
+  // TAG-IT's "new shape" response ({id, ai:{}, sql:{}, meta:{}}) — we
+  // always send one so sql.* and meta.* are available for displayFields.
+  sortKey?: string;
+}
+
+/**
+ * Surfaced upstream failure. Lets the route turn an upstream 400 into a 502
+ * with the same flat error body, so the admin can see "unknown_field: ai.X"
+ * directly in the page instead of "Upstream fetch failed".
+ */
+export class UpstreamError extends Error {
+  status: number;
+  body: string;
+  constructor(status: number, body: string) {
+    super(`Upstream HTTP ${status}: ${body.slice(0, 200)}`);
+    this.status = status;
+    this.body = body;
+  }
 }
 
 export async function fetchAllUpstreamRulings(
@@ -51,23 +69,26 @@ export async function fetchAllUpstreamRulings(
     u.searchParams.set("page", String(page));
     u.searchParams.set("size", String(PAGE_SIZE));
     if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
+    if (opts.sortKey) u.searchParams.set("sort", opts.sortKey);
     return u.toString();
   };
 
   const fetchPage = async (
     page: number,
-  ): Promise<UpstreamListResponse | null> => {
+  ): Promise<UpstreamListResponse> => {
     const res = await fetch(buildUrl(page), {
       headers: { "X-API-Key": apiKey, Accept: "application/json" },
       cache: "no-store",
       signal: opts.signal,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new UpstreamError(res.status, body);
+    }
     return (await res.json()) as UpstreamListResponse;
   };
 
   const first = await fetchPage(1);
-  if (!first) return null;
 
   const firstItems = first.items || first.documents || [];
   const total = Number(first.total) || firstItems.length;
@@ -86,9 +107,8 @@ export async function fetchAllUpstreamRulings(
   for (let i = 0; i < remainingPages.length; i += PARALLEL) {
     const batch = remainingPages.slice(i, i + PARALLEL);
     const responses = await Promise.all(batch.map(fetchPage));
-    if (responses.some((r) => r === null)) return null;
     for (const r of responses) {
-      if (r) all.push(...(r.items || r.documents || []));
+      all.push(...(r.items || r.documents || []));
     }
   }
 
