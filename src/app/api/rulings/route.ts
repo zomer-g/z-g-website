@@ -9,6 +9,9 @@ import type {
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
 } from "@/types/content";
+import type { FilterExpression } from "@/types/ruling-filter";
+import { evaluateFilter } from "@/lib/rulings-filter-eval";
+import { createHash } from "crypto";
 
 const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
@@ -30,6 +33,9 @@ interface NormalizedRuling {
   summary: string;
   title: string;
   documentUrl: string;
+  // Flattened lookup of every field on the document so the client can render
+  // admin-configured displayFields by key (e.g. "sql.הוצאות_משפט").
+  fields: Record<string, unknown>;
 }
 
 function pickString(...vals: unknown[]): string {
@@ -46,33 +52,48 @@ function pickArray(...vals: unknown[]): string[] {
   return [];
 }
 
+function flattenFields(doc: UpstreamRulingItem): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const top = doc as Record<string, unknown>;
+  // ai.* — supports both the legacy `ai_analysis` and the new `ai` grouping
+  const ai = ((top.ai || top.ai_analysis) as Record<string, unknown>) || {};
+  for (const k of Object.keys(ai)) out[`ai.${k}`] = ai[k];
+  // sql.*
+  const sql = (top.sql as Record<string, unknown>) || {};
+  for (const k of Object.keys(sql)) out[`sql.${k}`] = sql[k];
+  // meta.* — everything else top-level except the grouping keys
+  const skip = new Set(["ai", "ai_analysis", "sql"]);
+  for (const k of Object.keys(top)) {
+    if (skip.has(k)) continue;
+    out[`meta.${k}`] = top[k];
+  }
+  return out;
+}
+
 function normalize(doc: UpstreamRulingItem): NormalizedRuling {
-  const ai = (doc.ai_analysis || {}) as Record<string, unknown>;
+  const top = doc as Record<string, unknown>;
+  const ai = ((top.ai || top.ai_analysis) as Record<string, unknown>) || {};
   return {
     id: doc.id,
     caseName:
-      pickString(
-        ai["שם_התיק"],
-        (doc as Record<string, unknown>).case_name,
-        doc.filename,
-      ) || "ללא שם",
-    court: pickString(ai["בית_משפט"], (doc as Record<string, unknown>).court),
-    judges: pickArray(ai["שופטים"], (doc as Record<string, unknown>).judges),
-    date: pickString(ai["תאריך_המסמך"], (doc as Record<string, unknown>).date),
-    summary: pickString(ai["תקציר"], (doc as Record<string, unknown>).summary),
-    title: pickString(
-      ai["כותרת_המסמך"],
-      (doc as Record<string, unknown>).title,
-    ),
+      pickString(ai["שם_התיק"], top.case_name, doc.filename) || "ללא שם",
+    court: pickString(ai["בית_משפט"], top.court),
+    judges: pickArray(ai["שופטים"], top.judges),
+    date: pickString(ai["תאריך_המסמך"], top.date),
+    summary: pickString(ai["תקציר"], top.summary),
+    title: pickString(ai["כותרת_המסמך"], top.title),
     // Point at our proxy route, not the upstream /documents/{id}/view (that
-     // endpoint requires session auth and would 401 for public visitors).
+    // endpoint requires session auth and would 401 for public visitors).
     documentUrl: `/api/rulings/documents/${doc.id}/file`,
+    fields: flattenFields(doc),
   };
 }
 
 interface PageConfig {
   ttlMs: number;
   allowedDocTypes: string[];
+  customQuery: FilterExpression | null;
+  displayFields: string[];
 }
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
@@ -90,9 +111,29 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
     const allowed = Array.isArray(content?.allowedDocTypes)
       ? content.allowedDocTypes.map((s) => String(s).trim()).filter(Boolean)
       : [];
-    return { ttlMs: ttlMinutes * 60_000, allowedDocTypes: allowed };
+    const customQuery =
+      content?.query && typeof content.query === "object"
+        ? (content.query.customQuery ?? null)
+        : null;
+    const displayFields =
+      content?.query && Array.isArray(content.query.displayFields)
+        ? content.query.displayFields
+            .map((s) => String(s).trim())
+            .filter(Boolean)
+        : [];
+    return {
+      ttlMs: ttlMinutes * 60_000,
+      allowedDocTypes: allowed,
+      customQuery,
+      displayFields,
+    };
   } catch {
-    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, allowedDocTypes: [] };
+    return {
+      ttlMs: DEFAULT_TTL_MINUTES * 60_000,
+      allowedDocTypes: [],
+      customQuery: null,
+      displayFields: [],
+    };
   }
 }
 
@@ -138,15 +179,27 @@ export async function GET(req: NextRequest) {
 
     const config = await readPageConfig(scope.pageSlug);
 
-    // Cache the FULL upstream snapshot per scope. Filtering and pagination
-    // happen in memory — so changing the admin's allowedDocTypes takes effect
-    // immediately without re-fetching upstream.
-    const cacheKey = `scope:${scope.id}`;
+    // Cache key includes a hash of the upstream filter so two pages with
+    // different filters don't clobber each other. When customQuery is null
+    // the filter param isn't sent and the cache key is just the scope.
+    const filterJson = config.customQuery
+      ? JSON.stringify(config.customQuery)
+      : "";
+    const filterHash = filterJson
+      ? createHash("sha1").update(filterJson).digest("hex").slice(0, 12)
+      : "";
+    const cacheKey = filterHash
+      ? `scope:${scope.id}:f:${filterHash}`
+      : `scope:${scope.id}`;
+
     let all = getCached(cacheKey);
     let cacheStatus = all ? "HIT" : "MISS";
 
     if (!all) {
-      const fetched = await fetchAllUpstreamRulings({ scopeId: scope.id });
+      const fetched = await fetchAllUpstreamRulings({
+        scopeId: scope.id,
+        filterJson: filterJson || undefined,
+      });
       if (fetched === null) {
         return NextResponse.json(
           {
@@ -161,9 +214,13 @@ export async function GET(req: NextRequest) {
       cacheStatus = "MISS";
     }
 
-    const filtered = all.filter((it) =>
-      matchesAllowedType(it, config.allowedDocTypes),
-    );
+    // Apply both filters in memory. allowedDocTypes is the simple chip UX;
+    // customQuery is the structured FilterExpression. We always apply both
+    // here — if TAG-IT has already filtered server-side the second pass is
+    // a no-op; if not, this is where the filtering actually happens.
+    const filtered = all
+      .filter((it) => matchesAllowedType(it, config.allowedDocTypes))
+      .filter((it) => evaluateFilter(it, config.customQuery));
     const sorted = sortByDateDesc(filtered);
 
     const total = sorted.length;
@@ -172,7 +229,13 @@ export async function GET(req: NextRequest) {
     const rulings = pageSlice.map(normalize);
 
     return NextResponse.json(
-      { total, page, size: limit, rulings },
+      {
+        total,
+        page,
+        size: limit,
+        rulings,
+        displayFields: config.displayFields,
+      },
       {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",

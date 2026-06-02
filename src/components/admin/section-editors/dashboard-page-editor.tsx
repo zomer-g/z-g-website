@@ -18,7 +18,10 @@ import {
   Database,
   Square,
   Filter,
+  Code,
+  Layout,
 } from "lucide-react";
+import { isValidFilterExpression, type RulingsPageQuery } from "@/types/ruling-filter";
 import { cn } from "@/lib/utils";
 
 type EmbedFeedback = { type: "success" | "error"; message: string };
@@ -220,6 +223,9 @@ interface DashboardPageContent {
   // Optional substring-match filter (used by rulings pages). Surfaced via
   // the `docTypeFilter` editor prop. Empty array = no filtering.
   allowedDocTypes?: string[];
+  // Optional structured query (used by rulings pages). Surfaced via the
+  // `advancedQuery` editor prop.
+  query?: RulingsPageQuery;
 }
 
 interface CacheControls {
@@ -246,6 +252,16 @@ interface DocTypeFilterControls {
   presets?: string[];
 }
 
+interface AdvancedQueryControls {
+  // Field on content that stores the RulingsPageQuery object.
+  field: "query";
+  // Schema-discovery URL — used by the textarea hint to point the admin to
+  // available field keys. e.g. "/api/rulings/schema?category=foi".
+  schemaHintUrl?: string;
+  // Pre-baked example snippets the admin can click to insert.
+  examples?: { label: string; json: string }[];
+}
+
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
   content: T;
   onChange: (content: T) => void;
@@ -253,6 +269,7 @@ interface DashboardPageEditorProps<T extends DashboardPageContent> {
   cacheControls?: CacheControls;
   embedAction?: EmbedAction;
   docTypeFilter?: DocTypeFilterControls;
+  advancedQuery?: AdvancedQueryControls;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
@@ -262,6 +279,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   cacheControls,
   embedAction,
   docTypeFilter,
+  advancedQuery,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
   const paragraphs = content.disclaimer?.paragraphs ?? [];
@@ -628,6 +646,22 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           description={docTypeFilter.description}
           onChange={(next) =>
             onChange({ ...content, [docTypeFilter.field]: next } as T)
+          }
+        />
+      ) : null}
+
+      {advancedQuery ? (
+        <AdvancedQuerySection
+          query={
+            (content[advancedQuery.field] as RulingsPageQuery | undefined) || {
+              customQuery: null,
+              displayFields: [],
+            }
+          }
+          schemaHintUrl={advancedQuery.schemaHintUrl}
+          examples={advancedQuery.examples || []}
+          onChange={(next) =>
+            onChange({ ...content, [advancedQuery.field]: next } as T)
           }
         />
       ) : null}
@@ -1016,6 +1050,173 @@ function DocTypeFilterSection({
             </div>
           </div>
         ) : null}
+      </div>
+    </SectionCard>
+  );
+}
+
+// ─── Advanced query section ────────────────────────────────────────────────
+// Lets the admin author a structured FilterExpression (matches the spec sent
+// to TAG-IT: AND/OR/NOT over leaf comparisons on ai.X / sql.X / meta.X fields)
+// and an ordered list of `displayFields` to render per card. JSON textareas
+// with live validation — a visual query builder comes later.
+
+function AdvancedQuerySection({
+  query,
+  schemaHintUrl,
+  examples,
+  onChange,
+}: {
+  query: RulingsPageQuery;
+  schemaHintUrl?: string;
+  examples: { label: string; json: string }[];
+  onChange: (next: RulingsPageQuery) => void;
+}) {
+  const customQueryStr = query.customQuery
+    ? JSON.stringify(query.customQuery, null, 2)
+    : "";
+  const displayFieldsStr = (query.displayFields || []).join("\n");
+
+  const [draft, setDraft] = useState(customQueryStr);
+  const [draftErr, setDraftErr] = useState<string | null>(null);
+
+  // Re-seed the draft only when the upstream content actually differs from
+  // what we've parsed locally — otherwise typing would fight a re-render.
+  useEffect(() => {
+    if (draft.trim() === "" && customQueryStr === "") return;
+    try {
+      const parsed = draft.trim() ? JSON.parse(draft) : null;
+      const sameAsContent =
+        JSON.stringify(parsed) === JSON.stringify(query.customQuery);
+      if (!sameAsContent) setDraft(customQueryStr);
+    } catch {
+      /* draft is mid-edit — leave it */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customQueryStr]);
+
+  const commitQuery = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      setDraftErr(null);
+      onChange({ ...query, customQuery: null });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!isValidFilterExpression(parsed)) {
+        setDraftErr("מבנה לא תקין — חסר field/op או clauses לא תקינות");
+        return;
+      }
+      setDraftErr(null);
+      onChange({ ...query, customQuery: parsed });
+    } catch (err) {
+      setDraftErr(
+        err instanceof Error ? `JSON לא תקין: ${err.message}` : "JSON לא תקין",
+      );
+    }
+  };
+
+  const commitDisplayFields = (raw: string) => {
+    const list = raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    onChange({ ...query, displayFields: list });
+  };
+
+  return (
+    <SectionCard title="שאילתה מתקדמת + שדות תצוגה" icon={Code}>
+      <div className="space-y-4">
+        <p className="text-xs text-muted leading-relaxed">
+          סינון מורכב מעל שדות שהוגדרו ב-TAG-IT (AI / SQL / metadata). פעיל
+          רק אם TAG-IT חשפו את ה-endpoints (schema + filter). עד אז — הסינון
+          רץ בזיכרון על מה שנשלף.
+          {schemaHintUrl ? (
+            <>
+              {" "}
+              <a
+                href={schemaHintUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary font-semibold underline"
+              >
+                רשימת שדות זמינים
+              </a>
+            </>
+          ) : null}
+        </p>
+
+        {/* Examples */}
+        {examples.length > 0 ? (
+          <div>
+            <div className="text-xs font-semibold text-muted mb-1.5">
+              דוגמאות מוכנות:
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {examples.map((ex) => (
+                <button
+                  key={ex.label}
+                  type="button"
+                  onClick={() => {
+                    setDraft(ex.json);
+                    commitQuery(ex.json);
+                  }}
+                  className="text-xs font-semibold rounded-md border border-border bg-white px-2 py-1 hover:bg-muted-bg/30 transition"
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Custom query JSON */}
+        <div>
+          <div className="text-xs font-semibold text-muted mb-1.5">
+            שאילתת סינון (JSON של FilterExpression)
+          </div>
+          <Textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={(e) => commitQuery(e.target.value)}
+            placeholder={
+              '{\n  "op": "or",\n  "clauses": [\n    {"field":"ai.כותרת_המסמך","op":"contains","value":"החלטה"},\n    {"field":"sql.הוצאות_משפט","op":"gt","value":0}\n  ]\n}'
+            }
+            dir="ltr"
+            rows={10}
+            className="font-mono text-xs"
+          />
+          {draftErr ? (
+            <p className="mt-1.5 text-xs text-red-600">{draftErr}</p>
+          ) : (
+            <p className="mt-1.5 text-xs text-muted">
+              שדה ריק = ללא סינון מתקדם. השינוי נשמר בלחיצה מחוץ לטקסטבוקס.
+            </p>
+          )}
+        </div>
+
+        {/* Display fields */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Layout size={12} className="text-muted" />
+            <div className="text-xs font-semibold text-muted">
+              שדות תצוגה בכרטסת (אחד בכל שורה)
+            </div>
+          </div>
+          <Textarea
+            defaultValue={displayFieldsStr}
+            onBlur={(e) => commitDisplayFields(e.target.value)}
+            placeholder={"ai.שם_התיק\nai.תאריך_המסמך\nsql.הוצאות_משפט"}
+            dir="ltr"
+            rows={5}
+            className="font-mono text-xs"
+          />
+          <p className="mt-1.5 text-xs text-muted leading-relaxed">
+            רשימת מפתחות שדות שיוצגו בכל כרטסה, בסדר הזה. רשימה ריקה = ברירת
+            המחדל המובנית (שם תיק, בית משפט, תאריך, שופטים, תקציר).
+          </p>
+        </div>
       </div>
     </SectionCard>
   );

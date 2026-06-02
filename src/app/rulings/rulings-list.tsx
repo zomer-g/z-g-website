@@ -11,6 +11,9 @@ interface Ruling {
   summary: string;
   title: string;
   documentUrl: string;
+  // Flattened ai.*/sql.*/meta.* lookup the route attaches per item. The
+  // client uses it to render admin-configured `displayFields` dynamically.
+  fields?: Record<string, unknown>;
 }
 
 interface RulingsResponse {
@@ -18,6 +21,10 @@ interface RulingsResponse {
   page: number;
   size: number;
   rulings: Ruling[];
+  // Ordered list of field keys (e.g. "ai.שם_התיק", "sql.הוצאות_משפט") set
+  // by the admin in the Site Editor. Empty array = render the built-in
+  // default block (court, judges, summary).
+  displayFields?: string[];
 }
 
 // 12 = LCM(1,2,3) × 2 — keeps every full page row-aligned across the
@@ -72,9 +79,38 @@ function Badge({
   );
 }
 
-function RulingCard({ ruling }: { ruling: Ruling }) {
+function fieldKeyToLabel(key: string): string {
+  // "ai.שם_התיק" → "שם התיק", "sql.הוצאות_משפט" → "הוצאות משפט"
+  const tail = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+  return tail.replace(/_/g, " ");
+}
+
+function formatFieldValue(v: unknown): string {
+  if (v == null || v === "") return "—";
+  if (Array.isArray(v)) return v.map(formatFieldValue).join(", ");
+  if (typeof v === "number") return v.toLocaleString("he-IL");
+  if (typeof v === "boolean") return v ? "כן" : "לא";
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
+function RulingCard({
+  ruling,
+  displayFields,
+}: {
+  ruling: Ruling;
+  displayFields?: string[];
+}) {
   const [open, setOpen] = useState(false);
   const hasLongSummary = (ruling.summary || "").length > 220;
+  const useCustomLayout = Array.isArray(displayFields) && displayFields.length > 0;
 
   return (
     <article
@@ -105,26 +141,45 @@ function RulingCard({ ruling }: { ruling: Ruling }) {
         <div className="text-sm font-medium text-gray-700 mb-2">{ruling.title}</div>
       ) : null}
 
-      {Array.isArray(ruling.judges) && ruling.judges.length > 0 ? (
-        <div className="text-sm text-gray-700 mb-2">
-          <span className="font-semibold">שופטים:</span> {ruling.judges.join(", ")}
-        </div>
-      ) : null}
+      {useCustomLayout ? (
+        <dl className="text-sm text-gray-700 mb-3 space-y-1">
+          {displayFields!.map((key) => {
+            const value = ruling.fields?.[key];
+            if (value == null || value === "") return null;
+            return (
+              <div key={key} className="flex gap-1.5">
+                <dt className="font-semibold whitespace-nowrap">
+                  {fieldKeyToLabel(key)}:
+                </dt>
+                <dd className="text-gray-700">{formatFieldValue(value)}</dd>
+              </div>
+            );
+          })}
+        </dl>
+      ) : (
+        <>
+          {Array.isArray(ruling.judges) && ruling.judges.length > 0 ? (
+            <div className="text-sm text-gray-700 mb-2">
+              <span className="font-semibold">שופטים:</span> {ruling.judges.join(", ")}
+            </div>
+          ) : null}
 
-      {ruling.summary ? (
-        <p
-          className={
-            open
-              ? "text-sm text-gray-700 leading-relaxed mb-3"
-              : "text-sm text-gray-700 leading-relaxed mb-3 line-clamp-4"
-          }
-        >
-          {ruling.summary}
-        </p>
-      ) : null}
+          {ruling.summary ? (
+            <p
+              className={
+                open
+                  ? "text-sm text-gray-700 leading-relaxed mb-3"
+                  : "text-sm text-gray-700 leading-relaxed mb-3 line-clamp-4"
+              }
+            >
+              {ruling.summary}
+            </p>
+          ) : null}
+        </>
+      )}
 
       <div className="mt-auto pt-3 flex items-center justify-between gap-2">
-        {hasLongSummary ? (
+        {!useCustomLayout && hasLongSummary ? (
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -207,7 +262,13 @@ export function RulingsList({ category }: { category: "foi" | "defamation" }) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : data?.rulings.map((r) => <RulingCard key={r.id} ruling={r} />)}
+          : data?.rulings.map((r) => (
+              <RulingCard
+                key={r.id}
+                ruling={r}
+                displayFields={data?.displayFields}
+              />
+            ))}
       </div>
 
       {/* Pagination */}

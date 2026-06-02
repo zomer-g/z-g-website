@@ -446,6 +446,7 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
+  query: { customQuery: null, displayFields: [] },
 };
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */
@@ -458,6 +459,7 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
+  query: { customQuery: null, displayFields: [] },
 };
 
 /* ─── Conditional Arrangements Dashboard Page ─── */

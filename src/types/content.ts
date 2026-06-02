@@ -419,8 +419,10 @@ export interface DefamationRulingsPageContent {
   cacheTtlMinutes: number;
   // Substring patterns matched against ai_analysis["כותרת_המסמך"].
   // A document is shown only if its title includes at least one pattern.
-  // Empty array = show everything.
+  // Empty array = show everything. Kept alongside `query` for the simple
+  // "show only these doc types" UX; the route applies both when set.
   allowedDocTypes: string[];
+  query: import("./ruling-filter").RulingsPageQuery;
 }
 
 // ── FOI Petitions Rulings Dashboard Page Content ──
@@ -430,6 +432,7 @@ export interface FoiRulingsPageContent {
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
   allowedDocTypes: string[];
+  query: import("./ruling-filter").RulingsPageQuery;
 }
 
 // ── Conditional Arrangements Dashboard Page Content ──

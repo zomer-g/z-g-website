@@ -32,6 +32,11 @@ function getApiKey() {
 export interface FetchAllRulingsOptions {
   scopeId: number;
   signal?: AbortSignal;
+  // Optional server-side filter — opaque JSON-encoded FilterExpression.
+  // We forward it to TAG-IT untouched. When TAG-IT doesn't support it yet,
+  // the upstream simply ignores the param and returns the full snapshot;
+  // the route then applies the same filter in memory via rulings-filter-eval.
+  filterJson?: string;
 }
 
 export async function fetchAllUpstreamRulings(
@@ -45,6 +50,7 @@ export async function fetchAllUpstreamRulings(
     u.searchParams.set("scope", String(opts.scopeId));
     u.searchParams.set("page", String(page));
     u.searchParams.set("size", String(PAGE_SIZE));
+    if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
     return u.toString();
   };
 

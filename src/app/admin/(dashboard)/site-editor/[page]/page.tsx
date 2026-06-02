@@ -415,8 +415,27 @@ export default function SiteEditorPageEditor({
               docTypeFilter={{
                 field: "allowedDocTypes",
                 description:
-                  "סינון לפי כותרת ה-AI של המסמך (ai_analysis.כותרת_המסמך). השוואה לפי הכלה — \"פסק דין\" תתפוס גם \"פסק דין חלקי\". רשימה ריקה = להציג הכל.",
+                  "סינון מהיר לפי כותרת ה-AI (ai.כותרת_המסמך). השוואה לפי הכלה. רשימה ריקה = ללא סינון.",
                 presets: ["פסק דין", "החלטה", "החלטה בבקשה", "פשרה"],
+              }}
+              advancedQuery={{
+                field: "query",
+                examples: [
+                  {
+                    label: "פסק דין בערעור",
+                    json: JSON.stringify(
+                      {
+                        op: "and",
+                        clauses: [
+                          { field: "ai.כותרת_המסמך", op: "contains", value: "פסק דין" },
+                          { field: "meta.is_appeal", op: "eq", value: true },
+                        ],
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
               }}
             />
           )}
@@ -433,8 +452,47 @@ export default function SiteEditorPageEditor({
               docTypeFilter={{
                 field: "allowedDocTypes",
                 description:
-                  "סינון לפי כותרת ה-AI של המסמך (ai_analysis.כותרת_המסמך). השוואה לפי הכלה — \"פסק דין\" תתפוס גם \"פסק דין חלקי\". רשימה ריקה = להציג הכל.",
+                  "סינון מהיר לפי כותרת ה-AI (ai.כותרת_המסמך). השוואה לפי הכלה. רשימה ריקה = ללא סינון.",
                 presets: ["פסק דין", "החלטה", "החלטה בבקשה", "פשרה"],
+              }}
+              advancedQuery={{
+                field: "query",
+                examples: [
+                  {
+                    label: "החלטה עם הוצאות משפט > 0",
+                    json: JSON.stringify(
+                      {
+                        op: "and",
+                        clauses: [
+                          { field: "ai.כותרת_המסמך", op: "contains", value: "החלטה" },
+                          { field: "sql.הוצאות_משפט", op: "gt", value: 0 },
+                        ],
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "פסק דין או החלטה עם הוצאות משפט > 0",
+                    json: JSON.stringify(
+                      {
+                        op: "or",
+                        clauses: [
+                          { field: "ai.כותרת_המסמך", op: "contains", value: "פסק דין" },
+                          {
+                            op: "and",
+                            clauses: [
+                              { field: "ai.כותרת_המסמך", op: "contains", value: "החלטה" },
+                              { field: "sql.הוצאות_משפט", op: "gt", value: 0 },
+                            ],
+                          },
+                        ],
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
               }}
             />
           )}
