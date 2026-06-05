@@ -1077,6 +1077,7 @@ interface SchemaField {
   label?: string;
   type?: string;
   source?: string;
+  enum_values_sample?: string[];
 }
 
 const CONTROL_LABELS: Record<FilterControl, string> = {
@@ -1130,9 +1131,18 @@ function FieldSelect({
     s.toLocaleLowerCase("he-IL").replace(/[\s_.]+/g, "");
   const rawSearch = search.trim();
   const nq = norm(rawSearch);
+  // Match key/label, and also the field's sampled values — so searching for a
+  // value (e.g. a petition type) surfaces the field that holds it.
+  const matchesEnum = (f: SchemaField) =>
+    Array.isArray(f.enum_values_sample) &&
+    f.enum_values_sample.some((v) => norm(String(v)).includes(nq));
   const filtered = fields.filter((f) => {
     if (!nq) return true;
-    return norm(f.key).includes(nq) || norm(f.label || "").includes(nq);
+    return (
+      norm(f.key).includes(nq) ||
+      norm(f.label || "").includes(nq) ||
+      matchesEnum(f)
+    );
   });
   // Offer to add the typed value verbatim as a custom key when it isn't an
   // exact existing key — the schema endpoint doesn't always list every field
@@ -1225,23 +1235,33 @@ function FieldSelect({
             {shown.length === 0 && !showCustomAdd ? (
               <li className="px-2 py-2 text-gray-400">לא נמצאו שדות</li>
             ) : null}
-            {shown.map((f) => (
-              <li key={f.key}>
-                <button
-                  type="button"
-                  onClick={() => selectKey(f.key)}
-                  className={cn(
-                    "w-full text-right px-2 py-1 hover:bg-primary/5",
-                    f.key === value && "bg-primary/10 font-semibold",
-                  )}
-                >
-                  <span className="font-mono text-gray-700">{f.key}</span>
-                  {f.label && f.label !== f.key ? (
-                    <span className="text-gray-400"> — {f.label}</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
+            {shown.map((f) => {
+              const viaValue =
+                nq !== "" &&
+                !norm(f.key).includes(nq) &&
+                !norm(f.label || "").includes(nq) &&
+                matchesEnum(f);
+              return (
+                <li key={f.key}>
+                  <button
+                    type="button"
+                    onClick={() => selectKey(f.key)}
+                    className={cn(
+                      "w-full text-right px-2 py-1 hover:bg-primary/5",
+                      f.key === value && "bg-primary/10 font-semibold",
+                    )}
+                  >
+                    <span className="font-mono text-gray-700">{f.key}</span>
+                    {f.label && f.label !== f.key ? (
+                      <span className="text-gray-400"> — {f.label}</span>
+                    ) : null}
+                    {viaValue ? (
+                      <span className="text-amber-600"> (התאמה לפי ערך)</span>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
             {filtered.length > MAX_SHOWN ? (
               <li className="px-2 py-1.5 text-gray-400 border-t border-gray-100">
                 מוצגים {MAX_SHOWN} מתוך {filtered.length} — צמצמו עם חיפוש
