@@ -15,8 +15,13 @@ import {
   MessageSquare,
   Activity,
   Workflow,
+  Puzzle,
+  Download,
+  FileDown,
+  ImageOff,
   type LucideIcon,
 } from "lucide-react";
+import { Fragment } from "react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +29,10 @@ import { SectionHeading } from "@/components/ui/section-heading";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { getPageContent } from "@/lib/content";
-import type { DigitalServicesPageContent } from "@/types/content";
+import type {
+  DigitalServicesPageContent,
+  DigitalExtensionsSection,
+} from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
 
 export const dynamic = "force-dynamic";
@@ -45,10 +53,133 @@ export const metadata: Metadata = {
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Database, Calendar, Search, Code2, Globe, BarChart3, FileSearch, Scale, Eye, Briefcase, Award,
+  Puzzle, Download, FileDown,
 };
 
 function resolveIcon(name: string): LucideIcon {
   return ICON_MAP[name] || Code2;
+}
+
+/* ─── Extensions Block ─── */
+// Surfaced between the visualization service card and the rest of the
+// service grid. Frames three concrete add-ons that ride on top of
+// existing platforms (Net HaMishpat etc.) — each with an admin-uploaded
+// screenshot so the visual gets attached without a code change.
+
+function ExtensionsBlock({ extensions }: { extensions: DigitalExtensionsSection }) {
+  return (
+    <section
+      aria-labelledby="ds-extensions-heading"
+      className={cn(
+        "relative overflow-hidden rounded-2xl border border-sky-200/60 bg-white",
+        "shadow-sm",
+      )}
+    >
+      <div
+        className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-sky-400 via-sky-500 to-sky-600"
+        aria-hidden="true"
+      />
+      <div className="p-6 sm:p-8 lg:p-10">
+        <h3
+          id="ds-extensions-heading"
+          className="text-2xl font-bold leading-snug text-primary-dark sm:text-3xl"
+        >
+          {extensions.title}
+        </h3>
+        {extensions.subtitle ? (
+          <p className="mt-1 text-base font-medium text-sky-700">
+            {extensions.subtitle}
+          </p>
+        ) : null}
+        {extensions.paragraphs.map((p, i) => (
+          <p
+            key={i}
+            className={cn(
+              "text-base leading-relaxed text-foreground/80",
+              i === 0 ? "mt-4" : "mt-3",
+            )}
+          >
+            {p}
+          </p>
+        ))}
+
+        <ul className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+          {extensions.items.map((item, i) => {
+            const ItemIcon = resolveIcon(item.icon);
+            return (
+              <li
+                key={i}
+                className={cn(
+                  "group flex h-full flex-col overflow-hidden rounded-xl border border-border/60 bg-muted-bg/40",
+                  "transition-shadow duration-300 hover:shadow-md hover:shadow-sky-900/5",
+                )}
+              >
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-sky-50 to-sky-100/60">
+                  {item.screenshotUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={item.screenshotUrl}
+                      alt={item.screenshotAlt || item.title}
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-sky-700/60">
+                      <ImageOff className="h-8 w-8" aria-hidden="true" />
+                      <span className="text-xs font-medium">צילום מסך יתעדכן בקרוב</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={cn(
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+                        "bg-sky-50 text-sky-700",
+                      )}
+                    >
+                      <ItemIcon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-lg font-bold leading-snug text-primary-dark">
+                        {item.title}
+                      </h4>
+                      {item.subtitle ? (
+                        <p className="mt-0.5 text-xs font-medium text-sky-700">
+                          {item.subtitle}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-relaxed text-foreground/80">
+                    {item.description}
+                  </p>
+
+                  {item.tags.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-1.5" aria-label="תגיות">
+                      {item.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={cn(
+                            "inline-block rounded-full border border-sky-200/70 bg-sky-50/60 px-2.5 py-0.5",
+                            "font-mono text-[11px] font-medium text-sky-800",
+                          )}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
 }
 
 /* ─── Page ─── */
@@ -136,7 +267,7 @@ export default async function DigitalServicesPage() {
               // Matched by title substring — resilient to minor CMS edits.
               const isVisualization = item.title.includes("ויזואליזציה");
               const isRelationships = item.title.includes("ניהול קשרים");
-              return (
+              const card = (
                 <Card
                   key={index}
                   className={cn(
@@ -251,6 +382,21 @@ export default async function DigitalServicesPage() {
                   </CardContent>
                 </Card>
               );
+
+              // The visualization card sits at the top of the list.
+              // Right after it, surface the "extensions on existing systems"
+              // section as its own labelled block — paragraph intro + a
+              // 3-card grid with admin-uploaded screenshots — before the
+              // remaining service cards continue.
+              if (isVisualization && content.extensions && content.extensions.items.length > 0) {
+                return (
+                  <Fragment key={index}>
+                    {card}
+                    <ExtensionsBlock extensions={content.extensions} />
+                  </Fragment>
+                );
+              }
+              return card;
             })}
           </div>
         </Container>
