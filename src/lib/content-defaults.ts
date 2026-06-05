@@ -572,8 +572,10 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
   // Don't constrain by title — the cost filter does the heavy lifting.
   allowedDocTypes: [],
   query: {
+    // Field name confirmed against TAG-IT's schema:
+    //   sql.סכום_הוצאות_שקלים  (note: שקלים, not בשקלים)
     customQuery: {
-      field: "sql.סכום_הוצאות_בשקלים",
+      field: "sql.סכום_הוצאות_שקלים",
       op: "not_null",
     },
     // Surface the cost amount prominently in each card.
@@ -582,7 +584,7 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
       "ai.בית_משפט",
       "ai.תאריך_המסמך",
       "ai.שופטים",
-      "sql.סכום_הוצאות_בשקלים",
+      "sql.סכום_הוצאות_שקלים",
       "ai.תקציר",
     ],
   },

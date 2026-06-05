@@ -504,7 +504,7 @@ export default function SiteEditorPageEditor({
                     label: "כל מסמך עם ערך הוצאות מספרי",
                     json: JSON.stringify(
                       {
-                        field: "sql.סכום_הוצאות_בשקלים",
+                        field: "sql.סכום_הוצאות_שקלים",
                         op: "not_null",
                       },
                       null,
@@ -515,7 +515,7 @@ export default function SiteEditorPageEditor({
                     label: "הוצאות > 0 (להוציא 0 ש״ח)",
                     json: JSON.stringify(
                       {
-                        field: "sql.סכום_הוצאות_בשקלים",
+                        field: "sql.סכום_הוצאות_שקלים",
                         op: "gt",
                         value: 0,
                       },
@@ -527,7 +527,7 @@ export default function SiteEditorPageEditor({
                     label: "הוצאות גבוהות (≥ 10,000 ₪)",
                     json: JSON.stringify(
                       {
-                        field: "sql.סכום_הוצאות_בשקלים",
+                        field: "sql.סכום_הוצאות_שקלים",
                         op: "ge",
                         value: 10000,
                       },
