@@ -154,7 +154,9 @@ export function DigitalServicesEditors({ content, onChange }: DigitalServicesEdi
   };
 
   const updateExtensionsMeta = (
-    data: Partial<Pick<DigitalServicesPageContent["extensions"], "title" | "subtitle">>,
+    data: Partial<
+      Pick<DigitalServicesPageContent["extensions"], "title" | "subtitle" | "position">
+    >,
   ) => {
     onChange({ ...content, extensions: { ...extensions, ...data } });
   };
@@ -410,6 +412,39 @@ export function DigitalServicesEditors({ content, onChange }: DigitalServicesEdi
             onChange={(e) => updateExtensionsMeta({ subtitle: e.target.value })}
             dir="rtl"
           />
+
+          {/* ── Position selector on the public page ── */}
+          <div className="space-y-1">
+            <label
+              htmlFor="extensions-position"
+              className="block text-sm font-semibold text-foreground"
+            >
+              מיקום הבלוק על הדף
+            </label>
+            <select
+              id="extensions-position"
+              value={String(extensions.position ?? 1)}
+              onChange={(e) =>
+                updateExtensionsMeta({ position: Number(e.target.value) })
+              }
+              dir="rtl"
+              className={cn(
+                "w-full rounded-md border border-border bg-white px-3 py-2 text-sm",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30",
+              )}
+            >
+              <option value="0">בראש סקציית השירותים</option>
+              {content.items.map((it, idx) => (
+                <option key={idx} value={String(idx + 1)}>
+                  אחרי שירות #{idx + 1} — {it.title || "(ללא כותרת)"}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted leading-relaxed">
+              שולט במיקום של בלוק התוספים בתוך סקציית "שירותים ופתרונות" בדף הציבורי.
+              ברירת מחדל: אחרי שירות #1 (ויזואליזציה של תיק משפטי).
+            </p>
+          </div>
 
           {extensions.paragraphs.map((p, i) => (
             <div key={i} className="relative">
@@ -675,6 +710,16 @@ function ExtensionItemEditor({ index, item, onChange, onRemove }: ExtensionItemE
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Screenshots are stored INLINE as base64 data URLs inside the page
+  // content JSON, instead of being uploaded to /api/media/upload + saved
+  // to the public/uploads filesystem. Reason: Render's container disk is
+  // ephemeral — files written at runtime by the upload route get wiped
+  // on every deploy/restart, so previously-saved URLs 404. Embedding the
+  // bytes in the JSONB content survives deploys and needs no separate
+  // storage. Cost: each screenshot inflates the page JSON by ~4/3 of the
+  // file size; we cap the input so it stays reasonable.
+  const MAX_INLINE_SIZE = 1.5 * 1024 * 1024; // 1.5 MB pre-base64
+
   const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -682,22 +727,23 @@ function ExtensionItemEditor({ index, item, onChange, onRemove }: ExtensionItemE
     setUploading(true);
     setUploadError(null);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("alt", item.screenshotAlt || item.title || "screenshot");
-
-      const res = await fetch("/api/media/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || "שגיאה בהעלאת התמונה");
+      if (!file.type.startsWith("image/")) {
+        throw new Error("יש לבחור קובץ תמונה");
+      }
+      if (file.size > MAX_INLINE_SIZE) {
+        throw new Error(
+          "התמונה גדולה מדי (מקסימום 1.5MB). דחס/הקטן את צילום המסך ונסה שוב.",
+        );
       }
 
-      const data = await res.json();
-      onChange({ screenshotUrl: data.url });
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error("שגיאה בקריאת הקובץ"));
+        reader.readAsDataURL(file);
+      });
+
+      onChange({ screenshotUrl: dataUrl });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "שגיאה בהעלאת התמונה");
     } finally {
@@ -817,7 +863,7 @@ function ExtensionItemEditor({ index, item, onChange, onRemove }: ExtensionItemE
                 )}
                 {uploading ? "מעלה..." : "העלה צילום מסך"}
               </Button>
-              <span className="text-xs text-muted">PNG / JPG / WebP — עד 10MB</span>
+              <span className="text-xs text-muted">PNG / JPG / WebP — עד 1.5MB</span>
             </div>
           )}
 

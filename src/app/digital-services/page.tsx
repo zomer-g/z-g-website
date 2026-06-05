@@ -261,6 +261,13 @@ export default async function DigitalServicesPage() {
           />
 
           <div className="space-y-10">
+            {/* Position 0 = render BEFORE all service cards. Positions
+                1..items.length are handled inside the map below. */}
+            {content.extensions
+              && content.extensions.items.length > 0
+              && (content.extensions.position ?? 1) === 0 ? (
+              <ExtensionsBlock extensions={content.extensions} />
+            ) : null}
             {content.items.map((item, index) => {
               const Icon = resolveIcon(item.icon);
               // Inject demo buttons into the two cards that have live demos.
@@ -383,12 +390,20 @@ export default async function DigitalServicesPage() {
                 </Card>
               );
 
-              // The visualization card sits at the top of the list.
-              // Right after it, surface the "extensions on existing systems"
-              // section as its own labelled block — paragraph intro + a
-              // 3-card grid with admin-uploaded screenshots — before the
-              // remaining service cards continue.
-              if (isVisualization && content.extensions && content.extensions.items.length > 0) {
+              // Inject the "extensions on existing systems" block after
+              // the service card whose 1-indexed position matches the
+              // admin-configured value. Clamped to items.length so a
+              // stale value still renders the block at the end.
+              const rawPos = content.extensions?.position ?? 1;
+              const insertAfter = Math.min(
+                Math.max(rawPos, 0),
+                content.items.length,
+              );
+              if (
+                content.extensions &&
+                content.extensions.items.length > 0 &&
+                index + 1 === insertAfter
+              ) {
                 return (
                   <Fragment key={index}>
                     {card}

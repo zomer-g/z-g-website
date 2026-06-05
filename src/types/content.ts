@@ -360,6 +360,14 @@ export interface DigitalExtensionsSection {
   subtitle: string;
   paragraphs: string[];
   items: DigitalExtensionItem[];
+  // Controls where on the public page the block appears, relative to
+  // the service `items` list:
+  //   0                -> render BEFORE the first service card
+  //   N (1..items.len) -> render AFTER service card #N (1-indexed)
+  //   items.length     -> render AFTER all service cards
+  // Out-of-range values clamp to [0, items.length]. Optional — defaults
+  // to 1 (right after the first service, which is the visualization).
+  position?: number;
 }
 
 export interface DigitalServicesPageContent {
