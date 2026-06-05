@@ -15,6 +15,8 @@ import type {
 import type {
   FilterExpression,
   RulingsFilterField,
+  RulingsSortField,
+  SortDir,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
 import { evaluateFilter, getFieldValue } from "@/lib/rulings-filter-eval";
@@ -115,6 +117,7 @@ interface PageConfig {
   customQuery: FilterExpression | null;
   displayFields: string[];
   filterFields: RulingsFilterField[];
+  sortFields: RulingsSortField[];
 }
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
@@ -167,12 +170,20 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
               VALID_FILTER_CONTROLS.includes(f.control),
           )
         : [];
+    const sortFields =
+      content?.query && Array.isArray(content.query.sortFields)
+        ? content.query.sortFields.filter(
+            (s): s is RulingsSortField =>
+              !!s && typeof s.key === "string" && s.key.trim() !== "",
+          )
+        : [];
     return {
       ttlMs: ttlMinutes * 60_000,
       allowedDocTypes: allowed,
       customQuery,
       displayFields,
       filterFields,
+      sortFields,
     };
   } catch {
     return {
@@ -181,6 +192,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       customQuery: null,
       displayFields: [],
       filterFields: [],
+      sortFields: [],
     };
   }
 }
@@ -212,6 +224,46 @@ function matchesAllowedType(
 
 function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
   return [...items].sort((a, b) => docDate(b).localeCompare(docDate(a)));
+}
+
+// Generic sort by any field key. Numeric when both values parse as numbers
+// (so cost amounts order numerically), otherwise locale string compare (which
+// also orders ISO YYYY-MM-DD dates chronologically). Empty values sink to the
+// bottom regardless of direction.
+function sortByField(
+  items: UpstreamRulingItem[],
+  key: string,
+  dir: SortDir,
+): UpstreamRulingItem[] {
+  const sign = dir === "asc" ? 1 : -1;
+  const numOf = (v: unknown): number | null => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const cleaned = v.replace(/[^\d.-]/g, "");
+      if (cleaned) {
+        const n = Number(cleaned);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return null;
+  };
+  const strOf = (v: unknown): string =>
+    v == null ? "" : Array.isArray(v) ? v.join(" ") : String(v);
+
+  return [...items].sort((a, b) => {
+    const av = getFieldValue(a, key);
+    const bv = getFieldValue(b, key);
+    const aEmpty = av == null || av === "";
+    const bEmpty = bv == null || bv === "";
+    if (aEmpty && bEmpty) return 0;
+    if (aEmpty) return 1; // empties always last
+    if (bEmpty) return -1;
+
+    const an = numOf(av);
+    const bn = numOf(bv);
+    if (an != null && bn != null) return (an - bn) * sign;
+    return strOf(av).localeCompare(strOf(bv), "he") * sign;
+  });
 }
 
 /* ── User-facing filters ──
@@ -433,7 +485,22 @@ export async function GET(req: NextRequest) {
     const userFilters = parseUserFilters(searchParams.get("userFilters"));
     const filtered = applyUserFilters(base, config.filterFields, userFilters);
 
-    const sorted = sortByDateDesc(filtered);
+    // Sorting: when the admin configured sortFields, honour the user's
+    // chosen field+direction (validated against the allowed list), defaulting
+    // to the first configured field, descending. Otherwise fall back to the
+    // built-in newest-first by document date.
+    const reqSort = searchParams.get("sort") || "";
+    const reqDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
+    let sorted: UpstreamRulingItem[];
+    if (config.sortFields.length > 0) {
+      const allowedKeys = new Set(config.sortFields.map((s) => s.key));
+      const sortKey = allowedKeys.has(reqSort)
+        ? reqSort
+        : config.sortFields[0].key;
+      sorted = sortByField(filtered, sortKey, reqDir as SortDir);
+    } else {
+      sorted = sortByDateDesc(filtered);
+    }
 
     const total = sorted.length;
     const start = (page - 1) * limit;
@@ -449,6 +516,7 @@ export async function GET(req: NextRequest) {
         displayFields: config.displayFields,
         filterFields: config.filterFields,
         filterOptions,
+        sortFields: config.sortFields,
       },
       {
         headers: {

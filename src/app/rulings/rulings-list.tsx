@@ -43,7 +43,11 @@ interface RulingsResponse {
   filterFields?: FilterField[];
   // Distinct values for each "select" control, computed server-side.
   filterOptions?: Record<string, string[]>;
+  // User-facing sort options (first = default).
+  sortFields?: { key: string; label: string }[];
 }
+
+type SortDir = "asc" | "desc";
 
 // 12 = LCM(1,2,3) × 2 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints. Half the load of 24 to stay under
@@ -450,8 +454,19 @@ export function RulingsList({
   const [draftFilters, setDraftFilters] = useState<Record<string, UserFilterValue>>({});
   const [appliedFilters, setAppliedFilters] = useState<Record<string, UserFilterValue>>({});
 
+  // Sort state. Empty sortKey = let the server pick its default (first
+  // configured sort field, or built-in date-desc).
+  const [sortKey, setSortKey] = useState<string>("");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
   const fetchData = useCallback(
-    async (cat: string, p: number, filters: Record<string, UserFilterValue>) => {
+    async (
+      cat: string,
+      p: number,
+      filters: Record<string, UserFilterValue>,
+      sKey: string,
+      sDir: SortDir,
+    ) => {
       setLoading(true);
       setError(null);
       try {
@@ -465,6 +480,10 @@ export function RulingsList({
         );
         if (activeEntries.length > 0) {
           params.set("userFilters", JSON.stringify(Object.fromEntries(activeEntries)));
+        }
+        if (sKey) {
+          params.set("sort", sKey);
+          params.set("dir", sDir);
         }
         const res = await fetch(`/api/rulings?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -482,8 +501,8 @@ export function RulingsList({
   );
 
   useEffect(() => {
-    fetchData(category, page, appliedFilters);
-  }, [fetchData, category, page, appliedFilters]);
+    fetchData(category, page, appliedFilters, sortKey, sortDir);
+  }, [fetchData, category, page, appliedFilters, sortKey, sortDir]);
 
   const applyFilters = () => {
     setPage(1);
@@ -497,6 +516,10 @@ export function RulingsList({
 
   const filterFields = data?.filterFields ?? [];
   const filterOptions = data?.filterOptions ?? {};
+  const sortFields = data?.sortFields ?? [];
+  // The control reflects the active sort: explicit user choice, or the
+  // server's default (first configured field) when the user hasn't picked.
+  const activeSortKey = sortKey || sortFields[0]?.key || "";
 
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -518,19 +541,56 @@ export function RulingsList({
         />
       ) : null}
 
-      {/* Results header */}
-      <div className="mb-3 text-sm text-gray-600">
-        {loading ? (
-          <span>בטעינה…</span>
-        ) : error ? (
-          <span className="text-red-600">{error}</span>
-        ) : total === 0 ? (
-          <span>לא נמצאו פסקי דין</span>
-        ) : (
-          <span>
-            מציג פסקי דין {pageStart}–{pageEnd} מתוך {total.toLocaleString("he-IL")}
-          </span>
-        )}
+      {/* Results header + sort control */}
+      <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
+        <div>
+          {loading ? (
+            <span>בטעינה…</span>
+          ) : error ? (
+            <span className="text-red-600">{error}</span>
+          ) : total === 0 ? (
+            <span>לא נמצאו פסקי דין</span>
+          ) : (
+            <span>
+              מציג פסקי דין {pageStart}–{pageEnd} מתוך{" "}
+              {total.toLocaleString("he-IL")}
+            </span>
+          )}
+        </div>
+
+        {sortFields.length > 0 ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <label htmlFor="rulings-sort" className="text-xs text-gray-600">
+              מיון:
+            </label>
+            <select
+              id="rulings-sort"
+              value={activeSortKey}
+              onChange={(e) => {
+                setSortKey(e.target.value);
+                setPage(1);
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+            >
+              {sortFields.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                setPage(1);
+              }}
+              title={sortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+            >
+              {sortDir === "desc" ? "יורד ↓" : "עולה ↑"}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Cards grid */}

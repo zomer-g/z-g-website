@@ -26,6 +26,7 @@ import {
   VALID_FILTER_CONTROLS,
   type RulingsPageQuery,
   type RulingsFilterField,
+  type RulingsSortField,
   type FilterControl,
 } from "@/types/ruling-filter";
 import { cn } from "@/lib/utils";
@@ -663,6 +664,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
               customQuery: null,
               displayFields: [],
               filterFields: [],
+              sortFields: [],
             }
           }
           schemaHintUrl={advancedQuery.schemaHintUrl}
@@ -1158,6 +1160,26 @@ function AdvancedQuerySection({
     onChange({ ...query, filterFields: list });
   };
 
+  // sortFields are serialized one per line as: key | label
+  const sortFieldsStr = (query.sortFields || [])
+    .map((s) => `${s.key} | ${s.label}`)
+    .join("\n");
+
+  const commitSortFields = (raw: string) => {
+    const list: RulingsSortField[] = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split("|").map((p) => p.trim());
+        const key = parts[0] || "";
+        const label = parts[1] || key;
+        return { key, label };
+      })
+      .filter((s) => s.key !== "");
+    onChange({ ...query, sortFields: list });
+  };
+
   return (
     <SectionCard title="שאילתה מתקדמת + שדות תצוגה" icon={Code}>
       <div className="space-y-4">
@@ -1279,6 +1301,33 @@ function AdvancedQuerySection({
             <code className="font-mono">number</code> (טווח מספרי),{" "}
             <code className="font-mono">date</code> (טווח תאריכים). רשימה ריקה =
             ללא סרגל סינון.
+          </p>
+        </div>
+
+        {/* User-facing sort fields */}
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Layout size={12} className="text-muted" />
+            <div className="text-xs font-semibold text-muted">
+              שדות מיון בדף (שורה לכל שדה)
+            </div>
+          </div>
+          <Textarea
+            defaultValue={sortFieldsStr}
+            onBlur={(e) => commitSortFields(e.target.value)}
+            placeholder={
+              "meta.document_date | תאריך המסמך\nsql.סכום_הוצאות_שקלים | סכום הוצאות"
+            }
+            dir="ltr"
+            rows={4}
+            className="font-mono text-xs"
+          />
+          <p className="mt-1.5 text-xs text-muted leading-relaxed">
+            כל שורה הופכת לאפשרות מיון שהמשתמש יכול לבחור. פורמט:{" "}
+            <code className="font-mono">key | תווית</code>.
+            <strong> השורה הראשונה היא ברירת המחדל.</strong> המשתמש יכול להפוך
+            את הכיוון (עולה/יורד) בדף. רשימה ריקה = מיון קבוע מהחדש לישן לפי
+            תאריך.
           </p>
         </div>
       </div>

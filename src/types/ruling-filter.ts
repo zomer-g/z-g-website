@@ -73,6 +73,18 @@ export interface RulingsFilterField {
 }
 
 /**
+ * A field the END USER can sort the results by. The admin configures the
+ * list; the first entry is the default sort. The user picks any entry plus
+ * a direction (asc/desc).
+ */
+export interface RulingsSortField {
+  key: string;   // e.g. "meta.document_date", "sql.סכום_הוצאות_שקלים"
+  label: string; // shown in the sort dropdown
+}
+
+export type SortDir = "asc" | "desc";
+
+/**
  * Per-page query config. Lives inside FoiRulingsPageContent /
  * DefamationRulingsPageContent and drives both the upstream request and the
  * rendered card. `customQuery` is null when the admin hasn't set anything;
@@ -83,12 +95,14 @@ export interface RulingsPageQuery {
   customQuery: FilterExpression | null;
   displayFields: string[]; // ordered list of field keys to render per card
   filterFields: RulingsFilterField[]; // user-facing filter controls
+  sortFields: RulingsSortField[]; // user-facing sort options (first = default)
 }
 
 export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
   customQuery: null,
   displayFields: [],
   filterFields: [],
+  sortFields: [],
 };
 
 export const VALID_FILTER_CONTROLS: FilterControl[] = [
