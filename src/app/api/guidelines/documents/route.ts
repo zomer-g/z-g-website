@@ -3,6 +3,9 @@ import type { Guideline, GuidelinesListResponse } from "@/types/guideline";
 import { getCached, setCached } from "@/lib/guidelines-cache";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
+import type { FilterExpression } from "@/types/ruling-filter";
+import { evaluateFilter } from "@/lib/rulings-filter-eval";
+import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
 import {
   fetchAllUpstreamGuidelines,
   getGuidelinesApiKey,
@@ -35,16 +38,42 @@ function buildUpstreamFilters(params: URLSearchParams): Record<string, string> {
   return out;
 }
 
-async function readTtlMs(): Promise<number> {
+interface GConfig {
+  ttlMs: number;
+  customQuery: FilterExpression | null;
+}
+
+async function readConfig(): Promise<GConfig> {
   try {
     const content = await getPageContent<GuidelinesPageContent>("guidelines");
     const raw = Number(content?.cacheTtlMinutes);
-    if (!Number.isFinite(raw)) return DEFAULT_TTL_MINUTES * 60_000;
-    const clamped = Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw));
-    return clamped * 60_000;
+    const ttlMs = Number.isFinite(raw)
+      ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw)) * 60_000
+      : DEFAULT_TTL_MINUTES * 60_000;
+    const customQuery =
+      content?.query && typeof content.query === "object"
+        ? (content.query.customQuery ?? null)
+        : null;
+    return { ttlMs, customQuery };
   } catch {
-    return DEFAULT_TTL_MINUTES * 60_000;
+    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, customQuery: null };
   }
+}
+
+// Admin base filter over the flat guideline docs (bare field keys map to
+// top-level fields). Returns the input unchanged when no filter is set.
+export function applyAdminQuery(
+  items: Guideline[],
+  customQuery: FilterExpression | null,
+): Guideline[] {
+  if (!customQuery) return items;
+  return items.filter((it) =>
+    evaluateFilter(it as unknown as UpstreamRulingItem, customQuery),
+  );
+}
+
+export async function readGuidelinesConfig(): Promise<GConfig> {
+  return readConfig();
 }
 
 function clampInt(v: string | null, min: number, fallback: number): number {
@@ -94,12 +123,13 @@ export async function GET(req: NextRequest) {
   let allItems = getCached(cacheKey);
   let cacheStatus = allItems ? "HIT" : "MISS";
 
+  const config = await readConfig();
+
   if (!allItems) {
     try {
-      const [rawItems, ttlMs] = await Promise.all([
-        fetchAllUpstreamGuidelines({ filters: buildUpstreamFilters(params) }),
-        readTtlMs(),
-      ]);
+      const rawItems = await fetchAllUpstreamGuidelines({
+        filters: buildUpstreamFilters(params),
+      });
 
       if (rawItems === null) {
         return NextResponse.json(
@@ -109,7 +139,7 @@ export async function GET(req: NextRequest) {
       }
 
       const cleanedItems = stripUrls(rawItems);
-      setCached(cacheKey, cleanedItems, ttlMs);
+      setCached(cacheKey, cleanedItems, config.ttlMs);
       allItems = cleanedItems;
       cacheStatus = "MISS";
     } catch (err) {
@@ -118,11 +148,15 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Admin base filter restricts the whole set first, so facets + results both
+  // reflect it.
+  const base = applyAdminQuery(allItems, config.customQuery);
+
   // Compute facets BEFORE applying the source filter so the pills always
   // reflect what's available given the user's other filters.
-  const facets = { sources: computeSourceFacets(allItems) };
+  const facets = { sources: computeSourceFacets(base) };
 
-  const filtered = applySourceFilter(allItems, params);
+  const filtered = applySourceFilter(base, params);
   const page = filtered.slice(skip, skip + limit);
 
   const body: GuidelinesListResponse & { facets: typeof facets } = {

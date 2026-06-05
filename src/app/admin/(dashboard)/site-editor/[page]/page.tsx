@@ -389,6 +389,28 @@ export default function SiteEditorPageEditor({
                 minMinutes: 1,
                 maxMinutes: 1440,
               }}
+              advancedQuery={{
+                field: "query",
+                onlyCustomQuery: true,
+                examples: [
+                  {
+                    label: "סכום תביעה ≥ מיליון ₪",
+                    json: JSON.stringify(
+                      { field: "claim_amount", op: "ge", value: 1000000 },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "רק מסמכים עיקריים (לא נספחים)",
+                    json: JSON.stringify(
+                      { field: "is_attachment", op: "eq", value: false },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              }}
             />
           )}
           {slug === "guidelines" && (
@@ -402,6 +424,20 @@ export default function SiteEditorPageEditor({
                 maxMinutes: 1440,
               }}
               embedAction={{ endpoint: "/api/guidelines/embed" }}
+              advancedQuery={{
+                field: "query",
+                onlyCustomQuery: true,
+                examples: [
+                  {
+                    label: "מקור מסוים בלבד",
+                    json: JSON.stringify(
+                      { field: "source_label", op: "eq", value: "היועץ המשפטי לממשלה" },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              }}
             />
           )}
           {slug === "defamation-rulings" && (

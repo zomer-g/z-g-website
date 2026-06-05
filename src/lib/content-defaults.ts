@@ -505,6 +505,15 @@ export const DEFAULT_CLASS_ACTIONS_CONTENT: ClassActionsPageContent = {
     subtitle: "רשימת התובענות הייצוגיות החדשות שנפתחו בפנקס",
   },
   cacheTtlMinutes: 60,
+  // Empty base filter = current behaviour (show everything). The admin can
+  // restrict the document set via customQuery; the dashboard's own filters
+  // layer on top.
+  query: {
+    customQuery: null,
+    displayFields: [],
+    filterFields: [],
+    sortFields: [],
+  },
 };
 
 /* ─── Guidelines Dashboard Page ─── */
@@ -516,6 +525,12 @@ export const DEFAULT_GUIDELINES_CONTENT: GuidelinesPageContent = {
     subtitle: 'מאגר מאוחד של הנחיות יועמ"ש, פרקליט המדינה, משטרה ועוד — חיפוש בתוך הטקסט',
   },
   cacheTtlMinutes: 60,
+  query: {
+    customQuery: null,
+    displayFields: [],
+    filterFields: [],
+    sortFields: [],
+  },
 };
 
 /* ─── Defamation Rulings Dashboard Page ─── */

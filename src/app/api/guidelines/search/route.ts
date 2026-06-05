@@ -32,6 +32,9 @@ import {
   getGuidelinesApiKey,
   stripUrls,
 } from "@/lib/guidelines-upstream";
+import { readGuidelinesConfig } from "../documents/route";
+import { evaluateFilter } from "@/lib/rulings-filter-eval";
+import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
 
 const TOPK_PER_METHOD = 200;
 
@@ -206,6 +209,13 @@ export async function GET(req: NextRequest) {
   const byId = new Map<number, Guideline>();
   for (const it of allItems) byId.set(it.id, it);
 
+  // Admin base filter — restrict search hits to docs that pass customQuery,
+  // mirroring the documents endpoint so both views agree.
+  const { customQuery } = await readGuidelinesConfig();
+  const passesAdmin = (doc: Guideline) =>
+    !customQuery ||
+    evaluateFilter(doc as unknown as UpstreamRulingItem, customQuery);
+
   // Apply optional filters in score order. We compute source facets from the
   // result set BEFORE the source filter is applied, so the user always sees
   // the full set of sources their other filters yield.
@@ -221,6 +231,7 @@ export async function GET(req: NextRequest) {
   for (const hit of fused) {
     const doc = byId.get(hit.docId);
     if (!doc) continue;
+    if (!passesAdmin(doc)) continue;
     if (!dateInRange(doc.document_date, dateFrom, dateTo)) continue;
 
     const label = (doc.source_label || "").trim();

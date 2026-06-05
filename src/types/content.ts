@@ -401,6 +401,9 @@ export interface ClassActionsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  // Admin-defined base filter (FilterExpression). Restricts which documents
+  // appear, on top of the dashboard's own user filters. Optional / nullable.
+  query?: import("./ruling-filter").RulingsPageQuery;
 }
 
 // ── Guidelines Dashboard Page Content ──
@@ -409,6 +412,7 @@ export interface GuidelinesPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  query?: import("./ruling-filter").RulingsPageQuery;
 }
 
 // ── Leam (לעם) Civic Sites Page Content ──

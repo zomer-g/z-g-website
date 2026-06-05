@@ -267,6 +267,9 @@ interface AdvancedQueryControls {
   schemaHintUrl?: string;
   // Pre-baked example snippets the admin can click to insert.
   examples?: { label: string; json: string }[];
+  // When true, show only the base-filter editor (no display/filter/sort/API
+  // sections). Used by dashboards with their own native UI.
+  onlyCustomQuery?: boolean;
 }
 
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
@@ -671,6 +674,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           }
           schemaHintUrl={advancedQuery.schemaHintUrl}
           examples={advancedQuery.examples || []}
+          onlyCustomQuery={advancedQuery.onlyCustomQuery}
           onChange={(next) =>
             onChange({ ...content, [advancedQuery.field]: next } as T)
           }
@@ -1279,11 +1283,16 @@ function AdvancedQuerySection({
   schemaHintUrl,
   examples,
   onChange,
+  onlyCustomQuery = false,
 }: {
   query: RulingsPageQuery;
   schemaHintUrl?: string;
   examples: { label: string; json: string }[];
   onChange: (next: RulingsPageQuery) => void;
+  // When true, render only the base-filter (customQuery) editor — used by
+  // dashboards that keep their own native display/filter/sort UI (class
+  // actions, guidelines) and only need the admin base filter.
+  onlyCustomQuery?: boolean;
 }) {
   const customQueryStr = query.customQuery
     ? JSON.stringify(query.customQuery, null, 2)
@@ -1440,16 +1449,22 @@ function AdvancedQuerySection({
   );
 
   return (
-    <SectionCard title="שאילתה מתקדמת + שדות תצוגה" icon={Code}>
+    <SectionCard
+      title={onlyCustomQuery ? "סינון בסיס (אדמין)" : "שאילתה מתקדמת + שדות תצוגה"}
+      icon={Code}
+    >
       <div className="space-y-5">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs text-muted leading-relaxed">
-            הגדרת תצוגה, מסננים ומיון לדף — מתוך רשימת השדות של TAG-IT.
+            {onlyCustomQuery
+              ? "סינון בסיס שמגביל אילו מסמכים יופיעו בדף, מעל המסננים הקיימים בדשבורד. שדה ריק = ללא סינון בסיס."
+              : "הגדרת תצוגה, מסננים ומיון לדף — מתוך רשימת השדות של TAG-IT."}
           </p>
-          {schemaStatus}
+          {onlyCustomQuery ? null : schemaStatus}
         </div>
 
         {/* ── API parameters ── */}
+        {onlyCustomQuery ? null : (
         <div className="rounded-lg border border-border bg-muted-bg/20 p-3">
           <div className="text-xs font-semibold text-muted mb-2">
             פרמטרים של ה-API
@@ -1501,6 +1516,7 @@ function AdvancedQuerySection({
             </div>
           </div>
         </div>
+        )}
 
         {/* ── Custom query (JSON — unchanged) ── */}
         <div>
@@ -1550,6 +1566,8 @@ function AdvancedQuerySection({
           )}
         </div>
 
+        {onlyCustomQuery ? null : (
+        <>
         {/* ── Display fields ── */}
         <div className="border-t border-border pt-4">
           <div className="flex items-center gap-1.5 mb-2">
@@ -1730,6 +1748,8 @@ function AdvancedQuerySection({
             והופך כיוון (עולה/יורד) בדף. רשימה ריקה = מיון קבוע מהחדש לישן.
           </p>
         </div>
+        </>
+        )}
       </div>
     </SectionCard>
   );

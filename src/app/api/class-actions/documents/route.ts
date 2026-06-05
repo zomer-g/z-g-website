@@ -7,6 +7,9 @@ import type {
 import { getCached, setCached } from "@/lib/class-actions-cache";
 import { getPageContent } from "@/lib/content";
 import type { ClassActionsPageContent } from "@/types/content";
+import type { FilterExpression } from "@/types/ruling-filter";
+import { evaluateFilter } from "@/lib/rulings-filter-eval";
+import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
 import {
   fetchAllUpstreamClassActions,
   stripClassActionUrls,
@@ -36,16 +39,39 @@ function buildUpstreamFilters(params: URLSearchParams): Record<string, string> {
   return out;
 }
 
-async function readTtlMs(): Promise<number> {
+interface CAConfig {
+  ttlMs: number;
+  customQuery: FilterExpression | null;
+}
+
+async function readConfig(): Promise<CAConfig> {
   try {
     const content = await getPageContent<ClassActionsPageContent>("class-actions");
     const raw = Number(content?.cacheTtlMinutes);
-    if (!Number.isFinite(raw)) return DEFAULT_TTL_MINUTES * 60_000;
-    const clamped = Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw));
-    return clamped * 60_000;
+    const ttlMs = Number.isFinite(raw)
+      ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw)) * 60_000
+      : DEFAULT_TTL_MINUTES * 60_000;
+    const customQuery =
+      content?.query && typeof content.query === "object"
+        ? (content.query.customQuery ?? null)
+        : null;
+    return { ttlMs, customQuery };
   } catch {
-    return DEFAULT_TTL_MINUTES * 60_000;
+    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, customQuery: null };
   }
+}
+
+// Apply the admin's base FilterExpression on the flat class-action docs.
+// Class-action fields are top-level (case_name, claim_amount, …) so a filter
+// uses bare keys like {"field":"claim_amount","op":"gt","value":1000000}.
+function applyAdminQuery(
+  items: ClassActionDocument[],
+  customQuery: FilterExpression | null,
+): ClassActionDocument[] {
+  if (!customQuery) return items;
+  return items.filter((it) =>
+    evaluateFilter(it as unknown as UpstreamRulingItem, customQuery),
+  );
 }
 
 function clampInt(v: string | null, min: number, fallback: number): number {
@@ -225,12 +251,14 @@ export async function GET(req: NextRequest) {
   let allItems = getCached(cacheKey);
   let cacheStatus = allItems ? "HIT" : "MISS";
 
+  // Admin config (cache TTL + base FilterExpression). Read once per request.
+  const config = await readConfig();
+
   if (!allItems) {
     try {
-      const [rawItems, ttlMs] = await Promise.all([
-        fetchAllUpstreamClassActions({ filters: buildUpstreamFilters(params) }),
-        readTtlMs(),
-      ]);
+      const rawItems = await fetchAllUpstreamClassActions({
+        filters: buildUpstreamFilters(params),
+      });
 
       if (rawItems === null) {
         return NextResponse.json(
@@ -240,7 +268,7 @@ export async function GET(req: NextRequest) {
       }
 
       const cleanedItems = stripClassActionUrls(rawItems);
-      setCached(cacheKey, cleanedItems, ttlMs);
+      setCached(cacheKey, cleanedItems, config.ttlMs);
       allItems = cleanedItems;
       cacheStatus = "MISS";
     } catch (err) {
@@ -249,7 +277,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const filtered = applyPostFilters(allItems, params);
+  // Admin base filter first, then the dashboard's own user filters.
+  const adminFiltered = applyAdminQuery(allItems, config.customQuery);
+  const filtered = applyPostFilters(adminFiltered, params);
   const grouped = groupByCase(filtered);
   const sortParam = params.get("sort") as SortOrder | null;
   const sortOrder: SortOrder = sortParam && VALID_SORTS.has(sortParam) ? sortParam : "date_desc";
