@@ -1069,17 +1069,17 @@ export const EXTENSION_PAGES_MANIFEST: ExtensionPageManifestEntry[] = [
   { slug: "ocoi-extension-terms", title: "OCOI — תנאי שימוש", build: buildOcoiTerms },
   {
     slug: "court-downloader",
-    title: "מוריד מסמכים אצווה — נט המשפט (ראשי)",
+    title: "לץ המשפט (ראשי)",
     build: buildCourtDownloader,
   },
   {
     slug: "court-downloader-privacy",
-    title: "מוריד מסמכים אצווה — מדיניות פרטיות",
+    title: "לץ המשפט — מדיניות פרטיות",
     build: buildCourtDownloaderPrivacy,
   },
   {
     slug: "court-downloader-terms",
-    title: "מוריד מסמכים אצווה — תנאי שימוש",
+    title: "לץ המשפט — תנאי שימוש",
     build: buildCourtDownloaderTerms,
   },
 ];

@@ -4,9 +4,9 @@ import { ExtensionPageShell } from "@/components/extension-pages/extension-page-
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "מדיניות פרטיות — מוריד מסמכים אצווה לנט המשפט",
+  title: "מדיניות פרטיות — לץ המשפט",
   description:
-    "מדיניות פרטיות מלאה לתוסף הדפדפן: כל העיבוד נשאר במחשב המשתמש. אין שרת ביניים, אין אנליטיקס, אין טלמטריה. סיווג נתונים לפי Chrome Web Store.",
+    "מדיניות פרטיות מלאה לתוסף הדפדפן 'לץ המשפט': כל העיבוד נשאר במחשב המשתמש. אין שרת ביניים, אין אנליטיקס, אין טלמטריה. סיווג נתונים לפי Chrome Web Store.",
   alternates: { canonical: "/court-downloader/privacy" },
   robots: { index: true, follow: true },
 };

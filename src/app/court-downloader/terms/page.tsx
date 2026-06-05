@@ -4,9 +4,9 @@ import { ExtensionPageShell } from "@/components/extension-pages/extension-page-
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "תנאי שימוש — מוריד מסמכים אצווה לנט המשפט",
+  title: "תנאי שימוש — לץ המשפט",
   description:
-    "תנאי השימוש בתוסף הדפדפן: שימוש מותר, אחריות המשתמש, אספקה כמות שהיא, הגבלת אחריות, אי-תלות ברשות השופטת, ודין חל.",
+    "תנאי השימוש בתוסף הדפדפן 'לץ המשפט': שימוש מותר, אחריות המשתמש, אספקה כמות שהיא, הגבלת אחריות, אי-תלות ברשות השופטת, ודין חל.",
   alternates: { canonical: "/court-downloader/terms" },
   robots: { index: true, follow: true },
 };
