@@ -1124,14 +1124,21 @@ function FieldSelect({
   }, [open]);
 
   const knownKeys = new Set(fields.map((f) => f.key));
-  const q = search.trim().toLocaleLowerCase("he-IL");
+  // Normalize away spaces / underscores / dots so a search like
+  // "עתירת אי מתן מענה" matches the key "sql.עתירת_אי_מתן_מענה".
+  const norm = (s: string) =>
+    s.toLocaleLowerCase("he-IL").replace(/[\s_.]+/g, "");
+  const rawSearch = search.trim();
+  const nq = norm(rawSearch);
   const filtered = fields.filter((f) => {
-    if (!q) return true;
-    return (
-      f.key.toLocaleLowerCase("he-IL").includes(q) ||
-      (f.label || "").toLocaleLowerCase("he-IL").includes(q)
-    );
+    if (!nq) return true;
+    return norm(f.key).includes(nq) || norm(f.label || "").includes(nq);
   });
+  // Offer to add the typed value verbatim as a custom key when it isn't an
+  // exact existing key — the schema endpoint doesn't always list every field
+  // TAG-IT actually stores.
+  const showCustomAdd =
+    rawSearch !== "" && !knownKeys.has(rawSearch);
   // Cap the rendered list so 300+ fields don't tank the DOM; the search
   // narrows it well before the cap matters.
   const MAX_SHOWN = 100;
@@ -1203,27 +1210,38 @@ function FieldSelect({
                 </button>
               </li>
             ) : null}
-            {shown.length === 0 ? (
+            {showCustomAdd ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => selectKey(rawSearch)}
+                  className="w-full text-right px-2 py-1 bg-amber-50 hover:bg-amber-100"
+                >
+                  הוסף מותאם:{" "}
+                  <span className="font-mono text-gray-700">{rawSearch}</span>
+                </button>
+              </li>
+            ) : null}
+            {shown.length === 0 && !showCustomAdd ? (
               <li className="px-2 py-2 text-gray-400">לא נמצאו שדות</li>
-            ) : (
-              shown.map((f) => (
-                <li key={f.key}>
-                  <button
-                    type="button"
-                    onClick={() => selectKey(f.key)}
-                    className={cn(
-                      "w-full text-right px-2 py-1 hover:bg-primary/5",
-                      f.key === value && "bg-primary/10 font-semibold",
-                    )}
-                  >
-                    <span className="font-mono text-gray-700">{f.key}</span>
-                    {f.label && f.label !== f.key ? (
-                      <span className="text-gray-400"> — {f.label}</span>
-                    ) : null}
-                  </button>
-                </li>
-              ))
-            )}
+            ) : null}
+            {shown.map((f) => (
+              <li key={f.key}>
+                <button
+                  type="button"
+                  onClick={() => selectKey(f.key)}
+                  className={cn(
+                    "w-full text-right px-2 py-1 hover:bg-primary/5",
+                    f.key === value && "bg-primary/10 font-semibold",
+                  )}
+                >
+                  <span className="font-mono text-gray-700">{f.key}</span>
+                  {f.label && f.label !== f.key ? (
+                    <span className="text-gray-400"> — {f.label}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))}
             {filtered.length > MAX_SHOWN ? (
               <li className="px-2 py-1.5 text-gray-400 border-t border-gray-100">
                 מוצגים {MAX_SHOWN} מתוך {filtered.length} — צמצמו עם חיפוש
