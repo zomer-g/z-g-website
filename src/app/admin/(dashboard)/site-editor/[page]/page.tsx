@@ -29,7 +29,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiRulingsPageContent, LeamPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, LeamPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -50,7 +50,8 @@ const PAGE_LABELS: Record<string, string> = {
   "class-actions": "דשבורד תובענות ייצוגיות",
   guidelines: "מאגר הנחיות",
   "defamation-rulings": "פסקי דין בלשון הרע",
-  "foi-rulings": "פסקי דין בעתירות חופש מידע",
+  "foi-judgments": "פסיקות חופש מידע",
+  "foi-costs": "הוצאות חופש מידע",
   leam: "לעם — אתרים אזרחיים",
 };
 
@@ -71,7 +72,8 @@ const PAGE_URLS: Record<string, string> = {
   "class-actions": "/class-actions",
   guidelines: "/guidelines",
   "defamation-rulings": "/defamation-rulings",
-  "foi-rulings": "/foi-rulings",
+  "foi-judgments": "/foi-judgments",
+  "foi-costs": "/foi-costs",
   leam: "/o",
 };
 
@@ -440,9 +442,9 @@ export default function SiteEditorPageEditor({
               }}
             />
           )}
-          {slug === "foi-rulings" && (
-            <DashboardPageEditor<FoiRulingsPageContent>
-              content={content as FoiRulingsPageContent}
+          {slug === "foi-judgments" && (
+            <DashboardPageEditor<FoiJudgmentsPageContent>
+              content={content as FoiJudgmentsPageContent}
               onChange={setContent}
               cacheControls={{
                 refreshEndpoint: "/api/rulings/refresh",
@@ -453,42 +455,81 @@ export default function SiteEditorPageEditor({
               docTypeFilter={{
                 field: "allowedDocTypes",
                 description:
-                  "סינון מהיר לפי כותרת ה-AI (ai.כותרת_המסמך). השוואה לפי הכלה. רשימה ריקה = ללא סינון.",
-                presets: ["פסק דין", "החלטה", "החלטה בבקשה", "פשרה"],
+                  'סינון מהיר לפי כותרת ה-AI (ai.כותרת_המסמך). השוואה לפי הכלה. רשימה ריקה = ללא סינון. ברירת מחדל לעמוד הזה: "פסק דין" + "פס\\"ד".',
+                presets: ['פסק דין', 'פס"ד', "החלטה", "פשרה"],
               }}
               advancedQuery={{
                 field: "query",
-                schemaHintUrl: "/api/rulings/schema?category=foi",
+                schemaHintUrl: "/api/rulings/schema?category=foi-judgments",
                 examples: [
                   {
-                    label: "החלטה עם הוצאות משפט > 0",
+                    label: "פסק דין בערעור",
                     json: JSON.stringify(
                       {
                         op: "and",
                         clauses: [
-                          { field: "ai.כותרת_המסמך", op: "contains", value: "החלטה" },
-                          { field: "sql.הוצאות_משפט", op: "gt", value: 0 },
+                          { field: "ai.כותרת_המסמך", op: "contains", value: "פסק דין" },
+                          { field: "meta.is_appeal", op: "eq", value: true },
                         ],
                       },
                       null,
                       2,
                     ),
                   },
+                ],
+              }}
+            />
+          )}
+          {slug === "foi-costs" && (
+            <DashboardPageEditor<FoiCostsPageContent>
+              content={content as FoiCostsPageContent}
+              onChange={setContent}
+              cacheControls={{
+                refreshEndpoint: "/api/rulings/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
+              docTypeFilter={{
+                field: "allowedDocTypes",
+                description:
+                  "סינון מהיר לפי כותרת ה-AI. בעמוד הזה רוב הסינון נעשה דרך השאילתה המתקדמת על שדה ה-SQL, אז כאן בדרך כלל אפשר להשאיר ריק.",
+                presets: ["פסק דין", "החלטה", "פשרה"],
+              }}
+              advancedQuery={{
+                field: "query",
+                schemaHintUrl: "/api/rulings/schema?category=foi-costs",
+                examples: [
                   {
-                    label: "פסק דין או החלטה עם הוצאות משפט > 0",
+                    label: "כל מסמך עם ערך הוצאות מספרי",
                     json: JSON.stringify(
                       {
-                        op: "or",
-                        clauses: [
-                          { field: "ai.כותרת_המסמך", op: "contains", value: "פסק דין" },
-                          {
-                            op: "and",
-                            clauses: [
-                              { field: "ai.כותרת_המסמך", op: "contains", value: "החלטה" },
-                              { field: "sql.הוצאות_משפט", op: "gt", value: 0 },
-                            ],
-                          },
-                        ],
+                        field: "sql.סכום_הוצאות_בשקלים",
+                        op: "not_null",
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "הוצאות > 0 (להוציא 0 ש״ח)",
+                    json: JSON.stringify(
+                      {
+                        field: "sql.סכום_הוצאות_בשקלים",
+                        op: "gt",
+                        value: 0,
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "הוצאות גבוהות (≥ 10,000 ₪)",
+                    json: JSON.stringify(
+                      {
+                        field: "sql.סכום_הוצאות_בשקלים",
+                        op: "ge",
+                        value: 10000,
                       },
                       null,
                       2,

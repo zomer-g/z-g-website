@@ -345,11 +345,33 @@ export interface CareerTimeline {
   entries: CareerTimelineEntry[];
 }
 
+export interface DigitalExtensionItem {
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: string;          // lucide icon name
+  tags: string[];
+  screenshotUrl: string; // /uploads/... or external URL; empty = no image yet
+  screenshotAlt: string;
+}
+
+export interface DigitalExtensionsSection {
+  title: string;
+  subtitle: string;
+  paragraphs: string[];
+  items: DigitalExtensionItem[];
+}
+
 export interface DigitalServicesPageContent {
   hero: { title: string; subtitle: string };
   intro: { title: string; paragraphs: string[] };
   services: { title: string; subtitle: string };
   items: DigitalServiceItem[];
+  // Block surfaced between the visualization service and the rest of the
+  // service grid — describes browser extensions and add-ons that ride on
+  // existing platforms (Net HaMishpat, calendars, etc.) and showcases a
+  // few with admin-uploaded screenshots.
+  extensions: DigitalExtensionsSection;
   credentials: { title: string; items: string[] };
   // Vertical CV-style timeline shown below the credentials block. Empty
   // entries array hides the section entirely.
@@ -442,8 +464,33 @@ export interface DefamationRulingsPageContent {
 }
 
 // ── FOI Petitions Rulings Dashboard Page Content ──
+// Kept for backward-compat / redirect target. Same shape as the two
+// specialised pages below.
 
 export interface FoiRulingsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+  allowedDocTypes: string[];
+  query: import("./ruling-filter").RulingsPageQuery;
+}
+
+// ── FOI Judgments Page (פסיקות חופש מידע) ──
+// Successor to /foi-rulings — same scope (6) but explicitly only פס"ד.
+
+export interface FoiJudgmentsPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+  allowedDocTypes: string[];
+  query: import("./ruling-filter").RulingsPageQuery;
+}
+
+// ── FOI Costs Page (הוצאות חופש מידע) ──
+// Same scope (6) but filtered to docs that have a numeric value in the
+// court-costs SQL field.
+
+export interface FoiCostsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
@@ -479,6 +526,8 @@ export type PageContentMap = {
   guidelines: GuidelinesPageContent;
   "defamation-rulings": DefamationRulingsPageContent;
   "foi-rulings": FoiRulingsPageContent;
+  "foi-judgments": FoiJudgmentsPageContent;
+  "foi-costs": FoiCostsPageContent;
   "conditional-arrangements": ConditionalArrangementsPageContent;
   leam: LeamPageContent;
 };

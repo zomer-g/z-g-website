@@ -10,6 +10,8 @@ function getApiKey() {
 const SCOPE_MAP: Record<string, number> = {
   defamation: 4,
   foi: 6,
+  "foi-judgments": 6,
+  "foi-costs": 6,
 };
 
 /**

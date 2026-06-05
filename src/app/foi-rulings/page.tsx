@@ -1,49 +1,14 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import PublicLayout from "@/components/layout/public-layout";
-import { Container } from "@/components/ui/container";
-import { getPageContent } from "@/lib/content";
-import { auth } from "@/lib/auth";
-import type { FoiRulingsPageContent } from "@/types/content";
-import { EditableSection } from "@/components/admin/editable-section";
-import { RulingsList } from "../rulings/rulings-list";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "פסקי דין בעתירות חופש מידע | זומר עורך דין",
-  description:
-    "רשימת פסקי דין אחרונים בעתירות לפי חוק חופש המידע מבתי המשפט בישראל.",
-};
-
-export default async function FoiRulingsPage() {
-  const [content, session] = await Promise.all([
-    getPageContent<FoiRulingsPageContent>("foi-rulings"),
-    auth(),
-  ]);
-
-  const isAdmin = session?.user?.role === "ADMIN";
-  if (!content.isPublic && !isAdmin) {
-    notFound();
-  }
-
-  return (
-    <PublicLayout>
-      <EditableSection editHref="/admin/site-editor/foi-rulings" editLabel="באנר">
-        <section className="bg-gradient-to-br from-primary to-primary-dark py-12 sm:py-16">
-          <Container>
-            <div className="text-center">
-              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
-                {content.hero.title}
-              </h1>
-              <p className="text-white text-lg">{content.hero.subtitle}</p>
-            </div>
-          </Container>
-        </section>
-      </EditableSection>
-      <Container className="py-8">
-        <RulingsList category="foi" />
-      </Container>
-    </PublicLayout>
-  );
+/**
+ * /foi-rulings was split into two specialised pages:
+ *   /foi-judgments — only פס"ד (the original behaviour)
+ *   /foi-costs     — only documents with a numeric "סכום הוצאות בשקלים"
+ *
+ * Keep this URL as a permanent redirect so any existing inbound links
+ * (admin bookmarks, the old /admin/site-editor/foi-rulings entry, etc.)
+ * land on the closest successor.
+ */
+export default function FoiRulingsRedirect(): never {
+  redirect("/foi-judgments");
 }

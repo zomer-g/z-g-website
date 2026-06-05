@@ -16,6 +16,8 @@ import type {
   GuidelinesPageContent,
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
+  FoiJudgmentsPageContent,
+  FoiCostsPageContent,
   ConditionalArrangementsPageContent,
   LeamPageContent,
 } from "@/types/content";
@@ -381,6 +383,43 @@ export const DEFAULT_DIGITAL_SERVICES_CONTENT: DigitalServicesPageContent = {
       tags: ["הגנת פרטיות", "GDPR", "חוק × קוד"],
     },
   ],
+  extensions: {
+    title: "הוספת יכולות מתקדמות במערכות מידע קיימות",
+    subtitle: "תוספים וכלים שרוכבים על גבי הפלטפורמות שאתם כבר עובדים איתן",
+    paragraphs: [
+      "במקביל לפיתוח מערכות עצמאיות, אני מפתח תוספים וכלים שרוכבים על גבי אתרים ופלטפורמות קיימות לצורך שיפור היכולות והשימושיות. הגישה הזו מבוססת על תפיסה אחת פשוטה: עורך הדין כבר עובד מול מערכות מסוימות — נט המשפט, יומני Google ו-Outlook, פורטלים של רשויות — והשינוי המשמעותי ביותר מתקבל לא מהחלפת המערכת, אלא מהוספת שכבה חכמה מעליה.",
+      "התוצאה היא חיסכון מיידי בזמן, ביטול של עבודה ידנית חוזרת, וחילוץ מידע שעד עכשיו היה נעול בתוך ממשק לא נגיש. כל זאת מבלי לשנות הרגלי עבודה של עורכי הדין במשרד, ומבלי להכניס את המשרד לפרויקט הטמעה ארוך וכבד.",
+    ],
+    items: [
+      {
+        title: "סנכרון יומן על בסיס דיוני נט המשפט",
+        subtitle: "תוסף דפדפן · Net HaMishpat → Google / Outlook",
+        description: "תוסף שמזהה את הדיונים העתידיים הקבועים בנט המשפט עבור עורך הדין, מחלץ את כל פרטי הדיון — תיק, ערכאה, אולם, מועד ושעה — ומסנכרן אותם אוטומטית ליומן Google או Outlook של המשרד. כל עדכון בנט המשפט (דחייה, החלפת אולם, שינוי שעה) מתעדכן ביומן בלי שאף אחד צריך להזין שוב את הפרטים בידיים.",
+        icon: "Calendar",
+        tags: ["נט המשפט", "סנכרון יומן", "אוטומציה"],
+        screenshotUrl: "",
+        screenshotAlt: "צילום מסך: סנכרון יומן נט המשפט",
+      },
+      {
+        title: "הורדה וייצוא של נתוני דיונים",
+        subtitle: "ייצוא רשימת דיונים לאקסל / לפלטפורמת ניהול",
+        description: "כלי שמאפשר להוריד מנט המשפט את רשימת הדיונים הקבועים — של עורך דין בודד, של מחלקה או של כל המשרד — בפורמט שניתן לעבד (Excel, CSV או JSON), או לשלוח אותם ישירות לפלטפורמת ניהול תיקים נבחרת באמצעות API. במקום להעתיק ידנית שורות מטבלאות באתר, מקבלים קובץ מובנה שמוכן לעבודה.",
+        icon: "Download",
+        tags: ["ייצוא נתונים", "אקסל", "API"],
+        screenshotUrl: "",
+        screenshotAlt: "צילום מסך: ייצוא רשימת דיונים",
+      },
+      {
+        title: "הורדת מסמכים מרובים ברשימת מסמכים",
+        subtitle: "Bulk Download — בקשות, החלטות, פרוטוקולים ותיק נייר",
+        description: "תוסף שמוסיף בכל רשימת מסמכים בנט המשפט — בקשות, החלטות, פרוטוקולים, תיק נייר וכדומה — אפשרות לסמן מרובה ולהוריד את כל הקבצים בלחיצה אחת, עם שמות קבצים ותיקיות שמסודרים אוטומטית לפי מספר התיק, סוג המסמך ותאריך. מבטל את הצורך בלחיצה על כל מסמך בנפרד ובהורדה ידנית של עשרות קבצים בכל פעם שצריך לעבוד עם תיק.",
+        icon: "FileDown",
+        tags: ["הורדה מרובה", "ניהול מסמכים", "נט המשפט"],
+        screenshotUrl: "",
+        screenshotAlt: "צילום מסך: הורדה מרובה של מסמכים",
+      },
+    ],
+  },
   credentials: {
     title: "הסמכות ורקע מקצועי",
     items: [
@@ -503,6 +542,52 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   query: { customQuery: null, displayFields: [] },
 };
 
+/* ─── FOI Judgments Page (פסיקות חופש מידע) ───
+   Successor to foi-rulings. Identical filter (only פס"ד) but distinct
+   slug + title. The /foi-rulings URL redirects here. */
+
+export const DEFAULT_FOI_JUDGMENTS_CONTENT: FoiJudgmentsPageContent = {
+  isPublic: false,
+  hero: {
+    title: "פסיקות חופש מידע",
+    subtitle: "פסקי דין בעתירות לפי חוק חופש המידע, מהחדש לישן",
+  },
+  cacheTtlMinutes: 60,
+  allowedDocTypes: ["פסק דין", 'פס"ד'],
+  query: { customQuery: null, displayFields: [] },
+};
+
+/* ─── FOI Costs Page (הוצאות חופש מידע) ───
+   Scope 6 documents where the SQL-extracted court-costs field has a
+   numeric value. The exact field key may need adjustment after the
+   admin checks the schema; the default below is a best guess. */
+
+export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
+  isPublic: false,
+  hero: {
+    title: "הוצאות חופש מידע",
+    subtitle: "פסיקות שבהן נפסקו הוצאות משפט, מהחדש לישן",
+  },
+  cacheTtlMinutes: 60,
+  // Don't constrain by title — the cost filter does the heavy lifting.
+  allowedDocTypes: [],
+  query: {
+    customQuery: {
+      field: "sql.סכום_הוצאות_בשקלים",
+      op: "not_null",
+    },
+    // Surface the cost amount prominently in each card.
+    displayFields: [
+      "ai.שם_התיק",
+      "ai.בית_משפט",
+      "ai.תאריך_המסמך",
+      "ai.שופטים",
+      "sql.סכום_הוצאות_בשקלים",
+      "ai.תקציר",
+    ],
+  },
+};
+
 /* ─── Conditional Arrangements Dashboard Page ─── */
 
 export const DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT: ConditionalArrangementsPageContent = {
@@ -616,6 +701,8 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   guidelines: DEFAULT_GUIDELINES_CONTENT,
   "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
+  "foi-judgments": DEFAULT_FOI_JUDGMENTS_CONTENT,
+  "foi-costs": DEFAULT_FOI_COSTS_CONTENT,
   "conditional-arrangements": DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT,
   leam: DEFAULT_LEAM_CONTENT,
 };

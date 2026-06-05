@@ -205,7 +205,11 @@ function RulingCard({
   );
 }
 
-export function RulingsList({ category }: { category: "foi" | "defamation" }) {
+export function RulingsList({
+  category,
+}: {
+  category: "foi" | "defamation" | "foi-judgments" | "foi-costs";
+}) {
   const [data, setData] = useState<RulingsResponse | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);

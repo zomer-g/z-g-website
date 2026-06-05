@@ -9,6 +9,8 @@ import { getPageContent } from "@/lib/content";
 import type {
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
+  FoiJudgmentsPageContent,
+  FoiCostsPageContent,
 } from "@/types/content";
 import type { FilterExpression } from "@/types/ruling-filter";
 import { evaluateFilter } from "@/lib/rulings-filter-eval";
@@ -17,8 +19,11 @@ import { createHash } from "crypto";
 const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
 const SCOPE_MAP: Record<string, { id: number; pageSlug: string }> = {
-  defamation: { id: 4, pageSlug: "defamation-rulings" },
-  foi:        { id: 6, pageSlug: "foi-rulings" },
+  defamation:      { id: 4, pageSlug: "defamation-rulings" },
+  // foi kept for backward compat with anything still calling the old key.
+  foi:             { id: 6, pageSlug: "foi-rulings" },
+  "foi-judgments": { id: 6, pageSlug: "foi-judgments" },
+  "foi-costs":     { id: 6, pageSlug: "foi-costs" },
 };
 
 const DEFAULT_TTL_MINUTES = 60;
@@ -99,12 +104,27 @@ interface PageConfig {
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
   try {
-    const content =
-      pageSlug === "foi-rulings"
-        ? await getPageContent<FoiRulingsPageContent>("foi-rulings")
-        : await getPageContent<DefamationRulingsPageContent>(
-            "defamation-rulings",
-          );
+    let content:
+      | FoiRulingsPageContent
+      | FoiJudgmentsPageContent
+      | FoiCostsPageContent
+      | DefamationRulingsPageContent;
+    switch (pageSlug) {
+      case "foi-judgments":
+        content =
+          await getPageContent<FoiJudgmentsPageContent>("foi-judgments");
+        break;
+      case "foi-costs":
+        content = await getPageContent<FoiCostsPageContent>("foi-costs");
+        break;
+      case "foi-rulings":
+        content = await getPageContent<FoiRulingsPageContent>("foi-rulings");
+        break;
+      default:
+        content = await getPageContent<DefamationRulingsPageContent>(
+          "defamation-rulings",
+        );
+    }
     const ttlRaw = Number(content?.cacheTtlMinutes);
     const ttlMinutes = Number.isFinite(ttlRaw)
       ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, ttlRaw))

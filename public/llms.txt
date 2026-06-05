@@ -54,8 +54,10 @@ These are the firm's flagship public-interest products. They are open and free t
 - Defamation Rulings Database / מאגר פסקי דין בלשון הרע: https://z-g.co.il/defamation-rulings
   Non-public defamation rulings collected and indexed for practitioners and the public.
 
-- Freedom-of-Information Rulings Database / מאגר פסקי דין בחופש מידע: https://z-g.co.il/foi-rulings
-  Indexed FOI rulings from Israeli courts.
+- FOI Judgments Database / פסיקות חופש מידע: https://z-g.co.il/foi-judgments
+  Indexed FOI judgments (פס"ד) from Israeli courts.
+- FOI Costs Database / הוצאות חופש מידע: https://z-g.co.il/foi-costs
+  FOI rulings where the court awarded costs (numeric amount).
 
 - Legal Case Tracker (Chrome Extension) / מעקב תיקים משפטיים: https://z-g.co.il/case-tracker
   Browser extension that tracks Israeli court cases.
@@ -98,7 +100,8 @@ Timezone: Asia/Jerusalem
 - Contact / יצירת קשר: https://z-g.co.il/contact
 - Guidelines Database / מאגר הנחיות: https://z-g.co.il/guidelines
 - Defamation Rulings / פסקי דין בלשון הרע: https://z-g.co.il/defamation-rulings
-- FOI Rulings / פסקי דין בחופש מידע: https://z-g.co.il/foi-rulings
+- FOI Judgments / פסיקות חופש מידע: https://z-g.co.il/foi-judgments
+- FOI Costs / הוצאות חופש מידע: https://z-g.co.il/foi-costs
 - Class Actions / תובענות ייצוגיות: https://z-g.co.il/class-actions
 - Case Tracker / מעקב תיקים: https://z-g.co.il/case-tracker
 - Legal Tools / כלים משפטיים: https://z-g.co.il/legal-tools
