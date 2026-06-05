@@ -470,9 +470,10 @@ export function RulingsList({
       setLoading(true);
       setError(null);
       try {
+        // Page size is admin-controlled server-side — we no longer send a
+        // `limit`; the API echoes the size it used back as `size`.
         const params = new URLSearchParams({
           category: cat,
-          limit: String(PAGE_SIZE),
           page: String(p),
         });
         const activeEntries = Object.entries(filters).filter(([, v]) =>
@@ -522,11 +523,14 @@ export function RulingsList({
   const activeSortKey = sortKey || sortFields[0]?.key || "";
 
   const total = data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // The server is authoritative on page size (admin-configurable). Fall back
+  // to the built-in default before the first response arrives.
+  const size = data?.size && data.size > 0 ? data.size : PAGE_SIZE;
+  const totalPages = Math.max(1, Math.ceil(total / size));
   const canPrev = page > 1;
   const canNext = page < totalPages;
-  const pageStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const pageEnd = Math.min(page * PAGE_SIZE, total);
+  const pageStart = total === 0 ? 0 : (page - 1) * size + 1;
+  const pageEnd = Math.min(page * size, total);
 
   return (
     <div dir="rtl">

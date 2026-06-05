@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { getPageContent } from "@/lib/content";
+import type {
+  FoiCostsPageContent,
+  FoiJudgmentsPageContent,
+  FoiRulingsPageContent,
+  DefamationRulingsPageContent,
+} from "@/types/content";
 
 const UPSTREAM_BASE = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
@@ -7,12 +14,30 @@ function getApiKey() {
   return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;
 }
 
-const SCOPE_MAP: Record<string, number> = {
-  defamation: 4,
-  foi: 6,
-  "foi-judgments": 6,
-  "foi-costs": 6,
+// category → { built-in default scope, content slug } so we can honour the
+// admin's configured scope override (content.query.scope) when set.
+const CATEGORY_MAP: Record<string, { scope: number; slug: string }> = {
+  defamation: { scope: 4, slug: "defamation-rulings" },
+  foi: { scope: 6, slug: "foi-rulings" },
+  "foi-judgments": { scope: 6, slug: "foi-judgments" },
+  "foi-costs": { scope: 6, slug: "foi-costs" },
 };
+
+type RulingsContent =
+  | FoiCostsPageContent
+  | FoiJudgmentsPageContent
+  | FoiRulingsPageContent
+  | DefamationRulingsPageContent;
+
+async function configuredScope(slug: string): Promise<number> {
+  try {
+    const content = await getPageContent<RulingsContent>(slug);
+    const s = Number(content?.query?.scope);
+    return Number.isInteger(s) && s > 0 ? s : 0;
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Admin-only proxy to TAG-IT's schema-discovery endpoint. Returns the list
@@ -40,13 +65,21 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
   const scopeParam = searchParams.get("scope");
-  const scopeId =
-    (category && SCOPE_MAP[category]) ||
-    (scopeParam ? Number(scopeParam) : NaN);
 
-  if (!Number.isInteger(scopeId) || (scopeId !== 4 && scopeId !== 6)) {
+  // Resolution order: explicit ?scope= (lets the editor preview an unsaved
+  // scope change) → admin's saved scope for the page → built-in category
+  // default.
+  let scopeId = NaN;
+  if (scopeParam && scopeParam.trim() !== "") {
+    scopeId = Number(scopeParam);
+  } else if (category && CATEGORY_MAP[category]) {
+    const { scope, slug } = CATEGORY_MAP[category];
+    scopeId = (await configuredScope(slug)) || scope;
+  }
+
+  if (!Number.isInteger(scopeId) || scopeId <= 0) {
     return NextResponse.json(
-      { error: "scope לא תקין — חייב להיות 4 (לשון הרע) או 6 (חופש מידע)" },
+      { error: "scope לא תקין — נדרש מספר חיובי או category מוכר" },
       { status: 400 },
     );
   }

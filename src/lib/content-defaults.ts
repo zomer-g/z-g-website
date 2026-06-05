@@ -528,7 +528,7 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
-  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 4, pageSize: 12 },
 };
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */
@@ -541,7 +541,7 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
-  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 6, pageSize: 12 },
 };
 
 /* ─── FOI Judgments Page (פסיקות חופש מידע) ───
@@ -556,7 +556,7 @@ export const DEFAULT_FOI_JUDGMENTS_CONTENT: FoiJudgmentsPageContent = {
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין", 'פס"ד'],
-  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 6, pageSize: 12 },
 };
 
 /* ─── FOI Costs Page (הוצאות חופש מידע) ───
@@ -603,6 +603,8 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
       { key: "meta.document_date", label: "תאריך המסמך" },
       { key: "sql.סכום_הוצאות_שקלים", label: "סכום הוצאות" },
     ],
+    scope: 6,
+    pageSize: 12,
   },
 };
 

@@ -665,6 +665,8 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
               displayFields: [],
               filterFields: [],
               sortFields: [],
+              scope: 0,
+              pageSize: 12,
             }
           }
           schemaHintUrl={advancedQuery.schemaHintUrl}
@@ -1084,9 +1086,10 @@ const CONTROL_LABELS: Record<FilterControl, string> = {
   date: "טווח תאריכים",
 };
 
-// A field <select> backed by the schema, grouped by source (ai/sql/meta).
-// Any already-configured key that isn't in the schema is still shown (so an
-// older config never silently loses a field), tagged as "מותאם".
+// A searchable field combobox backed by the schema. Click to open a dropdown
+// with a search box; type to filter by key or label. Any already-configured
+// key that isn't in the schema is still selectable (tagged "מותאם") so an
+// older config never silently loses a field.
 function FieldSelect({
   value,
   onChange,
@@ -1098,35 +1101,138 @@ function FieldSelect({
   fields: SchemaField[];
   placeholder?: string;
 }) {
-  const bySource: Record<string, SchemaField[]> = {};
-  for (const f of fields) {
-    const src = f.source || (f.key.split(".")[0] ?? "other");
-    (bySource[src] ||= []).push(f);
-  }
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  // Focus the search box when the dropdown opens.
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
+
   const knownKeys = new Set(fields.map((f) => f.key));
-  const groupOrder = Object.keys(bySource).sort();
+  const q = search.trim().toLocaleLowerCase("he-IL");
+  const filtered = fields.filter((f) => {
+    if (!q) return true;
+    return (
+      f.key.toLocaleLowerCase("he-IL").includes(q) ||
+      (f.label || "").toLocaleLowerCase("he-IL").includes(q)
+    );
+  });
+  // Cap the rendered list so 300+ fields don't tank the DOM; the search
+  // narrows it well before the cap matters.
+  const MAX_SHOWN = 100;
+  const shown = filtered.slice(0, MAX_SHOWN);
+
+  const selectKey = (key: string) => {
+    onChange(key);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const displayLabel = value
+    ? knownKeys.has(value)
+      ? (() => {
+          const f = fields.find((x) => x.key === value);
+          return f?.label && f.label !== value ? `${f.label} — ${f.key}` : value;
+        })()
+      : `${value} (מותאם)`
+    : placeholder;
 
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      dir="ltr"
-      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white font-mono"
-    >
-      <option value="">{placeholder}</option>
-      {value && !knownKeys.has(value) ? (
-        <option value={value}>{value} (מותאם)</option>
+    <div ref={wrapRef} className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        dir="ltr"
+        className={cn(
+          "w-full text-right border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white font-mono truncate",
+          "hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary",
+          !value && "text-gray-400",
+        )}
+        title={value || placeholder}
+      >
+        {displayLabel}
+      </button>
+
+      {open ? (
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg">
+          <div className="p-1.5 border-b border-gray-100">
+            <input
+              ref={inputRef}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="חיפוש שדה…"
+              dir="ltr"
+              className="w-full border border-gray-200 rounded px-2 py-1 text-xs"
+            />
+          </div>
+          <ul className="max-h-60 overflow-auto py-1 text-xs">
+            {value ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => selectKey("")}
+                  className="w-full text-right px-2 py-1 text-gray-400 hover:bg-gray-50"
+                >
+                  — ניקוי בחירה —
+                </button>
+              </li>
+            ) : null}
+            {value && !knownKeys.has(value) ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => selectKey(value)}
+                  className="w-full text-right px-2 py-1 font-mono bg-amber-50 hover:bg-amber-100"
+                >
+                  {value} (מותאם)
+                </button>
+              </li>
+            ) : null}
+            {shown.length === 0 ? (
+              <li className="px-2 py-2 text-gray-400">לא נמצאו שדות</li>
+            ) : (
+              shown.map((f) => (
+                <li key={f.key}>
+                  <button
+                    type="button"
+                    onClick={() => selectKey(f.key)}
+                    className={cn(
+                      "w-full text-right px-2 py-1 hover:bg-primary/5",
+                      f.key === value && "bg-primary/10 font-semibold",
+                    )}
+                  >
+                    <span className="font-mono text-gray-700">{f.key}</span>
+                    {f.label && f.label !== f.key ? (
+                      <span className="text-gray-400"> — {f.label}</span>
+                    ) : null}
+                  </button>
+                </li>
+              ))
+            )}
+            {filtered.length > MAX_SHOWN ? (
+              <li className="px-2 py-1.5 text-gray-400 border-t border-gray-100">
+                מוצגים {MAX_SHOWN} מתוך {filtered.length} — צמצמו עם חיפוש
+              </li>
+            ) : null}
+          </ul>
+        </div>
       ) : null}
-      {groupOrder.map((src) => (
-        <optgroup key={src} label={src}>
-          {bySource[src].map((f) => (
-            <option key={f.key} value={f.key}>
-              {f.label && f.label !== f.key ? `${f.label} — ${f.key}` : f.key}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+    </div>
   );
 }
 
@@ -1186,17 +1292,28 @@ function AdvancedQuerySection({
     }
   };
 
+  // ── API parameters (admin-controlled) ──
+  const scopeValue = query.scope ?? 0;
+  const pageSizeValue = query.pageSize ?? 12;
+
+  // The schema field list depends on the scope; append the current scope to
+  // the schema URL so changing it re-fetches the right field set live.
+  const effectiveSchemaUrl =
+    schemaHintUrl && scopeValue > 0
+      ? `${schemaHintUrl}${schemaHintUrl.includes("?") ? "&" : "?"}scope=${scopeValue}`
+      : schemaHintUrl;
+
   // ── Schema (closed field list) ──
   const [schemaFields, setSchemaFields] = useState<SchemaField[]>([]);
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaError, setSchemaError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!schemaHintUrl) return;
+    if (!effectiveSchemaUrl) return;
     let cancelled = false;
     setSchemaLoading(true);
     setSchemaError(null);
-    fetch(schemaHintUrl)
+    fetch(effectiveSchemaUrl)
       .then(async (res) => {
         const json = await res.json();
         if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
@@ -1221,7 +1338,7 @@ function AdvancedQuerySection({
     return () => {
       cancelled = true;
     };
-  }, [schemaHintUrl]);
+  }, [effectiveSchemaUrl]);
 
   const labelForKey = (key: string): string => {
     const f = schemaFields.find((x) => x.key === key);
@@ -1292,6 +1409,59 @@ function AdvancedQuerySection({
             הגדרת תצוגה, מסננים ומיון לדף — מתוך רשימת השדות של TAG-IT.
           </p>
           {schemaStatus}
+        </div>
+
+        {/* ── API parameters ── */}
+        <div className="rounded-lg border border-border bg-muted-bg/20 p-3">
+          <div className="text-xs font-semibold text-muted mb-2">
+            פרמטרים של ה-API
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Input
+                label="Scope (מזהה ב-TAG-IT)"
+                type="number"
+                min={1}
+                value={scopeValue || ""}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  onChange({
+                    ...query,
+                    scope: Number.isFinite(n) && n > 0 ? Math.floor(n) : 0,
+                  });
+                }}
+                dir="ltr"
+                placeholder="ברירת מחדל לפי הקטגוריה"
+              />
+              <p className="mt-1 text-xs text-muted leading-relaxed">
+                4 = לשון הרע · 6 = חופש מידע. ריק = ברירת המחדל של העמוד.
+                שינוי כאן גם מעדכן את רשימת השדות למטה.
+              </p>
+            </div>
+            <div>
+              <Input
+                label="מספר תוצאות בעמוד"
+                type="number"
+                min={1}
+                max={50}
+                value={pageSizeValue}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  onChange({
+                    ...query,
+                    pageSize:
+                      Number.isFinite(n) && n > 0
+                        ? Math.min(50, Math.floor(n))
+                        : 12,
+                  });
+                }}
+                dir="ltr"
+              />
+              <p className="mt-1 text-xs text-muted leading-relaxed">
+                כמה כרטסות יוצגו בכל עמוד (1–50).
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* ── Custom query (JSON — unchanged) ── */}

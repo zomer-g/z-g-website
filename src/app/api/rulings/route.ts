@@ -118,7 +118,12 @@ interface PageConfig {
   displayFields: string[];
   filterFields: RulingsFilterField[];
   sortFields: RulingsSortField[];
+  scope: number; // 0 = use the per-category default
+  pageSize: number;
 }
+
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 50;
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
   try {
@@ -177,6 +182,13 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
               !!s && typeof s.key === "string" && s.key.trim() !== "",
           )
         : [];
+    const scopeRaw = Number(content?.query?.scope);
+    const scope = Number.isInteger(scopeRaw) && scopeRaw > 0 ? scopeRaw : 0;
+    const sizeRaw = Number(content?.query?.pageSize);
+    const pageSize =
+      Number.isFinite(sizeRaw) && sizeRaw > 0
+        ? Math.min(MAX_PAGE_SIZE, Math.floor(sizeRaw))
+        : DEFAULT_PAGE_SIZE;
     return {
       ttlMs: ttlMinutes * 60_000,
       allowedDocTypes: allowed,
@@ -184,6 +196,8 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       displayFields,
       filterFields,
       sortFields,
+      scope,
+      pageSize,
     };
   } catch {
     return {
@@ -193,6 +207,8 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       displayFields: [],
       filterFields: [],
       sortFields: [],
+      scope: 0,
+      pageSize: DEFAULT_PAGE_SIZE,
     };
   }
 }
@@ -396,10 +412,6 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category") || "defamation";
-    const limit = Math.min(
-      50,
-      Math.max(1, parseInt(searchParams.get("limit") || "12", 10)),
-    );
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
     const scope = SCOPE_MAP[category];
@@ -408,6 +420,11 @@ export async function GET(req: NextRequest) {
     }
 
     const config = await readPageConfig(scope.pageSlug);
+
+    // The admin controls the scope (config.scope) and the page size
+    // (config.pageSize). Scope 0 = fall back to the per-category default.
+    const scopeId = config.scope > 0 ? config.scope : scope.id;
+    const limit = config.pageSize;
 
     // Cache key includes a hash of the upstream filter so two pages with
     // different filters don't clobber each other. When customQuery is null
@@ -419,8 +436,8 @@ export async function GET(req: NextRequest) {
       ? createHash("sha1").update(filterJson).digest("hex").slice(0, 12)
       : "";
     const cacheKey = filterHash
-      ? `scope:${scope.id}:f:${filterHash}`
-      : `scope:${scope.id}`;
+      ? `scope:${scopeId}:f:${filterHash}`
+      : `scope:${scopeId}`;
 
     let all = getCached(cacheKey);
     let cacheStatus = all ? "HIT" : "MISS";
@@ -437,7 +454,7 @@ export async function GET(req: NextRequest) {
         // pages will have a filter set anyway, which auto-triggers the
         // new shape.
         const fetched = await fetchAllUpstreamRulings({
-          scopeId: scope.id,
+          scopeId,
           filterJson: filterJson || undefined,
         });
         if (fetched === null) {

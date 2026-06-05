@@ -96,6 +96,12 @@ export interface RulingsPageQuery {
   displayFields: string[]; // ordered list of field keys to render per card
   filterFields: RulingsFilterField[]; // user-facing filter controls
   sortFields: RulingsSortField[]; // user-facing sort options (first = default)
+  // ── API parameters the admin controls ──
+  // TAG-IT scope id to pull from. 0/undefined → fall back to the per-page
+  // built-in default (defamation=4, FOI=6).
+  scope?: number;
+  // Results per page on the public listing. undefined → built-in default (12).
+  pageSize?: number;
 }
 
 export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
@@ -103,6 +109,8 @@ export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
   displayFields: [],
   filterFields: [],
   sortFields: [],
+  scope: 0,
+  pageSize: 12,
 };
 
 export const VALID_FILTER_CONTROLS: FilterControl[] = [
