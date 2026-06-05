@@ -580,14 +580,16 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
       field: "sql.סכום_הוצאות_שקלים",
       op: "not_null",
     },
-    // Surface the cost amount prominently in each card.
+    // Surface the cost amount prominently in each card. Field keys verified
+    // against an actual TAG-IT response — the document date lives under
+    // meta.document_date (not ai.תאריך_המסמך, which doesn't exist).
     displayFields: [
       "ai.שם_התיק",
       "ai.בית_משפט",
-      "ai.תאריך_המסמך",
+      "meta.document_date",
       "ai.שופטים",
+      "ai.כותרת_המסמך",
       "sql.סכום_הוצאות_שקלים",
-      "ai.תקציר",
     ],
   },
 };

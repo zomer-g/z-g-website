@@ -31,7 +31,11 @@ function getField(item: UpstreamRulingItem, path: string): unknown {
     return sub ? sql[sub] : sql;
   }
   if (head === "meta") {
-    return sub ? top[sub] : top;
+    // New shape nests promoted columns under `meta`; fall back to the
+    // legacy shape where they sit at the top level.
+    const meta = (top.meta as Record<string, unknown>) || {};
+    if (!sub) return meta;
+    return meta[sub] !== undefined ? meta[sub] : top[sub];
   }
   // bare key — treat as top-level
   return sub ? undefined : top[path];

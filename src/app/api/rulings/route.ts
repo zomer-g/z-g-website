@@ -67,11 +67,15 @@ function flattenFields(doc: UpstreamRulingItem): Record<string, unknown> {
   // sql.*
   const sql = (top.sql as Record<string, unknown>) || {};
   for (const k of Object.keys(sql)) out[`sql.${k}`] = sql[k];
-  // meta.* — everything else top-level except the grouping keys
-  const skip = new Set(["ai", "ai_analysis", "sql"]);
+  // meta.* — the new shape nests the promoted document columns under a
+  // `meta` object (meta.document_date, meta.court_name, …). Flatten THAT
+  // object as meta.X. Fall back to bare top-level keys for the legacy shape.
+  const metaObj = (top.meta as Record<string, unknown>) || {};
+  for (const k of Object.keys(metaObj)) out[`meta.${k}`] = metaObj[k];
+  const skip = new Set(["ai", "ai_analysis", "sql", "meta"]);
   for (const k of Object.keys(top)) {
     if (skip.has(k)) continue;
-    out[`meta.${k}`] = top[k];
+    if (out[`meta.${k}`] === undefined) out[`meta.${k}`] = top[k];
   }
   return out;
 }
@@ -79,15 +83,21 @@ function flattenFields(doc: UpstreamRulingItem): Record<string, unknown> {
 function normalize(doc: UpstreamRulingItem): NormalizedRuling {
   const top = doc as Record<string, unknown>;
   const ai = ((top.ai || top.ai_analysis) as Record<string, unknown>) || {};
+  const meta = (top.meta as Record<string, unknown>) || {};
   return {
     id: doc.id,
     caseName:
-      pickString(ai["שם_התיק"], top.case_name, doc.filename) || "ללא שם",
-    court: pickString(ai["בית_משפט"], top.court),
+      pickString(
+        ai["שם_התיק"],
+        meta.case_name,
+        top.case_name,
+        doc.filename,
+      ) || "ללא שם",
+    court: pickString(ai["בית_משפט"], meta.court_name, top.court),
     judges: pickArray(ai["שופטים"], top.judges),
-    date: pickString(ai["תאריך_המסמך"], top.date),
-    summary: pickString(ai["תקציר"], top.summary),
-    title: pickString(ai["כותרת_המסמך"], top.title),
+    date: pickString(ai["תאריך_המסמך"], meta.document_date, top.date),
+    summary: pickString(ai["תקציר"], ai["תקציר_המסמך"], top.summary),
+    title: pickString(ai["כותרת_המסמך"], meta.document_title, top.title),
     // Point at our proxy route, not the upstream /documents/{id}/view (that
     // endpoint requires session auth and would 401 for public visitors).
     documentUrl: `/api/rulings/documents/${doc.id}/file`,
@@ -158,27 +168,33 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
   }
 }
 
+// Read the doc title/date from whichever shape TAG-IT returned:
+//   new shape   → item.ai.כותרת_המסמך / item.meta.document_date
+//   legacy shape → item.ai_analysis.כותרת_המסמך
+function docTitle(item: UpstreamRulingItem): string {
+  const ai = ((item.ai || item.ai_analysis) as Record<string, unknown>) || {};
+  const meta = (item.meta as Record<string, unknown>) || {};
+  return String(ai["כותרת_המסמך"] || meta.document_title || "");
+}
+
+function docDate(item: UpstreamRulingItem): string {
+  const ai = ((item.ai || item.ai_analysis) as Record<string, unknown>) || {};
+  const meta = (item.meta as Record<string, unknown>) || {};
+  return String(ai["תאריך_המסמך"] || meta.document_date || "");
+}
+
 function matchesAllowedType(
   item: UpstreamRulingItem,
   patterns: string[],
 ): boolean {
   if (patterns.length === 0) return true; // empty = allow everything
-  const ai = (item.ai_analysis || {}) as Record<string, unknown>;
-  const title = String(ai["כותרת_המסמך"] || "");
+  const title = docTitle(item);
   if (!title) return false; // strict: no title = excluded when a filter is active
   return patterns.some((p) => title.includes(p));
 }
 
 function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
-  return [...items].sort((a, b) => {
-    const da = String(
-      ((a.ai_analysis as Record<string, unknown>) || {})["תאריך_המסמך"] || "",
-    );
-    const db = String(
-      ((b.ai_analysis as Record<string, unknown>) || {})["תאריך_המסמך"] || "",
-    );
-    return db.localeCompare(da);
-  });
+  return [...items].sort((a, b) => docDate(b).localeCompare(docDate(a)));
 }
 
 /* ── GET /api/rulings?category=defamation|foi&page=1&limit=12 ── */
