@@ -15,6 +15,7 @@ import { useCallback, useMemo, useState } from "react";
 import { WorkflowsSidebar, type SidebarTab } from "./workflows-sidebar";
 import { EventPane } from "./event-pane";
 import { ComposeBar } from "./compose-bar";
+import { printMessages } from "@/lib/print-messages";
 import {
   MOCK_ENTITIES,
   MOCK_PROCESSES,
@@ -135,6 +136,42 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
     [active],
   );
 
+  /* ── Selection + print ── */
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const enterSelection = useCallback(() => {
+    setSelectionMode(true);
+    setSelectedIds(new Set());
+  }, []);
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+  const handlePrintSelected = useCallback(() => {
+    // printMessages expects a PrintableMessage (which requires `sender`).
+    // WorkflowEvent uses `creator` for the same concept — map it here.
+    const selected = activeEvents
+      .filter((e) => selectedIds.has(e.id))
+      .map((e) => ({ ...e, sender: e.creator }));
+    const ctxLabel = activeContext
+      ? activeContext.kind === "entity"
+        ? activeContext.entity.name
+        : activeContext.process.title
+      : "";
+    printMessages(selected, {
+      title: `אירועים נבחרים — ${ctxLabel}`,
+      subtitle: title,
+    });
+  }, [activeEvents, selectedIds, activeContext, title]);
+
   /* ── Right pane is "open" whenever we have a selected context. The
         sidebar wrapper hugs its intrinsic 360px on desktop so there's
         no empty strip between the panes. Same fix as the WhatsApp/
@@ -184,6 +221,12 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
             onBack={() => setActive(null)}
             entityById={entityById}
             processById={processById}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            onEnterSelection={enterSelection}
+            onExitSelection={exitSelection}
+            onPrintSelected={handlePrintSelected}
           />
           {/* Compose only when a context is open — adding an untagged
               event would be meaningless. The compose `key` resets local

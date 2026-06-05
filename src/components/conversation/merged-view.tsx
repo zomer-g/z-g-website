@@ -10,9 +10,10 @@
 // purely presentational; it doesn't fetch.
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Layers, Loader2 } from "lucide-react";
+import { ArrowRight, Layers, Loader2, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
+import { SelectionBar } from "./selection-bar";
 import type { WhatsappMessageDTO } from "./types";
 
 export interface MergedMessage extends WhatsappMessageDTO {
@@ -37,6 +38,13 @@ interface MergedViewProps {
   // Optional override for the header label — search mode renders
   // "תוצאות חיפוש…" here instead of the generic "תצוגה משולבת".
   headerLabel?: string;
+  // Selection + print
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
+  onEnterSelection?: () => void;
+  onExitSelection?: () => void;
+  onPrintSelected?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -76,6 +84,12 @@ export function MergedView({
   onExit,
   selectedCount,
   headerLabel,
+  selectionMode = false,
+  selectedIds,
+  onToggleSelection,
+  onEnterSelection,
+  onExitSelection,
+  onPrintSelected,
 }: MergedViewProps) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -118,25 +132,38 @@ export function MergedView({
       <header className="flex items-center gap-3 bg-[#f0f2f5] border-b border-black/5 px-3 py-2 shrink-0">
         <button
           type="button"
-          onClick={onExit}
-          aria-label="חזרה לרשימת השיחות"
-          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700"
+          onClick={selectionMode ? onExitSelection : onExit}
+          aria-label={selectionMode ? "יציאה ממצב סימון" : "חזרה לרשימת השיחות"}
+          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
         >
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
           <Layers className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-gray-900 truncate">
             {headerLabel ?? "תצוגה משולבת"}
           </div>
           <div className="text-xs text-gray-500">
-            {headerLabel
-              ? `${messages.length} תוצאות`
-              : `${selectedCount} שיחות · ${messages.length} הודעות בציר משותף`}
+            {selectionMode
+              ? `בחר/י הודעות להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              : headerLabel
+                ? `${messages.length} תוצאות`
+                : `${selectedCount} שיחות · ${messages.length} הודעות בציר משותף`}
           </div>
         </div>
+        {!selectionMode ? (
+          <button
+            type="button"
+            onClick={onEnterSelection}
+            title="בחירת הודעות להדפסה"
+            aria-label="כניסה למצב בחירת הודעות"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
+          >
+            <CheckSquare className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : null}
       </header>
 
       <div
@@ -197,15 +224,21 @@ export function MergedView({
                 <MessageBubble
                   message={msg}
                   isOutgoing={isOutgoing}
-                  // We already render the source chip above the bubble, so
-                  // the bubble's own "showSender" is redundant — disable it.
                   showSender={false}
+                  selectable={selectionMode}
+                  selected={selectedIds?.has(msg.id)}
+                  onSelect={onToggleSelection}
                 />
               </div>
             );
           })
         )}
       </div>
+      <SelectionBar
+        count={selectedIds?.size ?? 0}
+        onPrint={onPrintSelected ?? (() => {})}
+        onClear={onExitSelection ?? (() => {})}
+      />
     </div>
   );
 }

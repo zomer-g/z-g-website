@@ -18,8 +18,10 @@ import {
   Workflow,
   Bell,
   BellRing,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SelectionBar } from "@/components/conversation/selection-bar";
 import type {
   EntityType,
   ProcessKind,
@@ -41,6 +43,13 @@ interface EventPaneProps {
   // resolve entity/process ids → display names.
   entityById: Map<string, WorkflowEntity>;
   processById: Map<string, WorkflowProcess>;
+  // Selection + print
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
+  onEnterSelection?: () => void;
+  onExitSelection?: () => void;
+  onPrintSelected?: () => void;
 }
 
 /* ─── Reminder formatting helpers ─── */
@@ -136,6 +145,12 @@ export function EventPane({
   onBack,
   entityById,
   processById,
+  selectionMode = false,
+  selectedIds,
+  onToggleSelection,
+  onEnterSelection,
+  onExitSelection,
+  onPrintSelected,
 }: EventPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -233,10 +248,10 @@ export function EventPane({
       <header className="flex items-center gap-3 h-14 bg-[#f0f2f5] border-b border-black/5 px-3 shrink-0">
         <button
           type="button"
-          onClick={onBack}
+          onClick={selectionMode ? onExitSelection : onBack}
           className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-          aria-label="חזרה לרשימה"
-          title="חזרה לרשימה"
+          aria-label={selectionMode ? "יציאה ממצב סימון" : "חזרה לרשימה"}
+          title={selectionMode ? "ביטול מצב סימון" : "חזרה לרשימה"}
         >
           <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -249,15 +264,27 @@ export function EventPane({
         >
           <HeaderIcon className="h-5 w-5" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-gray-900 truncate">
             {ctxTitle}
           </div>
           <div className="text-xs text-gray-700 truncate">
-            {ctxSubtitle ? `${ctxSubtitle} · ` : ""}
-            {events.length} {events.length === 1 ? "אירוע" : "אירועים"}
+            {selectionMode
+              ? `בחר/י אירועים להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              : `${ctxSubtitle ? `${ctxSubtitle} · ` : ""}${events.length} ${events.length === 1 ? "אירוע" : "אירועים"}`}
           </div>
         </div>
+        {!selectionMode ? (
+          <button
+            type="button"
+            onClick={onEnterSelection}
+            title="בחירת אירועים להדפסה"
+            aria-label="כניסה למצב בחירת אירועים"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
+          >
+            <CheckSquare className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : null}
       </header>
 
       <div
@@ -290,11 +317,19 @@ export function EventPane({
                     ? context.entity.id
                     : context.process.id
                 }
+                selectable={selectionMode}
+                selected={selectedIds?.has(it.evt.id)}
+                onSelect={onToggleSelection}
               />
             ),
           )
         )}
       </div>
+      <SelectionBar
+        count={selectedIds?.size ?? 0}
+        onPrint={onPrintSelected ?? (() => {})}
+        onClear={onExitSelection ?? (() => {})}
+      />
     </div>
   );
 }
@@ -309,6 +344,9 @@ function EventBubble({
   processById,
   currentContextKind,
   currentContextId,
+  selectable = false,
+  selected = false,
+  onSelect,
 }: {
   evt: WorkflowEvent;
   isOutgoing: boolean;
@@ -317,6 +355,9 @@ function EventBubble({
   processById: Map<string, WorkflowProcess>;
   currentContextKind: "entity" | "process";
   currentContextId: string;
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }) {
   // Filter out the chip for the currently-open context — it's redundant
   // (the user already knows they're in that lane).
@@ -337,10 +378,31 @@ function EventBubble({
     <div
       className={cn(
         "flex w-full px-2 my-0.5 items-start",
-        // RTL: outgoing = visually right = justify-start.
         isOutgoing ? "justify-start" : "justify-end",
+        selectable && "cursor-pointer",
+        selectable && selected && "bg-emerald-50/60",
+        selectable && !selected && "hover:bg-black/[0.02]",
       )}
+      onClick={selectable && onSelect ? () => onSelect(evt.id) : undefined}
+      role={selectable ? "checkbox" : undefined}
+      aria-checked={selectable ? selected : undefined}
     >
+      {selectable ? (
+        <div
+          className={cn(
+            "shrink-0 flex items-center justify-center mt-1 me-1.5",
+            "h-5 w-5 rounded border-2 transition-colors",
+            selected ? "border-emerald-600 bg-emerald-600" : "border-gray-400 bg-white",
+          )}
+          aria-hidden="true"
+        >
+          {selected ? (
+            <svg viewBox="0 0 12 10" className="h-3 w-3 fill-current text-white" aria-hidden="true">
+              <polyline points="1,5 4.5,8.5 11,1" strokeWidth="2" stroke="white" fill="none" />
+            </svg>
+          ) : null}
+        </div>
+      ) : null}
       <div
         className={cn(
           "max-w-[78%] sm:max-w-[68%] rounded-lg shadow-sm px-2.5 py-1.5",

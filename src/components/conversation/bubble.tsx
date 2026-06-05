@@ -53,6 +53,11 @@ interface MessageBubbleProps {
   onDetachTag?: (itemId: string, tagId: string) => Promise<void>;
   onToggleTagFilter?: (tagId: string) => void;
   activeTagIds?: string[];
+  // Selection mode — when selectable is true, a checkbox appears and
+  // clicking anywhere on the row toggles selection.
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (messageId: string) => void;
 }
 
 function formatBytes(n: number): string {
@@ -112,6 +117,9 @@ export function MessageBubble({
   onDetachTag,
   onToggleTagFilter,
   activeTagIds,
+  selectable = false,
+  selected = false,
+  onSelect,
 }: MessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
@@ -154,8 +162,35 @@ export function MessageBubble({
         // `justify-start` because the start edge is on the right.
         isOutgoing ? "justify-start" : "justify-end",
         message.isHidden && "opacity-50",
+        // When selection mode is active, highlight the row on hover/selection.
+        selectable && "cursor-pointer",
+        selectable && selected && "bg-emerald-50/60",
+        selectable && !selected && "hover:bg-black/[0.02]",
       )}
+      onClick={selectable && onSelect ? () => onSelect(message.id) : undefined}
+      aria-checked={selectable ? selected : undefined}
+      role={selectable ? "checkbox" : undefined}
     >
+      {/* Selection checkbox — shown on the visual-right of the row
+          (start edge in RTL) when selectable mode is active. */}
+      {selectable ? (
+        <div
+          className={cn(
+            "shrink-0 flex items-center justify-center mt-1 me-1.5",
+            "h-5 w-5 rounded border-2 transition-colors",
+            selected
+              ? "border-emerald-600 bg-emerald-600"
+              : "border-gray-400 bg-white",
+          )}
+          aria-hidden="true"
+        >
+          {selected ? (
+            <svg viewBox="0 0 12 10" className="h-3 w-3 text-white fill-current" aria-hidden="true">
+              <polyline points="1,5 4.5,8.5 11,1" strokeWidth="2" stroke="white" fill="none" />
+            </svg>
+          ) : null}
+        </div>
+      ) : null}
       {/* Admin hide/unhide toggle. Floats to the side opposite the bubble
           so it doesn't crowd the message content. Fades in on hover. */}
       {/* Admin-only hover controls stacked vertically. The tag button

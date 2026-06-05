@@ -11,9 +11,10 @@
 // API fetch on /whatsapp/<slug>).
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Loader2, MessagesSquare, Search, Layers } from "lucide-react";
+import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
+import { SelectionBar } from "./selection-bar";
 import type {
   WhatsappMessageDTO,
   WhatsappChatSummary,
@@ -44,6 +45,13 @@ interface ChatPaneProps {
   // with this tag").
   onToggleTagFilter?: (tagId: string) => void;
   activeTagIds?: string[];
+  // Selection + print
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelection?: (id: string) => void;
+  onEnterSelection?: () => void;
+  onExitSelection?: () => void;
+  onPrintSelected?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -77,6 +85,12 @@ export function ChatPane({
   onDetachTag,
   onToggleTagFilter,
   activeTagIds,
+  selectionMode = false,
+  selectedIds,
+  onToggleSelection,
+  onEnterSelection,
+  onExitSelection,
+  onPrintSelected,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -181,22 +195,39 @@ export function ChatPane({
             phone app even on desktop. */}
         <button
           type="button"
-          onClick={onBack}
+          onClick={selectionMode ? onExitSelection : onBack}
           className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-          aria-label="חזרה לרשימת השיחות"
-          title="סגירת השיחה — חזרה לרשימה"
+          aria-label={selectionMode ? "יציאה ממצב סימון" : "חזרה לרשימת השיחות"}
+          title={selectionMode ? "ביטול מצב סימון" : "סגירת השיחה — חזרה לרשימה"}
         >
           <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white text-sm font-semibold">
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-white text-sm font-semibold"
+          aria-hidden="true"
+        >
           {initials(chat.contactName)}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-gray-900 truncate">{chat.contactName}</div>
           <div className="text-xs text-gray-500">
-            {chat.messageCount} {chat.messageCount === 1 ? "הודעה" : "הודעות"}
+            {selectionMode
+              ? `בחר/י הודעות להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              : `${chat.messageCount} ${chat.messageCount === 1 ? "הודעה" : "הודעות"}`}
           </div>
         </div>
+        {/* Selection mode toggle button */}
+        {!selectionMode ? (
+          <button
+            type="button"
+            onClick={onEnterSelection}
+            title="בחירת הודעות להדפסה"
+            aria-label="כניסה למצב בחירת הודעות"
+            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
+          >
+            <CheckSquare className="h-5 w-5" aria-hidden="true" />
+          </button>
+        ) : null}
       </header>
 
       {/* Message list */}
@@ -245,18 +276,26 @@ export function ChatPane({
                 message={it.msg}
                 isOutgoing={it.isOutgoing}
                 showSender={it.showSender}
-                isAdmin={isAdmin}
+                isAdmin={isAdmin && !selectionMode}
                 onToggleHidden={onToggleHidden}
                 tagsPool={tagsPool}
                 onAttachTag={onAttachTag}
                 onDetachTag={onDetachTag}
                 onToggleTagFilter={onToggleTagFilter}
                 activeTagIds={activeTagIds}
+                selectable={selectionMode}
+                selected={selectedIds?.has(it.msg.id)}
+                onSelect={onToggleSelection}
               />
             ),
           )
         )}
       </div>
+      <SelectionBar
+        count={selectedIds?.size ?? 0}
+        onPrint={onPrintSelected ?? (() => {})}
+        onClear={onExitSelection ?? (() => {})}
+      />
     </div>
   );
 }

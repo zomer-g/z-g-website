@@ -26,6 +26,7 @@ import { MergedPicker } from "./merged-picker";
 import { MergedView, type MergedMessage } from "./merged-view";
 import { SearchBar } from "./search-bar";
 import { useConversationUrlState } from "./use-conversation-url-state";
+import { printMessages } from "@/lib/print-messages";
 import type {
   WhatsappChatSummary,
   WhatsappMessageDTO,
@@ -534,6 +535,52 @@ function ConversationShellInner({
     setMergedError(null);
   };
 
+  /* ── Selection + print ── */
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const enterSelection = useCallback(() => {
+    setSelectionMode(true);
+    setSelectedIds(new Set());
+  }, []);
+
+  const exitSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Collect selected messages from whichever view is active, then print.
+  const handlePrintSelected = useCallback(() => {
+    // Determine source pool and label.
+    let pool: WhatsappMessageDTO[];
+    let title: string;
+    let source: string;
+    if (searchActive) {
+      pool = searchResults;
+      title = "תוצאות חיפוש נבחרות";
+      source = url.searchState.q ? `חיפוש: "${url.searchState.q}"` : "סינון תגיות";
+    } else if (inMergedView) {
+      pool = mergedMessages;
+      title = "תצוגה משולבת — נבחרות";
+      source = `${mergedChatIds?.length ?? 0} שיחות`;
+    } else {
+      pool = messages;
+      title = active?.contactName ? `שיחה: ${active.contactName}` : "הודעות נבחרות";
+      source = active?.contactName ?? "";
+    }
+    const selected = pool.filter((m) => selectedIds.has(m.id));
+    printMessages(selected, { title, source, subtitle: workspace.title });
+  }, [searchActive, inMergedView, searchResults, mergedMessages, messages,
+      selectedIds, active, mergedChatIds, url.searchState, workspace.title]);
+
   /* ── Render ── */
 
   // Right-pane priority: search > merged > single-chat > empty hint.
@@ -611,6 +658,12 @@ function ConversationShellInner({
                   ? `תוצאות חיפוש: "${url.searchState.q}"`
                   : "תוצאות מסונן לפי תגיות"
               }
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelection={toggleSelection}
+              onEnterSelection={enterSelection}
+              onExitSelection={exitSelection}
+              onPrintSelected={handlePrintSelected}
             />
           ) : inMergedView ? (
             <MergedView
@@ -620,6 +673,12 @@ function ConversationShellInner({
               workspaceSelfSender={workspace.selfSender}
               selectedCount={mergedChatIds?.length ?? 0}
               onExit={handleExitMerged}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelection={toggleSelection}
+              onEnterSelection={enterSelection}
+              onExitSelection={exitSelection}
+              onPrintSelected={handlePrintSelected}
             />
           ) : (
             <ChatPane
@@ -636,6 +695,12 @@ function ConversationShellInner({
               onDetachTag={detachTag}
               onToggleTagFilter={url.toggleTag}
               activeTagIds={url.searchState.tagIds}
+              selectionMode={selectionMode}
+              selectedIds={selectedIds}
+              onToggleSelection={toggleSelection}
+              onEnterSelection={enterSelection}
+              onExitSelection={exitSelection}
+              onPrintSelected={handlePrintSelected}
             />
           )}
         </div>
