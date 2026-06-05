@@ -64,9 +64,21 @@ interface PageDef {
   href?: string;
 }
 
-interface PageGroup {
+// A "project sub-group" — used inside the extensions group so all pages of
+// one product (Court Downloader, Ocal, OCOI, etc.) appear together under
+// their own mini-header, instead of mixed into a flat list.
+interface ProjectSubGroup {
   title: string;
   items: PageDef[];
+}
+
+interface PageGroup {
+  title: string;
+  // Standalone cards (no sub-header). Most groups use just this.
+  items?: PageDef[];
+  // Optional sub-grouping. Each project gets its own h3 + mini-grid below
+  // any standalone items. Used for the extensions group.
+  projects?: ProjectSubGroup[];
 }
 
 const PAGE_GROUPS: PageGroup[] = [
@@ -114,42 +126,66 @@ const PAGE_GROUPS: PageGroup[] = [
   },
   {
     title: "אפליקציות ותוספי דפדפן",
+    // Standalone overview card sits above the per-project sections.
     items: [
-      // עמוד הסקירה הכללי
       { slug: "digital-services", label: "שירותים דיגיטליים (סקירה)", icon: Code2 },
-
-      // כלים משפטיים ל-Google Docs
-      { slug: "legal-tools", label: "כלים משפטיים (ראשי)", icon: Wrench, href: "/admin/pages/legal-tools" },
-      { slug: "legal-tools-privacy", label: "כלים משפטיים — פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
-      { slug: "legal-tools-terms", label: "כלים משפטיים — תנאי שימוש", icon: ScrollText, href: "/admin/pages/legal-tools-terms" },
-      { slug: "legal-tools-support", label: "כלים משפטיים — תמיכה", icon: Phone, href: "/admin/pages/legal-tools-support" },
-
-      // איתור אסמכתאות
-      { slug: "case-tracker", label: "איתור אסמכתאות (ראשי)", icon: Code2, href: "/admin/pages/case-tracker" },
-      { slug: "case-tracker-privacy", label: "איתור אסמכתאות — פרטיות", icon: Shield, href: "/admin/pages/case-tracker-privacy" },
-      { slug: "case-tracker-terms", label: "איתור אסמכתאות — תנאי שימוש", icon: ScrollText, href: "/admin/pages/case-tracker-terms" },
-
-      // Ocal — תוסף נבחרי ציבור
-      { slug: "ocal", label: "Ocal — תוסף נבחרי ציבור (ראשי)", icon: Code2, href: "/admin/pages/ocal" },
-      { slug: "ocal-privacy", label: "Ocal — מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocal-privacy" },
-      { slug: "ocal-terms", label: "Ocal — תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocal-terms" },
-
-      // OCOI — תוסף ניגוד עניינים
-      { slug: "ocoi-extension", label: "OCOI — תוסף ניגוד עניינים (ראשי)", icon: Code2, href: "/admin/pages/ocoi-extension" },
-      { slug: "ocoi-extension-privacy", label: "OCOI — מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocoi-extension-privacy" },
-      { slug: "ocoi-extension-terms", label: "OCOI — תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocoi-extension-terms" },
-
-      // לץ המשפט — מוריד מסמכים מנט המשפט
-      { slug: "court-downloader", label: "לץ המשפט — נט המשפט (ראשי)", icon: Code2, href: "/admin/pages/court-downloader" },
-      { slug: "court-downloader-privacy", label: "לץ המשפט — מדיניות פרטיות", icon: Shield, href: "/admin/pages/court-downloader-privacy" },
-      { slug: "court-downloader-terms", label: "לץ המשפט — תנאי שימוש", icon: ScrollText, href: "/admin/pages/court-downloader-terms" },
+    ],
+    // Per-project mini-sections. Each appears with its own h3 + grid, so all
+    // pages of one product (ראשי / פרטיות / תנאי שימוש / תמיכה) sit together.
+    // Order: newest/most-active first.
+    projects: [
+      {
+        title: "לץ המשפט — מוריד מסמכים מנט המשפט",
+        items: [
+          { slug: "court-downloader", label: "ראשי", icon: Code2, href: "/admin/pages/court-downloader" },
+          { slug: "court-downloader-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/court-downloader-privacy" },
+          { slug: "court-downloader-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/court-downloader-terms" },
+        ],
+      },
+      {
+        title: "OCOI — תוסף ניגוד עניינים",
+        items: [
+          { slug: "ocoi-extension", label: "ראשי", icon: Code2, href: "/admin/pages/ocoi-extension" },
+          { slug: "ocoi-extension-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocoi-extension-privacy" },
+          { slug: "ocoi-extension-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocoi-extension-terms" },
+        ],
+      },
+      {
+        title: "Ocal — תוסף נבחרי ציבור",
+        items: [
+          { slug: "ocal", label: "ראשי", icon: Code2, href: "/admin/pages/ocal" },
+          { slug: "ocal-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocal-privacy" },
+          { slug: "ocal-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocal-terms" },
+        ],
+      },
+      {
+        title: "איתור אסמכתאות",
+        items: [
+          { slug: "case-tracker", label: "ראשי", icon: Code2, href: "/admin/pages/case-tracker" },
+          { slug: "case-tracker-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/case-tracker-privacy" },
+          { slug: "case-tracker-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/case-tracker-terms" },
+        ],
+      },
+      {
+        title: "כלים משפטיים — Google Docs",
+        items: [
+          { slug: "legal-tools", label: "ראשי", icon: Wrench, href: "/admin/pages/legal-tools" },
+          { slug: "legal-tools-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
+          { slug: "legal-tools-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/legal-tools-terms" },
+          { slug: "legal-tools-support", label: "תמיכה", icon: Phone, href: "/admin/pages/legal-tools-support" },
+        ],
+      },
     ],
   },
 ];
 
-// Flat list used for the bulk fetch loop. The group rendering uses
-// PAGE_GROUPS directly to keep the section structure.
-const PAGE_DEFS: PageDef[] = PAGE_GROUPS.flatMap((g) => g.items);
+// Flat list used for the bulk fetch loop. Pulls from BOTH `items` and any
+// `projects[*].items` so every card — even nested ones — gets its status
+// fetched. The grouped rendering still uses PAGE_GROUPS directly.
+const PAGE_DEFS: PageDef[] = PAGE_GROUPS.flatMap((g) => [
+  ...(g.items ?? []),
+  ...(g.projects ?? []).flatMap((p) => p.items),
+]);
 
 /* ─── Site Editor Page ─── */
 
@@ -216,6 +252,59 @@ export default function SiteEditorPage() {
   // same fresh state without iterating the whole `cards` array per item.
   const cardBySlug = new Map(cards.map((c) => [c.slug, c]));
 
+  // Shared card renderer — used both for standalone group items and for items
+  // inside a project sub-group, so the visual treatment stays identical.
+  const renderCard = (def: PageDef) => {
+    const card = cardBySlug.get(def.slug);
+    const Icon = def.icon;
+    const isPublished = card?.data?.status === "PUBLISHED";
+
+    return (
+      <Link
+        key={def.slug}
+        href={def.href || `/admin/site-editor/${def.slug}`}
+      >
+        <Card
+          className={cn(
+            "cursor-pointer transition-all duration-200",
+            "hover:shadow-md hover:border-primary/30",
+            "h-full",
+          )}
+        >
+          <CardContent className="flex flex-col gap-4 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon size={20} className="text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground">{def.label}</h3>
+              </div>
+              <ChevronLeft size={20} className="text-muted shrink-0" />
+            </div>
+
+            <div className="flex items-center justify-between">
+              {card?.data ? (
+                <Badge variant={isPublished ? "success" : "muted"}>
+                  {isPublished ? "פורסם" : "טיוטה"}
+                </Badge>
+              ) : (
+                <Badge variant="muted">
+                  {card?.error ? "שגיאה" : "לא נמצא"}
+                </Badge>
+              )}
+
+              {card?.data?.updatedAt && (
+                <span className="text-xs text-muted">
+                  עודכן {formatDate(card.data.updatedAt)}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    );
+  };
+
   return (
     <div className="space-y-10">
       {/* ── Page Header ── */}
@@ -224,74 +313,48 @@ export default function SiteEditorPage() {
       </div>
 
       {/* ── Grouped Sections ── */}
-      {PAGE_GROUPS.map((group) => (
-        <section key={group.title} className="space-y-4">
-          <div className="flex items-baseline justify-between border-b border-border pb-2">
-            <h2 className="text-lg font-semibold text-foreground">
-              {group.title}
-            </h2>
-            <span className="text-xs text-muted">
-              {group.items.length} עמודים
-            </span>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {group.items.map((def) => {
-              const card = cardBySlug.get(def.slug);
-              const Icon = def.icon;
-              const isPublished = card?.data?.status === "PUBLISHED";
+      {PAGE_GROUPS.map((group) => {
+        const standaloneItems = group.items ?? [];
+        const projects = group.projects ?? [];
+        const total =
+          standaloneItems.length +
+          projects.reduce((n, p) => n + p.items.length, 0);
 
-              return (
-                <Link
-                  key={def.slug}
-                  href={def.href || `/admin/site-editor/${def.slug}`}
-                >
-                  <Card
-                    className={cn(
-                      "cursor-pointer transition-all duration-200",
-                      "hover:shadow-md hover:border-primary/30",
-                      "h-full",
-                    )}
-                  >
-                    <CardContent className="flex flex-col gap-4 p-5">
-                      {/* ── Icon + Title Row ── */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                            <Icon size={20} className="text-primary" />
-                          </div>
-                          <h3 className="font-semibold text-foreground">
-                            {def.label}
-                          </h3>
-                        </div>
-                        <ChevronLeft size={20} className="text-muted shrink-0" />
-                      </div>
+        return (
+          <section key={group.title} className="space-y-4">
+            <div className="flex items-baseline justify-between border-b border-border pb-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                {group.title}
+              </h2>
+              <span className="text-xs text-muted">{total} עמודים</span>
+            </div>
 
-                      {/* ── Status + Date ── */}
-                      <div className="flex items-center justify-between">
-                        {card?.data ? (
-                          <Badge variant={isPublished ? "success" : "muted"}>
-                            {isPublished ? "פורסם" : "טיוטה"}
-                          </Badge>
-                        ) : (
-                          <Badge variant="muted">
-                            {card?.error ? "שגיאה" : "לא נמצא"}
-                          </Badge>
-                        )}
+            {/* Standalone items (no sub-header) */}
+            {standaloneItems.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {standaloneItems.map(renderCard)}
+              </div>
+            )}
 
-                        {card?.data?.updatedAt && (
-                          <span className="text-xs text-muted">
-                            עודכן {formatDate(card.data.updatedAt)}
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+            {/* Per-project sub-groups */}
+            {projects.map((project) => (
+              <div key={project.title} className="space-y-3">
+                <div className="flex items-baseline gap-3 pt-2">
+                  <h3 className="text-base font-semibold text-primary-dark">
+                    {project.title}
+                  </h3>
+                  <span className="text-xs text-muted">
+                    {project.items.length} עמודים
+                  </span>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {project.items.map(renderCard)}
+                </div>
+              </div>
+            ))}
+          </section>
+        );
+      })}
     </div>
   );
 }
