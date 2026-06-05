@@ -218,14 +218,18 @@ export async function GET(req: NextRequest) {
 
     if (!all) {
       try {
-        // Always send a sort key — TAG-IT only switches to the new
-        // ai/sql/meta-grouped response shape when at least one of
-        // filter/fields/sort is present. We need that shape so sql.* and
-        // meta.* are accessible for admin-configured displayFields.
+        // Only send `filter` when the admin actually configured one. We
+        // used to always send `sort` to force TAG-IT's "new shape" (which
+        // exposes sql.*/meta.*), but unknown sort keys 400 out the entire
+        // page. Sorting is done in memory below either way — so when no
+        // filter is set we fall back to TAG-IT's legacy shape and the
+        // page still works. The new shape only matters for pages with
+        // sql./meta. fields in customQuery or displayFields, and those
+        // pages will have a filter set anyway, which auto-triggers the
+        // new shape.
         const fetched = await fetchAllUpstreamRulings({
           scopeId: scope.id,
           filterJson: filterJson || undefined,
-          sortKey: "-ai.תאריך_המסמך",
         });
         if (fetched === null) {
           return NextResponse.json(
