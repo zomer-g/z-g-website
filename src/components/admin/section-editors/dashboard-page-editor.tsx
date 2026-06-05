@@ -1065,10 +1065,70 @@ function DocTypeFilterSection({
 }
 
 // ─── Advanced query section ────────────────────────────────────────────────
-// Lets the admin author a structured FilterExpression (matches the spec sent
-// to TAG-IT: AND/OR/NOT over leaf comparisons on ai.X / sql.X / meta.X fields)
-// and an ordered list of `displayFields` to render per card. JSON textareas
-// with live validation — a visual query builder comes later.
+// Visual builder for displayFields / filterFields / sortFields, all backed by
+// a closed list of fields pulled from TAG-IT's schema endpoint. The structured
+// FilterExpression (customQuery) stays a JSON textarea — it's recursive and
+// not amenable to a flat row UI.
+
+interface SchemaField {
+  key: string;
+  label?: string;
+  type?: string;
+  source?: string;
+}
+
+const CONTROL_LABELS: Record<FilterControl, string> = {
+  text: "חיפוש חופשי",
+  select: "בחירה מרשימה",
+  number: "טווח מספרי",
+  date: "טווח תאריכים",
+};
+
+// A field <select> backed by the schema, grouped by source (ai/sql/meta).
+// Any already-configured key that isn't in the schema is still shown (so an
+// older config never silently loses a field), tagged as "מותאם".
+function FieldSelect({
+  value,
+  onChange,
+  fields,
+  placeholder = "— בחר שדה —",
+}: {
+  value: string;
+  onChange: (key: string) => void;
+  fields: SchemaField[];
+  placeholder?: string;
+}) {
+  const bySource: Record<string, SchemaField[]> = {};
+  for (const f of fields) {
+    const src = f.source || (f.key.split(".")[0] ?? "other");
+    (bySource[src] ||= []).push(f);
+  }
+  const knownKeys = new Set(fields.map((f) => f.key));
+  const groupOrder = Object.keys(bySource).sort();
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      dir="ltr"
+      className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white font-mono"
+    >
+      <option value="">{placeholder}</option>
+      {value && !knownKeys.has(value) ? (
+        <option value={value}>{value} (מותאם)</option>
+      ) : null}
+      {groupOrder.map((src) => (
+        <optgroup key={src} label={src}>
+          {bySource[src].map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label && f.label !== f.key ? `${f.label} — ${f.key}` : f.key}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
 
 function AdvancedQuerySection({
   query,
@@ -1126,108 +1186,139 @@ function AdvancedQuerySection({
     }
   };
 
-  const commitDisplayFields = (raw: string) => {
-    const list = raw
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+  // ── Schema (closed field list) ──
+  const [schemaFields, setSchemaFields] = useState<SchemaField[]>([]);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!schemaHintUrl) return;
+    let cancelled = false;
+    setSchemaLoading(true);
+    setSchemaError(null);
+    fetch(schemaHintUrl)
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || `HTTP ${res.status}`);
+        return json;
+      })
+      .then((json) => {
+        if (cancelled) return;
+        const fields: SchemaField[] = Array.isArray(json?.fields)
+          ? json.fields
+          : [];
+        setSchemaFields(fields);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setSchemaError(
+          err instanceof Error ? err.message : "שגיאה בטעינת רשימת השדות",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSchemaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [schemaHintUrl]);
+
+  const labelForKey = (key: string): string => {
+    const f = schemaFields.find((x) => x.key === key);
+    if (f?.label && f.label !== key) return f.label;
+    // Fall back to the trailing path segment, underscores → spaces.
+    const tail = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+    return tail.replace(/_/g, " ");
+  };
+
+  // ── displayFields row handlers ──
+  const displayFields = query.displayFields || [];
+  const setDisplayFields = (list: string[]) =>
     onChange({ ...query, displayFields: list });
+  const addDisplayField = () => setDisplayFields([...displayFields, ""]);
+  const updateDisplayField = (i: number, key: string) => {
+    const next = [...displayFields];
+    next[i] = key;
+    setDisplayFields(next);
   };
+  const removeDisplayField = (i: number) =>
+    setDisplayFields(displayFields.filter((_, idx) => idx !== i));
 
-  // filterFields are serialized one per line as: key | label | control
-  const filterFieldsStr = (query.filterFields || [])
-    .map((f) => `${f.key} | ${f.label} | ${f.control}`)
-    .join("\n");
-
-  const commitFilterFields = (raw: string) => {
-    const list: RulingsFilterField[] = raw
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const parts = line.split("|").map((p) => p.trim());
-        const key = parts[0] || "";
-        const label = parts[1] || key;
-        const ctrlRaw = (parts[2] || "text").toLowerCase();
-        const control: FilterControl = (
-          VALID_FILTER_CONTROLS as string[]
-        ).includes(ctrlRaw)
-          ? (ctrlRaw as FilterControl)
-          : "text";
-        return { key, label, control };
-      })
-      .filter((f) => f.key !== "");
+  // ── filterFields row handlers ──
+  const filterFields = query.filterFields || [];
+  const setFilterFields = (list: RulingsFilterField[]) =>
     onChange({ ...query, filterFields: list });
+  const addFilterField = () =>
+    setFilterFields([...filterFields, { key: "", label: "", control: "text" }]);
+  const updateFilterField = (i: number, patch: Partial<RulingsFilterField>) => {
+    const next = [...filterFields];
+    next[i] = { ...next[i], ...patch };
+    setFilterFields(next);
   };
+  const removeFilterField = (i: number) =>
+    setFilterFields(filterFields.filter((_, idx) => idx !== i));
 
-  // sortFields are serialized one per line as: key | label
-  const sortFieldsStr = (query.sortFields || [])
-    .map((s) => `${s.key} | ${s.label}`)
-    .join("\n");
-
-  const commitSortFields = (raw: string) => {
-    const list: RulingsSortField[] = raw
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .map((line) => {
-        const parts = line.split("|").map((p) => p.trim());
-        const key = parts[0] || "";
-        const label = parts[1] || key;
-        return { key, label };
-      })
-      .filter((s) => s.key !== "");
+  // ── sortFields row handlers ──
+  const sortFields = query.sortFields || [];
+  const setSortFields = (list: RulingsSortField[]) =>
     onChange({ ...query, sortFields: list });
+  const addSortField = () =>
+    setSortFields([...sortFields, { key: "", label: "" }]);
+  const updateSortField = (i: number, patch: Partial<RulingsSortField>) => {
+    const next = [...sortFields];
+    next[i] = { ...next[i], ...patch };
+    setSortFields(next);
   };
+  const removeSortField = (i: number) =>
+    setSortFields(sortFields.filter((_, idx) => idx !== i));
+
+  const schemaStatus = schemaLoading ? (
+    <span className="text-xs text-muted">טוען רשימת שדות…</span>
+  ) : schemaError ? (
+    <span className="text-xs text-red-600">
+      שגיאה בטעינת השדות: {schemaError}
+    </span>
+  ) : (
+    <span className="text-xs text-muted">
+      {schemaFields.length} שדות זמינים מ-TAG-IT
+    </span>
+  );
 
   return (
     <SectionCard title="שאילתה מתקדמת + שדות תצוגה" icon={Code}>
-      <div className="space-y-4">
-        <p className="text-xs text-muted leading-relaxed">
-          סינון מורכב מעל שדות שהוגדרו ב-TAG-IT (AI / SQL / metadata). פעיל
-          רק אם TAG-IT חשפו את ה-endpoints (schema + filter). עד אז — הסינון
-          רץ בזיכרון על מה שנשלף.
-          {schemaHintUrl ? (
-            <>
-              {" "}
-              <a
-                href={schemaHintUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary font-semibold underline"
-              >
-                רשימת שדות זמינים
-              </a>
-            </>
-          ) : null}
-        </p>
+      <div className="space-y-5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted leading-relaxed">
+            הגדרת תצוגה, מסננים ומיון לדף — מתוך רשימת השדות של TAG-IT.
+          </p>
+          {schemaStatus}
+        </div>
 
-        {/* Examples */}
-        {examples.length > 0 ? (
-          <div>
-            <div className="text-xs font-semibold text-muted mb-1.5">
-              דוגמאות מוכנות:
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {examples.map((ex) => (
-                <button
-                  key={ex.label}
-                  type="button"
-                  onClick={() => {
-                    setDraft(ex.json);
-                    commitQuery(ex.json);
-                  }}
-                  className="text-xs font-semibold rounded-md border border-border bg-white px-2 py-1 hover:bg-muted-bg/30 transition"
-                >
-                  {ex.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Custom query JSON */}
+        {/* ── Custom query (JSON — unchanged) ── */}
         <div>
+          {examples.length > 0 ? (
+            <div className="mb-2">
+              <div className="text-xs font-semibold text-muted mb-1.5">
+                דוגמאות שאילתה מוכנות:
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {examples.map((ex) => (
+                  <button
+                    key={ex.label}
+                    type="button"
+                    onClick={() => {
+                      setDraft(ex.json);
+                      commitQuery(ex.json);
+                    }}
+                    className="text-xs font-semibold rounded-md border border-border bg-white px-2 py-1 hover:bg-muted-bg/30 transition"
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="text-xs font-semibold text-muted mb-1.5">
             שאילתת סינון (JSON של FilterExpression)
           </div>
@@ -1239,7 +1330,7 @@ function AdvancedQuerySection({
               '{\n  "op": "or",\n  "clauses": [\n    {"field":"ai.כותרת_המסמך","op":"contains","value":"החלטה"},\n    {"field":"sql.הוצאות_משפט","op":"gt","value":0}\n  ]\n}'
             }
             dir="ltr"
-            rows={10}
+            rows={8}
             className="font-mono text-xs"
           />
           {draftErr ? (
@@ -1251,83 +1342,184 @@ function AdvancedQuerySection({
           )}
         </div>
 
-        {/* Display fields */}
-        <div>
-          <div className="flex items-center gap-1.5 mb-1.5">
+        {/* ── Display fields ── */}
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center gap-1.5 mb-2">
             <Layout size={12} className="text-muted" />
             <div className="text-xs font-semibold text-muted">
-              שדות תצוגה בכרטסת (אחד בכל שורה)
+              שדות תצוגה בכרטסת
             </div>
           </div>
-          <Textarea
-            defaultValue={displayFieldsStr}
-            onBlur={(e) => commitDisplayFields(e.target.value)}
-            placeholder={"ai.שם_התיק\nai.תאריך_המסמך\nsql.הוצאות_משפט"}
-            dir="ltr"
-            rows={5}
-            className="font-mono text-xs"
-          />
+          <div className="space-y-2">
+            {displayFields.map((key, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <FieldSelect
+                  value={key}
+                  onChange={(k) => updateDisplayField(i, k)}
+                  fields={schemaFields}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeDisplayField(i)}
+                  className="shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-md p-1.5 border border-border"
+                  title="הסר שדה"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={addDisplayField}
+            className="mt-2 border border-dashed border-border text-xs"
+          >
+            <Plus size={14} />
+            הוסף שדה תצוגה
+          </Button>
           <p className="mt-1.5 text-xs text-muted leading-relaxed">
-            רשימת מפתחות שדות שיוצגו בכל כרטסה, בסדר הזה. רשימה ריקה = ברירת
-            המחדל המובנית (שם תיק, בית משפט, תאריך, שופטים, תקציר).
+            השדות שיוצגו בכל כרטסה, בסדר הזה. השדה הראשון מודגש ככותרת. רשימה
+            ריקה = ברירת המחדל המובנית.
           </p>
         </div>
 
-        {/* User-facing filter fields */}
+        {/* ── Filter fields ── */}
         <div className="border-t border-border pt-4">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-2">
             <Filter size={12} className="text-muted" />
             <div className="text-xs font-semibold text-muted">
-              מסנני משתמש בדף (שורה לכל מסנן)
+              מסנני משתמש בדף
             </div>
           </div>
-          <Textarea
-            defaultValue={filterFieldsStr}
-            onBlur={(e) => commitFilterFields(e.target.value)}
-            placeholder={
-              "ai.בית_משפט | בית משפט | select\nsql.סכום_הוצאות_שקלים | סכום הוצאות (₪) | number\nmeta.document_date | תאריך | date\nai.שם_התיק | חיפוש בשם התיק | text"
-            }
-            dir="ltr"
-            rows={5}
-            className="font-mono text-xs"
-          />
+          <div className="space-y-2">
+            {filterFields.map((f, i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-muted-bg/20 p-2.5 space-y-2"
+              >
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={f.label}
+                    onChange={(e) =>
+                      updateFilterField(i, { label: e.target.value })
+                    }
+                    placeholder="שם המסנן שיוצג למשתמש"
+                    dir="rtl"
+                    className="flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFilterField(i)}
+                    className="shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-md p-1.5 border border-border"
+                    title="הסר מסנן"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <FieldSelect
+                    value={f.key}
+                    onChange={(k) =>
+                      updateFilterField(i, {
+                        key: k,
+                        label: f.label || labelForKey(k),
+                      })
+                    }
+                    fields={schemaFields}
+                  />
+                  <select
+                    value={f.control}
+                    onChange={(e) =>
+                      updateFilterField(i, {
+                        control: e.target.value as FilterControl,
+                      })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                    dir="rtl"
+                  >
+                    {VALID_FILTER_CONTROLS.map((c) => (
+                      <option key={c} value={c}>
+                        {CONTROL_LABELS[c]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={addFilterField}
+            className="mt-2 border border-dashed border-border text-xs"
+          >
+            <Plus size={14} />
+            הוסף מסנן
+          </Button>
           <p className="mt-1.5 text-xs text-muted leading-relaxed">
-            כל שורה הופכת לפקד סינון שמוצג למשתמש בדף.
-            פורמט: <code className="font-mono">key | תווית | סוג</code>.
-            סוגי פקד:{" "}
-            <code className="font-mono">text</code> (חיפוש חופשי),{" "}
-            <code className="font-mono">select</code> (בחירה מרשימת ערכים
-            שקיימים בנתונים),{" "}
-            <code className="font-mono">number</code> (טווח מספרי),{" "}
-            <code className="font-mono">date</code> (טווח תאריכים). רשימה ריקה =
-            ללא סרגל סינון.
+            כל מסנן: שם שיוצג למשתמש, שדה מהרשימה, וסוג פקד. רשימה ריקה = ללא
+            סרגל סינון.
           </p>
         </div>
 
-        {/* User-facing sort fields */}
+        {/* ── Sort fields ── */}
         <div className="border-t border-border pt-4">
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5 mb-2">
             <Layout size={12} className="text-muted" />
             <div className="text-xs font-semibold text-muted">
-              שדות מיון בדף (שורה לכל שדה)
+              שדות מיון בדף
             </div>
           </div>
-          <Textarea
-            defaultValue={sortFieldsStr}
-            onBlur={(e) => commitSortFields(e.target.value)}
-            placeholder={
-              "meta.document_date | תאריך המסמך\nsql.סכום_הוצאות_שקלים | סכום הוצאות"
-            }
-            dir="ltr"
-            rows={4}
-            className="font-mono text-xs"
-          />
+          <div className="space-y-2">
+            {sortFields.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <FieldSelect
+                    value={s.key}
+                    onChange={(k) =>
+                      updateSortField(i, {
+                        key: k,
+                        label: s.label || labelForKey(k),
+                      })
+                    }
+                    fields={schemaFields}
+                  />
+                  <Input
+                    value={s.label}
+                    onChange={(e) =>
+                      updateSortField(i, { label: e.target.value })
+                    }
+                    placeholder="תווית במיון"
+                    dir="rtl"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeSortField(i)}
+                  className="shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-md p-1.5 border border-border"
+                  title="הסר שדה מיון"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={addSortField}
+            className="mt-2 border border-dashed border-border text-xs"
+          >
+            <Plus size={14} />
+            הוסף שדה מיון
+          </Button>
           <p className="mt-1.5 text-xs text-muted leading-relaxed">
-            כל שורה הופכת לאפשרות מיון שהמשתמש יכול לבחור. פורמט:{" "}
-            <code className="font-mono">key | תווית</code>.
-            <strong> השורה הראשונה היא ברירת המחדל.</strong> המשתמש יכול להפוך
-            את הכיוון (עולה/יורד) בדף. רשימה ריקה = מיון קבוע מהחדש לישן לפי
-            תאריך.
+            <strong>השורה הראשונה היא ברירת המחדל.</strong> המשתמש בוחר שדה
+            והופך כיוון (עולה/יורד) בדף. רשימה ריקה = מיון קבוע מהחדש לישן.
           </p>
         </div>
       </div>
