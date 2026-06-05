@@ -10,7 +10,7 @@
 // purely presentational; it doesn't fetch.
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Layers, Loader2, CheckSquare } from "lucide-react";
+import { ArrowRight, Layers, Loader2, CheckSquare, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
@@ -41,10 +41,11 @@ interface MergedViewProps {
   // Selection + print
   selectionMode?: boolean;
   selectedIds?: Set<string>;
-  onToggleSelection?: (id: string) => void;
+  onToggleSelection?: (id: string, shift?: boolean) => void;
   onEnterSelection?: () => void;
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
+  onPrintAll?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -90,6 +91,7 @@ export function MergedView({
   onEnterSelection,
   onExitSelection,
   onPrintSelected,
+  onPrintAll,
 }: MergedViewProps) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -147,22 +149,33 @@ export function MergedView({
           </div>
           <div className="text-xs text-gray-500">
             {selectionMode
-              ? `בחר/י הודעות להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              ? `${selectedIds?.size ?? 0} נבחרו · Shift לבחירת טווח`
               : headerLabel
                 ? `${messages.length} תוצאות`
                 : `${selectedCount} שיחות · ${messages.length} הודעות בציר משותף`}
           </div>
         </div>
         {!selectionMode ? (
-          <button
-            type="button"
-            onClick={onEnterSelection}
-            title="בחירת הודעות להדפסה"
-            aria-label="כניסה למצב בחירת הודעות"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
-          >
-            <CheckSquare className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={onPrintAll}
+              title="הדפסת כל ההודעות המוצגות"
+              aria-label="הדפסת כל ההודעות המוצגות"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <Printer className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={onEnterSelection}
+              title="בחירת הודעות להדפסה"
+              aria-label="כניסה למצב בחירת הודעות"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <CheckSquare className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         ) : null}
       </header>
 

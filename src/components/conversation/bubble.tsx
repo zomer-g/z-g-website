@@ -54,10 +54,11 @@ interface MessageBubbleProps {
   onToggleTagFilter?: (tagId: string) => void;
   activeTagIds?: string[];
   // Selection mode — when selectable is true, a checkbox appears and
-  // clicking anywhere on the row toggles selection.
+  // clicking anywhere on the row toggles selection. Shift-click selects
+  // the range between the last clicked row and this one.
   selectable?: boolean;
   selected?: boolean;
-  onSelect?: (messageId: string) => void;
+  onSelect?: (messageId: string, shift?: boolean) => void;
 }
 
 function formatBytes(n: number): string {
@@ -167,7 +168,11 @@ export function MessageBubble({
         selectable && selected && "bg-emerald-50/60",
         selectable && !selected && "hover:bg-black/[0.02]",
       )}
-      onClick={selectable && onSelect ? () => onSelect(message.id) : undefined}
+      onClick={
+        selectable && onSelect
+          ? (e) => onSelect(message.id, e.shiftKey)
+          : undefined
+      }
       aria-checked={selectable ? selected : undefined}
       role={selectable ? "checkbox" : undefined}
     >

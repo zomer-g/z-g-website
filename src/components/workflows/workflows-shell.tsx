@@ -11,7 +11,7 @@
 //     can add events. These are session-only — nothing is persisted.
 //   - No live API; no admin features; no merged-view picker.
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { WorkflowsSidebar, type SidebarTab } from "./workflows-sidebar";
 import { EventPane } from "./event-pane";
 import { ComposeBar } from "./compose-bar";
@@ -139,38 +139,60 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
   /* ── Selection + print ── */
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectionAnchor = useRef<string | null>(null);
 
   const enterSelection = useCallback(() => {
     setSelectionMode(true);
     setSelectedIds(new Set());
+    selectionAnchor.current = null;
   }, []);
   const exitSelection = useCallback(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
+    selectionAnchor.current = null;
   }, []);
-  const toggleSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleSelection = useCallback(
+    (id: string, shift?: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (shift && selectionAnchor.current) {
+          const ids = activeEvents.map((e) => e.id);
+          const a = ids.indexOf(selectionAnchor.current);
+          const b = ids.indexOf(id);
+          if (a !== -1 && b !== -1) {
+            const [lo, hi] = a < b ? [a, b] : [b, a];
+            for (let i = lo; i <= hi; i++) next.add(ids[i]);
+            return next;
+          }
+        }
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      if (!shift) selectionAnchor.current = id;
+    },
+    [activeEvents],
+  );
+
+  const ctxLabel = activeContext
+    ? activeContext.kind === "entity"
+      ? activeContext.entity.name
+      : activeContext.process.title
+    : "";
+
+  // printMessages expects a PrintableMessage (which requires `sender`).
+  // WorkflowEvent uses `creator` for the same concept — map it here.
   const handlePrintSelected = useCallback(() => {
-    // printMessages expects a PrintableMessage (which requires `sender`).
-    // WorkflowEvent uses `creator` for the same concept — map it here.
     const selected = activeEvents
       .filter((e) => selectedIds.has(e.id))
       .map((e) => ({ ...e, sender: e.creator }));
-    const ctxLabel = activeContext
-      ? activeContext.kind === "entity"
-        ? activeContext.entity.name
-        : activeContext.process.title
-      : "";
-    printMessages(selected, {
-      title: `אירועים נבחרים — ${ctxLabel}`,
-      subtitle: title,
-    });
-  }, [activeEvents, selectedIds, activeContext, title]);
+    printMessages(selected, { title: `אירועים נבחרים — ${ctxLabel}`, subtitle: title });
+  }, [activeEvents, selectedIds, ctxLabel, title]);
+
+  const handlePrintAll = useCallback(() => {
+    const all = activeEvents.map((e) => ({ ...e, sender: e.creator }));
+    printMessages(all, { title: `אירועים — ${ctxLabel}`, subtitle: title });
+  }, [activeEvents, ctxLabel, title]);
 
   /* ── Right pane is "open" whenever we have a selected context. The
         sidebar wrapper hugs its intrinsic 360px on desktop so there's
@@ -227,6 +249,7 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
             onEnterSelection={enterSelection}
             onExitSelection={exitSelection}
             onPrintSelected={handlePrintSelected}
+            onPrintAll={handlePrintAll}
           />
           {/* Compose only when a context is open — adding an untagged
               event would be meaningless. The compose `key` resets local

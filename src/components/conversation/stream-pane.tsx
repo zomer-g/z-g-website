@@ -11,7 +11,7 @@
 // API fetch on /whatsapp/<slug>).
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare } from "lucide-react";
+import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
@@ -48,10 +48,12 @@ interface ChatPaneProps {
   // Selection + print
   selectionMode?: boolean;
   selectedIds?: Set<string>;
-  onToggleSelection?: (id: string) => void;
+  onToggleSelection?: (id: string, shift?: boolean) => void;
   onEnterSelection?: () => void;
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
+  // Print everything currently displayed, without selecting.
+  onPrintAll?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -91,6 +93,7 @@ export function ChatPane({
   onEnterSelection,
   onExitSelection,
   onPrintSelected,
+  onPrintAll,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -212,21 +215,32 @@ export function ChatPane({
           <div className="text-sm font-semibold text-gray-900 truncate">{chat.contactName}</div>
           <div className="text-xs text-gray-500">
             {selectionMode
-              ? `בחר/י הודעות להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              ? `${selectedIds?.size ?? 0} נבחרו · Shift לבחירת טווח`
               : `${chat.messageCount} ${chat.messageCount === 1 ? "הודעה" : "הודעות"}`}
           </div>
         </div>
-        {/* Selection mode toggle button */}
+        {/* Header actions: direct print + selection toggle */}
         {!selectionMode ? (
-          <button
-            type="button"
-            onClick={onEnterSelection}
-            title="בחירת הודעות להדפסה"
-            aria-label="כניסה למצב בחירת הודעות"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
-          >
-            <CheckSquare className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={onPrintAll}
+              title="הדפסת כל ההודעות המוצגות"
+              aria-label="הדפסת כל ההודעות המוצגות"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <Printer className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={onEnterSelection}
+              title="בחירת הודעות להדפסה"
+              aria-label="כניסה למצב בחירת הודעות"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <CheckSquare className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         ) : null}
       </header>
 

@@ -19,6 +19,7 @@ import {
   Bell,
   BellRing,
   CheckSquare,
+  Printer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectionBar } from "@/components/conversation/selection-bar";
@@ -46,10 +47,11 @@ interface EventPaneProps {
   // Selection + print
   selectionMode?: boolean;
   selectedIds?: Set<string>;
-  onToggleSelection?: (id: string) => void;
+  onToggleSelection?: (id: string, shift?: boolean) => void;
   onEnterSelection?: () => void;
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
+  onPrintAll?: () => void;
 }
 
 /* ─── Reminder formatting helpers ─── */
@@ -151,6 +153,7 @@ export function EventPane({
   onEnterSelection,
   onExitSelection,
   onPrintSelected,
+  onPrintAll,
 }: EventPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -270,20 +273,31 @@ export function EventPane({
           </div>
           <div className="text-xs text-gray-700 truncate">
             {selectionMode
-              ? `בחר/י אירועים להדפסה — ${selectedIds?.size ?? 0} נבחרו`
+              ? `${selectedIds?.size ?? 0} נבחרו · Shift לבחירת טווח`
               : `${ctxSubtitle ? `${ctxSubtitle} · ` : ""}${events.length} ${events.length === 1 ? "אירוע" : "אירועים"}`}
           </div>
         </div>
         {!selectionMode ? (
-          <button
-            type="button"
-            onClick={onEnterSelection}
-            title="בחירת אירועים להדפסה"
-            aria-label="כניסה למצב בחירת אירועים"
-            className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 shrink-0"
-          >
-            <CheckSquare className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={onPrintAll}
+              title="הדפסת כל האירועים המוצגים"
+              aria-label="הדפסת כל האירועים המוצגים"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <Printer className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={onEnterSelection}
+              title="בחירת אירועים להדפסה"
+              aria-label="כניסה למצב בחירת אירועים"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+            >
+              <CheckSquare className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         ) : null}
       </header>
 
@@ -357,7 +371,7 @@ function EventBubble({
   currentContextId: string;
   selectable?: boolean;
   selected?: boolean;
-  onSelect?: (id: string) => void;
+  onSelect?: (id: string, shift?: boolean) => void;
 }) {
   // Filter out the chip for the currently-open context — it's redundant
   // (the user already knows they're in that lane).
@@ -383,7 +397,11 @@ function EventBubble({
         selectable && selected && "bg-emerald-50/60",
         selectable && !selected && "hover:bg-black/[0.02]",
       )}
-      onClick={selectable && onSelect ? () => onSelect(evt.id) : undefined}
+      onClick={
+        selectable && onSelect
+          ? (e) => onSelect(evt.id, e.shiftKey)
+          : undefined
+      }
       role={selectable ? "checkbox" : undefined}
       aria-checked={selectable ? selected : undefined}
     >

@@ -19,7 +19,7 @@
 // One shell, two features. Whatsapp + timeline pages each pass their
 // own `apiPaths` + `mockItems`. Everything else is shared.
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ChatSidebar } from "./channel-sidebar";
 import { ChatPane } from "./stream-pane";
 import { MergedPicker } from "./merged-picker";
@@ -538,48 +538,89 @@ function ConversationShellInner({
   /* ── Selection + print ── */
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Anchor for shift-click range selection — the last row the user
+  // clicked without shift.
+  const selectionAnchor = useRef<string | null>(null);
+
+  // The ordered, printable (non-system) messages of whichever pane is
+  // currently showing. Drives both shift-range selection and print.
+  const currentPool = useCallback((): {
+    pool: WhatsappMessageDTO[];
+    title: string;
+    source: string;
+  } => {
+    if (searchActive) {
+      return {
+        pool: searchResults.filter((m) => !m.isSystem),
+        title: "תוצאות חיפוש",
+        source: url.searchState.q ? `חיפוש: "${url.searchState.q}"` : "סינון תגיות",
+      };
+    }
+    if (inMergedView) {
+      return {
+        pool: mergedMessages.filter((m) => !m.isSystem),
+        title: "תצוגה משולבת",
+        source: `${mergedChatIds?.length ?? 0} שיחות`,
+      };
+    }
+    return {
+      pool: messages.filter((m) => !m.isSystem),
+      title: active?.contactName ? `שיחה: ${active.contactName}` : "הודעות",
+      source: active?.contactName ?? "",
+    };
+  }, [searchActive, inMergedView, searchResults, mergedMessages, messages,
+      active, mergedChatIds, url.searchState]);
 
   const enterSelection = useCallback(() => {
     setSelectionMode(true);
     setSelectedIds(new Set());
+    selectionAnchor.current = null;
   }, []);
 
   const exitSelection = useCallback(() => {
     setSelectionMode(false);
     setSelectedIds(new Set());
+    selectionAnchor.current = null;
   }, []);
 
-  const toggleSelection = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
+  const toggleSelection = useCallback(
+    (id: string, shift?: boolean) => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        // Shift-click: select the contiguous range between the anchor
+        // and the clicked row (inclusive), in display order.
+        if (shift && selectionAnchor.current) {
+          const ids = currentPool().pool.map((m) => m.id);
+          const a = ids.indexOf(selectionAnchor.current);
+          const b = ids.indexOf(id);
+          if (a !== -1 && b !== -1) {
+            const [lo, hi] = a < b ? [a, b] : [b, a];
+            for (let i = lo; i <= hi; i++) next.add(ids[i]);
+            return next;
+          }
+        }
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      // A plain click (or the first of a shift sequence) sets the anchor.
+      if (!shift) selectionAnchor.current = id;
+    },
+    [currentPool],
+  );
 
-  // Collect selected messages from whichever view is active, then print.
+  // Print only the selected messages.
   const handlePrintSelected = useCallback(() => {
-    // Determine source pool and label.
-    let pool: WhatsappMessageDTO[];
-    let title: string;
-    let source: string;
-    if (searchActive) {
-      pool = searchResults;
-      title = "תוצאות חיפוש נבחרות";
-      source = url.searchState.q ? `חיפוש: "${url.searchState.q}"` : "סינון תגיות";
-    } else if (inMergedView) {
-      pool = mergedMessages;
-      title = "תצוגה משולבת — נבחרות";
-      source = `${mergedChatIds?.length ?? 0} שיחות`;
-    } else {
-      pool = messages;
-      title = active?.contactName ? `שיחה: ${active.contactName}` : "הודעות נבחרות";
-      source = active?.contactName ?? "";
-    }
+    const { pool, title, source } = currentPool();
     const selected = pool.filter((m) => selectedIds.has(m.id));
-    printMessages(selected, { title, source, subtitle: workspace.title });
-  }, [searchActive, inMergedView, searchResults, mergedMessages, messages,
-      selectedIds, active, mergedChatIds, url.searchState, workspace.title]);
+    printMessages(selected, { title: `${title} — נבחרות`, source, subtitle: workspace.title });
+  }, [currentPool, selectedIds, workspace.title]);
+
+  // Print everything currently displayed (no selection needed).
+  const handlePrintAll = useCallback(() => {
+    const { pool, title, source } = currentPool();
+    printMessages(pool, { title, source, subtitle: workspace.title });
+  }, [currentPool, workspace.title]);
 
   /* ── Render ── */
 
@@ -664,6 +705,7 @@ function ConversationShellInner({
               onEnterSelection={enterSelection}
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
+              onPrintAll={handlePrintAll}
             />
           ) : inMergedView ? (
             <MergedView
@@ -679,6 +721,7 @@ function ConversationShellInner({
               onEnterSelection={enterSelection}
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
+              onPrintAll={handlePrintAll}
             />
           ) : (
             <ChatPane
@@ -701,6 +744,7 @@ function ConversationShellInner({
               onEnterSelection={enterSelection}
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
+              onPrintAll={handlePrintAll}
             />
           )}
         </div>

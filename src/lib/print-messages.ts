@@ -144,11 +144,16 @@ function buildHtml(messages: PrintableMessage[], opts: PrintOptions): string {
 }
 
 /**
- * Opens a new browser window with a formatted print document and
- * triggers the print dialog after a short render delay.
+ * Renders the selected messages into a hidden same-origin iframe and
+ * triggers the browser print dialog for that iframe only.
  *
- * Gracefully no-ops when called server-side (window undefined) or
- * when the browser blocks the popup.
+ * Why an iframe and not window.open():
+ *   - window.open with "noopener" returns null → can't write to it
+ *     (this caused the blank-window bug).
+ *   - popup windows are frequently blocked; iframes never are.
+ *   - the iframe is removed automatically once printing is done.
+ *
+ * Gracefully no-ops when called server-side (window undefined).
  */
 export function printMessages(
   messages: PrintableMessage[],
@@ -158,15 +163,53 @@ export function printMessages(
   if (messages.length === 0) return;
 
   const html = buildHtml(messages, opts);
-  const win  = window.open("", "_blank", "width=900,height=720,noopener");
-  if (!win) {
-    // Popup blocked — surface a brief alert so the user knows.
-    alert("כדי להדפיס, יש לאפשר חלונות קופצים לאתר זה.");
+
+  // Hidden print frame, off-screen.
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.visibility = "hidden";
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) {
+    iframe.remove();
     return;
   }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  // Give the browser a moment to render before opening the dialog.
-  setTimeout(() => win.print(), 350);
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  let printed = false;
+  const doPrint = () => {
+    if (printed) return;
+    printed = true;
+    const cw = iframe.contentWindow;
+    try {
+      cw?.focus();
+      cw?.print();
+    } catch {
+      /* ignore */
+    }
+    // Remove the frame after the dialog has had time to open. Removing
+    // too early aborts the print in some browsers.
+    setTimeout(() => {
+      try {
+        iframe.remove();
+      } catch {
+        /* ignore */
+      }
+    }, 1500);
+  };
+
+  // Print once the frame has laid out. onload is the reliable signal,
+  // but document.write docs don't always fire it — so we also arm a
+  // timeout fallback. The `printed` guard prevents a double dialog.
+  iframe.onload = () => setTimeout(doPrint, 200);
+  setTimeout(doPrint, 500);
 }
