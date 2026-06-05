@@ -112,6 +112,64 @@ function RulingCard({
   const hasLongSummary = (ruling.summary || "").length > 220;
   const useCustomLayout = Array.isArray(displayFields) && displayFields.length > 0;
 
+  // When the admin configured displayFields, the card content is exactly that
+  // list — no auto-injected court badge, date badge, title, or subtitle. The
+  // first listed field becomes the prominent header. Missing values show "—"
+  // so the admin can see at a glance which configured fields aren't populated
+  // by TAG-IT (instead of silently disappearing).
+  if (useCustomLayout) {
+    const [headerKey, ...rest] = displayFields!;
+    const headerValue = ruling.fields?.[headerKey];
+    return (
+      <article
+        className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
+        dir="rtl"
+      >
+        <h3
+          className="text-base font-bold leading-snug mb-2"
+          style={{ color: C_PRIMARY }}
+        >
+          {headerValue != null && headerValue !== ""
+            ? formatFieldValue(headerValue)
+            : "—"}
+        </h3>
+        <div className="text-[11px] text-gray-500 mb-3 font-mono">
+          {fieldKeyToLabel(headerKey)}
+        </div>
+
+        <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
+          {rest.map((key) => {
+            const value = ruling.fields?.[key];
+            const isEmpty = value == null || value === "";
+            return (
+              <div key={key} className="flex gap-1.5">
+                <dt className="font-semibold whitespace-nowrap">
+                  {fieldKeyToLabel(key)}:
+                </dt>
+                <dd className={isEmpty ? "text-gray-400" : "text-gray-700"}>
+                  {isEmpty ? "—" : formatFieldValue(value)}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+
+        <div className="mt-auto pt-3 flex items-center justify-end gap-2">
+          <a
+            href={ruling.documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold rounded-md px-3 py-1.5 text-white transition"
+            style={{ background: C_PRIMARY }}
+          >
+            צפייה במסמך
+          </a>
+        </div>
+      </article>
+    );
+  }
+
+  // Default layout — used when displayFields is empty.
   return (
     <article
       className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
@@ -141,42 +199,23 @@ function RulingCard({
         <div className="text-sm font-medium text-gray-700 mb-2">{ruling.title}</div>
       ) : null}
 
-      {useCustomLayout ? (
-        <dl className="text-sm text-gray-700 mb-3 space-y-1">
-          {displayFields!.map((key) => {
-            const value = ruling.fields?.[key];
-            if (value == null || value === "") return null;
-            return (
-              <div key={key} className="flex gap-1.5">
-                <dt className="font-semibold whitespace-nowrap">
-                  {fieldKeyToLabel(key)}:
-                </dt>
-                <dd className="text-gray-700">{formatFieldValue(value)}</dd>
-              </div>
-            );
-          })}
-        </dl>
-      ) : (
-        <>
-          {Array.isArray(ruling.judges) && ruling.judges.length > 0 ? (
-            <div className="text-sm text-gray-700 mb-2">
-              <span className="font-semibold">שופטים:</span> {ruling.judges.join(", ")}
-            </div>
-          ) : null}
+      {Array.isArray(ruling.judges) && ruling.judges.length > 0 ? (
+        <div className="text-sm text-gray-700 mb-2">
+          <span className="font-semibold">שופטים:</span> {ruling.judges.join(", ")}
+        </div>
+      ) : null}
 
-          {ruling.summary ? (
-            <p
-              className={
-                open
-                  ? "text-sm text-gray-700 leading-relaxed mb-3"
-                  : "text-sm text-gray-700 leading-relaxed mb-3 line-clamp-4"
-              }
-            >
-              {ruling.summary}
-            </p>
-          ) : null}
-        </>
-      )}
+      {ruling.summary ? (
+        <p
+          className={
+            open
+              ? "text-sm text-gray-700 leading-relaxed mb-3"
+              : "text-sm text-gray-700 leading-relaxed mb-3 line-clamp-4"
+          }
+        >
+          {ruling.summary}
+        </p>
+      ) : null}
 
       <div className="mt-auto pt-3 flex items-center justify-between gap-2">
         {!useCustomLayout && hasLongSummary ? (
