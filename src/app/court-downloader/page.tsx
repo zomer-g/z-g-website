@@ -15,7 +15,7 @@ export default function CourtDownloaderPage() {
     <ExtensionPageShell
       slug="court-downloader"
       title="מוריד מסמכים אצווה — נט המשפט"
-      subtitle="תוסף Chrome לעורכי דין — הורדה אצווה של מסמכי תיק כ-ZIP אחד עם אינדקס CSV, או שליחה ליעדים שאתה מגדיר. הכל מקומי בדפדפן, ללא שרת ביניים."
+      subtitle="תוסף Chrome לעורכי דין, מתמחים ובעלי דין המנהלים תיקים בנט המשפט."
     />
   );
 }
