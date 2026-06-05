@@ -16,6 +16,11 @@ import type {
   FilterValue,
 } from "@/types/ruling-filter";
 
+/** Public accessor — resolves a "ai.X"/"sql.X"/"meta.X" path on a doc. */
+export function getFieldValue(item: UpstreamRulingItem, path: string): unknown {
+  return getField(item, path);
+}
+
 function getField(item: UpstreamRulingItem, path: string): unknown {
   if (!path) return undefined;
   const [head, ...rest] = path.split(".");

@@ -54,20 +54,49 @@ export interface NotFilter {
 export type FilterExpression = LeafFilter | AndFilter | OrFilter | NotFilter;
 
 /**
+ * A field exposed to the END USER as an interactive filter control on the
+ * public page. The admin configures these; the page renders a control per
+ * entry and the API applies the user's selections in memory on top of the
+ * admin's `customQuery`.
+ *
+ *   text   → free-text "contains" box
+ *   select → dropdown of distinct values found in the data
+ *   number → min/max numeric range
+ *   date   → from/to date range
+ */
+export type FilterControl = "text" | "select" | "number" | "date";
+
+export interface RulingsFilterField {
+  key: string;        // e.g. "ai.בית_משפט", "sql.סכום_הוצאות_שקלים"
+  label: string;      // shown above the control
+  control: FilterControl;
+}
+
+/**
  * Per-page query config. Lives inside FoiRulingsPageContent /
  * DefamationRulingsPageContent and drives both the upstream request and the
  * rendered card. `customQuery` is null when the admin hasn't set anything;
- * `displayFields` empty means "show the built-in default set".
+ * `displayFields` empty means "show the built-in default set"; `filterFields`
+ * empty means "no user-facing filter bar".
  */
 export interface RulingsPageQuery {
   customQuery: FilterExpression | null;
   displayFields: string[]; // ordered list of field keys to render per card
+  filterFields: RulingsFilterField[]; // user-facing filter controls
 }
 
 export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
   customQuery: null,
   displayFields: [],
+  filterFields: [],
 };
+
+export const VALID_FILTER_CONTROLS: FilterControl[] = [
+  "text",
+  "select",
+  "number",
+  "date",
+];
 
 /** Quick validator — used by the admin form to reject bad JSON before save. */
 export function isValidFilterExpression(value: unknown): value is FilterExpression {

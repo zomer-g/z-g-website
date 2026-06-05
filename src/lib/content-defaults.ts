@@ -528,7 +528,7 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
-  query: { customQuery: null, displayFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [] },
 };
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */
@@ -541,7 +541,7 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
-  query: { customQuery: null, displayFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [] },
 };
 
 /* ─── FOI Judgments Page (פסיקות חופש מידע) ───
@@ -556,7 +556,7 @@ export const DEFAULT_FOI_JUDGMENTS_CONTENT: FoiJudgmentsPageContent = {
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין", 'פס"ד'],
-  query: { customQuery: null, displayFields: [] },
+  query: { customQuery: null, displayFields: [], filterFields: [] },
 };
 
 /* ─── FOI Costs Page (הוצאות חופש מידע) ───
@@ -590,6 +590,13 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
       "ai.שופטים",
       "ai.כותרת_המסמך",
       "sql.סכום_הוצאות_שקלים",
+    ],
+    // User-facing filter controls on the public page.
+    filterFields: [
+      { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
+      { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
+      { key: "sql.סכום_הוצאות_שקלים", label: "סכום הוצאות (₪)", control: "number" },
+      { key: "meta.document_date", label: "תאריך המסמך", control: "date" },
     ],
   },
 };

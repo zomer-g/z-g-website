@@ -16,6 +16,20 @@ interface Ruling {
   fields?: Record<string, unknown>;
 }
 
+type FilterControl = "text" | "select" | "number" | "date";
+
+interface FilterField {
+  key: string;
+  label: string;
+  control: FilterControl;
+}
+
+// User filter selections, keyed by field key.
+type UserFilterValue =
+  | string
+  | { min?: number; max?: number }
+  | { from?: string; to?: string };
+
 interface RulingsResponse {
   total: number;
   page: number;
@@ -25,6 +39,10 @@ interface RulingsResponse {
   // by the admin in the Site Editor. Empty array = render the built-in
   // default block (court, judges, summary).
   displayFields?: string[];
+  // User-facing filter controls configured by the admin.
+  filterFields?: FilterField[];
+  // Distinct values for each "select" control, computed server-side.
+  filterOptions?: Record<string, string[]>;
 }
 
 // 12 = LCM(1,2,3) × 2 — keeps every full page row-aligned across the
@@ -244,6 +262,180 @@ function RulingCard({
   );
 }
 
+/* ── User filter bar ── */
+
+function isFilterActive(v: UserFilterValue | undefined): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (typeof v === "object") return Object.values(v).some((x) => x != null && x !== "");
+  return false;
+}
+
+function FilterBar({
+  fields,
+  options,
+  draft,
+  setDraft,
+  onApply,
+  onClear,
+}: {
+  fields: FilterField[];
+  options: Record<string, string[]>;
+  draft: Record<string, UserFilterValue>;
+  setDraft: (next: Record<string, UserFilterValue>) => void;
+  onApply: () => void;
+  onClear: () => void;
+}) {
+  const setField = (key: string, value: UserFilterValue) =>
+    setDraft({ ...draft, [key]: value });
+
+  const anyActive = fields.some((f) => isFilterActive(draft[f.key]));
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {fields.map((f) => {
+          const v = draft[f.key];
+          if (f.control === "text") {
+            return (
+              <div key={f.key}>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {f.label}
+                </label>
+                <input
+                  type="text"
+                  value={typeof v === "string" ? v : ""}
+                  onChange={(e) => setField(f.key, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") onApply();
+                  }}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                />
+              </div>
+            );
+          }
+          if (f.control === "select") {
+            const opts = options[f.key] || [];
+            return (
+              <div key={f.key}>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {f.label}
+                </label>
+                <select
+                  value={typeof v === "string" ? v : ""}
+                  onChange={(e) => setField(f.key, e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+                >
+                  <option value="">הכל</option>
+                  {opts.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          }
+          if (f.control === "number") {
+            const range = (typeof v === "object" ? v : {}) as {
+              min?: number;
+              max?: number;
+            };
+            return (
+              <div key={f.key}>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  {f.label}
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    placeholder="מ-"
+                    value={range.min ?? ""}
+                    onChange={(e) =>
+                      setField(f.key, {
+                        ...range,
+                        min: e.target.value === "" ? undefined : Number(e.target.value),
+                      })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+                    dir="ltr"
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="number"
+                    placeholder="עד"
+                    value={range.max ?? ""}
+                    onChange={(e) =>
+                      setField(f.key, {
+                        ...range,
+                        max: e.target.value === "" ? undefined : Number(e.target.value),
+                      })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            );
+          }
+          // date range
+          const range = (typeof v === "object" ? v : {}) as {
+            from?: string;
+            to?: string;
+          };
+          return (
+            <div key={f.key}>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                {f.label}
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={range.from ?? ""}
+                  onChange={(e) =>
+                    setField(f.key, { ...range, from: e.target.value || undefined })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+                  dir="ltr"
+                />
+                <span className="text-gray-400">–</span>
+                <input
+                  type="date"
+                  value={range.to ?? ""}
+                  onChange={(e) =>
+                    setField(f.key, { ...range, to: e.target.value || undefined })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 mt-4">
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={!anyActive}
+          className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+        >
+          ניקוי
+        </button>
+        <button
+          type="button"
+          onClick={onApply}
+          className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+          style={{ background: C_PRIMARY }}
+        >
+          סינון
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function RulingsList({
   category,
 }: {
@@ -254,28 +446,57 @@ export function RulingsList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (cat: string, p: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/rulings?category=${cat}&limit=${PAGE_SIZE}&page=${p}`,
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = (await res.json()) as RulingsResponse;
-      setData(json);
-    } catch (e) {
-      console.error(e);
-      setError("שגיאה בטעינת פסיקה. נסו שוב מאוחר יותר.");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Draft = what the user is typing; applied = what's been sent to the API.
+  const [draftFilters, setDraftFilters] = useState<Record<string, UserFilterValue>>({});
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, UserFilterValue>>({});
+
+  const fetchData = useCallback(
+    async (cat: string, p: number, filters: Record<string, UserFilterValue>) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          category: cat,
+          limit: String(PAGE_SIZE),
+          page: String(p),
+        });
+        const activeEntries = Object.entries(filters).filter(([, v]) =>
+          isFilterActive(v),
+        );
+        if (activeEntries.length > 0) {
+          params.set("userFilters", JSON.stringify(Object.fromEntries(activeEntries)));
+        }
+        const res = await fetch(`/api/rulings?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = (await res.json()) as RulingsResponse;
+        setData(json);
+      } catch (e) {
+        console.error(e);
+        setError("שגיאה בטעינת פסיקה. נסו שוב מאוחר יותר.");
+        setData(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
-    fetchData(category, page);
-  }, [fetchData, category, page]);
+    fetchData(category, page, appliedFilters);
+  }, [fetchData, category, page, appliedFilters]);
+
+  const applyFilters = () => {
+    setPage(1);
+    setAppliedFilters(draftFilters);
+  };
+  const clearFilters = () => {
+    setDraftFilters({});
+    setPage(1);
+    setAppliedFilters({});
+  };
+
+  const filterFields = data?.filterFields ?? [];
+  const filterOptions = data?.filterOptions ?? {};
 
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -286,6 +507,17 @@ export function RulingsList({
 
   return (
     <div dir="rtl">
+      {filterFields.length > 0 ? (
+        <FilterBar
+          fields={filterFields}
+          options={filterOptions}
+          draft={draftFilters}
+          setDraft={setDraftFilters}
+          onApply={applyFilters}
+          onClear={clearFilters}
+        />
+      ) : null}
+
       {/* Results header */}
       <div className="mb-3 text-sm text-gray-600">
         {loading ? (

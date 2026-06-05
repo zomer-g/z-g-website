@@ -21,7 +21,13 @@ import {
   Code,
   Layout,
 } from "lucide-react";
-import { isValidFilterExpression, type RulingsPageQuery } from "@/types/ruling-filter";
+import {
+  isValidFilterExpression,
+  VALID_FILTER_CONTROLS,
+  type RulingsPageQuery,
+  type RulingsFilterField,
+  type FilterControl,
+} from "@/types/ruling-filter";
 import { cn } from "@/lib/utils";
 
 type EmbedFeedback = { type: "success" | "error"; message: string };
@@ -656,6 +662,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
             (content[advancedQuery.field] as RulingsPageQuery | undefined) || {
               customQuery: null,
               displayFields: [],
+              filterFields: [],
             }
           }
           schemaHintUrl={advancedQuery.schemaHintUrl}
@@ -1125,6 +1132,32 @@ function AdvancedQuerySection({
     onChange({ ...query, displayFields: list });
   };
 
+  // filterFields are serialized one per line as: key | label | control
+  const filterFieldsStr = (query.filterFields || [])
+    .map((f) => `${f.key} | ${f.label} | ${f.control}`)
+    .join("\n");
+
+  const commitFilterFields = (raw: string) => {
+    const list: RulingsFilterField[] = raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const parts = line.split("|").map((p) => p.trim());
+        const key = parts[0] || "";
+        const label = parts[1] || key;
+        const ctrlRaw = (parts[2] || "text").toLowerCase();
+        const control: FilterControl = (
+          VALID_FILTER_CONTROLS as string[]
+        ).includes(ctrlRaw)
+          ? (ctrlRaw as FilterControl)
+          : "text";
+        return { key, label, control };
+      })
+      .filter((f) => f.key !== "");
+    onChange({ ...query, filterFields: list });
+  };
+
   return (
     <SectionCard title="שאילתה מתקדמת + שדות תצוגה" icon={Code}>
       <div className="space-y-4">
@@ -1215,6 +1248,37 @@ function AdvancedQuerySection({
           <p className="mt-1.5 text-xs text-muted leading-relaxed">
             רשימת מפתחות שדות שיוצגו בכל כרטסה, בסדר הזה. רשימה ריקה = ברירת
             המחדל המובנית (שם תיק, בית משפט, תאריך, שופטים, תקציר).
+          </p>
+        </div>
+
+        {/* User-facing filter fields */}
+        <div className="border-t border-border pt-4">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Filter size={12} className="text-muted" />
+            <div className="text-xs font-semibold text-muted">
+              מסנני משתמש בדף (שורה לכל מסנן)
+            </div>
+          </div>
+          <Textarea
+            defaultValue={filterFieldsStr}
+            onBlur={(e) => commitFilterFields(e.target.value)}
+            placeholder={
+              "ai.בית_משפט | בית משפט | select\nsql.סכום_הוצאות_שקלים | סכום הוצאות (₪) | number\nmeta.document_date | תאריך | date\nai.שם_התיק | חיפוש בשם התיק | text"
+            }
+            dir="ltr"
+            rows={5}
+            className="font-mono text-xs"
+          />
+          <p className="mt-1.5 text-xs text-muted leading-relaxed">
+            כל שורה הופכת לפקד סינון שמוצג למשתמש בדף.
+            פורמט: <code className="font-mono">key | תווית | סוג</code>.
+            סוגי פקד:{" "}
+            <code className="font-mono">text</code> (חיפוש חופשי),{" "}
+            <code className="font-mono">select</code> (בחירה מרשימת ערכים
+            שקיימים בנתונים),{" "}
+            <code className="font-mono">number</code> (טווח מספרי),{" "}
+            <code className="font-mono">date</code> (טווח תאריכים). רשימה ריקה =
+            ללא סרגל סינון.
           </p>
         </div>
       </div>

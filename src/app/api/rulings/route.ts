@@ -12,8 +12,12 @@ import type {
   FoiJudgmentsPageContent,
   FoiCostsPageContent,
 } from "@/types/content";
-import type { FilterExpression } from "@/types/ruling-filter";
-import { evaluateFilter } from "@/lib/rulings-filter-eval";
+import type {
+  FilterExpression,
+  RulingsFilterField,
+} from "@/types/ruling-filter";
+import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
+import { evaluateFilter, getFieldValue } from "@/lib/rulings-filter-eval";
 import { createHash } from "crypto";
 
 const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
@@ -110,6 +114,7 @@ interface PageConfig {
   allowedDocTypes: string[];
   customQuery: FilterExpression | null;
   displayFields: string[];
+  filterFields: RulingsFilterField[];
 }
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
@@ -152,11 +157,22 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
             .map((s) => String(s).trim())
             .filter(Boolean)
         : [];
+    const filterFields =
+      content?.query && Array.isArray(content.query.filterFields)
+        ? content.query.filterFields.filter(
+            (f): f is RulingsFilterField =>
+              !!f &&
+              typeof f.key === "string" &&
+              f.key.trim() !== "" &&
+              VALID_FILTER_CONTROLS.includes(f.control),
+          )
+        : [];
     return {
       ttlMs: ttlMinutes * 60_000,
       allowedDocTypes: allowed,
       customQuery,
       displayFields,
+      filterFields,
     };
   } catch {
     return {
@@ -164,6 +180,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       allowedDocTypes: [],
       customQuery: null,
       displayFields: [],
+      filterFields: [],
     };
   }
 }
@@ -195,6 +212,130 @@ function matchesAllowedType(
 
 function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
   return [...items].sort((a, b) => docDate(b).localeCompare(docDate(a)));
+}
+
+/* ── User-facing filters ──
+   The admin configures which fields are filterable (config.filterFields);
+   the user's selections arrive as a JSON object keyed by field key. We apply
+   them in memory on top of the admin's customQuery. Shapes per control:
+     text   → "substring"
+     select → "exact value"
+     number → { min?: number, max?: number }
+     date   → { from?: "YYYY-MM-DD", to?: "YYYY-MM-DD" }
+*/
+type UserFilterValue =
+  | string
+  | { min?: number; max?: number }
+  | { from?: string; to?: string };
+
+function parseUserFilters(raw: string | null): Record<string, UserFilterValue> {
+  if (!raw) return {};
+  try {
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === "object" ? obj : {};
+  } catch {
+    return {};
+  }
+}
+
+function valueToString(v: unknown): string {
+  if (v == null) return "";
+  if (Array.isArray(v)) return v.map(valueToString).join(" ");
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return "";
+    }
+  }
+  return String(v);
+}
+
+function valueToNumber(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    // Strip currency/commas so "7,000 ש״ח" still compares numerically.
+    const cleaned = v.replace(/[^\d.-]/g, "");
+    if (cleaned) {
+      const n = Number(cleaned);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
+}
+
+function passesUserFilter(
+  item: UpstreamRulingItem,
+  field: RulingsFilterField,
+  value: UserFilterValue,
+): boolean {
+  const actual = getFieldValue(item, field.key);
+
+  switch (field.control) {
+    case "text": {
+      const needle = String(value ?? "").trim().toLocaleLowerCase("he-IL");
+      if (!needle) return true;
+      return valueToString(actual).toLocaleLowerCase("he-IL").includes(needle);
+    }
+    case "select": {
+      const want = String(value ?? "").trim();
+      if (!want) return true;
+      return valueToString(actual) === want;
+    }
+    case "number": {
+      const range = (value || {}) as { min?: number; max?: number };
+      const n = valueToNumber(actual);
+      if (range.min != null && (n == null || n < range.min)) return false;
+      if (range.max != null && (n == null || n > range.max)) return false;
+      return true;
+    }
+    case "date": {
+      const range = (value || {}) as { from?: string; to?: string };
+      const d = valueToString(actual).slice(0, 10); // YYYY-MM-DD
+      if (range.from && (!d || d < range.from)) return false;
+      if (range.to && (!d || d > range.to)) return false;
+      return true;
+    }
+    default:
+      return true;
+  }
+}
+
+function applyUserFilters(
+  items: UpstreamRulingItem[],
+  filterFields: RulingsFilterField[],
+  userFilters: Record<string, UserFilterValue>,
+): UpstreamRulingItem[] {
+  const active = filterFields.filter((f) => {
+    const v = userFilters[f.key];
+    if (v == null) return false;
+    if (typeof v === "string") return v.trim() !== "";
+    if (typeof v === "object") return Object.keys(v).length > 0;
+    return false;
+  });
+  if (active.length === 0) return items;
+  return items.filter((it) =>
+    active.every((f) => passesUserFilter(it, f, userFilters[f.key])),
+  );
+}
+
+// Distinct values present in the data for each "select" control, so the
+// public page can render real dropdown options without a second request.
+function computeSelectOptions(
+  items: UpstreamRulingItem[],
+  filterFields: RulingsFilterField[],
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const f of filterFields) {
+    if (f.control !== "select") continue;
+    const set = new Set<string>();
+    for (const it of items) {
+      const s = valueToString(getFieldValue(it, f.key)).trim();
+      if (s) set.add(s);
+    }
+    out[f.key] = [...set].sort((a, b) => a.localeCompare(b, "he"));
+  }
+  return out;
 }
 
 /* ── GET /api/rulings?category=defamation|foi&page=1&limit=12 ── */
@@ -277,14 +418,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Apply both filters in memory. allowedDocTypes is the simple chip UX;
-    // customQuery is the structured FilterExpression that TAG-IT already
-    // applied server-side. We still run evaluateFilter as a safety net in
-    // case the upstream version diverges, and to keep the in-memory path
-    // working if TAG-IT ever returns the legacy shape.
-    const filtered = all
+    // Apply the admin's base filters in memory. allowedDocTypes is the simple
+    // chip UX; customQuery is the structured FilterExpression that TAG-IT
+    // already applied server-side (re-run as a safety net / legacy fallback).
+    const base = all
       .filter((it) => matchesAllowedType(it, config.allowedDocTypes))
       .filter((it) => evaluateFilter(it, config.customQuery));
+
+    // Dropdown options are computed from the admin-filtered set (not the
+    // user-filtered one) so the choices stay stable as the user narrows down.
+    const filterOptions = computeSelectOptions(base, config.filterFields);
+
+    // Layer the user's interactive filter selections on top.
+    const userFilters = parseUserFilters(searchParams.get("userFilters"));
+    const filtered = applyUserFilters(base, config.filterFields, userFilters);
+
     const sorted = sortByDateDesc(filtered);
 
     const total = sorted.length;
@@ -299,10 +447,15 @@ export async function GET(req: NextRequest) {
         size: limit,
         rulings,
         displayFields: config.displayFields,
+        filterFields: config.filterFields,
+        filterOptions,
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
+          // User filters vary by query string; keep it private+short so a
+          // shared edge cache doesn't serve one user's filtered view to
+          // another.
+          "Cache-Control": "private, no-store",
           "X-Cache": cacheStatus,
         },
       },
