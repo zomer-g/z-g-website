@@ -64,20 +64,37 @@ function pickArray(...vals: unknown[]): string[] {
   return [];
 }
 
+// Recursively flatten a nested object into dotted keys, so both the parent
+// ("sql.היבטים_פיננסיים") and the leaves ("sql.היבטים_פיננסיים.סכום_פיצוי_נפסק")
+// are addressable — matching the keys TAG-IT's schema endpoint advertises.
+// Arrays are kept as-is (rendered joined), not exploded by index.
+function flattenInto(
+  out: Record<string, unknown>,
+  prefix: string,
+  obj: Record<string, unknown>,
+) {
+  for (const [k, v] of Object.entries(obj)) {
+    const key = `${prefix}.${k}`;
+    out[key] = v;
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      flattenInto(out, key, v as Record<string, unknown>);
+    }
+  }
+}
+
 function flattenFields(doc: UpstreamRulingItem): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   const top = doc as Record<string, unknown>;
   // ai.* — supports both the legacy `ai_analysis` and the new `ai` grouping
   const ai = ((top.ai || top.ai_analysis) as Record<string, unknown>) || {};
-  for (const k of Object.keys(ai)) out[`ai.${k}`] = ai[k];
+  flattenInto(out, "ai", ai);
   // sql.*
   const sql = (top.sql as Record<string, unknown>) || {};
-  for (const k of Object.keys(sql)) out[`sql.${k}`] = sql[k];
+  flattenInto(out, "sql", sql);
   // meta.* — the new shape nests the promoted document columns under a
-  // `meta` object (meta.document_date, meta.court_name, …). Flatten THAT
-  // object as meta.X. Fall back to bare top-level keys for the legacy shape.
+  // `meta` object. Flatten it; fall back to bare top-level keys for legacy.
   const metaObj = (top.meta as Record<string, unknown>) || {};
-  for (const k of Object.keys(metaObj)) out[`meta.${k}`] = metaObj[k];
+  flattenInto(out, "meta", metaObj);
   const skip = new Set(["ai", "ai_analysis", "sql", "meta"]);
   for (const k of Object.keys(top)) {
     if (skip.has(k)) continue;
@@ -240,6 +257,53 @@ function matchesAllowedType(
 
 function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
   return [...items].sort((a, b) => docDate(b).localeCompare(docDate(a)));
+}
+
+// Collect every field key the page config references (display + filters +
+// sort + the leaves of customQuery).
+function collectLeafFields(expr: FilterExpression | null, out: Set<string>) {
+  if (!expr) return;
+  if ("op" in expr && (expr.op === "and" || expr.op === "or")) {
+    for (const c of expr.clauses) collectLeafFields(c, out);
+  } else if ("op" in expr && expr.op === "not") {
+    collectLeafFields(expr.clause, out);
+  } else if ("field" in expr) {
+    out.add(expr.field);
+  }
+}
+
+function referencedKeys(cfg: PageConfig): Set<string> {
+  const keys = new Set<string>();
+  cfg.displayFields.forEach((k) => keys.add(k));
+  cfg.filterFields.forEach((f) => keys.add(f.key));
+  cfg.sortFields.forEach((s) => keys.add(s.key));
+  collectLeafFields(cfg.customQuery, keys);
+  return keys;
+}
+
+// Base fields we always need for the card header/metadata when limiting the
+// payload with `fields`.
+const BASE_FIELDS = [
+  "ai.שם_התיק",
+  "ai.בית_משפט",
+  "ai.שופטים",
+  "ai.תקציר",
+  "ai.כותרת_המסמך",
+  "ai.תאריך_המסמך",
+  "meta.document_date",
+  "meta.court_name",
+  "meta.case_name",
+  "meta.document_title",
+  "meta.filename",
+];
+
+// Expand a key into itself + its ancestor group prefixes, so requesting a
+// nested leaf ("sql.a.b.c") also asks for the parent groups ("sql.a", "sql.a.b").
+function withPrefixes(key: string): string[] {
+  const parts = key.split(".");
+  const out: string[] = [];
+  for (let i = 2; i <= parts.length; i++) out.push(parts.slice(0, i).join("."));
+  return out.length ? out : [key];
 }
 
 // Generic sort by any field key. Numeric when both values parse as numbers
@@ -432,8 +496,24 @@ export async function GET(req: NextRequest) {
     const filterJson = config.customQuery
       ? JSON.stringify(config.customQuery)
       : "";
-    const filterHash = filterJson
-      ? createHash("sha1").update(filterJson).digest("hex").slice(0, 12)
+
+    // When the page references sql.*/meta.* fields but has no customQuery to
+    // trigger TAG-IT's new (grouped) shape, request those fields explicitly —
+    // that both forces the new shape and pulls the nested groups we need.
+    const refKeys = referencedKeys(config);
+    const needsNewShape = [...refKeys].some(
+      (k) => k.startsWith("sql.") || k.startsWith("meta."),
+    );
+    let fieldsParam = "";
+    if (!filterJson && needsNewShape) {
+      const set = new Set<string>(BASE_FIELDS);
+      for (const k of refKeys) withPrefixes(k).forEach((p) => set.add(p));
+      fieldsParam = [...set].join(",");
+    }
+
+    const cacheSig = filterJson || (fieldsParam ? `fields:${fieldsParam}` : "");
+    const filterHash = cacheSig
+      ? createHash("sha1").update(cacheSig).digest("hex").slice(0, 12)
       : "";
     const cacheKey = filterHash
       ? `scope:${scopeId}:f:${filterHash}`
@@ -456,6 +536,7 @@ export async function GET(req: NextRequest) {
         const fetched = await fetchAllUpstreamRulings({
           scopeId,
           filterJson: filterJson || undefined,
+          fieldsParam: fieldsParam || undefined,
         });
         if (fetched === null) {
           return NextResponse.json(

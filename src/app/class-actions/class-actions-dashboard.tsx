@@ -83,6 +83,12 @@ function fieldLabel(key: string): string {
   return tail.replace(/_/g, " ");
 }
 
+function optionLabel(o: string): string {
+  if (o === "true") return "כן";
+  if (o === "false") return "לא";
+  return o;
+}
+
 const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: "date_desc", label: "מהחדש לישן" },
   { value: "date_asc", label: "מהישן לחדש" },
@@ -791,7 +797,7 @@ export function ClassActionsDashboard() {
                     >
                       <option value="">הכל</option>
                       {(filterOptions[f.key] || []).map((o) => (
-                        <option key={o} value={o}>{o}</option>
+                        <option key={o} value={o}>{optionLabel(o)}</option>
                       ))}
                     </select>
                   </div>

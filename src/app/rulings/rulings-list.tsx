@@ -268,6 +268,13 @@ function RulingCard({
 
 /* ── User filter bar ── */
 
+// Friendly label for a select option value — booleans read as כן/לא.
+function optionLabel(o: string): string {
+  if (o === "true") return "כן";
+  if (o === "false") return "לא";
+  return o;
+}
+
 function isFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
@@ -333,7 +340,7 @@ function FilterBar({
                   <option value="">הכל</option>
                   {opts.map((o) => (
                     <option key={o} value={o}>
-                      {o}
+                      {optionLabel(o)}
                     </option>
                   ))}
                 </select>

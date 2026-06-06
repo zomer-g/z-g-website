@@ -40,6 +40,11 @@ export interface FetchAllRulingsOptions {
   // TAG-IT's "new shape" response ({id, ai:{}, sql:{}, meta:{}}) — we
   // always send one so sql.* and meta.* are available for displayFields.
   sortKey?: string;
+  // Comma-separated field keys. Sending `fields` ALSO forces the new shape
+  // (and limits the payload). We use it to pull sql.*/meta.* groups that the
+  // page config references when no filter is set (e.g. defamation with a
+  // sql.* display field but no customQuery).
+  fieldsParam?: string;
 }
 
 /**
@@ -70,6 +75,7 @@ export async function fetchAllUpstreamRulings(
     u.searchParams.set("size", String(PAGE_SIZE));
     if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
     if (opts.sortKey) u.searchParams.set("sort", opts.sortKey);
+    if (opts.fieldsParam) u.searchParams.set("fields", opts.fieldsParam);
     return u.toString();
   };
 

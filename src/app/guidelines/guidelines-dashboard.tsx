@@ -94,6 +94,12 @@ function gFieldLabel(key: string): string {
   return tail.replace(/_/g, " ");
 }
 
+function gOptionLabel(o: string): string {
+  if (o === "true") return "כן";
+  if (o === "false") return "לא";
+  return o;
+}
+
 function buildQs(filters: Filters, skip: number) {
   const p = new URLSearchParams();
   p.set("limit", String(PAGE_SIZE));
@@ -749,7 +755,7 @@ export function GuidelinesDashboard() {
                       onChange={(e) => setUf(f.key, e.target.value)}
                       className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white">
                       <option value="">הכל</option>
-                      {(gFilterOptions[f.key] || []).map((o) => (<option key={o} value={o}>{o}</option>))}
+                      {(gFilterOptions[f.key] || []).map((o) => (<option key={o} value={o}>{gOptionLabel(o)}</option>))}
                     </select>
                   </div>
                 );

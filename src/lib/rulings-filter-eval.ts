@@ -21,6 +21,18 @@ export function getFieldValue(item: UpstreamRulingItem, path: string): unknown {
   return getField(item, path);
 }
 
+// Walk a dotted sub-path through nested objects, e.g.
+// "היבטים_פיננסיים.סכום_פיצוי_נפסק" → obj.היבטים_פיננסיים.סכום_פיצוי_נפסק.
+function traverse(obj: unknown, path: string): unknown {
+  if (!path) return obj;
+  let cur: unknown = obj;
+  for (const part of path.split(".")) {
+    if (cur == null || typeof cur !== "object") return undefined;
+    cur = (cur as Record<string, unknown>)[part];
+  }
+  return cur;
+}
+
 function getField(item: UpstreamRulingItem, path: string): unknown {
   if (!path) return undefined;
   const [head, ...rest] = path.split(".");
@@ -29,21 +41,22 @@ function getField(item: UpstreamRulingItem, path: string): unknown {
 
   if (head === "ai") {
     const ai = (top.ai || top.ai_analysis || {}) as Record<string, unknown>;
-    return sub ? ai[sub] : ai;
+    return sub ? traverse(ai, sub) : ai;
   }
   if (head === "sql") {
     const sql = (top.sql || {}) as Record<string, unknown>;
-    return sub ? sql[sub] : sql;
+    return sub ? traverse(sql, sub) : sql;
   }
   if (head === "meta") {
     // New shape nests promoted columns under `meta`; fall back to the
     // legacy shape where they sit at the top level.
     const meta = (top.meta as Record<string, unknown>) || {};
     if (!sub) return meta;
-    return meta[sub] !== undefined ? meta[sub] : top[sub];
+    const fromMeta = traverse(meta, sub);
+    return fromMeta !== undefined ? fromMeta : traverse(top, sub);
   }
-  // bare key — treat as top-level
-  return sub ? undefined : top[path];
+  // bare key — traverse from the top level (supports nested bare paths too).
+  return traverse(top, path);
 }
 
 function asNumber(v: unknown): number | null {
