@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Editor } from "@/components/admin/editor";
+import { PagePublicUrlActions } from "@/components/admin/page-public-url-actions";
+import { getLabelForSlug } from "@/lib/admin-page-map";
 import { ArrowRight, Loader2, Save, CheckCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
 
 /* ─── Types ─── */
@@ -172,7 +174,7 @@ export default function EditPagePage({
             חזרה לניהול עמודים
           </Link>
           <h1 className="text-2xl font-bold text-primary-dark">
-            עריכת {PAGE_LABELS[slug] || pageData.title}
+            עריכת {PAGE_LABELS[slug] || getLabelForSlug(slug) || pageData.title}
           </h1>
           <p className="text-sm text-muted">/{slug}</p>
         </div>
@@ -187,6 +189,9 @@ export default function EditPagePage({
           שמירה
         </Button>
       </div>
+
+      {/* ── Public URL quick actions ── */}
+      <PagePublicUrlActions slug={slug} />
 
       {/* ── Feedback ── */}
       {feedback && (

@@ -6,28 +6,12 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Loader2, ChevronLeft } from "lucide-react";
 import {
-  Loader2,
-  Home,
-  Info,
-  Phone,
-  PanelTop,
-  PanelBottom,
-  ChevronLeft,
-  Briefcase,
-  Newspaper,
-  Tv,
-  FileText,
-  Shield,
-  Accessibility,
-  ScrollText,
-  Code2,
-  Wrench,
-  BarChart3,
-  Scale,
-  BookOpen,
-  Globe,
-} from "lucide-react";
+  PAGE_GROUPS,
+  ALL_PAGE_DEFS,
+  type PageDef,
+} from "@/lib/admin-page-map";
 
 /* ─── Types ─── */
 
@@ -41,151 +25,14 @@ interface PageData {
 
 interface SiteEditorCard {
   slug: string;
-  label: string;
-  icon: React.ElementType;
-  href?: string;
   data: PageData | null;
   error: boolean;
 }
 
-/* ─── Page Definitions ─── */
-//
-// Grouped layout: instead of one flat list of ~38 cards, the editor renders
-// sections so related screens stay together — main site, legal pages,
-// dashboards/databases, extension landings. Each extension (Legal Tools,
-// Case Tracker, Ocal, OCOI, Court Downloader) ships as a triplet (ראשי /
-// פרטיות / תנאי שימוש) and the triplets sit next to each other in the
-// "אפליקציות ותוספי דפדפן" group.
-
-interface PageDef {
-  slug: string;
-  label: string;
-  icon: React.ElementType;
-  href?: string;
-}
-
-// A "project sub-group" — used inside the extensions group so all pages of
-// one product (Court Downloader, Ocal, OCOI, etc.) appear together under
-// their own mini-header, instead of mixed into a flat list.
-interface ProjectSubGroup {
-  title: string;
-  items: PageDef[];
-}
-
-interface PageGroup {
-  title: string;
-  // Standalone cards (no sub-header). Most groups use just this.
-  items?: PageDef[];
-  // Optional sub-grouping. Each project gets its own h3 + mini-grid below
-  // any standalone items. Used for the extensions group.
-  projects?: ProjectSubGroup[];
-}
-
-const PAGE_GROUPS: PageGroup[] = [
-  {
-    title: "דפי האתר הראשיים",
-    items: [
-      { slug: "home", label: "דף הבית", icon: Home },
-      { slug: "about", label: "אודות", icon: Info },
-      { slug: "contact", label: "צור קשר", icon: Phone },
-      { slug: "services", label: "תחומי עיסוק", icon: Briefcase },
-      { slug: "articles", label: "מאמרים", icon: Newspaper },
-      { slug: "media", label: "מדיה", icon: Tv },
-      { slug: "projects", label: "מיזמים", icon: Code2 },
-    ],
-  },
-  {
-    title: "תבניות עיצוב וכותרות",
-    items: [
-      { slug: "header", label: "כותרת עליונה", icon: PanelTop },
-      { slug: "footer", label: "כותרת תחתונה", icon: PanelBottom },
-      { slug: "article-detail", label: "עמוד מאמר (תבנית)", icon: FileText },
-      { slug: "service-detail", label: "עמוד שירות (תבנית)", icon: FileText },
-    ],
-  },
-  {
-    title: "עמודי חובה משפטית",
-    items: [
-      { slug: "privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/privacy" },
-      { slug: "accessibility", label: "הצהרת נגישות", icon: Accessibility, href: "/admin/pages/accessibility" },
-      { slug: "terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/terms" },
-    ],
-  },
-  {
-    title: "דשבורדים ומאגרי תוכן",
-    items: [
-      { slug: "leam", label: "לעם — אתרים אזרחיים", icon: Globe },
-      { slug: "sanegoria", label: "דשבורד סניגוריה", icon: BarChart3 },
-      { slug: "class-actions", label: "דשבורד תובענות ייצוגיות", icon: Scale },
-      { slug: "conditional-arrangements", label: "דשבורד הסדרים מותנים", icon: Scale },
-      { slug: "guidelines", label: "מאגר הנחיות", icon: BookOpen },
-      { slug: "defamation-rulings", label: "פסקי דין בלשון הרע", icon: Scale },
-      { slug: "foi-judgments", label: "פסיקות חופש מידע", icon: Scale },
-      { slug: "foi-costs", label: "הוצאות חופש מידע", icon: Scale },
-    ],
-  },
-  {
-    title: "אפליקציות ותוספי דפדפן",
-    // Standalone overview card sits above the per-project sections.
-    items: [
-      { slug: "digital-services", label: "שירותים דיגיטליים (סקירה)", icon: Code2 },
-    ],
-    // Per-project mini-sections. Each appears with its own h3 + grid, so all
-    // pages of one product (ראשי / פרטיות / תנאי שימוש / תמיכה) sit together.
-    // Order: newest/most-active first.
-    projects: [
-      {
-        title: "לץ המשפט — מוריד מסמכים מנט המשפט",
-        items: [
-          { slug: "court-downloader", label: "ראשי", icon: Code2, href: "/admin/pages/court-downloader" },
-          { slug: "court-downloader-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/court-downloader-privacy" },
-          { slug: "court-downloader-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/court-downloader-terms" },
-        ],
-      },
-      {
-        title: "OCOI — תוסף ניגוד עניינים",
-        items: [
-          { slug: "ocoi-extension", label: "ראשי", icon: Code2, href: "/admin/pages/ocoi-extension" },
-          { slug: "ocoi-extension-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocoi-extension-privacy" },
-          { slug: "ocoi-extension-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocoi-extension-terms" },
-        ],
-      },
-      {
-        title: "Ocal — תוסף נבחרי ציבור",
-        items: [
-          { slug: "ocal", label: "ראשי", icon: Code2, href: "/admin/pages/ocal" },
-          { slug: "ocal-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/ocal-privacy" },
-          { slug: "ocal-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/ocal-terms" },
-        ],
-      },
-      {
-        title: "איתור אסמכתאות",
-        items: [
-          { slug: "case-tracker", label: "ראשי", icon: Code2, href: "/admin/pages/case-tracker" },
-          { slug: "case-tracker-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/case-tracker-privacy" },
-          { slug: "case-tracker-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/case-tracker-terms" },
-        ],
-      },
-      {
-        title: "כלים משפטיים — Google Docs",
-        items: [
-          { slug: "legal-tools", label: "ראשי", icon: Wrench, href: "/admin/pages/legal-tools" },
-          { slug: "legal-tools-privacy", label: "מדיניות פרטיות", icon: Shield, href: "/admin/pages/legal-tools-privacy" },
-          { slug: "legal-tools-terms", label: "תנאי שימוש", icon: ScrollText, href: "/admin/pages/legal-tools-terms" },
-          { slug: "legal-tools-support", label: "תמיכה", icon: Phone, href: "/admin/pages/legal-tools-support" },
-        ],
-      },
-    ],
-  },
-];
-
-// Flat list used for the bulk fetch loop. Pulls from BOTH `items` and any
-// `projects[*].items` so every card — even nested ones — gets its status
-// fetched. The grouped rendering still uses PAGE_GROUPS directly.
-const PAGE_DEFS: PageDef[] = PAGE_GROUPS.flatMap((g) => [
-  ...(g.items ?? []),
-  ...(g.projects ?? []).flatMap((p) => p.items),
-]);
+// Page registry now lives in @/lib/admin-page-map so the same data backs
+// this grid, the AdminBar's reverse-lookup, and the editor templates'
+// "open in new tab" + "copy URL" buttons.
+const PAGE_DEFS: PageDef[] = ALL_PAGE_DEFS;
 
 /* ─── Site Editor Page ─── */
 
@@ -208,9 +55,6 @@ export default function SiteEditorPage() {
           const result = results[i];
           return {
             slug: def.slug,
-            label: def.label,
-            icon: def.icon,
-            href: def.href,
             data:
               result.status === "fulfilled" ? result.value : null,
             error: result.status === "rejected",
@@ -223,9 +67,6 @@ export default function SiteEditorPage() {
         setCards(
           PAGE_DEFS.map((def) => ({
             slug: def.slug,
-            label: def.label,
-            icon: def.icon,
-            href: def.href,
             data: null,
             error: true,
           })),
@@ -262,7 +103,7 @@ export default function SiteEditorPage() {
     return (
       <Link
         key={def.slug}
-        href={def.href || `/admin/site-editor/${def.slug}`}
+        href={def.editHref || `/admin/site-editor/${def.slug}`}
       >
         <Card
           className={cn(

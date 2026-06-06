@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import SitePreview from "@/components/admin/site-preview";
+import { PagePublicUrlActions } from "@/components/admin/page-public-url-actions";
 import { HomeEditors } from "@/components/admin/section-editors/home-editors";
 import { AboutEditors } from "@/components/admin/section-editors/about-editors";
 import { ContactEditors } from "@/components/admin/section-editors/contact-editors";
@@ -265,6 +266,9 @@ export default function SiteEditorPageEditor({
           </Button>
         </div>
       </div>
+
+      {/* ── Public URL quick actions ── */}
+      <PagePublicUrlActions slug={slug} />
 
       {/* ── Feedback ── */}
       {feedback && (
