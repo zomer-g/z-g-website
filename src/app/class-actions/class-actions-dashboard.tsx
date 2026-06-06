@@ -56,6 +56,33 @@ type SortOrder =
   | "case_name_asc"
   | "case_name_desc";
 
+/* ── Admin-configured user-filter values (mirror of the server shape) ── */
+type SortDir = "asc" | "desc";
+type UserFilterValue =
+  | string
+  | { min?: number; max?: number }
+  | { from?: string; to?: string };
+
+function isUserFilterActive(v: UserFilterValue | undefined): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (typeof v === "object") return Object.values(v).some((x) => x != null && x !== "");
+  return false;
+}
+
+function fmtFieldValue(v: unknown): string {
+  if (v == null || v === "") return "—";
+  if (Array.isArray(v)) return v.map(fmtFieldValue).join(", ");
+  if (typeof v === "number") return v.toLocaleString("he-IL");
+  if (typeof v === "boolean") return v ? "כן" : "לא";
+  return String(v);
+}
+
+function fieldLabel(key: string): string {
+  const tail = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+  return tail.replace(/_/g, " ");
+}
+
 const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
   { value: "date_desc", label: "מהחדש לישן" },
   { value: "date_asc", label: "מהישן לחדש" },
@@ -270,9 +297,27 @@ function DocSlot({
   );
 }
 
-function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
+function CaseCard({
+  caseItem,
+  displayFields = [],
+}: {
+  caseItem: ClassActionCase;
+  displayFields?: string[];
+}) {
   const [open, setOpen] = useState(false);
   const slots = classifyDocs(caseItem.documents);
+
+  // Admin-configured fields to surface on the card. Read from the case object
+  // first, falling back to the first document (case-level fields live on both).
+  const caseRec = caseItem as unknown as Record<string, unknown>;
+  const firstDoc = (caseItem.documents[0] || {}) as unknown as Record<string, unknown>;
+  const extraFields = displayFields
+    .map((key) => {
+      const raw = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+      const val = caseRec[raw] ?? firstDoc[raw];
+      return { key, label: fieldLabel(key), value: val };
+    })
+    .filter((f) => f.value != null && f.value !== "");
 
   // Cases without a case_number aren't addressable as a standalone page
   // (the route key is the case_number) — fall back to a non-clickable card.
@@ -342,6 +387,18 @@ function CaseCard({ caseItem }: { caseItem: ClassActionCase }) {
         <span className="font-semibold">תאריך הגשה אחרון:</span>{" "}
         {fmtDate(caseItem.latest_document_date)}
       </div>
+
+      {/* Admin-configured extra display fields */}
+      {extraFields.length > 0 ? (
+        <div className="relative z-10 text-sm text-gray-700 mb-3 space-y-1 pointer-events-none">
+          {extraFields.map((f) => (
+            <div key={f.key}>
+              <span className="font-semibold">{f.label}:</span>{" "}
+              {fmtFieldValue(f.value)}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {open ? (
         <div className="relative z-10 border-t border-gray-100 pt-3 mt-1 space-y-2 text-sm text-gray-800 pointer-events-none">
@@ -448,12 +505,43 @@ export function ClassActionsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Admin-configured extras live in local state (not the URL) so they don't
+  // disturb the existing share-link machinery. Empty = no effect.
+  const [userFiltersDraft, setUserFiltersDraft] = useState<
+    Record<string, UserFilterValue>
+  >({});
+  const [userFilters, setUserFilters] = useState<Record<string, UserFilterValue>>(
+    {},
+  );
+  // A chosen admin sort field overrides the native sort when set.
+  const [configSort, setConfigSort] = useState<{ key: string; dir: SortDir } | null>(
+    null,
+  );
+
   const fetchData = useCallback(
-    async (f: Filters, s: number, ord: SortOrder) => {
+    async (
+      f: Filters,
+      s: number,
+      ord: SortOrder,
+      uf: Record<string, UserFilterValue>,
+      cs: { key: string; dir: SortDir } | null,
+    ) => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/class-actions/documents?${buildQs(f, s, ord)}`);
+        let qs = buildQs(f, s, ord);
+        const activeUf = Object.entries(uf).filter(([, v]) => isUserFilterActive(v));
+        if (activeUf.length > 0) {
+          qs += `&userFilters=${encodeURIComponent(
+            JSON.stringify(Object.fromEntries(activeUf)),
+          )}`;
+        }
+        if (cs) {
+          // Override the native sort param with the configured field + dir.
+          qs = qs.replace(/(^|&)sort=[^&]*/, "");
+          qs += `&sort=${encodeURIComponent(cs.key)}&dir=${cs.dir}`;
+        }
+        const res = await fetch(`/api/class-actions/documents?${qs}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as CasesListResponse;
         setData(json);
@@ -469,8 +557,8 @@ export function ClassActionsDashboard() {
   );
 
   useEffect(() => {
-    fetchData(filters, skip, sort);
-  }, [fetchData, filters, skip, sort]);
+    fetchData(filters, skip, sort, userFilters, configSort);
+  }, [fetchData, filters, skip, sort, userFilters, configSort]);
 
   // Single channel for changing applied state: write to the URL, the
   // memos pick it up, the fetch effect re-runs. `router.replace` keeps
@@ -489,6 +577,24 @@ export function ClassActionsDashboard() {
     setDraft(EMPTY_FILTERS);
     navigate(EMPTY_FILTERS, 0, DEFAULT_SORT);
   };
+
+  // Admin-configured extras pulled from the response.
+  const extraFilterFields = data?.filterFields ?? [];
+  const extraSortFields = data?.sortFields ?? [];
+  const extraDisplayFields = data?.displayFields ?? [];
+  const filterOptions = data?.filterOptions ?? {};
+
+  const applyUserFilters = () => {
+    setUserFilters(userFiltersDraft);
+    navigate(filters, 0, sort); // reset to first page
+  };
+  const clearUserFilters = () => {
+    setUserFiltersDraft({});
+    setUserFilters({});
+    navigate(filters, 0, sort);
+  };
+  const setUf = (key: string, value: UserFilterValue) =>
+    setUserFiltersDraft((d) => ({ ...d, [key]: value }));
 
   const total = data?.total ?? 0;
   const pageStart = total === 0 ? 0 : skip + 1;
@@ -654,6 +760,90 @@ export function ClassActionsDashboard() {
         </div>
       </div>
 
+      {/* Admin-configured extra filters (additive). Hidden when none set. */}
+      {extraFilterFields.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {extraFilterFields.map((f) => {
+              const v = userFiltersDraft[f.key];
+              if (f.control === "text") {
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <input
+                      type="text"
+                      value={typeof v === "string" ? v : ""}
+                      onChange={(e) => setUf(f.key, e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") applyUserFilters(); }}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                );
+              }
+              if (f.control === "select") {
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <select
+                      value={typeof v === "string" ? v : ""}
+                      onChange={(e) => setUf(f.key, e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+                    >
+                      <option value="">הכל</option>
+                      {(filterOptions[f.key] || []).map((o) => (
+                        <option key={o} value={o}>{o}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              if (f.control === "number") {
+                const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <div className="flex items-center gap-1.5">
+                      <input type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
+                        onChange={(e) => setUf(f.key, { ...r, min: e.target.value === "" ? undefined : Number(e.target.value) })}
+                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                      <span className="text-gray-400">–</span>
+                      <input type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
+                        onChange={(e) => setUf(f.key, { ...r, max: e.target.value === "" ? undefined : Number(e.target.value) })}
+                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    </div>
+                  </div>
+                );
+              }
+              const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
+              return (
+                <div key={f.key}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                  <div className="flex items-center gap-1.5">
+                    <input type="date" value={r.from ?? ""} dir="ltr"
+                      onChange={(e) => setUf(f.key, { ...r, from: e.target.value || undefined })}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <span className="text-gray-400">–</span>
+                    <input type="date" value={r.to ?? ""} dir="ltr"
+                      onChange={(e) => setUf(f.key, { ...r, to: e.target.value || undefined })}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-4">
+            <button type="button" onClick={clearUserFilters}
+              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">
+              ניקוי
+            </button>
+            <button type="button" onClick={applyUserFilters}
+              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>
+              סינון
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Results header */}
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
         <div>
@@ -675,8 +865,17 @@ export function ClassActionsDashboard() {
           </label>
           <select
             id="ca-sort"
-            value={sort}
-            onChange={(e) => navigate(filters, 0, e.target.value as SortOrder)}
+            value={configSort ? `cfg:${configSort.key}` : sort}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val.startsWith("cfg:")) {
+                setConfigSort({ key: val.slice(4), dir: "desc" });
+                navigate(filters, 0, sort);
+              } else {
+                setConfigSort(null);
+                navigate(filters, 0, val as SortOrder);
+              }
+            }}
             className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
           >
             {SORT_OPTIONS.map((o) => (
@@ -684,7 +883,24 @@ export function ClassActionsDashboard() {
                 {o.label}
               </option>
             ))}
+            {extraSortFields.map((s) => (
+              <option key={s.key} value={`cfg:${s.key}`}>
+                {s.label}
+              </option>
+            ))}
           </select>
+          {configSort ? (
+            <button
+              type="button"
+              onClick={() => {
+                setConfigSort((c) => (c ? { ...c, dir: c.dir === "desc" ? "asc" : "desc" } : c));
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+              title={configSort.dir === "desc" ? "יורד" : "עולה"}
+            >
+              {configSort.dir === "desc" ? "יורד ↓" : "עולה ↑"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -693,7 +909,11 @@ export function ClassActionsDashboard() {
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : data?.cases.map((c) => (
-              <CaseCard key={c.case_number} caseItem={c} />
+              <CaseCard
+                key={c.case_number}
+                caseItem={c}
+                displayFields={extraDisplayFields}
+              />
             ))}
       </div>
 
