@@ -3,9 +3,21 @@ import type { Guideline, GuidelinesListResponse } from "@/types/guideline";
 import { getCached, setCached } from "@/lib/guidelines-cache";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
-import type { FilterExpression } from "@/types/ruling-filter";
+import type {
+  FilterExpression,
+  RulingsFilterField,
+  RulingsSortField,
+  SortDir,
+} from "@/types/ruling-filter";
+import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
 import { evaluateFilter } from "@/lib/rulings-filter-eval";
 import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
+import {
+  parseUserFilters,
+  applyUserFilters,
+  computeSelectOptions,
+  sortByConfiguredField,
+} from "@/lib/rulings-user-filters";
 import {
   fetchAllUpstreamGuidelines,
   getGuidelinesApiKey,
@@ -41,6 +53,9 @@ function buildUpstreamFilters(params: URLSearchParams): Record<string, string> {
 interface GConfig {
   ttlMs: number;
   customQuery: FilterExpression | null;
+  filterFields: RulingsFilterField[];
+  sortFields: RulingsSortField[];
+  displayFields: string[];
 }
 
 async function readConfig(): Promise<GConfig> {
@@ -50,13 +65,39 @@ async function readConfig(): Promise<GConfig> {
     const ttlMs = Number.isFinite(raw)
       ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw)) * 60_000
       : DEFAULT_TTL_MINUTES * 60_000;
+    const q = content?.query;
     const customQuery =
-      content?.query && typeof content.query === "object"
-        ? (content.query.customQuery ?? null)
-        : null;
-    return { ttlMs, customQuery };
+      q && typeof q === "object" ? (q.customQuery ?? null) : null;
+    const filterFields =
+      q && Array.isArray(q.filterFields)
+        ? q.filterFields.filter(
+            (f): f is RulingsFilterField =>
+              !!f &&
+              typeof f.key === "string" &&
+              f.key.trim() !== "" &&
+              VALID_FILTER_CONTROLS.includes(f.control),
+          )
+        : [];
+    const sortFields =
+      q && Array.isArray(q.sortFields)
+        ? q.sortFields.filter(
+            (s): s is RulingsSortField =>
+              !!s && typeof s.key === "string" && s.key.trim() !== "",
+          )
+        : [];
+    const displayFields =
+      q && Array.isArray(q.displayFields)
+        ? q.displayFields.map((s) => String(s).trim()).filter(Boolean)
+        : [];
+    return { ttlMs, customQuery, filterFields, sortFields, displayFields };
   } catch {
-    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, customQuery: null };
+    return {
+      ttlMs: DEFAULT_TTL_MINUTES * 60_000,
+      customQuery: null,
+      filterFields: [],
+      sortFields: [],
+      displayFields: [],
+    };
   }
 }
 
@@ -156,20 +197,54 @@ export async function GET(req: NextRequest) {
   // reflect what's available given the user's other filters.
   const facets = { sources: computeSourceFacets(base) };
 
-  const filtered = applySourceFilter(base, params);
+  // Native source filter → admin-configured user filters (additive).
+  const sourceFiltered = applySourceFilter(base, params);
+  const userFilters = parseUserFilters(params.get("userFilters"));
+  let filtered = applyUserFilters(
+    sourceFiltered as unknown as Array<Record<string, unknown>>,
+    config.filterFields,
+    userFilters,
+  ) as unknown as Guideline[];
+
+  // Optional admin-configured sort.
+  const sortParam = params.get("sort");
+  if (sortParam && config.sortFields.some((s) => s.key === sortParam)) {
+    const dir: SortDir = params.get("dir") === "asc" ? "asc" : "desc";
+    filtered = sortByConfiguredField(
+      filtered as unknown as Array<Record<string, unknown>>,
+      sortParam,
+      dir,
+    ) as unknown as Guideline[];
+  }
+
+  const filterOptions = computeSelectOptions(
+    sourceFiltered as unknown as Array<Record<string, unknown>>,
+    config.filterFields,
+  );
+
   const page = filtered.slice(skip, skip + limit);
 
-  const body: GuidelinesListResponse & { facets: typeof facets } = {
+  const body: GuidelinesListResponse & {
+    facets: typeof facets;
+    filterFields: RulingsFilterField[];
+    sortFields: RulingsSortField[];
+    displayFields: string[];
+    filterOptions: Record<string, string[]>;
+  } = {
     total: filtered.length,
     skip,
     limit,
     items: page,
     facets,
+    filterFields: config.filterFields,
+    sortFields: config.sortFields,
+    displayFields: config.displayFields,
+    filterOptions,
   };
 
   return NextResponse.json(body, {
     headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
+      "Cache-Control": "private, no-store",
       "X-Cache": cacheStatus,
     },
   });

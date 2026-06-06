@@ -60,6 +60,38 @@ interface SearchResponse {
   snippets?: string[];
   relevance?: number[];
   facets?: { sources: SourceFacet[] };
+  // Admin-configured extras (present on the listing endpoint; optional).
+  filterFields?: { key: string; label: string; control: "text" | "select" | "number" | "date" }[];
+  sortFields?: { key: string; label: string }[];
+  displayFields?: string[];
+  filterOptions?: Record<string, string[]>;
+}
+
+/* ── Admin-configured user-filter values ── */
+type SortDir = "asc" | "desc";
+type UserFilterValue =
+  | string
+  | { min?: number; max?: number }
+  | { from?: string; to?: string };
+
+function isUserFilterActive(v: UserFilterValue | undefined): boolean {
+  if (v == null) return false;
+  if (typeof v === "string") return v.trim() !== "";
+  if (typeof v === "object") return Object.values(v).some((x) => x != null && x !== "");
+  return false;
+}
+
+function fmtGFieldValue(v: unknown): string {
+  if (v == null || v === "") return "—";
+  if (Array.isArray(v)) return v.map(fmtGFieldValue).join(", ");
+  if (typeof v === "number") return v.toLocaleString("he-IL");
+  if (typeof v === "boolean") return v ? "כן" : "לא";
+  return String(v);
+}
+
+function gFieldLabel(key: string): string {
+  const tail = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+  return tail.replace(/_/g, " ");
 }
 
 function buildQs(filters: Filters, skip: number) {
@@ -199,13 +231,24 @@ function GuidelineCard({
   snippet,
   query,
   relevance,
+  displayFields = [],
 }: {
   doc: Guideline;
   snippet?: string;
   query?: string;
   relevance?: number;
+  displayFields?: string[];
 }) {
   const [open, setOpen] = useState(false);
+
+  // Admin-configured extra display fields (read from the flat doc).
+  const docRec = doc as unknown as Record<string, unknown>;
+  const extraFields = displayFields
+    .map((key) => {
+      const raw = key.includes(".") ? key.split(".").slice(1).join(".") : key;
+      return { key, label: gFieldLabel(key), value: docRec[raw] };
+    })
+    .filter((f) => f.value != null && f.value !== "");
   const supersedesText = Array.isArray(doc.supersedes)
     ? doc.supersedes.join(", ")
     : doc.supersedes || "";
@@ -289,6 +332,16 @@ function GuidelineCard({
       {doc.topic ? (
         <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
           <span className="font-semibold">תחום:</span> {doc.topic}
+        </div>
+      ) : null}
+      {extraFields.length > 0 ? (
+        <div className="relative z-10 text-sm text-gray-700 mb-1 space-y-0.5 pointer-events-none">
+          {extraFields.map((f) => (
+            <div key={f.key}>
+              <span className="font-semibold">{f.label}:</span>{" "}
+              {fmtGFieldValue(f.value)}
+            </div>
+          ))}
         </div>
       ) : null}
       {doc.summary ? (
@@ -409,35 +462,56 @@ export function GuidelinesDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (f: Filters, s: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Hybrid search whenever the user typed a query; fall back to the
-      // straight listing when the search box is empty.
-      const hasQuery = f.q.trim().length > 0;
-      const url = hasQuery
-        ? `/api/guidelines/search?${buildQs(f, s)}`
-        : `/api/guidelines/documents?${buildQs(f, s)}`;
-      const res = await fetch(url);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(body?.error || `HTTP ${res.status}`);
+  // Admin-configured extras — local state (not URL).
+  const [userFiltersDraft, setUserFiltersDraft] = useState<Record<string, UserFilterValue>>({});
+  const [userFilters, setUserFilters] = useState<Record<string, UserFilterValue>>({});
+  const [configSort, setConfigSort] = useState<{ key: string; dir: SortDir } | null>(null);
+
+  const fetchData = useCallback(
+    async (
+      f: Filters,
+      s: number,
+      uf: Record<string, UserFilterValue>,
+      cs: { key: string; dir: SortDir } | null,
+    ) => {
+      setLoading(true);
+      setError(null);
+      try {
+        // Hybrid search whenever the user typed a query; fall back to the
+        // straight listing when the search box is empty.
+        const hasQuery = f.q.trim().length > 0;
+        let qs = buildQs(f, s);
+        const activeUf = Object.entries(uf).filter(([, v]) => isUserFilterActive(v));
+        if (activeUf.length > 0) {
+          qs += `&userFilters=${encodeURIComponent(
+            JSON.stringify(Object.fromEntries(activeUf)),
+          )}`;
+        }
+        if (cs) qs += `&sort=${encodeURIComponent(cs.key)}&dir=${cs.dir}`;
+        const url = hasQuery
+          ? `/api/guidelines/search?${qs}`
+          : `/api/guidelines/documents?${qs}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error || `HTTP ${res.status}`);
+        }
+        const json = (await res.json()) as SearchResponse;
+        setData(json);
+      } catch (e) {
+        console.error(e);
+        setError(e instanceof Error ? e.message : "שגיאה בטעינת ההנחיות.");
+        setData(null);
+      } finally {
+        setLoading(false);
       }
-      const json = (await res.json()) as SearchResponse;
-      setData(json);
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "שגיאה בטעינת ההנחיות.");
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   useEffect(() => {
-    fetchData(filters, skip);
-  }, [fetchData, filters, skip]);
+    fetchData(filters, skip, userFilters, configSort);
+  }, [fetchData, filters, skip, userFilters, configSort]);
 
   // Single channel for changing applied state: write to the URL, the
   // memos pick it up, the fetch effect re-runs. Using replace() avoids
@@ -456,6 +530,23 @@ export function GuidelinesDashboard() {
     setDraft(EMPTY_FILTERS);
     navigate(EMPTY_FILTERS, 0);
   };
+
+  // Admin-configured extras pulled from the response.
+  const extraFilterFields = data?.filterFields ?? [];
+  const extraSortFields = data?.sortFields ?? [];
+  const extraDisplayFields = data?.displayFields ?? [];
+  const gFilterOptions = data?.filterOptions ?? {};
+  const applyUserFilters = () => {
+    setUserFilters(userFiltersDraft);
+    navigate(filters, 0);
+  };
+  const clearUserFilters = () => {
+    setUserFiltersDraft({});
+    setUserFilters({});
+    navigate(filters, 0);
+  };
+  const setUf = (key: string, value: UserFilterValue) =>
+    setUserFiltersDraft((d) => ({ ...d, [key]: value }));
 
   // Source pills are an "active" filter — toggling applies immediately and
   // resets pagination, no need to press "סנן".
@@ -633,19 +724,120 @@ export function GuidelinesDashboard() {
         </div>
       </div>
 
+      {/* Admin-configured extra filters (additive). Hidden when none set. */}
+      {extraFilterFields.length > 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {extraFilterFields.map((f) => {
+              const v = userFiltersDraft[f.key];
+              if (f.control === "text") {
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <input type="text" value={typeof v === "string" ? v : ""}
+                      onChange={(e) => setUf(f.key, e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") applyUserFilters(); }}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                  </div>
+                );
+              }
+              if (f.control === "select") {
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <select value={typeof v === "string" ? v : ""}
+                      onChange={(e) => setUf(f.key, e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white">
+                      <option value="">הכל</option>
+                      {(gFilterOptions[f.key] || []).map((o) => (<option key={o} value={o}>{o}</option>))}
+                    </select>
+                  </div>
+                );
+              }
+              if (f.control === "number") {
+                const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
+                return (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <div className="flex items-center gap-1.5">
+                      <input type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
+                        onChange={(e) => setUf(f.key, { ...r, min: e.target.value === "" ? undefined : Number(e.target.value) })}
+                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                      <span className="text-gray-400">–</span>
+                      <input type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
+                        onChange={(e) => setUf(f.key, { ...r, max: e.target.value === "" ? undefined : Number(e.target.value) })}
+                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    </div>
+                  </div>
+                );
+              }
+              const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
+              return (
+                <div key={f.key}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                  <div className="flex items-center gap-1.5">
+                    <input type="date" value={r.from ?? ""} dir="ltr"
+                      onChange={(e) => setUf(f.key, { ...r, from: e.target.value || undefined })}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                    <span className="text-gray-400">–</span>
+                    <input type="date" value={r.to ?? ""} dir="ltr"
+                      onChange={(e) => setUf(f.key, { ...r, to: e.target.value || undefined })}
+                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-4">
+            <button type="button" onClick={clearUserFilters}
+              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">ניקוי</button>
+            <button type="button" onClick={applyUserFilters}
+              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>סינון</button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Results header */}
       <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
-        {loading ? (
-          <span>בטעינה…</span>
-        ) : error ? (
-          <span className="text-red-600">{error}</span>
-        ) : (
-          <span>
-            {total === 0
-              ? "לא נמצאו הנחיות התואמות את הסינון"
-              : `מציג הנחיות ${pageStart}–${pageEnd} מתוך ${total}`}
-          </span>
-        )}
+        <div>
+          {loading ? (
+            <span>בטעינה…</span>
+          ) : error ? (
+            <span className="text-red-600">{error}</span>
+          ) : (
+            <span>
+              {total === 0
+                ? "לא נמצאו הנחיות התואמות את הסינון"
+                : `מציג הנחיות ${pageStart}–${pageEnd} מתוך ${total}`}
+            </span>
+          )}
+        </div>
+        {extraSortFields.length > 0 ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <label className="text-xs text-gray-600">סדר:</label>
+            <select
+              value={configSort ? configSort.key : ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setConfigSort(val ? { key: val, dir: "desc" } : null);
+                navigate(filters, 0);
+              }}
+              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+            >
+              <option value="">ברירת מחדל</option>
+              {extraSortFields.map((s) => (
+                <option key={s.key} value={s.key}>{s.label}</option>
+              ))}
+            </select>
+            {configSort ? (
+              <button type="button"
+                onClick={() => setConfigSort((c) => (c ? { ...c, dir: c.dir === "desc" ? "asc" : "desc" } : c))}
+                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50">
+                {configSort.dir === "desc" ? "יורד ↓" : "עולה ↑"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* Cards grid */}
@@ -659,6 +851,7 @@ export function GuidelinesDashboard() {
                 snippet={data.snippets?.[i]}
                 query={filters.q}
                 relevance={data.relevance?.[i]}
+                displayFields={extraDisplayFields}
               />
             ))}
       </div>
