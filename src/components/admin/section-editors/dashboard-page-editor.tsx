@@ -1281,6 +1281,40 @@ function FieldSelect({
   );
 }
 
+// Up/down reorder buttons for a row at index `i` of a list of length `len`.
+function ReorderButtons({
+  i,
+  len,
+  onMove,
+}: {
+  i: number;
+  len: number;
+  onMove: (i: number, dir: -1 | 1) => void;
+}) {
+  return (
+    <div className="flex flex-col shrink-0">
+      <button
+        type="button"
+        onClick={() => onMove(i, -1)}
+        disabled={i === 0}
+        title="העלה"
+        className="text-gray-500 hover:text-primary disabled:opacity-30 leading-none px-1"
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        onClick={() => onMove(i, 1)}
+        disabled={i === len - 1}
+        title="הורד"
+        className="text-gray-500 hover:text-primary disabled:opacity-30 leading-none px-1"
+      >
+        ▼
+      </button>
+    </div>
+  );
+}
+
 function AdvancedQuerySection({
   query,
   schemaHintUrl,
@@ -1414,6 +1448,13 @@ function AdvancedQuerySection({
   };
   const removeDisplayField = (i: number) =>
     setDisplayFields(displayFields.filter((_, idx) => idx !== i));
+  const moveDisplayField = (i: number, dir: -1 | 1) => {
+    const t = i + dir;
+    if (t < 0 || t >= displayFields.length) return;
+    const next = [...displayFields];
+    [next[i], next[t]] = [next[t], next[i]];
+    setDisplayFields(next);
+  };
 
   // ── filterFields row handlers ──
   const filterFields = query.filterFields || [];
@@ -1428,6 +1469,13 @@ function AdvancedQuerySection({
   };
   const removeFilterField = (i: number) =>
     setFilterFields(filterFields.filter((_, idx) => idx !== i));
+  const moveFilterField = (i: number, dir: -1 | 1) => {
+    const t = i + dir;
+    if (t < 0 || t >= filterFields.length) return;
+    const next = [...filterFields];
+    [next[i], next[t]] = [next[t], next[i]];
+    setFilterFields(next);
+  };
 
   // ── sortFields row handlers ──
   const sortFields = query.sortFields || [];
@@ -1442,6 +1490,13 @@ function AdvancedQuerySection({
   };
   const removeSortField = (i: number) =>
     setSortFields(sortFields.filter((_, idx) => idx !== i));
+  const moveSortField = (i: number, dir: -1 | 1) => {
+    const t = i + dir;
+    if (t < 0 || t >= sortFields.length) return;
+    const next = [...sortFields];
+    [next[i], next[t]] = [next[t], next[i]];
+    setSortFields(next);
+  };
 
   const schemaStatus = schemaLoading ? (
     <span className="text-xs text-muted">טוען רשימת שדות…</span>
@@ -1586,6 +1641,7 @@ function AdvancedQuerySection({
           <div className="space-y-2">
             {displayFields.map((key, i) => (
               <div key={i} className="flex items-center gap-2">
+                <ReorderButtons i={i} len={displayFields.length} onMove={moveDisplayField} />
                 <FieldSelect
                   value={key}
                   onChange={(k) => updateDisplayField(i, k)}
@@ -1633,6 +1689,7 @@ function AdvancedQuerySection({
                 className="rounded-lg border border-border bg-muted-bg/20 p-2.5 space-y-2"
               >
                 <div className="flex items-center gap-2">
+                  <ReorderButtons i={i} len={filterFields.length} onMove={moveFilterField} />
                   <Input
                     value={f.label}
                     onChange={(e) =>
@@ -1709,6 +1766,7 @@ function AdvancedQuerySection({
           <div className="space-y-2">
             {sortFields.map((s, i) => (
               <div key={i} className="flex items-center gap-2">
+                <ReorderButtons i={i} len={sortFields.length} onMove={moveSortField} />
                 <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <FieldSelect
                     value={s.key}
