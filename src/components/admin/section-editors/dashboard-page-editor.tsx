@@ -270,6 +270,8 @@ interface AdvancedQueryControls {
   // When true, show only the base-filter editor (no display/filter/sort/API
   // sections). Used by dashboards with their own native UI.
   onlyCustomQuery?: boolean;
+  // When false, hide the scope/pageSize block (pages whose API ignores them).
+  showApiParams?: boolean;
 }
 
 interface DashboardPageEditorProps<T extends DashboardPageContent> {
@@ -675,6 +677,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           schemaHintUrl={advancedQuery.schemaHintUrl}
           examples={advancedQuery.examples || []}
           onlyCustomQuery={advancedQuery.onlyCustomQuery}
+          showApiParams={advancedQuery.showApiParams !== false}
           onChange={(next) =>
             onChange({ ...content, [advancedQuery.field]: next } as T)
           }
@@ -1284,6 +1287,7 @@ function AdvancedQuerySection({
   examples,
   onChange,
   onlyCustomQuery = false,
+  showApiParams = true,
 }: {
   query: RulingsPageQuery;
   schemaHintUrl?: string;
@@ -1293,6 +1297,9 @@ function AdvancedQuerySection({
   // dashboards that keep their own native display/filter/sort UI (class
   // actions, guidelines) and only need the admin base filter.
   onlyCustomQuery?: boolean;
+  // When false, hide the scope/pageSize API-params block (used by pages whose
+  // API doesn't read those — class actions, guidelines).
+  showApiParams?: boolean;
 }) {
   const customQueryStr = query.customQuery
     ? JSON.stringify(query.customQuery, null, 2)
@@ -1464,7 +1471,7 @@ function AdvancedQuerySection({
         </div>
 
         {/* ── API parameters ── */}
-        {onlyCustomQuery ? null : (
+        {onlyCustomQuery || !showApiParams ? null : (
         <div className="rounded-lg border border-border bg-muted-bg/20 p-3">
           <div className="text-xs font-semibold text-muted mb-2">
             פרמטרים של ה-API

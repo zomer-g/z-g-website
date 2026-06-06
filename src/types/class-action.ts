@@ -49,4 +49,12 @@ export interface CasesListResponse {
   skip: number;
   limit: number;
   cases: ClassActionCase[];
+  // Admin-configured extras (all optional / default empty → dashboard
+  // renders exactly as before). filterFields/sortFields drive additional
+  // controls; displayFields add fields to each card; filterOptions holds the
+  // select dropdown values computed server-side.
+  filterFields?: { key: string; label: string; control: "text" | "select" | "number" | "date" }[];
+  sortFields?: { key: string; label: string }[];
+  displayFields?: string[];
+  filterOptions?: Record<string, string[]>;
 }

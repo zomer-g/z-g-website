@@ -7,9 +7,21 @@ import type {
 import { getCached, setCached } from "@/lib/class-actions-cache";
 import { getPageContent } from "@/lib/content";
 import type { ClassActionsPageContent } from "@/types/content";
-import type { FilterExpression } from "@/types/ruling-filter";
+import type {
+  FilterExpression,
+  RulingsFilterField,
+  RulingsSortField,
+  SortDir,
+} from "@/types/ruling-filter";
+import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
 import { evaluateFilter } from "@/lib/rulings-filter-eval";
 import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
+import {
+  parseUserFilters,
+  applyUserFilters,
+  computeSelectOptions,
+  sortByConfiguredField,
+} from "@/lib/rulings-user-filters";
 import {
   fetchAllUpstreamClassActions,
   stripClassActionUrls,
@@ -42,6 +54,9 @@ function buildUpstreamFilters(params: URLSearchParams): Record<string, string> {
 interface CAConfig {
   ttlMs: number;
   customQuery: FilterExpression | null;
+  filterFields: RulingsFilterField[];
+  sortFields: RulingsSortField[];
+  displayFields: string[];
 }
 
 async function readConfig(): Promise<CAConfig> {
@@ -51,13 +66,39 @@ async function readConfig(): Promise<CAConfig> {
     const ttlMs = Number.isFinite(raw)
       ? Math.max(MIN_TTL_MINUTES, Math.min(MAX_TTL_MINUTES, raw)) * 60_000
       : DEFAULT_TTL_MINUTES * 60_000;
+    const q = content?.query;
     const customQuery =
-      content?.query && typeof content.query === "object"
-        ? (content.query.customQuery ?? null)
-        : null;
-    return { ttlMs, customQuery };
+      q && typeof q === "object" ? (q.customQuery ?? null) : null;
+    const filterFields =
+      q && Array.isArray(q.filterFields)
+        ? q.filterFields.filter(
+            (f): f is RulingsFilterField =>
+              !!f &&
+              typeof f.key === "string" &&
+              f.key.trim() !== "" &&
+              VALID_FILTER_CONTROLS.includes(f.control),
+          )
+        : [];
+    const sortFields =
+      q && Array.isArray(q.sortFields)
+        ? q.sortFields.filter(
+            (s): s is RulingsSortField =>
+              !!s && typeof s.key === "string" && s.key.trim() !== "",
+          )
+        : [];
+    const displayFields =
+      q && Array.isArray(q.displayFields)
+        ? q.displayFields.map((s) => String(s).trim()).filter(Boolean)
+        : [];
+    return { ttlMs, customQuery, filterFields, sortFields, displayFields };
   } catch {
-    return { ttlMs: DEFAULT_TTL_MINUTES * 60_000, customQuery: null };
+    return {
+      ttlMs: DEFAULT_TTL_MINUTES * 60_000,
+      customQuery: null,
+      filterFields: [],
+      sortFields: [],
+      displayFields: [],
+    };
   }
 }
 
@@ -277,25 +318,67 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Admin base filter first, then the dashboard's own user filters.
+  // Admin base filter → dashboard's native filters → admin-configured user
+  // filters (additive, all default to no-op when unset).
   const adminFiltered = applyAdminQuery(allItems, config.customQuery);
-  const filtered = applyPostFilters(adminFiltered, params);
-  const grouped = groupByCase(filtered);
-  const sortParam = params.get("sort") as SortOrder | null;
-  const sortOrder: SortOrder = sortParam && VALID_SORTS.has(sortParam) ? sortParam : "date_desc";
-  const cases = sortCases(grouped, sortOrder);
+  const nativeFiltered = applyPostFilters(adminFiltered, params);
+  const userFilters = parseUserFilters(params.get("userFilters"));
+  const docFiltered = applyUserFilters(
+    nativeFiltered as unknown as Array<Record<string, unknown>>,
+    config.filterFields,
+    userFilters,
+  ) as unknown as ClassActionDocument[];
+
+  const grouped = groupByCase(docFiltered);
+
+  // Sorting: an admin-configured sort field (sort=<fieldKey> + dir) takes
+  // precedence; otherwise the dashboard's native SortOrder.
+  const sortParam = params.get("sort");
+  const sortFieldKeys = new Set(config.sortFields.map((s) => s.key));
+  let cases: ClassActionCase[];
+  if (sortParam && sortFieldKeys.has(sortParam)) {
+    const dir: SortDir = params.get("dir") === "asc" ? "asc" : "desc";
+    cases = sortByConfiguredField(
+      grouped as unknown as Array<Record<string, unknown>>,
+      sortParam,
+      dir,
+    ) as unknown as ClassActionCase[];
+  } else {
+    const sortOrder: SortOrder =
+      sortParam && VALID_SORTS.has(sortParam as SortOrder)
+        ? (sortParam as SortOrder)
+        : "date_desc";
+    cases = sortCases(grouped, sortOrder);
+  }
+
   const page = cases.slice(skip, skip + limit);
 
-  const body: CasesListResponse = {
+  // Select options computed from the admin+native filtered set so the choices
+  // stay stable as the user narrows down.
+  const filterOptions = computeSelectOptions(
+    nativeFiltered as unknown as Array<Record<string, unknown>>,
+    config.filterFields,
+  );
+
+  const body: CasesListResponse & {
+    filterFields: RulingsFilterField[];
+    sortFields: RulingsSortField[];
+    displayFields: string[];
+    filterOptions: Record<string, string[]>;
+  } = {
     total: cases.length,
     skip,
     limit,
     cases: page,
+    filterFields: config.filterFields,
+    sortFields: config.sortFields,
+    displayFields: config.displayFields,
+    filterOptions,
   };
 
   return NextResponse.json(body, {
     headers: {
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600",
+      "Cache-Control": "private, no-store",
       "X-Cache": cacheStatus,
     },
   });

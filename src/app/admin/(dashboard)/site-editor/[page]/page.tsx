@@ -391,7 +391,8 @@ export default function SiteEditorPageEditor({
               }}
               advancedQuery={{
                 field: "query",
-                onlyCustomQuery: true,
+                schemaHintUrl: "/api/class-actions/schema",
+                showApiParams: false,
                 examples: [
                   {
                     label: "סכום תביעה ≥ מיליון ₪",
@@ -426,7 +427,8 @@ export default function SiteEditorPageEditor({
               embedAction={{ endpoint: "/api/guidelines/embed" }}
               advancedQuery={{
                 field: "query",
-                onlyCustomQuery: true,
+                schemaHintUrl: "/api/guidelines/schema",
+                showApiParams: false,
                 examples: [
                   {
                     label: "מקור מסוים בלבד",
