@@ -5,7 +5,11 @@ import type {
 
 const UPSTREAM = "https://tag-it.biz/api/public/class-action/documents";
 const PAGE_SIZE = 500;
-const PARALLEL = 4;
+// Concurrency for the bulk fetch. Kept low (2) so we never hold more than a
+// couple of large page responses in memory at once — the fetch happens at
+// most once per TTL, so the marginally slower refresh doesn't affect cached
+// serving but meaningfully lowers the peak RSS that triggered 512MB OOMs.
+const PARALLEL = 2;
 
 export interface FetchAllOptions {
   filters?: Record<string, string | undefined>;

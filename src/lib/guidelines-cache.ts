@@ -8,6 +8,12 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
+// Bounded LRU. Each entry can hold a large document array, so we cap the
+// number of entries low and evict the LEAST-recently-used (not FIFO) — that
+// keeps the hot full-corpus entry resident while rare filter combos rotate
+// out, bounding worst-case memory without hurting typical browsing.
+const MAX_ENTRIES = 16;
+
 export function getCached(key: string): Guideline[] | null {
   const entry = cache.get(key);
   if (!entry) return null;
@@ -15,14 +21,19 @@ export function getCached(key: string): Guideline[] | null {
     cache.delete(key);
     return null;
   }
+  // Touch: move to most-recently-used position.
+  cache.delete(key);
+  cache.set(key, entry);
   return entry.items;
 }
 
 export function setCached(key: string, items: Guideline[], ttlMs: number) {
+  cache.delete(key);
   cache.set(key, { items, ts: Date.now(), ttl: ttlMs });
-  if (cache.size > 200) {
+  while (cache.size > MAX_ENTRIES) {
     const oldest = cache.keys().next().value;
-    if (oldest) cache.delete(oldest);
+    if (!oldest) break;
+    cache.delete(oldest);
   }
 }
 

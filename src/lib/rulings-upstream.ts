@@ -23,7 +23,7 @@ interface UpstreamListResponse {
 
 const UPSTREAM_BASE = process.env.TAGIT_API_URL || "https://tag-it.biz";
 const PAGE_SIZE = 100;   // TAG-IT spec: max 100 per page
-const PARALLEL = 4;      // matches class-actions-upstream
+const PARALLEL = 2;      // low concurrency to cap peak fetch memory (RSS)
 
 function getApiKey() {
   return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;

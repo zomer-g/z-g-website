@@ -2,7 +2,9 @@ import type { Guideline, UpstreamGuidelinesListResponse } from "@/types/guidelin
 
 const UPSTREAM = "https://tag-it.biz/api/public/over-guidelines/documents";
 const PAGE_SIZE = 500; // upstream max
-const PARALLEL = 4;
+// Low concurrency to cap peak memory during the once-per-TTL bulk fetch
+// (see class-actions-upstream for rationale).
+const PARALLEL = 2;
 
 export function getGuidelinesApiKey(): string | undefined {
   return process.env.GUIDELINES_API_KEY || process.env.CLASS_ACTION_API_KEY;
