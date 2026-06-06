@@ -11,6 +11,9 @@ export function getGuidelinesApiKey(): string | undefined {
 export interface FetchAllOptions {
   filters?: Record<string, string | undefined>;
   signal?: AbortSignal;
+  // Return just the first page — enough to infer a field schema without
+  // pulling the whole corpus into memory (avoids 512MB OOM spikes).
+  sampleOnly?: boolean;
 }
 
 // Walks every page of the upstream list endpoint and returns the full
@@ -47,6 +50,7 @@ export async function fetchAllUpstreamGuidelines(
   const first = await fetchOne(0);
   if (!first) return null;
   const all: Guideline[] = [...(first.items || [])];
+  if (opts.sampleOnly) return all;
   const total = Number(first.total) || all.length;
   if (all.length >= total) return all;
 

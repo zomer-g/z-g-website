@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getCached, setCached } from "@/lib/class-actions-cache";
+import { getCached } from "@/lib/class-actions-cache";
 import {
   fetchAllUpstreamClassActions,
   stripClassActionUrls,
@@ -26,15 +26,21 @@ export async function GET() {
   }
 
   try {
-    // Reuse the unfiltered cache if present; otherwise fetch + cache.
+    // Prefer the full cache if a visitor already populated it; otherwise
+    // fetch only a SAMPLE (first page) — enough to infer the field list
+    // without loading the whole corpus into memory (avoids 512MB OOM).
     let items = getCached("");
     if (!items) {
-      const raw = await fetchAllUpstreamClassActions({ filters: {} });
+      const raw = await fetchAllUpstreamClassActions({
+        filters: {},
+        sampleOnly: true,
+      });
       if (raw === null) {
         return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
       }
+      // Don't cache the partial sample under the documents key — it would
+      // serve truncated data to the public listing.
       items = stripClassActionUrls(raw);
-      setCached("", items, 60 * 60_000);
     }
 
     const fields = computeSchemaFromItems(

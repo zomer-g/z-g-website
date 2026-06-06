@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getCached, setCached, UNFILTERED_KEY } from "@/lib/guidelines-cache";
+import { getCached, UNFILTERED_KEY } from "@/lib/guidelines-cache";
 import {
   fetchAllUpstreamGuidelines,
   getGuidelinesApiKey,
@@ -26,14 +26,15 @@ export async function GET() {
   }
 
   try {
+    // Prefer the full cache if present; otherwise fetch only a SAMPLE so we
+    // don't pull the whole corpus into memory (avoids 512MB OOM).
     let items = getCached(UNFILTERED_KEY);
     if (!items) {
-      const raw = await fetchAllUpstreamGuidelines();
+      const raw = await fetchAllUpstreamGuidelines({ sampleOnly: true });
       if (raw === null) {
         return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
       }
       items = stripUrls(raw);
-      setCached(UNFILTERED_KEY, items, 60 * 60_000);
     }
 
     const fields = computeSchemaFromItems(
