@@ -38,15 +38,50 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
   // change (effect deps) so the cleanup runs naturally.
   useEffect(() => {
     const audio = new Audio();
-    audio.preload = "none";
+    // Load metadata eagerly so the duration is known before the first
+    // play — otherwise the progress bar has no denominator and stays at
+    // 0 even while the audio advances.
+    audio.preload = "metadata";
     audio.src = src;
     audioRef.current = audio;
 
-    const onTime = () => setCurrent(audio.currentTime);
+    // Many WhatsApp voice notes are streamed opus/ogg/m4a, for which the
+    // browser reports duration = Infinity until it has decoded to the
+    // end. The classic workaround: seek to a huge time once, which forces
+    // the browser to compute the real duration, then reset to 0.
+    let durationFixPending = false;
+
+    const applyFiniteDuration = (): boolean => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        setDuration(audio.duration);
+        return true;
+      }
+      return false;
+    };
+
     const onLoaded = () => {
-      // Some browsers (Chrome esp. for opus) only fill duration after
-      // the first decode; we keep listening to durationchange too.
-      if (Number.isFinite(audio.duration)) setDuration(audio.duration);
+      if (applyFiniteDuration()) return;
+      if (audio.duration === Infinity && !durationFixPending) {
+        durationFixPending = true;
+        try {
+          audio.currentTime = 1e101;
+        } catch {
+          /* ignore — some browsers reject the seek; we fall back to
+             resolving duration lazily on first play instead. */
+        }
+      }
+    };
+
+    const onTime = () => {
+      // Resolve the forced-seek workaround: once the real duration is
+      // available, snap back to the start before the user ever plays.
+      if (durationFixPending && applyFiniteDuration()) {
+        durationFixPending = false;
+        audio.currentTime = 0;
+        setCurrent(0);
+        return;
+      }
+      setCurrent(audio.currentTime);
     };
     const onEnded = () => {
       setIsPlaying(false);
@@ -109,7 +144,14 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
   const btnBg = outgoing ? "bg-emerald-600 text-white" : "bg-white text-emerald-700 border border-emerald-200";
 
   return (
-    <div className="flex items-center gap-3 min-w-[220px]" dir="ltr">
+    <div
+      className="flex items-center gap-3 min-w-[220px]"
+      dir="ltr"
+      // Keep clicks inside the player local — when the bubble is in
+      // selection mode the row's onClick would otherwise toggle the
+      // message selection. Tapping the play area should only play/seek.
+      onClick={(e) => e.stopPropagation()}
+    >
       <button
         type="button"
         onClick={toggle}
