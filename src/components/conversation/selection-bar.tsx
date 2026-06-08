@@ -3,20 +3,16 @@
 // Sticky bar that appears at the bottom of the chat pane whenever one
 // or more messages are selected. Shows a count + actions:
 //   - הדפסה        → print the selected messages
-//   - הצג נבחרות   → mark the selection and focus the view on it
 //   - הסתר         → (admin only) bulk-hide the selected messages
 //   - X            → clear the selection / exit selection mode
 
-import { Printer, X, CheckSquare, ListFilter, EyeOff } from "lucide-react";
+import { Printer, X, CheckSquare, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SelectionBarProps {
   count: number;
   onPrint: () => void;
   onClear: () => void;
-  // Mark the current selection and switch the pane to "focus" mode
-  // (showing only those items). Optional — omitted where unsupported.
-  onFocusSelected?: () => void;
   // Bulk-hide the selected messages. Only provided for admins on the
   // private management interface.
   onHideSelected?: () => void;
@@ -29,7 +25,6 @@ export function SelectionBar({
   count,
   onPrint,
   onClear,
-  onFocusSelected,
   onHideSelected,
   itemNounSingular = "הודעה",
   itemNounPlural = "הודעות",
@@ -69,23 +64,6 @@ export function SelectionBar({
           <Printer className="h-4 w-4" aria-hidden="true" />
           <span>הדפסה</span>
         </button>
-
-        {onFocusSelected ? (
-          <button
-            type="button"
-            onClick={onFocusSelected}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5",
-              "bg-white/15 text-white text-sm font-semibold",
-              "hover:bg-white/25 transition-colors",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
-            )}
-            aria-label="סימון והצגת הנבחרים בלבד"
-          >
-            <ListFilter className="h-4 w-4" aria-hidden="true" />
-            <span>הצג נבחרות</span>
-          </button>
-        ) : null}
 
         {onHideSelected ? (
           <button

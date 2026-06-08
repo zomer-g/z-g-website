@@ -11,7 +11,7 @@
 //     can add events. These are session-only — nothing is persisted.
 //   - No live API; no admin features; no merged-view picker.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { WorkflowsSidebar, type SidebarTab } from "./workflows-sidebar";
 import { EventPane } from "./event-pane";
 import { ComposeBar } from "./compose-bar";
@@ -194,36 +194,33 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
     printMessages(all, { title: `אירועים — ${ctxLabel}`, subtitle: title });
   }, [activeEvents, ctxLabel, title]);
 
-  /* ── Focus (mark a subset + toggle "show marked only") ── */
-  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
-  const [focusActive, setFocusActive] = useState(false);
+  /* ── Star (per-event mark + "show starred only" filter) ── */
+  const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+  const [starFilterActive, setStarFilterActive] = useState(false);
 
-  // Marks are scoped to the active context — switching entity/process
-  // clears them.
-  useEffect(() => {
-    setMarkedIds(new Set());
-    setFocusActive(false);
-  }, [active]);
-
-  const handleFocusSelected = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    setMarkedIds(new Set(selectedIds));
-    setFocusActive(true);
-    exitSelection();
-  }, [selectedIds, exitSelection]);
-
-  const toggleFocus = useCallback(() => setFocusActive((v) => !v), []);
-  const clearMarks = useCallback(() => {
-    setMarkedIds(new Set());
-    setFocusActive(false);
+  const toggleStar = useCallback((id: string) => {
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
+  const toggleStarFilter = useCallback(
+    () => setStarFilterActive((v) => !v),
+    [],
+  );
 
   const visibleEvents = useMemo<WorkflowEvent[]>(
     () =>
-      focusActive && markedIds.size > 0
-        ? activeEvents.filter((e) => markedIds.has(e.id))
+      starFilterActive
+        ? activeEvents.filter((e) => starredIds.has(e.id))
         : activeEvents,
-    [activeEvents, focusActive, markedIds],
+    [activeEvents, starFilterActive, starredIds],
+  );
+  const starredCount = useMemo(
+    () => activeEvents.reduce((n, e) => n + (starredIds.has(e.id) ? 1 : 0), 0),
+    [activeEvents, starredIds],
   );
 
   /* ── Right pane is "open" whenever we have a selected context. The
@@ -282,11 +279,11 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
             onExitSelection={exitSelection}
             onPrintSelected={handlePrintSelected}
             onPrintAll={handlePrintAll}
-            onFocusSelected={handleFocusSelected}
-            markedCount={markedIds.size}
-            focusActive={focusActive}
-            onToggleFocus={toggleFocus}
-            onClearMarks={clearMarks}
+            starredIds={starredIds}
+            onToggleStar={toggleStar}
+            starFilterActive={starFilterActive}
+            onToggleStarFilter={toggleStarFilter}
+            starredCount={starredCount}
           />
           {/* Compose only when a context is open — adding an untagged
               event would be meaningless. The compose `key` resets local

@@ -20,10 +20,10 @@ import {
   BellRing,
   CheckSquare,
   Printer,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectionBar } from "@/components/conversation/selection-bar";
-import { FocusBanner } from "@/components/conversation/focus-banner";
 import type {
   EntityType,
   ProcessKind,
@@ -53,11 +53,11 @@ interface EventPaneProps {
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
   onPrintAll?: () => void;
-  onFocusSelected?: () => void;
-  markedCount?: number;
-  focusActive?: boolean;
-  onToggleFocus?: () => void;
-  onClearMarks?: () => void;
+  starredIds?: Set<string>;
+  onToggleStar?: (id: string) => void;
+  starFilterActive?: boolean;
+  onToggleStarFilter?: () => void;
+  starredCount?: number;
 }
 
 /* ─── Reminder formatting helpers ─── */
@@ -160,11 +160,11 @@ export function EventPane({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
-  onFocusSelected,
-  markedCount = 0,
-  focusActive = false,
-  onToggleFocus,
-  onClearMarks,
+  starredIds,
+  onToggleStar,
+  starFilterActive = false,
+  onToggleStarFilter,
+  starredCount = 0,
 }: EventPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -292,6 +292,29 @@ export function EventPane({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={onToggleStarFilter}
+              aria-pressed={starFilterActive}
+              title={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מסומנים בכוכב בלבד"}
+              aria-label={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מסומנים בכוכב בלבד"}
+              className={cn(
+                "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                starFilterActive
+                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                  : "hover:bg-black/5 text-gray-600",
+              )}
+            >
+              <Star
+                className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
+                aria-hidden="true"
+              />
+              {starredCount > 0 ? (
+                <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
+                  {starredCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
               onClick={onPrintAll}
               title="הדפסת כל האירועים המוצגים"
               aria-label="הדפסת כל האירועים המוצגים"
@@ -312,21 +335,15 @@ export function EventPane({
         ) : null}
       </header>
 
-      <FocusBanner
-        markedCount={markedCount}
-        focusActive={focusActive}
-        onToggleFocus={onToggleFocus ?? (() => {})}
-        onClearMarks={onClearMarks ?? (() => {})}
-        itemNoun="אירועים"
-      />
-
       <div
         ref={listRef}
         className="flex-1 overflow-y-auto py-3 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2040%2040%22%3E%3Ccircle%20cx=%2220%22%20cy=%2220%22%20r=%221%22%20fill=%22%23d8d2c8%22/%3E%3C/svg%3E')]"
       >
         {items.length === 0 ? (
           <div className="text-center py-12 text-sm text-gray-700" role="status">
-            אין אירועים תחת ההקשר הזה עדיין. אפשר להוסיף אירוע חדש מטה.
+            {starFilterActive
+              ? "אין אירועים מסומנים בכוכב בהקשר זה."
+              : "אין אירועים תחת ההקשר הזה עדיין. אפשר להוסיף אירוע חדש מטה."}
           </div>
         ) : (
           items.map((it) =>
@@ -353,6 +370,8 @@ export function EventPane({
                 selectable={selectionMode}
                 selected={selectedIds?.has(it.evt.id)}
                 onSelect={onToggleSelection}
+                starred={starredIds?.has(it.evt.id)}
+                onToggleStar={onToggleStar}
               />
             ),
           )
@@ -362,7 +381,6 @@ export function EventPane({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
-        onFocusSelected={onFocusSelected}
         itemNounSingular="אירוע"
         itemNounPlural="אירועים"
       />
@@ -383,6 +401,8 @@ function EventBubble({
   selectable = false,
   selected = false,
   onSelect,
+  starred = false,
+  onToggleStar,
 }: {
   evt: WorkflowEvent;
   isOutgoing: boolean;
@@ -394,6 +414,8 @@ function EventBubble({
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (id: string, shift?: boolean) => void;
+  starred?: boolean;
+  onToggleStar?: (id: string) => void;
 }) {
   // Filter out the chip for the currently-open context — it's redundant
   // (the user already knows they're in that lane).
@@ -413,7 +435,7 @@ function EventBubble({
   return (
     <div
       className={cn(
-        "flex w-full px-2 my-0.5 items-start",
+        "group/evt flex w-full px-2 my-0.5 items-start",
         isOutgoing ? "justify-start" : "justify-end",
         selectable && "cursor-pointer",
         selectable && selected && "bg-emerald-50/60",
@@ -427,6 +449,32 @@ function EventBubble({
       role={selectable ? "checkbox" : undefined}
       aria-checked={selectable ? selected : undefined}
     >
+      {/* Star toggle — available to everyone, hidden in selection mode. */}
+      {!selectable && onToggleStar ? (
+        <div className="shrink-0 flex flex-col items-center mt-1.5 opacity-0 group-hover/evt:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStar(evt.id);
+            }}
+            aria-label={starred ? "ביטול הסימון בכוכב" : "סימון האירוע בכוכב"}
+            aria-pressed={starred}
+            title={starred ? "ביטול סימון בכוכב" : "סימון בכוכב"}
+            className={cn(
+              "rounded-full p-1",
+              starred
+                ? "text-amber-500 hover:bg-amber-50"
+                : "text-gray-500 hover:bg-black/5",
+            )}
+          >
+            <Star
+              className={cn("h-3.5 w-3.5", starred && "fill-amber-400")}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      ) : null}
       {selectable ? (
         <div
           className={cn(
@@ -504,8 +552,16 @@ function EventBubble({
           </div>
         )}
 
-        <div className="text-[10px] text-gray-600 text-end mt-0.5">
-          <time dateTime={evt.timestamp}>{formatTime(evt.timestamp)}</time>
+        <div className="flex items-center justify-end gap-1 mt-0.5">
+          {starred ? (
+            <Star
+              className="h-3 w-3 text-amber-500 fill-amber-400"
+              aria-label="מסומן בכוכב"
+            />
+          ) : null}
+          <span className="text-[10px] text-gray-600">
+            <time dateTime={evt.timestamp}>{formatTime(evt.timestamp)}</time>
+          </span>
         </div>
       </div>
     </div>

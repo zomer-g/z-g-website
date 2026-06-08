@@ -20,6 +20,7 @@ import {
   FileText,
   Image as ImageIcon,
   Mic,
+  Star,
   Tag as TagIcon,
   X,
 } from "lucide-react";
@@ -59,6 +60,11 @@ interface MessageBubbleProps {
   selectable?: boolean;
   selected?: boolean;
   onSelect?: (messageId: string, shift?: boolean) => void;
+  // Star ("מסומן בכוכב") — a lightweight per-message mark, like WhatsApp
+  // starred messages. Available to everyone, independent of selection
+  // mode. When starred, a filled star shows next to the timestamp.
+  starred?: boolean;
+  onToggleStar?: (messageId: string) => void;
 }
 
 function formatBytes(n: number): string {
@@ -121,6 +127,8 @@ export function MessageBubble({
   selectable = false,
   selected = false,
   onSelect,
+  starred = false,
+  onToggleStar,
 }: MessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
@@ -152,6 +160,7 @@ export function MessageBubble({
   const isAudio = message.media?.mimeType.startsWith("audio/");
   const hideable = isAdmin && !!onToggleHidden;
   const taggable = isAdmin && !!onAttachTag && !!onDetachTag;
+  const starrable = !!onToggleStar;
   const itemTags = message.tags ?? [];
   const activeTagSet = activeTagIds ? new Set(activeTagIds) : undefined;
 
@@ -196,12 +205,34 @@ export function MessageBubble({
           ) : null}
         </div>
       ) : null}
-      {/* Admin hide/unhide toggle. Floats to the side opposite the bubble
-          so it doesn't crowd the message content. Fades in on hover. */}
-      {/* Admin-only hover controls stacked vertically. The tag button
-          also surfaces the per-bubble TagPicker popover. */}
-      {(hideable || taggable) ? (
+      {/* Hover controls stacked vertically beside the bubble. The star
+          toggle is available to everyone; hide + tag are admin-only.
+          Hidden while in selection mode to avoid click conflicts. */}
+      {(!selectable && (starrable || hideable || taggable)) ? (
         <div className="shrink-0 flex flex-col items-center mt-1.5 gap-0.5 opacity-0 group-hover/bubble:opacity-100 focus-within:opacity-100 transition-opacity">
+          {starrable ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleStar!(message.id);
+              }}
+              aria-label={starred ? "ביטול הסימון בכוכב" : "סימון ההודעה בכוכב"}
+              aria-pressed={starred}
+              title={starred ? "ביטול סימון בכוכב" : "סימון בכוכב"}
+              className={cn(
+                "rounded-full p-1",
+                starred
+                  ? "text-amber-500 hover:bg-amber-50"
+                  : "text-gray-500 hover:bg-black/5",
+              )}
+            >
+              <Star
+                className={cn("h-3.5 w-3.5", starred && "fill-amber-400")}
+                aria-hidden="true"
+              />
+            </button>
+          ) : null}
           {hideable ? (
             <button
               type="button"
@@ -372,7 +403,15 @@ export function MessageBubble({
           </div>
         ) : null}
 
-        <div className="text-[10px] text-gray-500 text-end mt-0.5">{time}</div>
+        <div className="flex items-center justify-end gap-1 mt-0.5">
+          {starred ? (
+            <Star
+              className="h-3 w-3 text-amber-500 fill-amber-400"
+              aria-label="מסומן בכוכב"
+            />
+          ) : null}
+          <span className="text-[10px] text-gray-500">{time}</span>
+        </div>
       </div>
     </div>
   );

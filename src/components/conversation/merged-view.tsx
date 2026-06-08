@@ -10,11 +10,10 @@
 // purely presentational; it doesn't fetch.
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Layers, Loader2, CheckSquare, Printer } from "lucide-react";
+import { ArrowRight, Layers, Loader2, CheckSquare, Printer, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
-import { FocusBanner } from "./focus-banner";
 import type { WhatsappMessageDTO } from "./types";
 
 export interface MergedMessage extends WhatsappMessageDTO {
@@ -47,12 +46,12 @@ interface MergedViewProps {
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
   onPrintAll?: () => void;
-  onFocusSelected?: () => void;
   onHideSelected?: () => void;
-  markedCount?: number;
-  focusActive?: boolean;
-  onToggleFocus?: () => void;
-  onClearMarks?: () => void;
+  starredIds?: Set<string>;
+  onToggleStar?: (id: string) => void;
+  starFilterActive?: boolean;
+  onToggleStarFilter?: () => void;
+  starredCount?: number;
 }
 
 function dayKey(iso: string): string {
@@ -99,12 +98,12 @@ export function MergedView({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
-  onFocusSelected,
   onHideSelected,
-  markedCount = 0,
-  focusActive = false,
-  onToggleFocus,
-  onClearMarks,
+  starredIds,
+  onToggleStar,
+  starFilterActive = false,
+  onToggleStarFilter,
+  starredCount = 0,
 }: MergedViewProps) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -172,6 +171,29 @@ export function MergedView({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
+              onClick={onToggleStarFilter}
+              aria-pressed={starFilterActive}
+              title={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
+              aria-label={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
+              className={cn(
+                "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                starFilterActive
+                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                  : "hover:bg-black/5 text-gray-600",
+              )}
+            >
+              <Star
+                className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
+                aria-hidden="true"
+              />
+              {starredCount > 0 ? (
+                <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
+                  {starredCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
               onClick={onPrintAll}
               title="הדפסת כל ההודעות המוצגות"
               aria-label="הדפסת כל ההודעות המוצגות"
@@ -182,7 +204,7 @@ export function MergedView({
             <button
               type="button"
               onClick={onEnterSelection}
-              title="בחירת הודעות להדפסה"
+              title="בחירת הודעות להדפסה או להסתרה"
               aria-label="כניסה למצב בחירת הודעות"
               className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
             >
@@ -191,13 +213,6 @@ export function MergedView({
           </div>
         ) : null}
       </header>
-
-      <FocusBanner
-        markedCount={markedCount}
-        focusActive={focusActive}
-        onToggleFocus={onToggleFocus ?? (() => {})}
-        onClearMarks={onClearMarks ?? (() => {})}
-      />
 
       <div
         ref={listRef}
@@ -216,7 +231,9 @@ export function MergedView({
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-12 text-sm text-gray-500">
-            לא נמצאו הודעות בשיחות שנבחרו.
+            {starFilterActive
+              ? "אין הודעות מסומנות בכוכב בתצוגה זו."
+              : "לא נמצאו הודעות בשיחות שנבחרו."}
           </div>
         ) : (
           items.map((it) => {
@@ -261,6 +278,8 @@ export function MergedView({
                   selectable={selectionMode}
                   selected={selectedIds?.has(msg.id)}
                   onSelect={onToggleSelection}
+                  starred={starredIds?.has(msg.id)}
+                  onToggleStar={onToggleStar}
                 />
               </div>
             );
@@ -271,7 +290,6 @@ export function MergedView({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
-        onFocusSelected={onFocusSelected}
         onHideSelected={onHideSelected}
       />
     </div>

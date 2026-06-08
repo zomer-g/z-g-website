@@ -635,40 +635,37 @@ function ConversationShellInner({
     printMessages(pool, { title, source, subtitle: workspace.title });
   }, [currentPool, workspace.title]);
 
-  /* ── Focus (mark a subset + toggle "show marked only") ── */
-  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
-  const [focusActive, setFocusActive] = useState(false);
+  /* ── Star (per-message mark + "show starred only" filter) ── */
+  // Like WhatsApp starred messages: each bubble can be starred via its
+  // star button (everyone, any view). Stars are session-local and
+  // persist across chats/views for the lifetime of the page — they are
+  // NOT reset on navigation, so a star set in one chat stays set.
+  const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
+  const [starFilterActive, setStarFilterActive] = useState(false);
 
-  // Marks are scoped to the current view — switching chat / entering or
-  // leaving merged / toggling search clears them so they never "leak"
-  // into a context where the ids don't exist.
-  useEffect(() => {
-    setMarkedIds(new Set());
-    setFocusActive(false);
-  }, [activeChatId, mergedChatIds, searchActive]);
-
-  // From the selection bar: persist the current selection as the marked
-  // set, turn focus on, and leave selection mode.
-  const handleFocusSelected = useCallback(() => {
-    if (selectedIds.size === 0) return;
-    setMarkedIds(new Set(selectedIds));
-    setFocusActive(true);
-    exitSelection();
-  }, [selectedIds, exitSelection]);
-
-  const toggleFocus = useCallback(() => setFocusActive((v) => !v), []);
-  const clearMarks = useCallback(() => {
-    setMarkedIds(new Set());
-    setFocusActive(false);
+  const toggleStar = useCallback((id: string) => {
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, []);
+  const toggleStarFilter = useCallback(
+    () => setStarFilterActive((v) => !v),
+    [],
+  );
 
-  // When focus is on, restrict each pane to the marked subset.
-  const filterFocus = useCallback(
+  // When the star filter is on, restrict each pane to starred items.
+  const filterStar = useCallback(
     <T extends WhatsappMessageDTO>(list: T[]): T[] =>
-      focusActive && markedIds.size > 0
-        ? list.filter((m) => markedIds.has(m.id) || m.isSystem)
-        : list,
-    [focusActive, markedIds],
+      starFilterActive ? list.filter((m) => starredIds.has(m.id)) : list,
+    [starFilterActive, starredIds],
+  );
+  const starredCountIn = useCallback(
+    (list: WhatsappMessageDTO[]): number =>
+      list.reduce((n, m) => n + (starredIds.has(m.id) ? 1 : 0), 0),
+    [starredIds],
   );
 
   /* ── Bulk hide (admin only) ── */
@@ -754,7 +751,7 @@ function ConversationShellInner({
         >
           {searchActive ? (
             <MergedView
-              messages={filterFocus(searchResults)}
+              messages={filterStar(searchResults)}
               loading={searchLoading}
               error={searchError}
               workspaceSelfSender={workspace.selfSender}
@@ -772,16 +769,16 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
-              onFocusSelected={handleFocusSelected}
               onHideSelected={isAdmin ? handleHideSelected : undefined}
-              markedCount={markedIds.size}
-              focusActive={focusActive}
-              onToggleFocus={toggleFocus}
-              onClearMarks={clearMarks}
+              starredIds={starredIds}
+              onToggleStar={toggleStar}
+              starFilterActive={starFilterActive}
+              onToggleStarFilter={toggleStarFilter}
+              starredCount={starredCountIn(searchResults)}
             />
           ) : inMergedView ? (
             <MergedView
-              messages={filterFocus(mergedMessages)}
+              messages={filterStar(mergedMessages)}
               loading={mergedLoading}
               error={mergedError}
               workspaceSelfSender={workspace.selfSender}
@@ -794,17 +791,17 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
-              onFocusSelected={handleFocusSelected}
               onHideSelected={isAdmin ? handleHideSelected : undefined}
-              markedCount={markedIds.size}
-              focusActive={focusActive}
-              onToggleFocus={toggleFocus}
-              onClearMarks={clearMarks}
+              starredIds={starredIds}
+              onToggleStar={toggleStar}
+              starFilterActive={starFilterActive}
+              onToggleStarFilter={toggleStarFilter}
+              starredCount={starredCountIn(mergedMessages)}
             />
           ) : (
             <ChatPane
               chat={active}
-              messages={filterFocus(messages)}
+              messages={filterStar(messages)}
               loading={loading}
               error={error}
               selfSender={active?.selfSender ?? workspace.selfSender}
@@ -823,12 +820,12 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
-              onFocusSelected={handleFocusSelected}
               onHideSelected={isAdmin ? handleHideSelected : undefined}
-              markedCount={markedIds.size}
-              focusActive={focusActive}
-              onToggleFocus={toggleFocus}
-              onClearMarks={clearMarks}
+              starredIds={starredIds}
+              onToggleStar={toggleStar}
+              starFilterActive={starFilterActive}
+              onToggleStarFilter={toggleStarFilter}
+              starredCount={starredCountIn(messages)}
             />
           )}
         </div>

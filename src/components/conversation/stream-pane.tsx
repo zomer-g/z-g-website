@@ -11,11 +11,10 @@
 // API fetch on /whatsapp/<slug>).
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Printer } from "lucide-react";
+import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Printer, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
-import { FocusBanner } from "./focus-banner";
 import type {
   WhatsappMessageDTO,
   WhatsappChatSummary,
@@ -55,15 +54,15 @@ interface ChatPaneProps {
   onPrintSelected?: () => void;
   // Print everything currently displayed, without selecting.
   onPrintAll?: () => void;
-  // Mark the current selection and focus the view on it.
-  onFocusSelected?: () => void;
   // Bulk-hide the selection (admin only).
   onHideSelected?: () => void;
-  // Focus banner state.
-  markedCount?: number;
-  focusActive?: boolean;
-  onToggleFocus?: () => void;
-  onClearMarks?: () => void;
+  // Star (per-message mark) + the "show starred only" filter.
+  starredIds?: Set<string>;
+  onToggleStar?: (id: string) => void;
+  starFilterActive?: boolean;
+  onToggleStarFilter?: () => void;
+  // Count of starred items in the full (unfiltered) pane — for the badge.
+  starredCount?: number;
 }
 
 function dayKey(iso: string): string {
@@ -104,12 +103,12 @@ export function ChatPane({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
-  onFocusSelected,
   onHideSelected,
-  markedCount = 0,
-  focusActive = false,
-  onToggleFocus,
-  onClearMarks,
+  starredIds,
+  onToggleStar,
+  starFilterActive = false,
+  onToggleStarFilter,
+  starredCount = 0,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -235,9 +234,32 @@ export function ChatPane({
               : `${chat.messageCount} ${chat.messageCount === 1 ? "הודעה" : "הודעות"}`}
           </div>
         </div>
-        {/* Header actions: direct print + selection toggle */}
+        {/* Header actions: star filter + direct print + selection toggle */}
         {!selectionMode ? (
           <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={onToggleStarFilter}
+              aria-pressed={starFilterActive}
+              title={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
+              aria-label={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
+              className={cn(
+                "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                starFilterActive
+                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                  : "hover:bg-black/5 text-gray-600",
+              )}
+            >
+              <Star
+                className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
+                aria-hidden="true"
+              />
+              {starredCount > 0 ? (
+                <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
+                  {starredCount}
+                </span>
+              ) : null}
+            </button>
             <button
               type="button"
               onClick={onPrintAll}
@@ -250,7 +272,7 @@ export function ChatPane({
             <button
               type="button"
               onClick={onEnterSelection}
-              title="בחירת הודעות להדפסה"
+              title="בחירת הודעות להדפסה או להסתרה"
               aria-label="כניסה למצב בחירת הודעות"
               className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
             >
@@ -259,14 +281,6 @@ export function ChatPane({
           </div>
         ) : null}
       </header>
-
-      {/* Focus banner — toggle between full conversation and marked subset */}
-      <FocusBanner
-        markedCount={markedCount}
-        focusActive={focusActive}
-        onToggleFocus={onToggleFocus ?? (() => {})}
-        onClearMarks={onClearMarks ?? (() => {})}
-      />
 
       {/* Message list */}
       <div
@@ -298,7 +312,9 @@ export function ChatPane({
             className="text-center py-12 text-sm text-gray-700"
             role="status"
           >
-            אין הודעות בשיחה זו.
+            {starFilterActive
+              ? "אין הודעות מסומנות בכוכב בשיחה זו."
+              : "אין הודעות בשיחה זו."}
           </div>
         ) : (
           items.map((it) =>
@@ -324,6 +340,8 @@ export function ChatPane({
                 selectable={selectionMode}
                 selected={selectedIds?.has(it.msg.id)}
                 onSelect={onToggleSelection}
+                starred={starredIds?.has(it.msg.id)}
+                onToggleStar={onToggleStar}
               />
             ),
           )
@@ -333,7 +351,6 @@ export function ChatPane({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
-        onFocusSelected={onFocusSelected}
         onHideSelected={onHideSelected}
       />
     </div>
