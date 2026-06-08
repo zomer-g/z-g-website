@@ -26,15 +26,18 @@ export async function PATCH(
   if (guard) return guard;
 
   const { messageId } = await ctx.params;
-  let body: { isHidden?: unknown };
+  let body: { isHidden?: unknown; isStarred?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
     return NextResponse.json({ error: "JSON לא תקין" }, { status: 400 });
   }
-  if (typeof body.isHidden !== "boolean") {
+  const data: { isHidden?: boolean; isStarred?: boolean } = {};
+  if (typeof body.isHidden === "boolean") data.isHidden = body.isHidden;
+  if (typeof body.isStarred === "boolean") data.isStarred = body.isStarred;
+  if (Object.keys(data).length === 0) {
     return NextResponse.json(
-      { error: "נדרש שדה isHidden מסוג boolean" },
+      { error: "נדרש שדה isHidden או isStarred מסוג boolean" },
       { status: 400 },
     );
   }
@@ -42,8 +45,8 @@ export async function PATCH(
   try {
     const updated = await prisma.whatsappMessage.update({
       where: { id: messageId },
-      data: { isHidden: body.isHidden },
-      select: { id: true, isHidden: true },
+      data,
+      select: { id: true, isHidden: true, isStarred: true },
     });
     return NextResponse.json({ message: updated });
   } catch (err) {

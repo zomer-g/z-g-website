@@ -59,6 +59,7 @@ export async function GET(
       sender: true,
       isSystem: true,
       isHidden: true,
+      isStarred: true,
       text: true,
       media: {
         select: { id: true, filename: true, mimeType: true, size: true },
@@ -79,6 +80,7 @@ export async function GET(
         actor: m.sender,
         isSystem: m.isSystem,
         isHidden: gate.access.isAdmin ? m.isHidden : false,
+        isStarred: gate.access.isAdmin ? m.isStarred : false,
         text: m.text,
         media: m.media,
         sourceChannelId: m.chat.id,

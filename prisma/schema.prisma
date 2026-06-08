@@ -377,6 +377,9 @@ model WhatsappMessage {
   // remain visible to ADMIN with a "hidden" badge, but are filtered out
   // of the GET response for allowlisted GUEST viewers.
   isHidden  Boolean              @default(false) @map("is_hidden")
+  // Admin can star ("מועדף") individual messages. Persists across
+  // sessions/devices. Returned to ADMIN only (mirrors isHidden gating).
+  isStarred Boolean              @default(false) @map("is_starred")
   text      String? // null when message is media-only
   mediaId   String?              @map("media_id")
   media     WhatsappMedia?       @relation(fields: [mediaId], references: [id], onDelete: SetNull)
@@ -517,6 +520,9 @@ model TimelineEvent {
   title     String?
   body      String?
   isHidden  Boolean            @default(false) @map("is_hidden")
+  // Admin can star ("מועדף") individual events. Persists across
+  // sessions/devices. Returned to ADMIN only (mirrors isHidden gating).
+  isStarred Boolean            @default(false) @map("is_starred")
   mediaId   String?            @map("media_id")
   media     TimelineMedia?     @relation(fields: [mediaId], references: [id], onDelete: SetNull)
   order     Int

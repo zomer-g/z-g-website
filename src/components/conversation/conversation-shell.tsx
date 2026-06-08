@@ -103,6 +103,7 @@ interface ApiMessage {
   sender: string;
   isSystem: boolean;
   isHidden: boolean;
+  isStarred?: boolean;
   text: string | null;
   title?: string | null;
   category?: string | null;
@@ -124,6 +125,7 @@ function apiMsgToDTO(
     sender: m.sender,
     isSystem: m.isSystem,
     isHidden: m.isHidden,
+    isStarred: m.isStarred ?? false,
     text: m.text,
     title: m.title ?? null,
     category: (m.category as WhatsappMessageDTO["category"]) ?? null,
@@ -139,6 +141,24 @@ function apiMsgToDTO(
         }
       : null,
   };
+}
+
+// Reconcile a starred-id set against a freshly-fetched item list: each
+// id present in the payload takes the server's isStarred value; ids not
+// in the payload are left untouched. Module-level (stable) so it can be
+// called from effects/callbacks without dependency-ordering headaches.
+function reconcileStarred(
+  setStarredIds: (updater: (prev: Set<string>) => Set<string>) => void,
+  items: { id: string; isStarred?: boolean }[],
+): void {
+  setStarredIds((prev) => {
+    const next = new Set(prev);
+    for (const it of items) {
+      if (it.isStarred) next.add(it.id);
+      else next.delete(it.id);
+    }
+    return next;
+  });
 }
 
 async function fetchChannelItems(
@@ -282,6 +302,7 @@ function ConversationShellInner({
       try {
         const items = await fetchChannelItems(channelId, apiPaths);
         setMessages(items);
+        reconcileStarred(setStarredIds, items);
       } catch (err) {
         console.error("Failed to load items", err);
         setError(err instanceof Error ? err.message : "שגיאה בטעינת הודעות");
@@ -471,7 +492,10 @@ function ConversationShellInner({
           if (ta !== tb) return ta - tb;
           return a.sourceContact.localeCompare(b.sourceContact, "he");
         });
-        if (!controller.signal.aborted) setMergedMessages(merged);
+        if (!controller.signal.aborted) {
+          setMergedMessages(merged);
+          if (mode === "live") reconcileStarred(setStarredIds, merged);
+        }
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error("Failed to merge channels", err);
@@ -524,7 +548,10 @@ function ConversationShellInner({
           sourceContact: m.sourceContact ?? "",
           sourceSelfSender: m.sourceSelfSender ?? null,
         }));
-        if (!controller.signal.aborted) setSearchResults(items);
+        if (!controller.signal.aborted) {
+          setSearchResults(items);
+          if (mode === "live") reconcileStarred(setStarredIds, items);
+        }
       } catch (err) {
         if (controller.signal.aborted) return;
         console.error("search failed", err);
@@ -650,21 +677,46 @@ function ConversationShellInner({
 
   // Favorite the current selection. Additive + toggle: if every selected
   // item is already starred, this un-stars them; otherwise it stars all.
+  // Persists to the server in live mode (admin); session-local otherwise.
   // Then leaves selection mode so the user can re-enter and add more.
   const handleFavoriteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
     const ids = [...selectedIds];
     const allStarred = ids.every((id) => starredIds.has(id));
+    const nextVal = !allStarred;
     setStarredIds((prev) => {
       const next = new Set(prev);
       for (const id of ids) {
-        if (allStarred) next.delete(id);
-        else next.add(id);
+        if (nextVal) next.add(id);
+        else next.delete(id);
       }
       return next;
     });
     exitSelection();
-  }, [selectedIds, starredIds, exitSelection]);
+
+    // Persist. Only admins can write; mock mode has no backend.
+    if (mode !== "live" || !isAdmin) return;
+    for (const id of ids) {
+      fetch(apiPaths.toggleHidden(id), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isStarred: nextVal }),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        })
+        .catch((err) => {
+          console.error("persist star failed", err);
+          // Roll back just this id so the UI matches the server.
+          setStarredIds((prev) => {
+            const next = new Set(prev);
+            if (nextVal) next.delete(id);
+            else next.add(id);
+            return next;
+          });
+        });
+    }
+  }, [selectedIds, starredIds, exitSelection, mode, isAdmin, apiPaths]);
 
   // When the star filter is on, restrict each pane to starred items.
   const filterStar = useCallback(

@@ -53,6 +53,7 @@ export async function GET(
         sender: true,
         isSystem: true,
         isHidden: true,
+        isStarred: true,
         text: true,
         media: {
           select: {
@@ -80,6 +81,8 @@ export async function GET(
         // Only surface isHidden to admins — guests never see hidden rows
         // anyway, so including the flag would be misleading noise.
         isHidden: gate.access.isAdmin ? m.isHidden : false,
+        // Favorites are an admin working-aid — gated like isHidden.
+        isStarred: gate.access.isAdmin ? m.isStarred : false,
         text: m.text,
         media: m.media,
       })),

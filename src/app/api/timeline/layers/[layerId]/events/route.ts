@@ -56,6 +56,7 @@ export async function GET(
         title: true,
         body: true,
         isHidden: true,
+        isStarred: true,
         media: {
           select: { id: true, filename: true, mimeType: true, size: true },
         },
@@ -82,6 +83,7 @@ export async function GET(
         title: e.title,
         isSystem: false,
         isHidden: gate.access.isAdmin ? e.isHidden : false,
+        isStarred: gate.access.isAdmin ? e.isStarred : false,
         text: e.body,
         media: e.media,
       })),

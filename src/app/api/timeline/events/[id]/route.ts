@@ -20,6 +20,7 @@ export async function PATCH(
   const { id } = await ctx.params;
   let body: {
     isHidden?: unknown;
+    isStarred?: unknown;
     timestamp?: unknown;
     actor?: unknown;
     category?: unknown;
@@ -34,6 +35,7 @@ export async function PATCH(
 
   const data: {
     isHidden?: boolean;
+    isStarred?: boolean;
     timestamp?: Date;
     actor?: string;
     category?: string;
@@ -42,6 +44,7 @@ export async function PATCH(
   } = {};
 
   if (typeof body.isHidden === "boolean") data.isHidden = body.isHidden;
+  if (typeof body.isStarred === "boolean") data.isStarred = body.isStarred;
   if (typeof body.timestamp === "string") {
     const t = new Date(body.timestamp);
     if (Number.isNaN(t.getTime())) {
@@ -87,6 +90,7 @@ export async function PATCH(
         title: true,
         body: true,
         isHidden: true,
+        isStarred: true,
       },
     });
     return NextResponse.json({ event });

@@ -62,6 +62,9 @@ export interface Item {
   // server response for guest viewers; admins receive them flagged
   // so the bubble can fade + show the un-hide toggle.
   isHidden: boolean;
+  // Starred ("מועדף") by the admin. Persisted server-side for live
+  // workspaces; session-local in mock mode.
+  isStarred?: boolean;
   // Free-form free-text body of the item.
   text: string | null;
   media: MediaRef | null;
