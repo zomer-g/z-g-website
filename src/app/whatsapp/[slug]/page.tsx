@@ -131,7 +131,10 @@ export default async function WhatsappWorkspacePage({
 
           <div
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            style={{ height: "min(88vh, 900px)", minHeight: "560px" }}
+            // Fill the viewport below the site header + this page's compact
+            // title row, so the whole interface fits one screen with no
+            // page scroll (only the message list scrolls internally).
+            style={{ height: "calc(100dvh - 160px)", minHeight: "420px" }}
           >
             <div className="flex h-full min-h-0">
               <WhatsappShell workspace={dto} mode="live" isAdmin={access.isAdmin} />

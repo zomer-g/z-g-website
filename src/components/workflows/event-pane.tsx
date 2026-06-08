@@ -21,9 +21,9 @@ import {
   CheckSquare,
   Printer,
   Star,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SelectionBar } from "@/components/conversation/selection-bar";
 import type {
   EntityType,
   ProcessKind,
@@ -53,8 +53,8 @@ interface EventPaneProps {
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
   onPrintAll?: () => void;
+  onFavoriteSelected?: () => void;
   starredIds?: Set<string>;
-  onToggleStar?: (id: string) => void;
   starFilterActive?: boolean;
   onToggleStarFilter?: () => void;
   starredCount?: number;
@@ -160,8 +160,8 @@ export function EventPane({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
+  onFavoriteSelected,
   starredIds,
-  onToggleStar,
   starFilterActive = false,
   onToggleStarFilter,
   starredCount = 0,
@@ -288,51 +288,85 @@ export function EventPane({
               : `${ctxSubtitle ? `${ctxSubtitle} · ` : ""}${events.length} ${events.length === 1 ? "אירוע" : "אירועים"}`}
           </div>
         </div>
-        {!selectionMode ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={onToggleStarFilter}
-              aria-pressed={starFilterActive}
-              title={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מסומנים בכוכב בלבד"}
-              aria-label={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מסומנים בכוכב בלבד"}
-              className={cn(
-                "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
-                starFilterActive
-                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
-                  : "hover:bg-black/5 text-gray-600",
-              )}
-            >
-              <Star
-                className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
-                aria-hidden="true"
-              />
-              {starredCount > 0 ? (
-                <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
-                  {starredCount}
-                </span>
-              ) : null}
-            </button>
-            <button
-              type="button"
-              onClick={onPrintAll}
-              title="הדפסת כל האירועים המוצגים"
-              aria-label="הדפסת כל האירועים המוצגים"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-            >
-              <Printer className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={onEnterSelection}
-              title="בחירת אירועים להדפסה"
-              aria-label="כניסה למצב בחירת אירועים"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-            >
-              <CheckSquare className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-        ) : null}
+        <div className="flex items-center gap-1 shrink-0">
+          {!selectionMode ? (
+            <>
+              <button
+                type="button"
+                onClick={onToggleStarFilter}
+                aria-pressed={starFilterActive}
+                title={starFilterActive ? "הצגת כל האירועים" : "הצגת מועדפים בלבד"}
+                aria-label={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מועדפים בלבד"}
+                className={cn(
+                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                  starFilterActive
+                    ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                    : "hover:bg-black/5 text-gray-600",
+                )}
+              >
+                <Star
+                  className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
+                  aria-hidden="true"
+                />
+                {starredCount > 0 ? (
+                  <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
+                    {starredCount}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={onPrintAll}
+                title="הדפסת כל האירועים המוצגים"
+                aria-label="הדפסת כל האירועים המוצגים"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <Printer className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onEnterSelection}
+                title="בחירת אירועים"
+                aria-label="כניסה למצב בחירת אירועים"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <CheckSquare className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onFavoriteSelected}
+                disabled={(selectedIds?.size ?? 0) === 0}
+                title="סימון הנבחרים כמועדפים"
+                aria-label="סימון האירועים הנבחרים כמועדפים"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
+              >
+                <Star className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onPrintSelected}
+                disabled={(selectedIds?.size ?? 0) === 0}
+                title="הדפסת הנבחרים"
+                aria-label="הדפסת האירועים הנבחרים"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <Printer className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onExitSelection}
+                title="יציאה ממצב בחירה"
+                aria-label="יציאה ממצב בחירת אירועים"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       <div
@@ -371,19 +405,11 @@ export function EventPane({
                 selected={selectedIds?.has(it.evt.id)}
                 onSelect={onToggleSelection}
                 starred={starredIds?.has(it.evt.id)}
-                onToggleStar={onToggleStar}
               />
             ),
           )
         )}
       </div>
-      <SelectionBar
-        count={selectedIds?.size ?? 0}
-        onPrint={onPrintSelected ?? (() => {})}
-        onClear={onExitSelection ?? (() => {})}
-        itemNounSingular="אירוע"
-        itemNounPlural="אירועים"
-      />
     </div>
   );
 }

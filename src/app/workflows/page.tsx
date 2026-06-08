@@ -55,7 +55,7 @@ export default function WorkflowsLandingPage() {
 
           <div
             className="rounded-xl overflow-hidden border border-gray-200 shadow-sm"
-            style={{ height: "min(880px, 85vh)", minHeight: "560px" }}
+            style={{ height: "calc(100dvh - 365px)", minHeight: "460px" }}
           >
             <div className="flex h-full min-h-0">
               <WorkflowsShell title="תצוגה לדוגמה — תהליכי עבודה" />

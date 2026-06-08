@@ -198,18 +198,26 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
   const [starFilterActive, setStarFilterActive] = useState(false);
 
-  const toggleStar = useCallback((id: string) => {
-    setStarredIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
   const toggleStarFilter = useCallback(
     () => setStarFilterActive((v) => !v),
     [],
   );
+
+  // Favorite the current selection (additive toggle), then exit selection.
+  const handleFavoriteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    const allStarred = ids.every((id) => starredIds.has(id));
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (allStarred) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+    exitSelection();
+  }, [selectedIds, starredIds, exitSelection]);
 
   const visibleEvents = useMemo<WorkflowEvent[]>(
     () =>
@@ -279,8 +287,8 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
             onExitSelection={exitSelection}
             onPrintSelected={handlePrintSelected}
             onPrintAll={handlePrintAll}
+            onFavoriteSelected={handleFavoriteSelected}
             starredIds={starredIds}
-            onToggleStar={toggleStar}
             starFilterActive={starFilterActive}
             onToggleStarFilter={toggleStarFilter}
             starredCount={starredCount}

@@ -11,10 +11,9 @@
 // API fetch on /whatsapp/<slug>).
 
 import { useEffect, useMemo, useRef } from "react";
-import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Printer, Star } from "lucide-react";
+import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Printer, Star, X, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
-import { SelectionBar } from "./selection-bar";
 import type {
   WhatsappMessageDTO,
   WhatsappChatSummary,
@@ -56,9 +55,10 @@ interface ChatPaneProps {
   onPrintAll?: () => void;
   // Bulk-hide the selection (admin only).
   onHideSelected?: () => void;
-  // Star (per-message mark) + the "show starred only" filter.
+  // Favorite (star) the current selection.
+  onFavoriteSelected?: () => void;
+  // Favorites: which items are starred + the "show starred only" filter.
   starredIds?: Set<string>;
-  onToggleStar?: (id: string) => void;
   starFilterActive?: boolean;
   onToggleStarFilter?: () => void;
   // Count of starred items in the full (unfiltered) pane — for the badge.
@@ -104,8 +104,8 @@ export function ChatPane({
   onPrintSelected,
   onPrintAll,
   onHideSelected,
+  onFavoriteSelected,
   starredIds,
-  onToggleStar,
   starFilterActive = false,
   onToggleStarFilter,
   starredCount = 0,
@@ -234,52 +234,100 @@ export function ChatPane({
               : `${chat.messageCount} ${chat.messageCount === 1 ? "הודעה" : "הודעות"}`}
           </div>
         </div>
-        {/* Header actions: star filter + direct print + selection toggle */}
-        {!selectionMode ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={onToggleStarFilter}
-              aria-pressed={starFilterActive}
-              title={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
-              aria-label={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מסומנות בכוכב בלבד"}
-              className={cn(
-                "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
-                starFilterActive
-                  ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
-                  : "hover:bg-black/5 text-gray-600",
-              )}
-            >
-              <Star
-                className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
-                aria-hidden="true"
-              />
-              {starredCount > 0 ? (
-                <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
-                  {starredCount}
-                </span>
+        {/* Header actions — icon-only. Two clusters: normal (star filter,
+            print all, enter selection) and selection mode (favorite,
+            print, hide, exit). */}
+        <div className="flex items-center gap-1 shrink-0">
+          {!selectionMode ? (
+            <>
+              <button
+                type="button"
+                onClick={onToggleStarFilter}
+                aria-pressed={starFilterActive}
+                title={starFilterActive ? "הצגת כל ההודעות" : "הצגת מועדפות בלבד"}
+                aria-label={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מועדפות בלבד"}
+                className={cn(
+                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                  starFilterActive
+                    ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
+                    : "hover:bg-black/5 text-gray-600",
+                )}
+              >
+                <Star
+                  className={cn("h-5 w-5", starFilterActive && "fill-amber-400")}
+                  aria-hidden="true"
+                />
+                {starredCount > 0 ? (
+                  <span className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] leading-4 font-semibold text-center">
+                    {starredCount}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type="button"
+                onClick={onPrintAll}
+                title="הדפסת כל ההודעות המוצגות"
+                aria-label="הדפסת כל ההודעות המוצגות"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <Printer className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onEnterSelection}
+                title="בחירת הודעות"
+                aria-label="כניסה למצב בחירת הודעות"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <CheckSquare className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onFavoriteSelected}
+                disabled={(selectedIds?.size ?? 0) === 0}
+                title="סימון הנבחרות כמועדפות"
+                aria-label="סימון ההודעות הנבחרות כמועדפות"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
+              >
+                <Star className="h-5 w-5" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={onPrintSelected}
+                disabled={(selectedIds?.size ?? 0) === 0}
+                title="הדפסת הנבחרות"
+                aria-label="הדפסת ההודעות הנבחרות"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <Printer className="h-5 w-5" aria-hidden="true" />
+              </button>
+              {onHideSelected ? (
+                <button
+                  type="button"
+                  onClick={onHideSelected}
+                  disabled={(selectedIds?.size ?? 0) === 0}
+                  title="הסתרת הנבחרות"
+                  aria-label="הסתרת ההודעות הנבחרות ממציגים אחרים"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                >
+                  <EyeOff className="h-5 w-5" aria-hidden="true" />
+                </button>
               ) : null}
-            </button>
-            <button
-              type="button"
-              onClick={onPrintAll}
-              title="הדפסת כל ההודעות המוצגות"
-              aria-label="הדפסת כל ההודעות המוצגות"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-            >
-              <Printer className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={onEnterSelection}
-              title="בחירת הודעות להדפסה או להסתרה"
-              aria-label="כניסה למצב בחירת הודעות"
-              className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
-            >
-              <CheckSquare className="h-5 w-5" aria-hidden="true" />
-            </button>
-          </div>
-        ) : null}
+              <button
+                type="button"
+                onClick={onExitSelection}
+                title="יציאה ממצב בחירה"
+                aria-label="יציאה ממצב בחירת הודעות"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Message list */}
@@ -341,18 +389,11 @@ export function ChatPane({
                 selected={selectedIds?.has(it.msg.id)}
                 onSelect={onToggleSelection}
                 starred={starredIds?.has(it.msg.id)}
-                onToggleStar={onToggleStar}
               />
             ),
           )
         )}
       </div>
-      <SelectionBar
-        count={selectedIds?.size ?? 0}
-        onPrint={onPrintSelected ?? (() => {})}
-        onClear={onExitSelection ?? (() => {})}
-        onHideSelected={onHideSelected}
-      />
     </div>
   );
 }
