@@ -668,11 +668,13 @@ function ConversationShellInner({
   // persist across chats/views for the lifetime of the page — they are
   // NOT reset on navigation, so a star set in one chat stays set.
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set());
-  const [starFilterActive, setStarFilterActive] = useState(false);
 
+  // The "favorites only" filter is URL-backed so a filtered view can be
+  // shared as a link (e.g. ?starred=1, combined with ?view=clean).
+  const starFilterActive = url.starredOnly;
   const toggleStarFilter = useCallback(
-    () => setStarFilterActive((v) => !v),
-    [],
+    () => url.setStarredOnly(!url.starredOnly),
+    [url],
   );
 
   // Favorite the current selection. Additive + toggle: if every selected

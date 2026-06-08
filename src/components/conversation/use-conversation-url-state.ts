@@ -16,6 +16,7 @@ import type { SearchState } from "./types";
 
 const Q_KEY = "q";
 const TAG_KEY = "tag";
+const STARRED_KEY = "starred";
 
 interface UseConversationUrlState {
   // Applied (URL-derived) state — the source of truth for the search.
@@ -30,7 +31,13 @@ interface UseConversationUrlState {
   // Tag toggle / clear apply immediately.
   toggleTag: (tagId: string) => void;
   clearTags: () => void;
-  // Reset everything (q + tags) in one go.
+  // "Favorites only" view filter, persisted in the URL (?starred=1) so
+  // a filtered view can be shared as a link. Independent of `searchState`
+  // — it does NOT flip the shell into search mode.
+  starredOnly: boolean;
+  setStarredOnly: (next: boolean) => void;
+  // Reset the search (q + tags) in one go. Preserves the favorites
+  // filter so exiting a search keeps the chosen view.
   reset: () => void;
 }
 
@@ -46,6 +53,8 @@ export function useConversationUrlState(): UseConversationUrlState {
     }),
     [params],
   );
+
+  const starredOnly = params.get(STARRED_KEY) === "1";
 
   // Draft state mirrors the URL on first paint so a shared link
   // visibly pre-fills the input. Once hydrated, the user owns it.
@@ -63,32 +72,45 @@ export function useConversationUrlState(): UseConversationUrlState {
   }, [searchState.q]);
 
   const writeUrl = useCallback(
-    (next: SearchState) => {
-      const p = new URLSearchParams();
+    (next: { q: string; tagIds: string[]; starredOnly: boolean }) => {
+      // Clone the existing params so unrelated keys (notably ?view=clean,
+      // read server-side) survive a filter change.
+      const p = new URLSearchParams(params.toString());
       if (next.q.trim()) p.set(Q_KEY, next.q.trim());
+      else p.delete(Q_KEY);
+      p.delete(TAG_KEY);
       for (const t of next.tagIds) p.append(TAG_KEY, t);
+      if (next.starredOnly) p.set(STARRED_KEY, "1");
+      else p.delete(STARRED_KEY);
       const qs = p.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
     },
-    [router, pathname],
+    [router, pathname, params],
   );
 
   return {
     searchState,
     qDraft,
     setQDraft,
-    commitQuery: () => writeUrl({ ...searchState, q: qDraft }),
+    starredOnly,
+    setStarredOnly: (next: boolean) =>
+      writeUrl({ q: searchState.q, tagIds: searchState.tagIds, starredOnly: next }),
+    commitQuery: () =>
+      writeUrl({ q: qDraft, tagIds: searchState.tagIds, starredOnly }),
     toggleTag: (tagId: string) => {
       const has = searchState.tagIds.includes(tagId);
       const tagIds = has
         ? searchState.tagIds.filter((x) => x !== tagId)
         : [...searchState.tagIds, tagId];
-      writeUrl({ ...searchState, tagIds });
+      writeUrl({ q: searchState.q, tagIds, starredOnly });
     },
-    clearTags: () => writeUrl({ ...searchState, tagIds: [] }),
+    clearTags: () =>
+      writeUrl({ q: searchState.q, tagIds: [], starredOnly }),
     reset: () => {
       setQDraft("");
-      writeUrl({ q: "", tagIds: [] });
+      // Preserve the favorites filter — clearing the search shouldn't
+      // also drop the chosen view.
+      writeUrl({ q: "", tagIds: [], starredOnly });
     },
   };
 }
