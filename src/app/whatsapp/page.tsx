@@ -6,9 +6,6 @@ import { Container } from "@/components/ui/container";
 import { WhatsappShell } from "@/components/conversation/conversation-shell";
 import { MOCK_WORKSPACE, MOCK_ITEMS } from "@/components/whatsapp/mock-data";
 
-// Force-static — this page never reads from the DB. Synthetic chats only.
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "תצוגת ווטסאפ — הדגמת ממשק | זומר עורך דין",
   description:
@@ -21,7 +18,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default function WhatsappLandingPage() {
+// ?view=clean / 0 / embed / raw → bare shell, no page chrome (same set
+// as /whatsapp/[slug]). Lets the demo be embedded or shared full-screen,
+// with all the in-shell tools (select, print, favorites filter) intact.
+const CLEAN_VIEW_VALUES = new Set(["clean", "0", "embed", "raw"]);
+function isCleanView(v: string | string[] | undefined): boolean {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" && CLEAN_VIEW_VALUES.has(s.toLowerCase());
+}
+
+export default async function WhatsappLandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  if (isCleanView(sp.view)) {
+    return (
+      <div dir="rtl" className="flex h-screen flex-col bg-[#dadbd3]">
+        <WhatsappShell workspace={MOCK_WORKSPACE} mode="mock" mockItems={MOCK_ITEMS} />
+      </div>
+    );
+  }
+
   return (
     <PublicLayout>
       <Container className="pt-12 sm:pt-16 pb-8">

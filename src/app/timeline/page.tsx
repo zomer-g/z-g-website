@@ -13,9 +13,6 @@ import {
   MOCK_TIMELINE_TAGS,
 } from "@/components/whatsapp/timeline-mock";
 
-// Force-static — public demo only, no DB calls.
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "ציר זמן — הדגמת ממשק | זומר עורך דין",
   description:
@@ -28,7 +25,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TimelineLandingPage() {
+// ?view=clean → bare shell, no page chrome (same set as /timeline/[slug]).
+const CLEAN_VIEW_VALUES = new Set(["clean", "0", "embed", "raw"]);
+function isCleanView(v: string | string[] | undefined): boolean {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" && CLEAN_VIEW_VALUES.has(s.toLowerCase());
+}
+
+export default async function TimelineLandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  if (isCleanView(sp.view)) {
+    return (
+      <div dir="rtl" className="flex h-screen flex-col bg-[#dadbd3]">
+        <WhatsappShell
+          workspace={MOCK_TIMELINE_WORKSPACE}
+          mode="mock"
+          apiPaths={timelineApiPaths}
+          mockItems={MOCK_TIMELINE_ITEMS}
+          mockTags={MOCK_TIMELINE_TAGS}
+        />
+      </div>
+    );
+  }
+
   return (
     <PublicLayout>
       <Container className="pt-12 sm:pt-16 pb-8">

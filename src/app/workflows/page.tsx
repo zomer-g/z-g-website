@@ -5,9 +5,6 @@ import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { WorkflowsShell } from "@/components/workflows/workflows-shell";
 
-// Force-static — public demo only, the entire workspace is session-local.
-export const dynamic = "force-static";
-
 export const metadata: Metadata = {
   title: "ניהול תהליכי עבודה — הדגמת ממשק | זומר עורך דין",
   description:
@@ -20,7 +17,27 @@ export const metadata: Metadata = {
   },
 };
 
-export default function WorkflowsLandingPage() {
+// ?view=clean → bare shell, no page chrome.
+const CLEAN_VIEW_VALUES = new Set(["clean", "0", "embed", "raw"]);
+function isCleanView(v: string | string[] | undefined): boolean {
+  const s = Array.isArray(v) ? v[0] : v;
+  return typeof s === "string" && CLEAN_VIEW_VALUES.has(s.toLowerCase());
+}
+
+export default async function WorkflowsLandingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  if (isCleanView(sp.view)) {
+    return (
+      <div dir="rtl" className="flex h-screen flex-col bg-[#dadbd3]">
+        <WorkflowsShell title="תצוגה לדוגמה — תהליכי עבודה" />
+      </div>
+    );
+  }
+
   return (
     <PublicLayout>
       {/* pt-12/16 leaves clear breathing room under the sticky site
