@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SelectionBar } from "@/components/conversation/selection-bar";
+import { FocusBanner } from "@/components/conversation/focus-banner";
 import type {
   EntityType,
   ProcessKind,
@@ -52,6 +53,11 @@ interface EventPaneProps {
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
   onPrintAll?: () => void;
+  onFocusSelected?: () => void;
+  markedCount?: number;
+  focusActive?: boolean;
+  onToggleFocus?: () => void;
+  onClearMarks?: () => void;
 }
 
 /* ─── Reminder formatting helpers ─── */
@@ -154,6 +160,11 @@ export function EventPane({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
+  onFocusSelected,
+  markedCount = 0,
+  focusActive = false,
+  onToggleFocus,
+  onClearMarks,
 }: EventPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -301,6 +312,14 @@ export function EventPane({
         ) : null}
       </header>
 
+      <FocusBanner
+        markedCount={markedCount}
+        focusActive={focusActive}
+        onToggleFocus={onToggleFocus ?? (() => {})}
+        onClearMarks={onClearMarks ?? (() => {})}
+        itemNoun="אירועים"
+      />
+
       <div
         ref={listRef}
         className="flex-1 overflow-y-auto py-3 bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2040%2040%22%3E%3Ccircle%20cx=%2220%22%20cy=%2220%22%20r=%221%22%20fill=%22%23d8d2c8%22/%3E%3C/svg%3E')]"
@@ -343,6 +362,9 @@ export function EventPane({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
+        onFocusSelected={onFocusSelected}
+        itemNounSingular="אירוע"
+        itemNounPlural="אירועים"
       />
     </div>
   );

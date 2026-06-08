@@ -14,6 +14,7 @@ import { ArrowRight, Layers, Loader2, CheckSquare, Printer } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
+import { FocusBanner } from "./focus-banner";
 import type { WhatsappMessageDTO } from "./types";
 
 export interface MergedMessage extends WhatsappMessageDTO {
@@ -46,6 +47,12 @@ interface MergedViewProps {
   onExitSelection?: () => void;
   onPrintSelected?: () => void;
   onPrintAll?: () => void;
+  onFocusSelected?: () => void;
+  onHideSelected?: () => void;
+  markedCount?: number;
+  focusActive?: boolean;
+  onToggleFocus?: () => void;
+  onClearMarks?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -92,6 +99,12 @@ export function MergedView({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
+  onFocusSelected,
+  onHideSelected,
+  markedCount = 0,
+  focusActive = false,
+  onToggleFocus,
+  onClearMarks,
 }: MergedViewProps) {
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -179,6 +192,13 @@ export function MergedView({
         ) : null}
       </header>
 
+      <FocusBanner
+        markedCount={markedCount}
+        focusActive={focusActive}
+        onToggleFocus={onToggleFocus ?? (() => {})}
+        onClearMarks={onClearMarks ?? (() => {})}
+      />
+
       <div
         ref={listRef}
         className={cn(
@@ -251,6 +271,8 @@ export function MergedView({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
+        onFocusSelected={onFocusSelected}
+        onHideSelected={onHideSelected}
       />
     </div>
   );

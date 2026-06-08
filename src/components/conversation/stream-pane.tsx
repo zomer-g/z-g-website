@@ -15,6 +15,7 @@ import { ArrowRight, Loader2, MessagesSquare, Search, Layers, CheckSquare, Print
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./bubble";
 import { SelectionBar } from "./selection-bar";
+import { FocusBanner } from "./focus-banner";
 import type {
   WhatsappMessageDTO,
   WhatsappChatSummary,
@@ -54,6 +55,15 @@ interface ChatPaneProps {
   onPrintSelected?: () => void;
   // Print everything currently displayed, without selecting.
   onPrintAll?: () => void;
+  // Mark the current selection and focus the view on it.
+  onFocusSelected?: () => void;
+  // Bulk-hide the selection (admin only).
+  onHideSelected?: () => void;
+  // Focus banner state.
+  markedCount?: number;
+  focusActive?: boolean;
+  onToggleFocus?: () => void;
+  onClearMarks?: () => void;
 }
 
 function dayKey(iso: string): string {
@@ -94,6 +104,12 @@ export function ChatPane({
   onExitSelection,
   onPrintSelected,
   onPrintAll,
+  onFocusSelected,
+  onHideSelected,
+  markedCount = 0,
+  focusActive = false,
+  onToggleFocus,
+  onClearMarks,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -244,6 +260,14 @@ export function ChatPane({
         ) : null}
       </header>
 
+      {/* Focus banner — toggle between full conversation and marked subset */}
+      <FocusBanner
+        markedCount={markedCount}
+        focusActive={focusActive}
+        onToggleFocus={onToggleFocus ?? (() => {})}
+        onClearMarks={onClearMarks ?? (() => {})}
+      />
+
       {/* Message list */}
       <div
         ref={listRef}
@@ -309,6 +333,8 @@ export function ChatPane({
         count={selectedIds?.size ?? 0}
         onPrint={onPrintSelected ?? (() => {})}
         onClear={onExitSelection ?? (() => {})}
+        onFocusSelected={onFocusSelected}
+        onHideSelected={onHideSelected}
       />
     </div>
   );

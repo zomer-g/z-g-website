@@ -11,7 +11,7 @@
 //     can add events. These are session-only — nothing is persisted.
 //   - No live API; no admin features; no merged-view picker.
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WorkflowsSidebar, type SidebarTab } from "./workflows-sidebar";
 import { EventPane } from "./event-pane";
 import { ComposeBar } from "./compose-bar";
@@ -194,6 +194,38 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
     printMessages(all, { title: `אירועים — ${ctxLabel}`, subtitle: title });
   }, [activeEvents, ctxLabel, title]);
 
+  /* ── Focus (mark a subset + toggle "show marked only") ── */
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [focusActive, setFocusActive] = useState(false);
+
+  // Marks are scoped to the active context — switching entity/process
+  // clears them.
+  useEffect(() => {
+    setMarkedIds(new Set());
+    setFocusActive(false);
+  }, [active]);
+
+  const handleFocusSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setMarkedIds(new Set(selectedIds));
+    setFocusActive(true);
+    exitSelection();
+  }, [selectedIds, exitSelection]);
+
+  const toggleFocus = useCallback(() => setFocusActive((v) => !v), []);
+  const clearMarks = useCallback(() => {
+    setMarkedIds(new Set());
+    setFocusActive(false);
+  }, []);
+
+  const visibleEvents = useMemo<WorkflowEvent[]>(
+    () =>
+      focusActive && markedIds.size > 0
+        ? activeEvents.filter((e) => markedIds.has(e.id))
+        : activeEvents,
+    [activeEvents, focusActive, markedIds],
+  );
+
   /* ── Right pane is "open" whenever we have a selected context. The
         sidebar wrapper hugs its intrinsic 360px on desktop so there's
         no empty strip between the panes. Same fix as the WhatsApp/
@@ -238,7 +270,7 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
         >
           <EventPane
             context={activeContext}
-            events={activeEvents}
+            events={visibleEvents}
             selfName={SELF_NAME}
             onBack={() => setActive(null)}
             entityById={entityById}
@@ -250,6 +282,11 @@ export function WorkflowsShell({ title }: WorkflowsShellProps) {
             onExitSelection={exitSelection}
             onPrintSelected={handlePrintSelected}
             onPrintAll={handlePrintAll}
+            onFocusSelected={handleFocusSelected}
+            markedCount={markedIds.size}
+            focusActive={focusActive}
+            onToggleFocus={toggleFocus}
+            onClearMarks={clearMarks}
           />
           {/* Compose only when a context is open — adding an untagged
               event would be meaningless. The compose `key` resets local

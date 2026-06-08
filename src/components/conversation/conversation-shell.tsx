@@ -300,13 +300,26 @@ function ConversationShellInner({
   }, [activeChatId, loadOneChat, searchActive]);
 
   /* ── Hide/unhide ── */
+
+  // Applies a hidden flag to a set of message ids across ALL panes
+  // (single chat, merged, search) so the change is reflected wherever
+  // the message currently appears.
+  const applyHiddenLocally = useCallback(
+    (ids: Set<string>, hidden: boolean) => {
+      const patch = <T extends WhatsappMessageDTO>(m: T): T =>
+        ids.has(m.id) ? { ...m, isHidden: hidden } : m;
+      setMessages((list) => list.map(patch));
+      setMergedMessages((list) => list.map(patch));
+      setSearchResults((list) => list.map(patch));
+    },
+    [],
+  );
+
   const toggleMessageHidden = useCallback(
     async (messageId: string, nextHidden: boolean) => {
       if (!isAdmin) return;
-      const prev = messages;
-      setMessages((list) =>
-        list.map((m) => (m.id === messageId ? { ...m, isHidden: nextHidden } : m)),
-      );
+      const one = new Set([messageId]);
+      applyHiddenLocally(one, nextHidden);
       try {
         const res = await fetch(apiPaths.toggleHidden(messageId), {
           method: "PATCH",
@@ -316,10 +329,10 @@ function ConversationShellInner({
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
       } catch (err) {
         console.error("toggle hidden failed", err);
-        setMessages(prev);
+        applyHiddenLocally(one, !nextHidden); // roll back
       }
     },
-    [isAdmin, messages, apiPaths],
+    [isAdmin, apiPaths, applyHiddenLocally],
   );
 
   /* ── Tag attach / detach ── */
@@ -622,6 +635,59 @@ function ConversationShellInner({
     printMessages(pool, { title, source, subtitle: workspace.title });
   }, [currentPool, workspace.title]);
 
+  /* ── Focus (mark a subset + toggle "show marked only") ── */
+  const [markedIds, setMarkedIds] = useState<Set<string>>(new Set());
+  const [focusActive, setFocusActive] = useState(false);
+
+  // Marks are scoped to the current view — switching chat / entering or
+  // leaving merged / toggling search clears them so they never "leak"
+  // into a context where the ids don't exist.
+  useEffect(() => {
+    setMarkedIds(new Set());
+    setFocusActive(false);
+  }, [activeChatId, mergedChatIds, searchActive]);
+
+  // From the selection bar: persist the current selection as the marked
+  // set, turn focus on, and leave selection mode.
+  const handleFocusSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setMarkedIds(new Set(selectedIds));
+    setFocusActive(true);
+    exitSelection();
+  }, [selectedIds, exitSelection]);
+
+  const toggleFocus = useCallback(() => setFocusActive((v) => !v), []);
+  const clearMarks = useCallback(() => {
+    setMarkedIds(new Set());
+    setFocusActive(false);
+  }, []);
+
+  // When focus is on, restrict each pane to the marked subset.
+  const filterFocus = useCallback(
+    <T extends WhatsappMessageDTO>(list: T[]): T[] =>
+      focusActive && markedIds.size > 0
+        ? list.filter((m) => markedIds.has(m.id) || m.isSystem)
+        : list,
+    [focusActive, markedIds],
+  );
+
+  /* ── Bulk hide (admin only) ── */
+  const handleHideSelected = useCallback(async () => {
+    if (!isAdmin || selectedIds.size === 0) return;
+    const ids = new Set(selectedIds);
+    applyHiddenLocally(ids, true);
+    exitSelection();
+    await Promise.allSettled(
+      [...ids].map((id) =>
+        fetch(apiPaths.toggleHidden(id), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isHidden: true }),
+        }),
+      ),
+    );
+  }, [isAdmin, selectedIds, apiPaths, applyHiddenLocally, exitSelection]);
+
   /* ── Render ── */
 
   // Right-pane priority: search > merged > single-chat > empty hint.
@@ -688,7 +754,7 @@ function ConversationShellInner({
         >
           {searchActive ? (
             <MergedView
-              messages={searchResults}
+              messages={filterFocus(searchResults)}
               loading={searchLoading}
               error={searchError}
               workspaceSelfSender={workspace.selfSender}
@@ -706,10 +772,16 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
+              onFocusSelected={handleFocusSelected}
+              onHideSelected={isAdmin ? handleHideSelected : undefined}
+              markedCount={markedIds.size}
+              focusActive={focusActive}
+              onToggleFocus={toggleFocus}
+              onClearMarks={clearMarks}
             />
           ) : inMergedView ? (
             <MergedView
-              messages={mergedMessages}
+              messages={filterFocus(mergedMessages)}
               loading={mergedLoading}
               error={mergedError}
               workspaceSelfSender={workspace.selfSender}
@@ -722,11 +794,17 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
+              onFocusSelected={handleFocusSelected}
+              onHideSelected={isAdmin ? handleHideSelected : undefined}
+              markedCount={markedIds.size}
+              focusActive={focusActive}
+              onToggleFocus={toggleFocus}
+              onClearMarks={clearMarks}
             />
           ) : (
             <ChatPane
               chat={active}
-              messages={messages}
+              messages={filterFocus(messages)}
               loading={loading}
               error={error}
               selfSender={active?.selfSender ?? workspace.selfSender}
@@ -745,6 +823,12 @@ function ConversationShellInner({
               onExitSelection={exitSelection}
               onPrintSelected={handlePrintSelected}
               onPrintAll={handlePrintAll}
+              onFocusSelected={handleFocusSelected}
+              onHideSelected={isAdmin ? handleHideSelected : undefined}
+              markedCount={markedIds.size}
+              focusActive={focusActive}
+              onToggleFocus={toggleFocus}
+              onClearMarks={clearMarks}
             />
           )}
         </div>
