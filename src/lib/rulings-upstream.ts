@@ -25,10 +25,14 @@ const UPSTREAM_BASE = process.env.TAGIT_API_URL || "https://tag-it.biz";
 const PAGE_SIZE = 100;   // TAG-IT spec: max 100 per page
 // Rulings fetches are server-side-filtered (only the configured doc types),
 // so the result set is much smaller than a full scope corpus — we can afford
-// PARALLEL=4 here to keep cold-load latency under the function timeout
-// (defamation has ~4.4k פס"ד; at PARALLEL 2 the cold fetch flirted with 30s).
-// class-actions/guidelines still pull full corpora and stay at 2.
+// PARALLEL=4 here to keep cold-load latency under the function timeout.
 const PARALLEL = 4;
+// Cap how many pages we pull. Some scopes are huge even after filtering
+// (defamation = ~4.4k פס"ד = 44 pages); pulling all of them makes TAG-IT 502
+// on deep pages and overruns the function timeout. TAG-IT returns newest-first
+// by default, and these are "latest rulings" pages, so the most-recent
+// MAX_PAGES×PAGE_SIZE documents are exactly what we want. 30 pages = 3000 docs.
+const MAX_PAGES = 30;
 
 function getApiKey() {
   return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;
@@ -142,9 +146,16 @@ export async function fetchAllUpstreamRulings(
   // pages — otherwise we'd skip or duplicate ranges.
   const actualSize = firstItems.length || PAGE_SIZE;
   const totalPages = Math.ceil(total / actualSize);
+  // Cap at MAX_PAGES — the most-recent N docs (TAG-IT default = newest first).
+  const pagesToFetch = Math.min(totalPages, MAX_PAGES);
+  if (totalPages > MAX_PAGES) {
+    console.warn(
+      `rulings-upstream: scope ${opts.scopeId} has ${total} docs (${totalPages} pages) — capping to ${MAX_PAGES} most-recent pages`,
+    );
+  }
 
   const remainingPages: number[] = [];
-  for (let p = 2; p <= totalPages; p++) remainingPages.push(p);
+  for (let p = 2; p <= pagesToFetch; p++) remainingPages.push(p);
 
   for (let i = 0; i < remainingPages.length; i += PARALLEL) {
     const batch = remainingPages.slice(i, i + PARALLEL);
