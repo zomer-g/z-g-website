@@ -84,7 +84,7 @@ export async function fetchAllUpstreamRulings(
     return u.toString();
   };
 
-  const fetchPage = async (
+  const fetchPageOnce = async (
     page: number,
   ): Promise<UpstreamListResponse> => {
     const res = await fetch(buildUrl(page), {
@@ -99,7 +99,38 @@ export async function fetchAllUpstreamRulings(
     return (await res.json()) as UpstreamListResponse;
   };
 
+  // Retry a page on transient failures (5xx / network — large scopes like
+  // defamation make TAG-IT 502 intermittently on deep pages). 4xx is a
+  // permanent client error (e.g. unknown_field) and is re-thrown immediately
+  // so the admin sees it. Returns null only when every attempt failed with a
+  // transient error — the caller decides whether that's fatal.
+  const fetchPage = async (page: number): Promise<UpstreamListResponse | null> => {
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        return await fetchPageOnce(page);
+      } catch (err) {
+        const status = err instanceof UpstreamError ? err.status : 0;
+        // Permanent client errors: don't retry, surface immediately.
+        if (status >= 400 && status < 500) throw err;
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        console.error(
+          `rulings-upstream: page ${page} failed after ${MAX_ATTEMPTS} attempts (status ${status})`,
+        );
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // First page is required (gives us the total + drives pagination).
   const first = await fetchPage(1);
+  if (!first) {
+    throw new UpstreamError(502, "first page unavailable after retries");
+  }
 
   const firstItems = first.items || first.documents || [];
   const total = Number(first.total) || firstItems.length;
@@ -119,7 +150,10 @@ export async function fetchAllUpstreamRulings(
     const batch = remainingPages.slice(i, i + PARALLEL);
     const responses = await Promise.all(batch.map(fetchPage));
     for (const r of responses) {
-      all.push(...(r.items || r.documents || []));
+      // A null here means one page permanently failed; we keep the rest
+      // rather than breaking the whole listing (a few missing rows beats a
+      // 502 page). The failure is logged above.
+      if (r) all.push(...(r.items || r.documents || []));
     }
   }
 
