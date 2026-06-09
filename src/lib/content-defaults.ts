@@ -543,7 +543,23 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
   },
   cacheTtlMinutes: 60,
   allowedDocTypes: ["פסק דין"],
-  query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 4, pageSize: 24 },
+  query: {
+    customQuery: null,
+    // Header = case name, then summary, then metadata + the compensation
+    // amount awarded (when one was — ~3/4 of judgments).
+    displayFields: [
+      "ai.שם_התיק",
+      "ai.תקציר",
+      "ai.בית_משפט",
+      "meta.document_date",
+      "ai.שופטים",
+      "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+    ],
+    filterFields: [],
+    sortFields: [],
+    scope: 4,
+    pageSize: 24,
+  },
 };
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */

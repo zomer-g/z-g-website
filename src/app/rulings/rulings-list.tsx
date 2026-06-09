@@ -155,21 +155,32 @@ function RulingCard({
             ? formatFieldValue(headerValue)
             : "—"}
         </h3>
-        <div className="text-[11px] text-gray-500 mb-3 font-mono">
-          {fieldKeyToLabel(headerKey)}
-        </div>
 
         <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
           {rest.map((key) => {
             const value = ruling.fields?.[key];
             const isEmpty = value == null || value === "";
+            const formatted = isEmpty ? "" : formatFieldValue(value);
+            // Long free-text fields (e.g. AI summary / תקציר) read much better
+            // as a full-width paragraph than a cramped inline label:value row.
+            const isLongText = formatted.length > 90;
+            if (isLongText) {
+              return (
+                <div key={key} className="block">
+                  <dt className="font-semibold mb-0.5">
+                    {fieldKeyToLabel(key)}
+                  </dt>
+                  <dd className="text-gray-700 leading-relaxed">{formatted}</dd>
+                </div>
+              );
+            }
             return (
               <div key={key} className="flex gap-1.5">
                 <dt className="font-semibold whitespace-nowrap">
                   {fieldKeyToLabel(key)}:
                 </dt>
                 <dd className={isEmpty ? "text-gray-400" : "text-gray-700"}>
-                  {isEmpty ? "—" : formatFieldValue(value)}
+                  {isEmpty ? "—" : formatted}
                 </dd>
               </div>
             );

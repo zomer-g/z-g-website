@@ -430,6 +430,58 @@ async function bumpRulingsPageSize() {
   }
 }
 
+// Repair corrupted displayFields on defamation-rulings. A field key got
+// mangled in the admin (non-breaking spaces   + a lone surrogate where a
+// Hebrew letter should be), so the compensation field never matched and the
+// card header was wrong. Replace with the intended clean, ordered set when
+// corruption is detected (empty entries, nbsp, or surrogate code units).
+async function repairDefamationDisplayFields() {
+  const slug = "defamation-rulings";
+  const clean = [
+    "ai.שם_התיק",
+    "ai.תקציר",
+    "ai.בית_משפט",
+    "meta.document_date",
+    "ai.שופטים",
+    "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+  ];
+  const page = await prisma.page.findUnique({ where: { slug } });
+  if (!page) return;
+  const isCorrupt = (fields: unknown): boolean =>
+    Array.isArray(fields) &&
+    fields.some((f) => {
+      if (typeof f !== "string") return false;
+      if (f === "") return true; // stray empty entry
+      for (let i = 0; i < f.length; i++) {
+        const code = f.charCodeAt(i);
+        if (code === 0xa0) return true; // non-breaking space
+        if (code >= 0xd800 && code <= 0xdfff) return true; // lone surrogate
+      }
+      return false;
+    });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fix = (c: any): boolean => {
+    if (c && c.query && isCorrupt(c.query.displayFields)) {
+      c.query.displayFields = [...clean];
+      return true;
+    }
+    return false;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const content = page.content as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const draft = page.draftContent as any;
+  const a = fix(content);
+  const b = fix(draft);
+  if (a || b) {
+    await prisma.page.update({
+      where: { slug },
+      data: { content, draftContent: draft },
+    });
+    console.log(`  ~ ${slug}: repaired corrupted displayFields`);
+  }
+}
+
 async function main() {
   console.log("Ensuring dashboard content is in sync...");
 
@@ -448,6 +500,7 @@ async function main() {
   );
   await ensureDashboardPage("leam", "לעם — אתרים אזרחיים", LEAM_DEFAULT);
   await bumpRulingsPageSize();
+  await repairDefamationDisplayFields();
   await ensureProjectsPage();
   await ensureMediaArticles();
 
