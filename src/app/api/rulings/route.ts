@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  fetchAllUpstreamRulings,
+  fetchUpstreamRulingsPage,
+  fetchUpstreamRulingsSchema,
   UpstreamError,
   type UpstreamRulingItem,
+  type UpstreamSchemaField,
 } from "@/lib/rulings-upstream";
-import { getCached, setCached } from "@/lib/rulings-cache";
 import { getPageContent } from "@/lib/content";
 import type {
   DefamationRulingsPageContent,
@@ -19,10 +20,7 @@ import type {
   SortDir,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
-import { evaluateFilter, getFieldValue } from "@/lib/rulings-filter-eval";
 import { createHash } from "crypto";
-
-const TAGIT_API = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
 const SCOPE_MAP: Record<string, { id: number; pageSlug: string }> = {
   defamation:      { id: 4, pageSlug: "defamation-rulings" },
@@ -139,7 +137,7 @@ interface PageConfig {
   pageSize: number;
 }
 
-const DEFAULT_PAGE_SIZE = 12;
+const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 50;
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
@@ -230,122 +228,6 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
   }
 }
 
-// Read the doc title/date from whichever shape TAG-IT returned:
-//   new shape   → item.ai.כותרת_המסמך / item.meta.document_date
-//   legacy shape → item.ai_analysis.כותרת_המסמך
-function docTitle(item: UpstreamRulingItem): string {
-  const ai = ((item.ai || item.ai_analysis) as Record<string, unknown>) || {};
-  const meta = (item.meta as Record<string, unknown>) || {};
-  return String(ai["כותרת_המסמך"] || meta.document_title || "");
-}
-
-function docDate(item: UpstreamRulingItem): string {
-  const ai = ((item.ai || item.ai_analysis) as Record<string, unknown>) || {};
-  const meta = (item.meta as Record<string, unknown>) || {};
-  return String(ai["תאריך_המסמך"] || meta.document_date || "");
-}
-
-function matchesAllowedType(
-  item: UpstreamRulingItem,
-  patterns: string[],
-): boolean {
-  if (patterns.length === 0) return true; // empty = allow everything
-  const title = docTitle(item);
-  if (!title) return false; // strict: no title = excluded when a filter is active
-  return patterns.some((p) => title.includes(p));
-}
-
-function sortByDateDesc(items: UpstreamRulingItem[]): UpstreamRulingItem[] {
-  return [...items].sort((a, b) => docDate(b).localeCompare(docDate(a)));
-}
-
-// Collect every field key the page config references (display + filters +
-// sort + the leaves of customQuery).
-function collectLeafFields(expr: FilterExpression | null, out: Set<string>) {
-  if (!expr) return;
-  if ("op" in expr && (expr.op === "and" || expr.op === "or")) {
-    for (const c of expr.clauses) collectLeafFields(c, out);
-  } else if ("op" in expr && expr.op === "not") {
-    collectLeafFields(expr.clause, out);
-  } else if ("field" in expr) {
-    out.add(expr.field);
-  }
-}
-
-function referencedKeys(cfg: PageConfig): Set<string> {
-  const keys = new Set<string>();
-  cfg.displayFields.forEach((k) => keys.add(k));
-  cfg.filterFields.forEach((f) => keys.add(f.key));
-  cfg.sortFields.forEach((s) => keys.add(s.key));
-  collectLeafFields(cfg.customQuery, keys);
-  return keys;
-}
-
-// Base fields we always need for the card header/metadata when limiting the
-// payload with `fields`.
-const BASE_FIELDS = [
-  "ai.שם_התיק",
-  "ai.בית_משפט",
-  "ai.שופטים",
-  "ai.תקציר",
-  "ai.כותרת_המסמך",
-  "ai.תאריך_המסמך",
-  "meta.document_date",
-  "meta.court_name",
-  "meta.case_name",
-  "meta.document_title",
-  "meta.filename",
-];
-
-// Expand a key into itself + its ancestor group prefixes, so requesting a
-// nested leaf ("sql.a.b.c") also asks for the parent groups ("sql.a", "sql.a.b").
-function withPrefixes(key: string): string[] {
-  const parts = key.split(".");
-  const out: string[] = [];
-  for (let i = 2; i <= parts.length; i++) out.push(parts.slice(0, i).join("."));
-  return out.length ? out : [key];
-}
-
-// Generic sort by any field key. Numeric when both values parse as numbers
-// (so cost amounts order numerically), otherwise locale string compare (which
-// also orders ISO YYYY-MM-DD dates chronologically). Empty values sink to the
-// bottom regardless of direction.
-function sortByField(
-  items: UpstreamRulingItem[],
-  key: string,
-  dir: SortDir,
-): UpstreamRulingItem[] {
-  const sign = dir === "asc" ? 1 : -1;
-  const numOf = (v: unknown): number | null => {
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string") {
-      const cleaned = v.replace(/[^\d.-]/g, "");
-      if (cleaned) {
-        const n = Number(cleaned);
-        if (Number.isFinite(n)) return n;
-      }
-    }
-    return null;
-  };
-  const strOf = (v: unknown): string =>
-    v == null ? "" : Array.isArray(v) ? v.join(" ") : String(v);
-
-  return [...items].sort((a, b) => {
-    const av = getFieldValue(a, key);
-    const bv = getFieldValue(b, key);
-    const aEmpty = av == null || av === "";
-    const bEmpty = bv == null || bv === "";
-    if (aEmpty && bEmpty) return 0;
-    if (aEmpty) return 1; // empties always last
-    if (bEmpty) return -1;
-
-    const an = numOf(av);
-    const bn = numOf(bv);
-    if (an != null && bn != null) return (an - bn) * sign;
-    return strOf(av).localeCompare(strOf(bv), "he") * sign;
-  });
-}
-
 /* ── User-facing filters ──
    The admin configures which fields are filterable (config.filterFields);
    the user's selections arrive as a JSON object keyed by field key. We apply
@@ -370,107 +252,109 @@ function parseUserFilters(raw: string | null): Record<string, UserFilterValue> {
   }
 }
 
-function valueToString(v: unknown): string {
-  if (v == null) return "";
-  if (Array.isArray(v)) return v.map(valueToString).join(" ");
-  if (typeof v === "object") {
-    try {
-      return JSON.stringify(v);
-    } catch {
-      return "";
-    }
-  }
-  return String(v);
-}
 
-function valueToNumber(v: unknown): number | null {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  if (typeof v === "string") {
-    // Strip currency/commas so "7,000 ש״ח" still compares numerically.
-    const cleaned = v.replace(/[^\d.-]/g, "");
-    if (cleaned) {
-      const n = Number(cleaned);
-      if (Number.isFinite(n)) return n;
-    }
-  }
-  return null;
-}
+/* ── GET /api/rulings?category=defamation|foi&page=1&limit=12 ── */
 
-function passesUserFilter(
-  item: UpstreamRulingItem,
-  field: RulingsFilterField,
-  value: UserFilterValue,
-): boolean {
-  const actual = getFieldValue(item, field.key);
-
-  switch (field.control) {
-    case "text": {
-      const needle = String(value ?? "").trim().toLocaleLowerCase("he-IL");
-      if (!needle) return true;
-      return valueToString(actual).toLocaleLowerCase("he-IL").includes(needle);
-    }
-    case "select": {
-      const want = String(value ?? "").trim();
-      if (!want) return true;
-      return valueToString(actual) === want;
-    }
-    case "number": {
-      const range = (value || {}) as { min?: number; max?: number };
-      const n = valueToNumber(actual);
-      if (range.min != null && (n == null || n < range.min)) return false;
-      if (range.max != null && (n == null || n > range.max)) return false;
-      return true;
-    }
-    case "date": {
-      const range = (value || {}) as { from?: string; to?: string };
-      const d = valueToString(actual).slice(0, 10); // YYYY-MM-DD
-      if (range.from && (!d || d < range.from)) return false;
-      if (range.to && (!d || d > range.to)) return false;
-      return true;
-    }
-    default:
-      return true;
-  }
-}
-
-function applyUserFilters(
-  items: UpstreamRulingItem[],
+// Map the admin's filterFields + the user's selections into upstream filter
+// clauses, so the user's narrowing happens at TAG-IT (server-side pagination),
+// not in memory.
+function userFilterClauses(
   filterFields: RulingsFilterField[],
   userFilters: Record<string, UserFilterValue>,
-): UpstreamRulingItem[] {
-  const active = filterFields.filter((f) => {
+): FilterExpression[] {
+  const clauses: FilterExpression[] = [];
+  for (const f of filterFields) {
     const v = userFilters[f.key];
-    if (v == null) return false;
-    if (typeof v === "string") return v.trim() !== "";
-    if (typeof v === "object") return Object.keys(v).length > 0;
-    return false;
-  });
-  if (active.length === 0) return items;
-  return items.filter((it) =>
-    active.every((f) => passesUserFilter(it, f, userFilters[f.key])),
-  );
+    if (v == null) continue;
+    if (f.control === "text") {
+      const s = String(v).trim();
+      if (s) clauses.push({ field: f.key, op: "contains", value: s });
+    } else if (f.control === "select") {
+      const s = String(v).trim();
+      if (s) clauses.push({ field: f.key, op: "eq", value: s });
+    } else if (f.control === "number") {
+      const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
+      if (r.min != null) clauses.push({ field: f.key, op: "ge", value: r.min });
+      if (r.max != null) clauses.push({ field: f.key, op: "le", value: r.max });
+    } else if (f.control === "date") {
+      const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
+      if (r.from) clauses.push({ field: f.key, op: "ge", value: r.from });
+      if (r.to) clauses.push({ field: f.key, op: "le", value: r.to });
+    }
+  }
+  return clauses;
 }
 
-// Distinct values present in the data for each "select" control, so the
-// public page can render real dropdown options without a second request.
-function computeSelectOptions(
-  items: UpstreamRulingItem[],
+function combineFilters(
+  base: FilterExpression | null,
+  clauses: FilterExpression[],
+): FilterExpression | null {
+  const all: FilterExpression[] = [];
+  if (base) all.push(base);
+  all.push(...clauses);
+  if (all.length === 0) return null;
+  if (all.length === 1) return all[0];
+  return { op: "and", clauses: all };
+}
+
+// Per-scope schema cache (for select-filter dropdown values), so we don't hit
+// TAG-IT's schema endpoint on every request.
+const schemaCache = new Map<number, { fields: UpstreamSchemaField[]; ts: number }>();
+const SCHEMA_TTL_MS = 30 * 60_000;
+async function getScopeSchema(scopeId: number): Promise<UpstreamSchemaField[]> {
+  const c = schemaCache.get(scopeId);
+  if (c && Date.now() - c.ts < SCHEMA_TTL_MS) return c.fields;
+  const fields = (await fetchUpstreamRulingsSchema(scopeId).catch(() => null)) || [];
+  schemaCache.set(scopeId, { fields, ts: Date.now() });
+  return fields;
+}
+
+function selectOptionsFromSchema(
+  fields: UpstreamSchemaField[],
   filterFields: RulingsFilterField[],
 ): Record<string, string[]> {
+  const byKey = new Map(fields.map((f) => [f.key, f]));
   const out: Record<string, string[]> = {};
-  for (const f of filterFields) {
-    if (f.control !== "select") continue;
-    const set = new Set<string>();
-    for (const it of items) {
-      const s = valueToString(getFieldValue(it, f.key)).trim();
-      if (s) set.add(s);
-    }
-    out[f.key] = [...set].sort((a, b) => a.localeCompare(b, "he"));
+  for (const ff of filterFields) {
+    if (ff.control !== "select") continue;
+    const sf = byKey.get(ff.key);
+    out[ff.key] = (sf?.enum_values_sample || [])
+      .map((v) => String(v))
+      .filter(Boolean);
   }
   return out;
 }
 
-/* ── GET /api/rulings?category=defamation|foi&page=1&limit=12 ── */
+// Tiny TTL cache for page responses (each ~`size` docs). Keyed by the full
+// query so pagination/refresh doesn't hammer TAG-IT.
+interface PageCacheEntry {
+  items: UpstreamRulingItem[];
+  total: number;
+  ts: number;
+  ttl: number;
+}
+const pageCache = new Map<string, PageCacheEntry>();
+const PAGE_CACHE_MAX = 60;
+function pageCacheGet(key: string): PageCacheEntry | null {
+  const e = pageCache.get(key);
+  if (!e) return null;
+  if (Date.now() - e.ts >= e.ttl) {
+    pageCache.delete(key);
+    return null;
+  }
+  pageCache.delete(key);
+  pageCache.set(key, e); // LRU touch
+  return e;
+}
+function pageCacheSet(key: string, items: UpstreamRulingItem[], total: number, ttl: number) {
+  pageCache.delete(key);
+  pageCache.set(key, { items, total, ts: Date.now(), ttl });
+  while (pageCache.size > PAGE_CACHE_MAX) {
+    const oldest = pageCache.keys().next().value;
+    if (!oldest) break;
+    pageCache.delete(oldest);
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -484,24 +368,15 @@ export async function GET(req: NextRequest) {
     }
 
     const config = await readPageConfig(scope.pageSlug);
-
-    // The admin controls the scope (config.scope) and the page size
-    // (config.pageSize). Scope 0 = fall back to the per-category default.
     const scopeId = config.scope > 0 ? config.scope : scope.id;
-    const limit = config.pageSize;
+    const size = config.pageSize;
 
-    // Cache key includes a hash of the upstream filter so two pages with
-    // different filters don't clobber each other. When customQuery is null
-    // the filter param isn't sent and the cache key is just the scope.
-    // Build the filter we send UPSTREAM. Priority:
-    //   1. The admin's customQuery, if set.
-    //   2. Otherwise, synthesize one from allowedDocTypes so TAG-IT filters
-    //      server-side (e.g. only "פסק דין"). Without this, a page with no
-    //      customQuery pulls the ENTIRE scope corpus over many pages — slow
-    //      enough that TAG-IT times out / 502s (defamation, foi-judgments).
-    //      Filtering server-side also returns the new (grouped) shape, so
-    //      sql.*/meta.* display fields work too.
-    const upstreamFilter: FilterExpression | null = config.customQuery
+    // ── Build the upstream filter ──
+    // Base = admin customQuery, else synthesized from allowedDocTypes (so
+    // TAG-IT filters to e.g. only "פסק דין" server-side). User filterFields
+    // selections are ANDed on top — all filtering happens at TAG-IT, so we
+    // only ever pull ONE page of `size` documents (no bulk fetch / OOM).
+    const baseFilter: FilterExpression | null = config.customQuery
       ? config.customQuery
       : config.allowedDocTypes.length > 0
         ? {
@@ -513,66 +388,53 @@ export async function GET(req: NextRequest) {
             })),
           }
         : null;
-    const filterJson = upstreamFilter ? JSON.stringify(upstreamFilter) : "";
-
-    // When the page references sql.*/meta.* fields but has no customQuery to
-    // trigger TAG-IT's new (grouped) shape, request those fields explicitly —
-    // that both forces the new shape and pulls the nested groups we need.
-    const refKeys = referencedKeys(config);
-    const needsNewShape = [...refKeys].some(
-      (k) => k.startsWith("sql.") || k.startsWith("meta."),
+    const userFilters = parseUserFilters(searchParams.get("userFilters"));
+    const combined = combineFilters(
+      baseFilter,
+      userFilterClauses(config.filterFields, userFilters),
     );
-    let fieldsParam = "";
-    if (!filterJson && needsNewShape) {
-      const set = new Set<string>(BASE_FIELDS);
-      for (const k of refKeys) withPrefixes(k).forEach((p) => set.add(p));
-      fieldsParam = [...set].join(",");
+    const filterJson = combined ? JSON.stringify(combined) : "";
+
+    // ── Sort ──
+    // Honour a user-chosen sort field (validated against the configured list).
+    // Otherwise send nothing and rely on TAG-IT's default newest-first order.
+    const reqSort = searchParams.get("sort") || "";
+    const reqDir: SortDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
+    let sortKey = "";
+    if (reqSort && config.sortFields.some((s) => s.key === reqSort)) {
+      sortKey = (reqDir === "asc" ? "" : "-") + reqSort;
     }
 
-    const cacheSig = filterJson || (fieldsParam ? `fields:${fieldsParam}` : "");
-    const filterHash = cacheSig
-      ? createHash("sha1").update(cacheSig).digest("hex").slice(0, 12)
-      : "";
-    const cacheKey = filterHash
-      ? `scope:${scopeId}:f:${filterHash}`
-      : `scope:${scopeId}`;
-
-    let all = getCached(cacheKey);
-    let cacheStatus = all ? "HIT" : "MISS";
-
-    if (!all) {
+    // ── Fetch ONE page (with a small TTL cache) ──
+    const cacheKey = `s${scopeId}|sz${size}|p${page}|${createHash("sha1")
+      .update(filterJson + "|" + sortKey)
+      .digest("hex")
+      .slice(0, 16)}`;
+    let entry = pageCacheGet(cacheKey);
+    let cacheStatus = entry ? "HIT" : "MISS";
+    if (!entry) {
       try {
-        // Only send `filter` when the admin actually configured one. We
-        // used to always send `sort` to force TAG-IT's "new shape" (which
-        // exposes sql.*/meta.*), but unknown sort keys 400 out the entire
-        // page. Sorting is done in memory below either way — so when no
-        // filter is set we fall back to TAG-IT's legacy shape and the
-        // page still works. The new shape only matters for pages with
-        // sql./meta. fields in customQuery or displayFields, and those
-        // pages will have a filter set anyway, which auto-triggers the
-        // new shape.
-        const fetched = await fetchAllUpstreamRulings({
+        const res = await fetchUpstreamRulingsPage({
           scopeId,
+          page,
+          size,
           filterJson: filterJson || undefined,
-          fieldsParam: fieldsParam || undefined,
+          sortKey: sortKey || undefined,
         });
-        if (fetched === null) {
+        if (res === null) {
           return NextResponse.json(
             {
               error: "שגיאה בטעינת פסיקה",
-              detail:
-                "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured",
+              detail: "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured",
             },
             { status: 502 },
           );
         }
-        setCached(cacheKey, fetched, config.ttlMs);
-        all = fetched;
+        pageCacheSet(cacheKey, res.items, res.total, config.ttlMs);
+        entry = { items: res.items, total: res.total, ts: Date.now(), ttl: config.ttlMs };
         cacheStatus = "MISS";
       } catch (err) {
         if (err instanceof UpstreamError) {
-          // Pass TAG-IT's flat error body through so the admin can see
-          // {"error":"unknown_field","field":"ai.X"} directly.
           return NextResponse.json(
             {
               error: "שגיאה ב-TAG-IT",
@@ -586,48 +448,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Apply the admin's base filters in memory. allowedDocTypes is the simple
-    // chip UX; customQuery is the structured FilterExpression that TAG-IT
-    // already applied server-side (re-run as a safety net / legacy fallback).
-    const base = all
-      .filter((it) => matchesAllowedType(it, config.allowedDocTypes))
-      .filter((it) => evaluateFilter(it, config.customQuery));
+    const rulings = entry.items.map(normalize);
 
-    // Dropdown options are computed from the admin-filtered set (not the
-    // user-filtered one) so the choices stay stable as the user narrows down.
-    const filterOptions = computeSelectOptions(base, config.filterFields);
-
-    // Layer the user's interactive filter selections on top.
-    const userFilters = parseUserFilters(searchParams.get("userFilters"));
-    const filtered = applyUserFilters(base, config.filterFields, userFilters);
-
-    // Sorting: when the admin configured sortFields, honour the user's
-    // chosen field+direction (validated against the allowed list), defaulting
-    // to the first configured field, descending. Otherwise fall back to the
-    // built-in newest-first by document date.
-    const reqSort = searchParams.get("sort") || "";
-    const reqDir = searchParams.get("dir") === "asc" ? "asc" : "desc";
-    let sorted: UpstreamRulingItem[];
-    if (config.sortFields.length > 0) {
-      const allowedKeys = new Set(config.sortFields.map((s) => s.key));
-      const sortKey = allowedKeys.has(reqSort)
-        ? reqSort
-        : config.sortFields[0].key;
-      sorted = sortByField(filtered, sortKey, reqDir as SortDir);
-    } else {
-      sorted = sortByDateDesc(filtered);
-    }
-
-    const total = sorted.length;
-    const start = (page - 1) * limit;
-    const pageSlice = sorted.slice(start, start + limit);
-    const rulings = pageSlice.map(normalize);
+    // Select dropdown values come from the scope schema (enum samples), not a
+    // corpus scan — cheap and cached.
+    const schemaFields = config.filterFields.some((f) => f.control === "select")
+      ? await getScopeSchema(scopeId)
+      : [];
+    const filterOptions = selectOptionsFromSchema(schemaFields, config.filterFields);
 
     return NextResponse.json(
       {
-        total,
+        total: entry.total,
         page,
-        size: limit,
+        size,
         rulings,
         displayFields: config.displayFields,
         filterFields: config.filterFields,
@@ -636,9 +470,6 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          // User filters vary by query string; keep it private+short so a
-          // shared edge cache doesn't serve one user's filtered view to
-          // another.
           "Cache-Control": "private, no-store",
           "X-Cache": cacheStatus,
         },

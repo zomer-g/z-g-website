@@ -71,6 +71,94 @@ export class UpstreamError extends Error {
   }
 }
 
+/* ─── Server-side pagination ───────────────────────────────────────────────
+   Fetch ONE page directly from TAG-IT (filter + sort applied upstream) instead
+   of pulling the whole corpus and paginating in memory. This is what the
+   rulings route uses: it never holds more than `size` documents, so large
+   scopes (defamation = thousands) can't OOM or time out. */
+
+export interface FetchRulingsPageOptions {
+  scopeId: number;
+  page: number; // 1-based
+  size: number;
+  filterJson?: string;
+  sortKey?: string; // e.g. "-meta.document_date"
+  signal?: AbortSignal;
+}
+
+export interface RulingsPageResult {
+  items: UpstreamRulingItem[];
+  total: number;
+}
+
+export async function fetchUpstreamRulingsPage(
+  opts: FetchRulingsPageOptions,
+): Promise<RulingsPageResult | null> {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+
+  const u = new URL(`${UPSTREAM_BASE}/api/public/rulings/documents`);
+  u.searchParams.set("scope", String(opts.scopeId));
+  u.searchParams.set("page", String(opts.page));
+  u.searchParams.set("size", String(opts.size));
+  if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
+  if (opts.sortKey) u.searchParams.set("sort", opts.sortKey);
+
+  const MAX_ATTEMPTS = 3;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const res = await fetch(u.toString(), {
+      headers: { "X-API-Key": apiKey, Accept: "application/json" },
+      cache: "no-store",
+      signal: opts.signal,
+    });
+    if (res.ok) {
+      const data = (await res.json()) as UpstreamListResponse;
+      return {
+        items: data.items || data.documents || [],
+        total: Number(data.total) || 0,
+      };
+    }
+    const body = await res.text().catch(() => "");
+    // 4xx (e.g. unknown_field) is permanent — surface immediately.
+    if (res.status >= 400 && res.status < 500) {
+      throw new UpstreamError(res.status, body);
+    }
+    // 5xx — retry a couple of times for transient TAG-IT gateway blips.
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise((r) => setTimeout(r, 800 * attempt));
+      continue;
+    }
+    throw new UpstreamError(res.status, body);
+  }
+  return null;
+}
+
+/** Schema (field list incl. enum_values_sample) for a scope — server-side,
+ *  with the API key. Used to populate select-filter dropdowns without
+ *  scanning the corpus. */
+export interface UpstreamSchemaField {
+  key: string;
+  label?: string;
+  type?: string;
+  source?: string;
+  enum_values_sample?: string[];
+}
+
+export async function fetchUpstreamRulingsSchema(
+  scopeId: number,
+): Promise<UpstreamSchemaField[] | null> {
+  const apiKey = getApiKey();
+  if (!apiKey) return null;
+  const url = `${UPSTREAM_BASE}/api/public/rulings/schema?scope=${scopeId}`;
+  const res = await fetch(url, {
+    headers: { "X-API-Key": apiKey, Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { fields?: UpstreamSchemaField[] };
+  return Array.isArray(data.fields) ? data.fields : [];
+}
+
 export async function fetchAllUpstreamRulings(
   opts: FetchAllRulingsOptions,
 ): Promise<UpstreamRulingItem[] | null> {
