@@ -557,8 +557,17 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       // Array-of-objects "table inside the case": each defense claimed, with
       // its acceptance status, clause, and the court's short reasoning.
       "sql.הגנות_שנטענו",
+      // Publications list: per publication — platform, ruled-defamatory flag,
+      // defenses-applied flag, and the description.
+      "sql.רשימת_פרסומים",
     ],
-    filterFields: [],
+    filterFields: [
+      { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
+      { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
+      { key: "meta.document_date", label: "תאריך", control: "date" },
+      // Free-text search inside the publications of each case.
+      { key: "sql.רשימת_פרסומים", label: "חיפוש בפרסומים", control: "text" },
+    ],
     sortFields: [],
     scope: 4,
     pageSize: 24,

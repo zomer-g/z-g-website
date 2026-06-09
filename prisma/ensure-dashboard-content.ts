@@ -445,10 +445,19 @@ async function repairDefamationDisplayFields() {
     "ai.שופטים",
     "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
     "sql.הגנות_שנטענו",
+    "sql.רשימת_פרסומים",
   ];
-  // Field that must be present even on already-clean configs (added after the
+  // Fields that must be present even on already-clean configs (added after the
   // initial displayFields set was saved). Appended idempotently when missing.
-  const REQUIRED_FIELD = "sql.הגנות_שנטענו";
+  const REQUIRED_FIELDS = ["sql.הגנות_שנטענו", "sql.רשימת_פרסומים"];
+  // User-facing search controls — seeded only when none are configured yet, so
+  // an admin who later customises the list isn't overwritten.
+  const DEFAULT_FILTER_FIELDS = [
+    { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
+    { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
+    { key: "meta.document_date", label: "תאריך", control: "date" },
+    { key: "sql.רשימת_פרסומים", label: "חיפוש בפרסומים", control: "text" },
+  ];
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;
   const isCorrupt = (fields: unknown): boolean =>
@@ -466,19 +475,29 @@ async function repairDefamationDisplayFields() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fix = (c: any): boolean => {
     if (!c || !c.query) return false;
+    let changed = false;
     if (isCorrupt(c.query.displayFields)) {
       c.query.displayFields = [...clean];
-      return true;
+      changed = true;
     }
-    // Already clean — but make sure the (later-added) defenses field is there.
+    // Already clean — but make sure the (later-added) fields are present.
+    if (Array.isArray(c.query.displayFields)) {
+      for (const required of REQUIRED_FIELDS) {
+        if (!c.query.displayFields.includes(required)) {
+          c.query.displayFields.push(required);
+          changed = true;
+        }
+      }
+    }
+    // Seed search controls if the admin hasn't configured any yet.
     if (
-      Array.isArray(c.query.displayFields) &&
-      !c.query.displayFields.includes(REQUIRED_FIELD)
+      !Array.isArray(c.query.filterFields) ||
+      c.query.filterFields.length === 0
     ) {
-      c.query.displayFields = [...c.query.displayFields, REQUIRED_FIELD];
-      return true;
+      c.query.filterFields = DEFAULT_FILTER_FIELDS.map((f) => ({ ...f }));
+      changed = true;
     }
-    return false;
+    return changed;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content = page.content as any;
@@ -491,7 +510,7 @@ async function repairDefamationDisplayFields() {
       where: { slug },
       data: { content, draftContent: draft },
     });
-    console.log(`  ~ ${slug}: repaired corrupted displayFields`);
+    console.log(`  ~ ${slug}: synced displayFields + search controls`);
   }
 }
 

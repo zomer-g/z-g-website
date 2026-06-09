@@ -151,7 +151,8 @@ function pickByKeyHint(
   return undefined;
 }
 
-type RowStatus = { kind: "accepted" | "rejected" | "na"; label: string };
+type PillKind = "accepted" | "rejected" | "na" | "on" | "off";
+type RowStatus = { kind: PillKind; label: string };
 
 // Map a Hebrew acceptance value ("כן"/"לא"/"לא נדונה"/…) to a status pill.
 function rowStatusFromValue(raw: unknown): RowStatus | null {
@@ -166,8 +167,20 @@ function rowStatusFromValue(raw: unknown): RowStatus | null {
   return { kind: "na", label: s };
 }
 
+// Boolean parameters (e.g. נקבע_כלשון_הרע, חלו_הגנות) become a pill labelled
+// with the field name; true is highlighted (noteworthy flag), false muted.
+function boolPillsFor(item: Record<string, unknown>): RowStatus[] {
+  return Object.keys(item)
+    .filter((k) => typeof item[k] === "boolean")
+    .map((k) => {
+      const on = item[k] as boolean;
+      const label = fieldKeyToLabel(k);
+      return { kind: on ? "on" : "off", label: on ? label : `לא ${label}` };
+    });
+}
+
 const ROW_STATUS_STYLE: Record<
-  RowStatus["kind"],
+  PillKind,
   { pill: string; dot: string; accent: string }
 > = {
   accepted: {
@@ -181,6 +194,16 @@ const ROW_STATUS_STYLE: Record<
     accent: "#fecaca",
   },
   na: {
+    pill: "bg-gray-100 text-gray-500 border border-gray-200",
+    dot: "#9ca3af",
+    accent: "#e5e7eb",
+  },
+  on: {
+    pill: "bg-amber-50 text-amber-700 border border-amber-200",
+    dot: "#f59e0b",
+    accent: "#fde68a",
+  },
+  off: {
     pill: "bg-gray-100 text-gray-500 border border-gray-200",
     dot: "#9ca3af",
     accent: "#e5e7eb",
@@ -204,10 +227,14 @@ function StructuredFieldRows({
       <dd>
         <ul className="space-y-2">
           {items.map((item, i) => {
+            // Headline: a defense name (שם_ההגנה) or a publication platform
+            // (פלטפורמה) / source — the lead of the row.
             const title = pickByKeyHint(item, [
               "שם_ההגנה",
               "שם_הטענה",
               "כותרת",
+              "פלטפורמה",
+              "מקור",
               "שם",
             ]);
             const clause = pickByKeyHint(item, ["סעיף_בחוק", "סעיף"]);
@@ -217,31 +244,40 @@ function StructuredFieldRows({
               "תיאור",
               "פירוט",
             ]);
+            // String acceptance status (defenses) + boolean flag pills
+            // (publications: נקבע_כלשון_הרע, חלו_הגנות).
             const status = rowStatusFromValue(
               pickByKeyHint(item, ["התקבלה", "תוצאה", "סטטוס"]),
             );
-            const style = status ? ROW_STATUS_STYLE[status.kind] : null;
-            const hasAnyPart = title || clause || reason || status;
+            const pills = [...(status ? [status] : []), ...boolPillsFor(item)];
+            const accent = pills.length
+              ? ROW_STATUS_STYLE[pills[0].kind].accent
+              : "#e5e7eb";
+            const hasAnyPart = title || clause || reason || pills.length;
             return (
               <li
                 key={i}
                 className="border-r-2 pr-2.5"
-                style={{ borderColor: style?.accent ?? "#e5e7eb" }}
+                style={{ borderColor: accent }}
               >
                 {hasAnyPart ? (
                   <>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {status && style && (
-                        <span
-                          className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${style.pill}`}
-                        >
+                      {pills.map((p, pi) => {
+                        const style = ROW_STATUS_STYLE[p.kind];
+                        return (
                           <span
-                            className="inline-block w-1.5 h-1.5 rounded-full"
-                            style={{ background: style.dot }}
-                          />
-                          {status.label}
-                        </span>
-                      )}
+                            key={pi}
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${style.pill}`}
+                          >
+                            <span
+                              className="inline-block w-1.5 h-1.5 rounded-full"
+                              style={{ background: style.dot }}
+                            />
+                            {p.label}
+                          </span>
+                        );
+                      })}
                       {title != null && title !== "" && (
                         <span className="font-semibold text-gray-800">
                           {formatFieldValue(title)}
