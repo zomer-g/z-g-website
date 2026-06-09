@@ -493,9 +493,27 @@ export async function GET(req: NextRequest) {
     // Cache key includes a hash of the upstream filter so two pages with
     // different filters don't clobber each other. When customQuery is null
     // the filter param isn't sent and the cache key is just the scope.
-    const filterJson = config.customQuery
-      ? JSON.stringify(config.customQuery)
-      : "";
+    // Build the filter we send UPSTREAM. Priority:
+    //   1. The admin's customQuery, if set.
+    //   2. Otherwise, synthesize one from allowedDocTypes so TAG-IT filters
+    //      server-side (e.g. only "פסק דין"). Without this, a page with no
+    //      customQuery pulls the ENTIRE scope corpus over many pages — slow
+    //      enough that TAG-IT times out / 502s (defamation, foi-judgments).
+    //      Filtering server-side also returns the new (grouped) shape, so
+    //      sql.*/meta.* display fields work too.
+    const upstreamFilter: FilterExpression | null = config.customQuery
+      ? config.customQuery
+      : config.allowedDocTypes.length > 0
+        ? {
+            op: "or",
+            clauses: config.allowedDocTypes.map((p) => ({
+              field: "ai.כותרת_המסמך",
+              op: "contains" as const,
+              value: p,
+            })),
+          }
+        : null;
+    const filterJson = upstreamFilter ? JSON.stringify(upstreamFilter) : "";
 
     // When the page references sql.*/meta.* fields but has no customQuery to
     // trigger TAG-IT's new (grouped) shape, request those fields explicitly —
