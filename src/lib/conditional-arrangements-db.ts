@@ -265,6 +265,23 @@ export async function ensureData(): Promise<void> {
     throw new SyncInProgressError();
   }
 
+  // Self-heal: the meta row can outlive the records when a re-sync is
+  // interrupted AFTER its delete step but BEFORE re-inserting (e.g. the
+  // instance OOM-restarts mid-sync). The table is then empty even though
+  // `meta` exists — so neither the initial-sync branch above nor a
+  // version-check (which only re-syncs *changed* sources) would repopulate
+  // it, and the page would serve an empty result forever. A cheap LIMIT 1
+  // existence check catches this and triggers a resumable (insert-only,
+  // no-delete) recovery sync. findFirst is an indexed lookup, not a COUNT.
+  const anyRow = await prisma.caRecord.findFirst({ select: { id: true } });
+  if (!anyRow) {
+    if (!inflightSync) {
+      console.log("ca-sync: meta present but 0 records — starting recovery sync");
+      inflightSync = _doSync(true).finally(() => { inflightSync = null; });
+    }
+    throw new SyncInProgressError();
+  }
+
   // DB has data — serve immediately, version-check in background if stale.
   _triggerBackgroundVersionCheck(meta.syncedAt);
 }
@@ -346,12 +363,16 @@ async function _doSync(force: boolean): Promise<void> {
     return;
   }
 
-  // For the initial sync (no ca_sync row yet) pass resumable=true so that if
-  // the process OOM-crashes mid-way, the next restart re-uses already-inserted
-  // records (via skipDuplicates) instead of deleting and starting over.
-  // For weekly re-syncs (meta exists, UUID changed) use the full delete+insert
-  // cycle to replace stale records correctly.
-  const resumable = !meta;
+  // Resumable (insert-only, skipDuplicates) vs full delete+insert:
+  //   - Initial sync (no ca_sync row): resumable — a mid-way crash re-uses
+  //     already-inserted rows on restart instead of starting over.
+  //   - Recovery sync (meta exists but table is EMPTY, e.g. a prior re-sync
+  //     was OOM-killed after its delete): also resumable — never delete an
+  //     already-empty table, and keep partial progress if this run crashes too.
+  //   - Normal weekly re-sync (meta exists, table populated): full
+  //     delete+insert to correctly drop stale records.
+  const tableEmpty = !(await prisma.caRecord.findFirst({ select: { id: true } }));
+  const resumable = !meta || tableEmpty;
   if (policeChanged && policeId) {
     await _syncSource("police", policeId, resumable);
   }
