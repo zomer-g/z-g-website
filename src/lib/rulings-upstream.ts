@@ -91,6 +91,35 @@ export interface RulingsPageResult {
   total: number;
 }
 
+// Hard per-request timeout. TAG-IT can be slow to apply a text `contains`
+// filter on a large scope (it scans the corpus) — without a timeout the
+// fetch hangs the whole serverless function until Render kills it. We abort
+// well under Render's proxy limit so the route returns a clean 502 instead.
+const PAGE_TIMEOUT_MS = 22_000;
+const SCHEMA_TIMEOUT_MS = 9_000;
+
+async function fetchWithTimeout(
+  url: string,
+  apiKey: string,
+  ms: number,
+  outerSignal?: AbortSignal,
+): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  const onAbort = () => ctrl.abort();
+  outerSignal?.addEventListener("abort", onAbort);
+  try {
+    return await fetch(url, {
+      headers: { "X-API-Key": apiKey, Accept: "application/json" },
+      cache: "no-store",
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(t);
+    outerSignal?.removeEventListener("abort", onAbort);
+  }
+}
+
 export async function fetchUpstreamRulingsPage(
   opts: FetchRulingsPageOptions,
 ): Promise<RulingsPageResult | null> {
@@ -104,13 +133,22 @@ export async function fetchUpstreamRulingsPage(
   if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
   if (opts.sortKey) u.searchParams.set("sort", opts.sortKey);
 
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 2;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const res = await fetch(u.toString(), {
-      headers: { "X-API-Key": apiKey, Accept: "application/json" },
-      cache: "no-store",
-      signal: opts.signal,
-    });
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(u.toString(), apiKey, PAGE_TIMEOUT_MS, opts.signal);
+    } catch (err) {
+      // AbortError = our timeout (TAG-IT too slow) or caller cancelled.
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 600));
+        continue;
+      }
+      throw new UpstreamError(
+        504,
+        `TAG-IT request timed out after ${PAGE_TIMEOUT_MS}ms (${(err as Error)?.name || "fetch error"})`,
+      );
+    }
     if (res.ok) {
       const data = (await res.json()) as UpstreamListResponse;
       return {
@@ -123,9 +161,9 @@ export async function fetchUpstreamRulingsPage(
     if (res.status >= 400 && res.status < 500) {
       throw new UpstreamError(res.status, body);
     }
-    // 5xx — retry a couple of times for transient TAG-IT gateway blips.
+    // 5xx — retry once for a transient TAG-IT gateway blip.
     if (attempt < MAX_ATTEMPTS) {
-      await new Promise((r) => setTimeout(r, 800 * attempt));
+      await new Promise((r) => setTimeout(r, 800));
       continue;
     }
     throw new UpstreamError(res.status, body);
@@ -150,13 +188,17 @@ export async function fetchUpstreamRulingsSchema(
   const apiKey = getApiKey();
   if (!apiKey) return null;
   const url = `${UPSTREAM_BASE}/api/public/rulings/schema?scope=${scopeId}`;
-  const res = await fetch(url, {
-    headers: { "X-API-Key": apiKey, Accept: "application/json" },
-    cache: "no-store",
-  });
-  if (!res.ok) return null;
-  const data = (await res.json()) as { fields?: UpstreamSchemaField[] };
-  return Array.isArray(data.fields) ? data.fields : [];
+  // Best-effort with a short timeout — this only feeds select-filter
+  // dropdowns. If it's slow (computing enums over a big scope) we'd rather
+  // return empty options than hang the page.
+  try {
+    const res = await fetchWithTimeout(url, apiKey, SCHEMA_TIMEOUT_MS);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { fields?: UpstreamSchemaField[] };
+    return Array.isArray(data.fields) ? data.fields : [];
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchAllUpstreamRulings(
