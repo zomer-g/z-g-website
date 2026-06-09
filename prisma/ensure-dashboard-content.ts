@@ -437,6 +437,8 @@ async function bumpRulingsPageSize() {
 // corruption is detected (empty entries, nbsp, or surrogate code units).
 async function repairDefamationDisplayFields() {
   const slug = "defamation-rulings";
+  const PUBLICATIONS = "sql.רשימת_פרסומים";
+  const DEFENSES = "sql.הגנות_שנטענו";
   const clean = [
     "ai.שם_התיק",
     "ai.תקציר",
@@ -444,14 +446,15 @@ async function repairDefamationDisplayFields() {
     "meta.document_date",
     "ai.שופטים",
     "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
-    "sql.הגנות_שנטענו",
-    "sql.רשימת_פרסומים",
+    // Publications above defenses.
+    PUBLICATIONS,
+    DEFENSES,
   ];
   // Fields that must be present even on already-clean configs (added after the
   // initial displayFields set was saved). Appended idempotently when missing.
-  const REQUIRED_FIELDS = ["sql.הגנות_שנטענו", "sql.רשימת_פרסומים"];
-  // User-facing search controls — seeded only when none are configured yet, so
-  // an admin who later customises the list isn't overwritten.
+  const REQUIRED_FIELDS = [PUBLICATIONS, DEFENSES];
+  // User-facing search controls. Any whose key is missing is appended; the set
+  // is reseeded wholesale only when empty or carrying a broken key.
   const DEFAULT_FILTER_FIELDS = [
     { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
     { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
@@ -459,6 +462,9 @@ async function repairDefamationDisplayFields() {
     // Scalar publication-description field — the array sql.רשימת_פרסומים is not
     // filterable upstream, so it must never be used as a search key.
     { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
+    // Boolean (כן/לא) filters over scalar case-level flags.
+    { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+    { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
   ];
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;
@@ -484,11 +490,20 @@ async function repairDefamationDisplayFields() {
     }
     // Already clean — but make sure the (later-added) fields are present.
     if (Array.isArray(c.query.displayFields)) {
+      const df: string[] = c.query.displayFields;
       for (const required of REQUIRED_FIELDS) {
-        if (!c.query.displayFields.includes(required)) {
-          c.query.displayFields.push(required);
+        if (!df.includes(required)) {
+          df.push(required);
           changed = true;
         }
+      }
+      // Enforce publications-above-defenses ordering.
+      const pubIdx = df.indexOf(PUBLICATIONS);
+      const defIdx = df.indexOf(DEFENSES);
+      if (pubIdx > -1 && defIdx > -1 && pubIdx > defIdx) {
+        df.splice(pubIdx, 1);
+        df.splice(df.indexOf(DEFENSES), 0, PUBLICATIONS);
+        changed = true;
       }
     }
     // Seed search controls if the admin hasn't configured any yet, OR heal a
@@ -502,6 +517,18 @@ async function repairDefamationDisplayFields() {
     if (!Array.isArray(ff) || ff.length === 0 || hasBrokenPublicationSearch) {
       c.query.filterFields = DEFAULT_FILTER_FIELDS.map((f) => ({ ...f }));
       changed = true;
+    } else {
+      // Append any default search control whose key is missing (e.g. the
+      // boolean filters added after the initial set was saved).
+      const have = new Set(
+        ff.map((f: { key?: string }) => f && f.key).filter(Boolean),
+      );
+      for (const def of DEFAULT_FILTER_FIELDS) {
+        if (!have.has(def.key)) {
+          ff.push({ ...def });
+          changed = true;
+        }
+      }
     }
     return changed;
   };

@@ -16,7 +16,7 @@ interface Ruling {
   fields?: Record<string, unknown>;
 }
 
-type FilterControl = "text" | "select" | "number" | "date";
+type FilterControl = "text" | "select" | "number" | "date" | "boolean";
 
 interface FilterField {
   key: string;
@@ -534,8 +534,11 @@ function FilterBar({
               </div>
             );
           }
-          if (f.control === "select") {
-            const opts = options[f.key] || [];
+          if (f.control === "select" || f.control === "boolean") {
+            // Boolean fields use a fixed כן/לא option set; selects use the
+            // distinct values discovered server-side.
+            const opts =
+              f.control === "boolean" ? ["true", "false"] : options[f.key] || [];
             return (
               <div key={f.key}>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">

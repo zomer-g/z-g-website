@@ -59,12 +59,18 @@ export type FilterExpression = LeafFilter | AndFilter | OrFilter | NotFilter;
  * entry and the API applies the user's selections in memory on top of the
  * admin's `customQuery`.
  *
- *   text   → free-text "contains" box
- *   select → dropdown of distinct values found in the data
- *   number → min/max numeric range
- *   date   → from/to date range
+ *   text    → free-text "contains" box
+ *   select  → dropdown of distinct values found in the data
+ *   number  → min/max numeric range
+ *   date    → from/to date range
+ *   boolean → כן/לא dropdown over a true/false field (eq match)
  */
-export type FilterControl = "text" | "select" | "number" | "date";
+export type FilterControl =
+  | "text"
+  | "select"
+  | "number"
+  | "date"
+  | "boolean";
 
 export interface RulingsFilterField {
   key: string;        // e.g. "ai.בית_משפט", "sql.סכום_הוצאות_שקלים"
@@ -118,6 +124,7 @@ export const VALID_FILTER_CONTROLS: FilterControl[] = [
   "select",
   "number",
   "date",
+  "boolean",
 ];
 
 /** Quick validator — used by the admin form to reject bad JSON before save. */

@@ -1092,6 +1092,7 @@ const CONTROL_LABELS: Record<FilterControl, string> = {
   select: "בחירה מרשימה",
   number: "טווח מספרי",
   date: "טווח תאריכים",
+  boolean: "כן / לא",
 };
 
 // A searchable field combobox backed by the schema. Click to open a dropdown

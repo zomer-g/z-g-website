@@ -273,6 +273,11 @@ function userFilterClauses(
     } else if (f.control === "select") {
       const s = String(v).trim();
       if (s) clauses.push({ field: f.key, op: "eq", value: s });
+    } else if (f.control === "boolean") {
+      const s = String(v).trim();
+      if (s === "true") clauses.push({ field: f.key, op: "eq", value: true });
+      else if (s === "false")
+        clauses.push({ field: f.key, op: "eq", value: false });
     } else if (f.control === "number") {
       const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
       if (r.min != null) clauses.push({ field: f.key, op: "ge", value: r.min });

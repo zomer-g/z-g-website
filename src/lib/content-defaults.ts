@@ -554,12 +554,12 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       "meta.document_date",
       "ai.שופטים",
       "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+      // Publications list (shown above the defenses): per publication —
+      // platform, ruled-defamatory flag, defenses-applied flag, description.
+      "sql.רשימת_פרסומים",
       // Array-of-objects "table inside the case": each defense claimed, with
       // its acceptance status, clause, and the court's short reasoning.
       "sql.הגנות_שנטענו",
-      // Publications list: per publication — platform, ruled-defamatory flag,
-      // defenses-applied flag, and the description.
-      "sql.רשימת_פרסומים",
     ],
     filterFields: [
       { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
@@ -569,6 +569,9 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       // scalar sql.תיאור_הפרסום — the array path sql.רשימת_פרסומים is not
       // filterable upstream (TAG-IT returns 0).
       { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
+      // Boolean (כן/לא) filters over scalar case-level flags.
+      { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+      { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
     ],
     sortFields: [],
     scope: 4,
