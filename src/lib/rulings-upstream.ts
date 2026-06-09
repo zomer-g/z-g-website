@@ -23,7 +23,12 @@ interface UpstreamListResponse {
 
 const UPSTREAM_BASE = process.env.TAGIT_API_URL || "https://tag-it.biz";
 const PAGE_SIZE = 100;   // TAG-IT spec: max 100 per page
-const PARALLEL = 2;      // low concurrency to cap peak fetch memory (RSS)
+// Rulings fetches are server-side-filtered (only the configured doc types),
+// so the result set is much smaller than a full scope corpus — we can afford
+// PARALLEL=4 here to keep cold-load latency under the function timeout
+// (defamation has ~4.4k פס"ד; at PARALLEL 2 the cold fetch flirted with 30s).
+// class-actions/guidelines still pull full corpora and stay at 2.
+const PARALLEL = 4;
 
 function getApiKey() {
   return process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY;
