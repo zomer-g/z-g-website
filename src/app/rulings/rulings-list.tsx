@@ -49,10 +49,10 @@ interface RulingsResponse {
 
 type SortDir = "asc" | "desc";
 
-// 12 = LCM(1,2,3) × 2 — keeps every full page row-aligned across the
-// 1-col / 2-col / 3-col breakpoints. Half the load of 24 to stay under
-// the serverless timeout, since each doc triggers a metadata round-trip.
-const PAGE_SIZE = 12;
+// Fallback page size used only before the first API response arrives — the
+// server is authoritative (admin-configurable, default 24). 24 = LCM(2,3,4)
+// so every full page is row-aligned across the 1/2/3/4-col breakpoints.
+const PAGE_SIZE = 24;
 
 const C_PRIMARY = "#1a365d";
 const C_PD = "#2a6f97";

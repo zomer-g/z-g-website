@@ -137,8 +137,9 @@ interface PageConfig {
   pageSize: number;
 }
 
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
+// 24 = LCM(2,3,4) — full rows at every grid breakpoint (1/2/3/4 cols).
+const DEFAULT_PAGE_SIZE = 24;
+const MAX_PAGE_SIZE = 60;
 
 async function readPageConfig(pageSlug: string): Promise<PageConfig> {
   try {

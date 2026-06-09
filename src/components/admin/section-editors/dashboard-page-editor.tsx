@@ -1558,7 +1558,7 @@ function AdvancedQuerySection({
                 label="מספר תוצאות בעמוד"
                 type="number"
                 min={1}
-                max={50}
+                max={60}
                 value={pageSizeValue}
                 onChange={(e) => {
                   const n = Number(e.target.value);
@@ -1566,7 +1566,7 @@ function AdvancedQuerySection({
                     ...query,
                     pageSize:
                       Number.isFinite(n) && n > 0
-                        ? Math.min(50, Math.floor(n))
+                        ? Math.min(60, Math.floor(n))
                         : 12,
                   });
                 }}

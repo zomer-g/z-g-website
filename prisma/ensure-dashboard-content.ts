@@ -396,6 +396,40 @@ async function ensureMediaArticles() {
   );
 }
 
+// One-time normalization: bump the rulings card pages from the old default
+// page size (12) to 24. backfillMissingKeys won't touch an existing key, so
+// this targeted update is needed for rows already in the DB. Only fires when
+// the value is exactly the old default, so a deliberate admin choice isn't
+// overwritten on every deploy.
+async function bumpRulingsPageSize() {
+  const slugs = ["defamation-rulings", "foi-judgments", "foi-costs", "foi-rulings"];
+  for (const slug of slugs) {
+    const page = await prisma.page.findUnique({ where: { slug } });
+    if (!page) continue;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fix = (c: any): boolean => {
+      if (c && c.query && c.query.pageSize === 12) {
+        c.query.pageSize = 24;
+        return true;
+      }
+      return false;
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content = page.content as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const draft = page.draftContent as any;
+    const a = fix(content);
+    const b = fix(draft);
+    if (a || b) {
+      await prisma.page.update({
+        where: { slug },
+        data: { content, draftContent: draft },
+      });
+      console.log(`  ~ ${slug}: pageSize 12 → 24`);
+    }
+  }
+}
+
 async function main() {
   console.log("Ensuring dashboard content is in sync...");
 
@@ -413,6 +447,7 @@ async function main() {
     FOI_RULINGS_DEFAULT,
   );
   await ensureDashboardPage("leam", "לעם — אתרים אזרחיים", LEAM_DEFAULT);
+  await bumpRulingsPageSize();
   await ensureProjectsPage();
   await ensureMediaArticles();
 
