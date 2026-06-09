@@ -565,8 +565,10 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
       { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
       { key: "meta.document_date", label: "תאריך", control: "date" },
-      // Free-text search inside the publications of each case.
-      { key: "sql.רשימת_פרסומים", label: "חיפוש בפרסומים", control: "text" },
+      // Free-text search inside the publications of each case. Uses the
+      // scalar sql.תיאור_הפרסום — the array path sql.רשימת_פרסומים is not
+      // filterable upstream (TAG-IT returns 0).
+      { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
     ],
     sortFields: [],
     scope: 4,

@@ -456,7 +456,9 @@ async function repairDefamationDisplayFields() {
     { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
     { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
     { key: "meta.document_date", label: "תאריך", control: "date" },
-    { key: "sql.רשימת_פרסומים", label: "חיפוש בפרסומים", control: "text" },
+    // Scalar publication-description field — the array sql.רשימת_פרסומים is not
+    // filterable upstream, so it must never be used as a search key.
+    { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
   ];
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;
@@ -489,11 +491,15 @@ async function repairDefamationDisplayFields() {
         }
       }
     }
-    // Seed search controls if the admin hasn't configured any yet.
-    if (
-      !Array.isArray(c.query.filterFields) ||
-      c.query.filterFields.length === 0
-    ) {
+    // Seed search controls if the admin hasn't configured any yet, OR heal a
+    // config that still carries the non-filterable array search key.
+    const ff = c.query.filterFields;
+    const hasBrokenPublicationSearch =
+      Array.isArray(ff) &&
+      ff.some(
+        (f: { key?: string }) => f && f.key === "sql.רשימת_פרסומים",
+      );
+    if (!Array.isArray(ff) || ff.length === 0 || hasBrokenPublicationSearch) {
       c.query.filterFields = DEFAULT_FILTER_FIELDS.map((f) => ({ ...f }));
       changed = true;
     }
