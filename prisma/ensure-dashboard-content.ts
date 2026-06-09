@@ -444,7 +444,11 @@ async function repairDefamationDisplayFields() {
     "meta.document_date",
     "ai.שופטים",
     "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+    "sql.הגנות_שנטענו",
   ];
+  // Field that must be present even on already-clean configs (added after the
+  // initial displayFields set was saved). Appended idempotently when missing.
+  const REQUIRED_FIELD = "sql.הגנות_שנטענו";
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;
   const isCorrupt = (fields: unknown): boolean =>
@@ -461,8 +465,17 @@ async function repairDefamationDisplayFields() {
     });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fix = (c: any): boolean => {
-    if (c && c.query && isCorrupt(c.query.displayFields)) {
+    if (!c || !c.query) return false;
+    if (isCorrupt(c.query.displayFields)) {
       c.query.displayFields = [...clean];
+      return true;
+    }
+    // Already clean — but make sure the (later-added) defenses field is there.
+    if (
+      Array.isArray(c.query.displayFields) &&
+      !c.query.displayFields.includes(REQUIRED_FIELD)
+    ) {
+      c.query.displayFields = [...c.query.displayFields, REQUIRED_FIELD];
       return true;
     }
     return false;

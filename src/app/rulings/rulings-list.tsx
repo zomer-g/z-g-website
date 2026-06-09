@@ -123,6 +123,156 @@ function formatFieldValue(v: unknown): string {
   return String(v);
 }
 
+// True when a value is an array of plain objects (a "table inside the case",
+// e.g. sql.הגנות_שנטענו / sql.רשימת_פרסומים) rather than scalars or strings.
+function isObjectArray(v: unknown): v is Record<string, unknown>[] {
+  return (
+    Array.isArray(v) &&
+    v.length > 0 &&
+    v.every((x) => x != null && typeof x === "object" && !Array.isArray(x))
+  );
+}
+
+// Pull the first present value from an object whose key (ignoring spaces /
+// underscores) contains any of the given substrings. Lets one renderer handle
+// slight key-name variations across documents (שם_החוק vs שם_חוק_רשמי …).
+function pickByKeyHint(
+  obj: Record<string, unknown>,
+  hints: string[],
+): unknown {
+  const norm = (s: string) => s.replace(/[\s_]/g, "");
+  for (const hint of hints) {
+    const h = norm(hint);
+    for (const k of Object.keys(obj)) {
+      const val = obj[k];
+      if (norm(k).includes(h) && val != null && val !== "") return val;
+    }
+  }
+  return undefined;
+}
+
+type RowStatus = { kind: "accepted" | "rejected" | "na"; label: string };
+
+// Map a Hebrew acceptance value ("כן"/"לא"/"לא נדונה"/…) to a status pill.
+function rowStatusFromValue(raw: unknown): RowStatus | null {
+  if (raw == null || raw === "") return null;
+  const s = String(raw).trim();
+  if (s.includes("נדונה") || s.includes("לא נדון"))
+    return { kind: "na", label: "לא נדונה" };
+  if (s === "כן" || s.includes("התקבל") || s.includes("מתקבל"))
+    return { kind: "accepted", label: "התקבלה" };
+  if (s === "לא" || s.includes("נדחת") || s.includes("דחה") || s.includes("נדחה"))
+    return { kind: "rejected", label: "נדחתה" };
+  return { kind: "na", label: s };
+}
+
+const ROW_STATUS_STYLE: Record<
+  RowStatus["kind"],
+  { pill: string; dot: string; accent: string }
+> = {
+  accepted: {
+    pill: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    dot: "#10b981",
+    accent: "#a7f3d0",
+  },
+  rejected: {
+    pill: "bg-red-50 text-red-700 border border-red-200",
+    dot: "#ef4444",
+    accent: "#fecaca",
+  },
+  na: {
+    pill: "bg-gray-100 text-gray-500 border border-gray-200",
+    dot: "#9ca3af",
+    accent: "#e5e7eb",
+  },
+};
+
+// Renders an array-of-objects field as elegant status rows. Tuned for the
+// "defenses claimed" table (status pill + name + clause badge + reasoning) but
+// degrades gracefully for any object-array: it shows whatever of those parts
+// it can find, falling back to a compact JSON line per item if none match.
+function StructuredFieldRows({
+  label,
+  items,
+}: {
+  label: string;
+  items: Record<string, unknown>[];
+}) {
+  return (
+    <div className="block">
+      <dt className="font-semibold mb-1.5">{label}</dt>
+      <dd>
+        <ul className="space-y-2">
+          {items.map((item, i) => {
+            const title = pickByKeyHint(item, [
+              "שם_ההגנה",
+              "שם_הטענה",
+              "כותרת",
+              "שם",
+            ]);
+            const clause = pickByKeyHint(item, ["סעיף_בחוק", "סעיף"]);
+            const reason = pickByKeyHint(item, [
+              "נימוק",
+              "הסבר",
+              "תיאור",
+              "פירוט",
+            ]);
+            const status = rowStatusFromValue(
+              pickByKeyHint(item, ["התקבלה", "תוצאה", "סטטוס"]),
+            );
+            const style = status ? ROW_STATUS_STYLE[status.kind] : null;
+            const hasAnyPart = title || clause || reason || status;
+            return (
+              <li
+                key={i}
+                className="border-r-2 pr-2.5"
+                style={{ borderColor: style?.accent ?? "#e5e7eb" }}
+              >
+                {hasAnyPart ? (
+                  <>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {status && style && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${style.pill}`}
+                        >
+                          <span
+                            className="inline-block w-1.5 h-1.5 rounded-full"
+                            style={{ background: style.dot }}
+                          />
+                          {status.label}
+                        </span>
+                      )}
+                      {title != null && title !== "" && (
+                        <span className="font-semibold text-gray-800">
+                          {formatFieldValue(title)}
+                        </span>
+                      )}
+                      {clause != null && clause !== "" && (
+                        <span className="text-[11px] font-mono text-gray-600 bg-gray-100 rounded px-1.5 py-0.5">
+                          ס׳ {formatFieldValue(clause)}
+                        </span>
+                      )}
+                    </div>
+                    {reason != null && reason !== "" && (
+                      <p className="text-xs text-gray-500 leading-relaxed mt-0.5">
+                        {formatFieldValue(reason)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {formatFieldValue(item)}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </dd>
+    </div>
+  );
+}
+
 function RulingCard({
   ruling,
   displayFields,
@@ -159,6 +309,18 @@ function RulingCard({
         <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
           {rest.map((key) => {
             const value = ruling.fields?.[key];
+            // Array-of-objects (a table inside the case, e.g. defenses claimed)
+            // gets its own elegant status-row renderer instead of being
+            // flattened to "[object Object]" text.
+            if (isObjectArray(value)) {
+              return (
+                <StructuredFieldRows
+                  key={key}
+                  label={fieldKeyToLabel(key)}
+                  items={value}
+                />
+              );
+            }
             const isEmpty = value == null || value === "";
             const formatted = isEmpty ? "" : formatFieldValue(value);
             // Long free-text fields (e.g. AI summary / תקציר) read much better

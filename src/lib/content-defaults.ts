@@ -554,6 +554,9 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       "meta.document_date",
       "ai.שופטים",
       "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+      // Array-of-objects "table inside the case": each defense claimed, with
+      // its acceptance status, clause, and the court's short reasoning.
+      "sql.הגנות_שנטענו",
     ],
     filterFields: [],
     sortFields: [],
