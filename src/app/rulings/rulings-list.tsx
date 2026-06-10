@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { LegislationLink } from "@/types/content";
 import { LegislationMenu } from "./legislation-menu";
+import { ShareLinkButton } from "@/components/ui/share-link-button";
 
 interface Ruling {
   id: number;
@@ -216,7 +217,7 @@ const ROW_STATUS_STYLE: Record<
 // "defenses claimed" table (status pill + name + clause badge + reasoning) but
 // degrades gracefully for any object-array: it shows whatever of those parts
 // it can find, falling back to a compact JSON line per item if none match.
-function StructuredFieldRows({
+export function StructuredFieldRows({
   label,
   items,
 }: {
@@ -399,6 +400,7 @@ function RulingCard({
         </dl>
 
         <div className="mt-auto pt-3 flex items-center justify-end gap-2">
+          <ShareLinkButton compact url={`/rulings/${ruling.id}`} />
           <a
             href={ruling.documentUrl}
             target="_blank"
@@ -474,15 +476,18 @@ function RulingCard({
         ) : (
           <span />
         )}
-        <a
-          href={ruling.documentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-semibold rounded-md px-3 py-1.5 text-white transition"
-          style={{ background: C_PRIMARY }}
-        >
-          צפייה במסמך
-        </a>
+        <div className="flex items-center gap-2">
+          <ShareLinkButton compact url={`/rulings/${ruling.id}`} />
+          <a
+            href={ruling.documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold rounded-md px-3 py-1.5 text-white transition"
+            style={{ background: C_PRIMARY }}
+          >
+            צפייה במסמך
+          </a>
+        </div>
       </div>
     </article>
   );
