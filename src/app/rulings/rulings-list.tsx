@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { LegislationLink } from "@/types/content";
+import { LegislationMenu } from "./legislation-menu";
 
 interface Ruling {
   id: number;
@@ -509,6 +511,7 @@ function FilterBar({
   setDraft,
   onApply,
   onClear,
+  legislation,
 }: {
   fields: FilterField[];
   options: Record<string, string[]>;
@@ -516,6 +519,7 @@ function FilterBar({
   setDraft: (next: Record<string, UserFilterValue>) => void;
   onApply: () => void;
   onClear: () => void;
+  legislation?: LegislationLink[];
 }) {
   const setField = (key: string, value: UserFilterValue) =>
     setDraft({ ...draft, [key]: value });
@@ -648,23 +652,26 @@ function FilterBar({
         })}
       </div>
 
-      <div className="flex items-center justify-end gap-2 mt-4">
-        <button
-          type="button"
-          onClick={onClear}
-          disabled={!anyActive}
-          className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-        >
-          ניקוי
-        </button>
-        <button
-          type="button"
-          onClick={onApply}
-          className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
-          style={{ background: C_PRIMARY }}
-        >
-          סינון
-        </button>
+      <div className="flex items-center justify-between gap-2 mt-4">
+        <LegislationMenu items={legislation} align="start" />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={!anyActive}
+            className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+          >
+            ניקוי
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+            style={{ background: C_PRIMARY }}
+          >
+            סינון
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -706,8 +713,10 @@ function readUrlState(): {
 
 export function RulingsList({
   category,
+  legislation,
 }: {
   category: "foi" | "defamation" | "foi-judgments" | "foi-costs";
+  legislation?: LegislationLink[];
 }) {
   // Seed once from the URL so a shared link restores the exact searched view.
   const [urlSeed] = useState(readUrlState);
@@ -850,6 +859,7 @@ export function RulingsList({
           setDraft={setDraftFilters}
           onApply={applyFilters}
           onClear={clearFilters}
+          legislation={legislation}
         />
       ) : null}
 
@@ -871,6 +881,9 @@ export function RulingsList({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {filterFields.length === 0 ? (
+            <LegislationMenu items={legislation} align="end" />
+          ) : null}
           <button
             type="button"
             onClick={copyShareLink}
