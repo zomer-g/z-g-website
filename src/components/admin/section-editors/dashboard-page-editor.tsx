@@ -20,6 +20,7 @@ import {
   Filter,
   Code,
   Layout,
+  Scale,
 } from "lucide-react";
 import {
   isValidFilterExpression,
@@ -233,6 +234,15 @@ interface DashboardPageContent {
   // Optional structured query (used by rulings pages). Surfaced via the
   // `advancedQuery` editor prop.
   query?: RulingsPageQuery;
+  // Optional relevant-legislation links (used by rulings pages). Surfaced via
+  // the `showLegislation` editor prop.
+  legislation?: LegislationRow[];
+}
+
+interface LegislationRow {
+  label: string;
+  url: string;
+  kind?: "law" | "regulation";
 }
 
 interface CacheControls {
@@ -282,6 +292,8 @@ interface DashboardPageEditorProps<T extends DashboardPageContent> {
   embedAction?: EmbedAction;
   docTypeFilter?: DocTypeFilterControls;
   advancedQuery?: AdvancedQueryControls;
+  // When true, show the relevant-legislation links editor.
+  showLegislation?: boolean;
 }
 
 export function DashboardPageEditor<T extends DashboardPageContent>({
@@ -292,6 +304,7 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
   embedAction,
   docTypeFilter,
   advancedQuery,
+  showLegislation = false,
 }: DashboardPageEditorProps<T>) {
   const isPublic = content.isPublic ?? true;
   const paragraphs = content.disclaimer?.paragraphs ?? [];
@@ -681,6 +694,13 @@ export function DashboardPageEditor<T extends DashboardPageContent>({
           onChange={(next) =>
             onChange({ ...content, [advancedQuery.field]: next } as T)
           }
+        />
+      ) : null}
+
+      {showLegislation ? (
+        <LegislationSection
+          items={Array.isArray(content.legislation) ? content.legislation : []}
+          onChange={(next) => onChange({ ...content, legislation: next } as T)}
         />
       ) : null}
 
@@ -1283,6 +1303,92 @@ function FieldSelect({
 }
 
 // Up/down reorder buttons for a row at index `i` of a list of length `len`.
+function LegislationSection({
+  items,
+  onChange,
+}: {
+  items: LegislationRow[];
+  onChange: (next: LegislationRow[]) => void;
+}) {
+  const update = (i: number, patch: Partial<LegislationRow>) => {
+    const next = [...items];
+    next[i] = { ...next[i], ...patch };
+    onChange(next);
+  };
+  const add = () => onChange([...items, { label: "", url: "", kind: "law" }]);
+  const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
+  const move = (i: number, dir: -1 | 1) => {
+    const t = i + dir;
+    if (t < 0 || t >= items.length) return;
+    const next = [...items];
+    [next[i], next[t]] = [next[t], next[i]];
+    onChange(next);
+  };
+  return (
+    <SectionCard title="חקיקה וחקיקת משנה" icon={Scale}>
+      <div className="space-y-2">
+        {items.map((l, i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-border bg-muted-bg/20 p-2.5 space-y-2"
+          >
+            <div className="flex items-center gap-2">
+              <ReorderButtons i={i} len={items.length} onMove={move} />
+              <Input
+                value={l.label}
+                onChange={(e) => update(i, { label: e.target.value })}
+                placeholder="שם החוק / התקנה"
+                dir="rtl"
+                className="flex-1"
+              />
+              <select
+                value={l.kind || "law"}
+                onChange={(e) =>
+                  update(i, { kind: e.target.value as "law" | "regulation" })
+                }
+                className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                dir="rtl"
+              >
+                <option value="law">חוק</option>
+                <option value="regulation">תקנות</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="shrink-0 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-md p-1.5 border border-border"
+                title="הסר"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            <Input
+              value={l.url}
+              onChange={(e) => update(i, { url: e.target.value })}
+              placeholder="https://..."
+              dir="ltr"
+              className="w-full"
+            />
+          </div>
+        ))}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={add}
+        className="mt-2 border border-dashed border-border text-xs"
+      >
+        <Plus size={14} />
+        הוסף חקיקה
+      </Button>
+      <p className="mt-1.5 text-xs text-muted leading-relaxed">
+        קישורים לחקיקה רלוונטית שיוצגו מעל רשימת הפסיקה. פריטים מסוג
+        &quot;תקנות&quot; מקובצים בנפרד תחת &quot;חקיקת משנה&quot;.
+      </p>
+    </SectionCard>
+  );
+}
+
 function ReorderButtons({
   i,
   len,

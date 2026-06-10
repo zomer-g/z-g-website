@@ -463,10 +463,19 @@ export interface LeamPageContent {
 
 // ── Defamation Rulings Dashboard Page Content ──
 
+// A relevant-legislation link shown on a rulings page (primary law or a piece
+// of secondary legislation / regulations). `kind` drives the grouping + badge.
+export interface LegislationLink {
+  label: string;
+  url: string;
+  kind?: "law" | "regulation";
+}
+
 export interface DefamationRulingsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
   // Substring patterns matched against ai_analysis["כותרת_המסמך"].
   // A document is shown only if its title includes at least one pattern.
   // Empty array = show everything. Kept alongside `query` for the simple
@@ -483,6 +492,7 @@ export interface FoiRulingsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
   allowedDocTypes: string[];
   query: import("./ruling-filter").RulingsPageQuery;
 }
@@ -494,6 +504,7 @@ export interface FoiJudgmentsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
   allowedDocTypes: string[];
   query: import("./ruling-filter").RulingsPageQuery;
 }
@@ -506,6 +517,7 @@ export interface FoiCostsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
   allowedDocTypes: string[];
   query: import("./ruling-filter").RulingsPageQuery;
 }

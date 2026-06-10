@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import type { FoiJudgmentsPageContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
 import { RulingsList } from "../rulings/rulings-list";
+import { LegislationLinks } from "../rulings/legislation-links";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,7 @@ export default async function FoiJudgmentsPage() {
         </section>
       </EditableSection>
       <Container className="py-8">
+        <LegislationLinks items={content.legislation} />
         <RulingsList category="foi-judgments" />
       </Container>
     </PublicLayout>

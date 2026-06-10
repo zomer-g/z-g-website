@@ -450,6 +450,7 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<DefamationRulingsPageContent>
               content={content as DefamationRulingsPageContent}
               onChange={setContent}
+              showLegislation
               cacheControls={{
                 refreshEndpoint: "/api/rulings/refresh",
                 ttlField: "cacheTtlMinutes",
@@ -488,6 +489,7 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<FoiJudgmentsPageContent>
               content={content as FoiJudgmentsPageContent}
               onChange={setContent}
+              showLegislation
               cacheControls={{
                 refreshEndpoint: "/api/rulings/refresh",
                 ttlField: "cacheTtlMinutes",
@@ -526,6 +528,7 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<FoiCostsPageContent>
               content={content as FoiCostsPageContent}
               onChange={setContent}
+              showLegislation
               cacheControls={{
                 refreshEndpoint: "/api/rulings/refresh",
                 ttlField: "cacheTtlMinutes",

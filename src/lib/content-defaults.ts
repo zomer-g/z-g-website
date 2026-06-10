@@ -542,6 +542,13 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
     subtitle: "פסקי דין אחרונים בעניין לשון הרע",
   },
   cacheTtlMinutes: 60,
+  legislation: [
+    {
+      label: 'חוק איסור לשון הרע, התשכ"ה–1965',
+      url: "https://he.wikisource.org/wiki/חוק_איסור_לשון_הרע",
+      kind: "law",
+    },
+  ],
   allowedDocTypes: ["פסק דין"],
   query: {
     customQuery: null,
@@ -600,6 +607,25 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
 
 /* ─── FOI Petitions Rulings Dashboard Page ─── */
 
+// Shared across the FOI pages: the primary law + its main regulations.
+const FOI_LEGISLATION = [
+  {
+    label: 'חוק חופש המידע, התשנ"ח–1998',
+    url: "https://he.wikisource.org/wiki/חוק_חופש_המידע",
+    kind: "law" as const,
+  },
+  {
+    label: 'תקנות חופש המידע, התשנ"ט–1999',
+    url: "https://he.wikisource.org/wiki/תקנות_חופש_המידע",
+    kind: "regulation" as const,
+  },
+  {
+    label: 'תקנות חופש המידע (אגרות), התשנ"ט–1999',
+    url: "https://he.wikisource.org/wiki/תקנות_חופש_המידע_(אגרות)",
+    kind: "regulation" as const,
+  },
+];
+
 export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
   isPublic: false,
   hero: {
@@ -607,6 +633,7 @@ export const DEFAULT_FOI_RULINGS_CONTENT: FoiRulingsPageContent = {
     subtitle: "פסקי דין אחרונים בעתירות לפי חוק חופש המידע",
   },
   cacheTtlMinutes: 60,
+  legislation: FOI_LEGISLATION,
   allowedDocTypes: ["פסק דין"],
   query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 6, pageSize: 24 },
 };
@@ -622,6 +649,7 @@ export const DEFAULT_FOI_JUDGMENTS_CONTENT: FoiJudgmentsPageContent = {
     subtitle: "פסקי דין בעתירות לפי חוק חופש המידע, מהחדש לישן",
   },
   cacheTtlMinutes: 60,
+  legislation: FOI_LEGISLATION,
   allowedDocTypes: ["פסק דין", 'פס"ד'],
   query: { customQuery: null, displayFields: [], filterFields: [], sortFields: [], scope: 6, pageSize: 24 },
 };
@@ -638,6 +666,7 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
     subtitle: "פסיקות שבהן נפסקו הוצאות משפט, מהחדש לישן",
   },
   cacheTtlMinutes: 60,
+  legislation: FOI_LEGISLATION,
   // Don't constrain by title — the cost filter does the heavy lifting.
   allowedDocTypes: [],
   query: {
