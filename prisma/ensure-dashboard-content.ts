@@ -462,6 +462,7 @@ async function repairDefamationDisplayFields() {
     // Scalar publication-description field — the array sql.רשימת_פרסומים is not
     // filterable upstream, so it must never be used as a search key.
     { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
+    { key: "sql.פלטפורמה", label: "פלטפורמה", control: "text" },
     // Boolean (כן/לא) filters over scalar case-level flags.
     { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
     { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
