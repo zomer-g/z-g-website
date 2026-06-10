@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { LegislationLink } from "@/types/content";
-import { LegislationMenu } from "./legislation-menu";
+import { LegislationMenu } from "@/components/ui/legislation-menu";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
 
 interface Ruling {

@@ -401,6 +401,7 @@ export interface ClassActionsPageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
   cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
   // Admin-defined base filter (FilterExpression). Restricts which documents
   // appear, on top of the dashboard's own user filters. Optional / nullable.
   query?: import("./ruling-filter").RulingsPageQuery;

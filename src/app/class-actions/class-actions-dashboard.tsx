@@ -15,6 +15,8 @@ import type {
 } from "@/types/class-action";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { LegislationMenu } from "@/components/ui/legislation-menu";
+import type { LegislationLink } from "@/types/content";
 
 // 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -479,7 +481,11 @@ function CaseCard({
   );
 }
 
-export function ClassActionsDashboard() {
+export function ClassActionsDashboard({
+  legislation,
+}: {
+  legislation?: LegislationLink[];
+} = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -747,22 +753,25 @@ export function ClassActionsDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 mt-4">
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
-          >
-            ניקוי
-          </button>
-          <button
-            type="button"
-            onClick={applyFilters}
-            className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
-            style={{ background: C_PRIMARY }}
-          >
-            סינון
-          </button>
+        <div className="flex items-center justify-between gap-2 mt-4">
+          <LegislationMenu items={legislation} align="start" />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              ניקוי
+            </button>
+            <button
+              type="button"
+              onClick={applyFilters}
+              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+              style={{ background: C_PRIMARY }}
+            >
+              סינון
+            </button>
+          </div>
         </div>
       </div>
 

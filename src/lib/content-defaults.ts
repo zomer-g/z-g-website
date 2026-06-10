@@ -505,6 +505,13 @@ export const DEFAULT_CLASS_ACTIONS_CONTENT: ClassActionsPageContent = {
     subtitle: "רשימת התובענות הייצוגיות החדשות שנפתחו בפנקס",
   },
   cacheTtlMinutes: 60,
+  legislation: [
+    {
+      label: 'חוק תובענות ייצוגיות, התשס"ו–2006',
+      url: "https://he.wikisource.org/wiki/חוק_תובענות_ייצוגיות",
+      kind: "law",
+    },
+  ],
   // Empty base filter = current behaviour (show everything). The admin can
   // restrict the document set via customQuery; the dashboard's own filters
   // layer on top.

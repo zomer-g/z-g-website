@@ -387,6 +387,7 @@ export default function SiteEditorPageEditor({
             <DashboardPageEditor<ClassActionsPageContent>
               content={content as ClassActionsPageContent}
               onChange={setContent}
+              showLegislation
               cacheControls={{
                 refreshEndpoint: "/api/class-actions/refresh",
                 ttlField: "cacheTtlMinutes",

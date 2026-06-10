@@ -42,7 +42,7 @@ export default async function ClassActionsPage() {
         </section>
       </EditableSection>
       <Container className="py-8">
-        <ClassActionsDashboard />
+        <ClassActionsDashboard legislation={content.legislation} />
       </Container>
     </PublicLayout>
   );
