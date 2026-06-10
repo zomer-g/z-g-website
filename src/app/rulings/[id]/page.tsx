@@ -28,20 +28,44 @@ function objArray(v: unknown): Record<string, unknown>[] {
     : [];
 }
 
+// TAG-IT has no single-document metadata endpoint — only /file. The list
+// endpoint with a meta.id filter returns the full doc (ai+sql+meta), but it's
+// scoped, and the id alone doesn't tell us the scope. So try the known rulings
+// scopes (4 = defamation, 6 = FOI) until one returns the document.
+const RULINGS_SCOPES = [4, 6];
+
+async function fetchDoc(
+  id: number,
+  apiKey: string,
+): Promise<Record<string, unknown> | null> {
+  const filter = encodeURIComponent(
+    JSON.stringify({ field: "meta.id", op: "eq", value: id }),
+  );
+  for (const scope of RULINGS_SCOPES) {
+    try {
+      const res = await fetch(
+        `${UPSTREAM}?scope=${scope}&size=1&filter=${filter}`,
+        {
+          headers: { "X-API-Key": apiKey, Accept: "application/json" },
+          cache: "no-store",
+        },
+      );
+      if (!res.ok) continue;
+      const body = (await res.json()) as { items?: Record<string, unknown>[] };
+      const doc = Array.isArray(body.items) ? body.items[0] : undefined;
+      if (doc) return doc;
+    } catch {
+      // try next scope
+    }
+  }
+  return null;
+}
+
 async function getRuling(id: number): Promise<DetailRuling | null> {
   const apiKey = getApiKey();
   if (!apiKey) return null;
-  let res: Response;
-  try {
-    res = await fetch(`${UPSTREAM}/${id}`, {
-      headers: { "X-API-Key": apiKey, Accept: "application/json" },
-      cache: "no-store",
-    });
-  } catch {
-    return null;
-  }
-  if (!res.ok) return null;
-  const doc = (await res.json()) as Record<string, unknown>;
+  const doc = await fetchDoc(id, apiKey);
+  if (!doc) return null;
   const ai = ((doc.ai || doc.ai_analysis) as Record<string, unknown>) || {};
   const sql = (doc.sql as Record<string, unknown>) || {};
   const meta = (doc.meta as Record<string, unknown>) || {};
