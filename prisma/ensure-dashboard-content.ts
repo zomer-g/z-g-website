@@ -459,6 +459,11 @@ async function repairDefamationDisplayFields() {
     { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
     { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
     { key: "meta.document_date", label: "תאריך", control: "date" },
+    {
+      key: "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+      label: "סכום פיצוי שנפסק (₪)",
+      control: "number",
+    },
     // Scalar publication-description field — the array sql.רשימת_פרסומים is not
     // filterable upstream, so it must never be used as a search key.
     { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },

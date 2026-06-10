@@ -565,6 +565,13 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
       { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
       { key: "meta.document_date", label: "תאריך", control: "date" },
+      // Awarded-compensation range (₪). Nested numeric field — TAG-IT filters
+      // it with ge/le. Values are full shekel amounts (e.g. 47000, 250000).
+      {
+        key: "sql.היבטים_פיננסיים.סכום_פיצוי_נפסק",
+        label: "סכום פיצוי שנפסק (₪)",
+        control: "number",
+      },
       // Free-text search inside the publications of each case. Uses the
       // scalar sql.תיאור_הפרסום — the array path sql.רשימת_פרסומים is not
       // filterable upstream (TAG-IT returns 0).

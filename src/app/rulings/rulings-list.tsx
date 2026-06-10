@@ -729,6 +729,9 @@ export function RulingsList({
   const [sortKey, setSortKey] = useState<string>(urlSeed.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(urlSeed.sortDir);
 
+  // "Copied" feedback for the share-link button.
+  const [copied, setCopied] = useState(false);
+
   const fetchData = useCallback(
     async (
       cat: string,
@@ -808,6 +811,18 @@ export function RulingsList({
     setAppliedFilters({});
   };
 
+  // Copy the current (search-synced) URL so it can be shared.
+  const copyShareLink = async () => {
+    if (typeof window === "undefined") return;
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable (e.g. insecure context) — silently ignore
+    }
+  };
+
   const filterFields = data?.filterFields ?? [];
   const filterOptions = data?.filterOptions ?? {};
   const sortFields = data?.sortFields ?? [];
@@ -855,39 +870,49 @@ export function RulingsList({
           )}
         </div>
 
-        {sortFields.length > 0 ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <label htmlFor="rulings-sort" className="text-xs text-gray-600">
-              מיון:
-            </label>
-            <select
-              id="rulings-sort"
-              value={activeSortKey}
-              onChange={(e) => {
-                setSortKey(e.target.value);
-                setPage(1);
-              }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
-            >
-              {sortFields.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-                setPage(1);
-              }}
-              title={sortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
-              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
-            >
-              {sortDir === "desc" ? "יורד ↓" : "עולה ↑"}
-            </button>
-          </div>
-        ) : null}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={copyShareLink}
+            title="העתק קישור לתצוגה הנוכחית (כולל החיפוש)"
+            className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+          >
+            {copied ? "הועתק ✓" : "העתק קישור"}
+          </button>
+          {sortFields.length > 0 ? (
+            <>
+              <label htmlFor="rulings-sort" className="text-xs text-gray-600">
+                מיון:
+              </label>
+              <select
+                id="rulings-sort"
+                value={activeSortKey}
+                onChange={(e) => {
+                  setSortKey(e.target.value);
+                  setPage(1);
+                }}
+                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+              >
+                {sortFields.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => {
+                  setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                  setPage(1);
+                }}
+                title={sortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
+                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+              >
+                {sortDir === "desc" ? "יורד ↓" : "עולה ↑"}
+              </button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {/* Cards grid */}
