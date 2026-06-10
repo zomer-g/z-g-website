@@ -569,12 +569,21 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       // scalar sql.תיאור_הפרסום — the array path sql.רשימת_פרסומים is not
       // filterable upstream (TAG-IT returns 0).
       { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
-      // Platform the publication was made on (scalar; the array path
-      // sql.רשימת_פרסומים.פלטפורמה is not filterable upstream).
       { key: "sql.פלטפורמה", label: "פלטפורמה", control: "text" },
       // Boolean (כן/לא) filters over scalar case-level flags.
       { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+      { key: "sql.מטרה_לפגוע.קביעה_על_מטרה_לפגוע", label: "כוונה לפגוע", control: "boolean" },
       { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
+      // Per-defense search. TAG-IT filters array elements with "any element"
+      // semantics, so name + status combined finds cases where a specific
+      // defense was accepted/rejected.
+      { key: "sql.הגנות_שנטענו.שם_ההגנה", label: "שם הגנה", control: "text" },
+      {
+        key: "sql.הגנות_שנטענו.התקבלה",
+        label: "סטטוס הגנה",
+        control: "select",
+        options: ["כן", "לא", "חלקית", "לא נדונה"],
+      },
     ],
     sortFields: [],
     scope: 4,

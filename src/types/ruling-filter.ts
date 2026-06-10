@@ -76,6 +76,10 @@ export interface RulingsFilterField {
   key: string;        // e.g. "ai.בית_משפט", "sql.סכום_הוצאות_שקלים"
   label: string;      // shown above the control
   control: FilterControl;
+  // For "select" controls: a fixed option list. When set it takes precedence
+  // over values discovered from the upstream schema (needed for fields whose
+  // schema doesn't advertise enum samples, e.g. sql.הגנות_שנטענו.התקבלה).
+  options?: string[];
 }
 
 /**

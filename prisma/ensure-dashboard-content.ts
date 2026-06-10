@@ -465,7 +465,16 @@ async function repairDefamationDisplayFields() {
     { key: "sql.פלטפורמה", label: "פלטפורמה", control: "text" },
     // Boolean (כן/לא) filters over scalar case-level flags.
     { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+    { key: "sql.מטרה_לפגוע.קביעה_על_מטרה_לפגוע", label: "כוונה לפגוע", control: "boolean" },
     { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
+    // Per-defense search (TAG-IT "any element" array filtering).
+    { key: "sql.הגנות_שנטענו.שם_ההגנה", label: "שם הגנה", control: "text" },
+    {
+      key: "sql.הגנות_שנטענו.התקבלה",
+      label: "סטטוס הגנה",
+      control: "select",
+      options: ["כן", "לא", "חלקית", "לא נדונה"],
+    },
   ];
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;

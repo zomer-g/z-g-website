@@ -1737,6 +1737,22 @@ function AdvancedQuerySection({
                     ))}
                   </select>
                 </div>
+                {f.control === "select" && (
+                  <Input
+                    value={(f.options || []).join(", ")}
+                    onChange={(e) =>
+                      updateFilterField(i, {
+                        options: e.target.value
+                          .split(",")
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                    placeholder="ערכים לבחירה, מופרדים בפסיק (ריק = מהסכמה)"
+                    dir="rtl"
+                    className="w-full text-xs"
+                  />
+                )}
               </div>
             ))}
           </div>

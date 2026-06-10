@@ -323,6 +323,11 @@ function selectOptionsFromSchema(
   const out: Record<string, string[]> = {};
   for (const ff of filterFields) {
     if (ff.control !== "select") continue;
+    // Admin-provided fixed options win over upstream enum samples.
+    if (Array.isArray(ff.options) && ff.options.length > 0) {
+      out[ff.key] = ff.options.map((v) => String(v)).filter(Boolean);
+      continue;
+    }
     const sf = byKey.get(ff.key);
     out[ff.key] = (sf?.enum_values_sample || [])
       .map((v) => String(v))
