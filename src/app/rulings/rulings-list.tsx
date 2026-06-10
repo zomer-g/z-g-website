@@ -670,24 +670,64 @@ function FilterBar({
   );
 }
 
+// ── Shareable URL state ──
+// Filters/sort/page live in the query string so a searched view can be copied
+// from the address bar and sent to someone. Read once on mount; mirrored back
+// with replaceState on change — no navigation, no extra requests.
+function readUrlState(): {
+  filters: Record<string, UserFilterValue>;
+  sortKey: string;
+  sortDir: SortDir;
+  page: number;
+} {
+  const empty = {
+    filters: {} as Record<string, UserFilterValue>,
+    sortKey: "",
+    sortDir: "desc" as SortDir,
+    page: 1,
+  };
+  if (typeof window === "undefined") return empty;
+  const sp = new URLSearchParams(window.location.search);
+  let filters: Record<string, UserFilterValue> = {};
+  const raw = sp.get("filters");
+  if (raw) {
+    try {
+      const o = JSON.parse(raw);
+      if (o && typeof o === "object") filters = o as Record<string, UserFilterValue>;
+    } catch {
+      // ignore malformed ?filters=
+    }
+  }
+  const sortKey = sp.get("sort") || "";
+  const sortDir: SortDir = sp.get("dir") === "asc" ? "asc" : "desc";
+  const page = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
+  return { filters, sortKey, sortDir, page };
+}
+
 export function RulingsList({
   category,
 }: {
   category: "foi" | "defamation" | "foi-judgments" | "foi-costs";
 }) {
+  // Seed once from the URL so a shared link restores the exact searched view.
+  const [urlSeed] = useState(readUrlState);
   const [data, setData] = useState<RulingsResponse | null>(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(urlSeed.page);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Draft = what the user is typing; applied = what's been sent to the API.
-  const [draftFilters, setDraftFilters] = useState<Record<string, UserFilterValue>>({});
-  const [appliedFilters, setAppliedFilters] = useState<Record<string, UserFilterValue>>({});
+  const [draftFilters, setDraftFilters] = useState<Record<string, UserFilterValue>>(
+    urlSeed.filters,
+  );
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, UserFilterValue>>(
+    urlSeed.filters,
+  );
 
   // Sort state. Empty sortKey = let the server pick its default (first
   // configured sort field, or built-in date-desc).
-  const [sortKey, setSortKey] = useState<string>("");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState<string>(urlSeed.sortKey);
+  const [sortDir, setSortDir] = useState<SortDir>(urlSeed.sortDir);
 
   const fetchData = useCallback(
     async (
@@ -734,6 +774,29 @@ export function RulingsList({
   useEffect(() => {
     fetchData(category, page, appliedFilters, sortKey, sortDir);
   }, [fetchData, category, page, appliedFilters, sortKey, sortDir]);
+
+  // Mirror the applied search into the URL so the address bar can be shared.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams();
+    const active = Object.entries(appliedFilters).filter(([, v]) =>
+      isFilterActive(v),
+    );
+    if (active.length > 0) {
+      sp.set("filters", JSON.stringify(Object.fromEntries(active)));
+    }
+    if (sortKey) {
+      sp.set("sort", sortKey);
+      sp.set("dir", sortDir);
+    }
+    if (page > 1) sp.set("page", String(page));
+    const qs = sp.toString();
+    window.history.replaceState(
+      null,
+      "",
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
+  }, [appliedFilters, sortKey, sortDir, page]);
 
   const applyFilters = () => {
     setPage(1);
