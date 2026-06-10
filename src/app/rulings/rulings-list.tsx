@@ -222,10 +222,21 @@ function StructuredFieldRows({
   items: Record<string, unknown>[];
 }) {
   return (
-    <div className="block">
-      <dt className="font-semibold mb-1.5">{label}</dt>
+    <div className="block mt-3 pt-3 border-t border-gray-200">
+      <dt className="flex items-center gap-2 mb-2">
+        <span
+          className="inline-block w-1 h-4 rounded-full"
+          style={{ background: C_PRIMARY }}
+        />
+        <span className="text-sm font-bold" style={{ color: C_PRIMARY }}>
+          {label}
+        </span>
+        <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">
+          {items.length}
+        </span>
+      </dt>
       <dd>
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {items.map((item, i) => {
             // Headline: a defense name (שם_ההגנה) or a publication platform
             // (פלטפורמה) / source — the lead of the row.
@@ -257,8 +268,8 @@ function StructuredFieldRows({
             return (
               <li
                 key={i}
-                className="border-r-2 pr-2.5"
-                style={{ borderColor: accent }}
+                className="rounded-lg border border-gray-200 border-r-[3px] bg-gray-50 px-3 py-2"
+                style={{ borderRightColor: accent }}
               >
                 {hasAnyPart ? (
                   <>
