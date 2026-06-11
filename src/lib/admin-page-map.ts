@@ -127,6 +127,14 @@ export const PAGE_GROUPS: PageGroup[] = [
         ],
       },
       {
+        title: "GovScraper — מוריד מאגרי ממשלה",
+        items: [
+          { slug: "govscraper", label: "ראשי", icon: Code2, editHref: "/admin/pages/govscraper", publicPath: "/govscraper" },
+          { slug: "govscraper-privacy", label: "מדיניות פרטיות", icon: Shield, editHref: "/admin/pages/govscraper-privacy", publicPath: "/govscraper/privacy" },
+          { slug: "govscraper-terms", label: "תנאי שימוש", icon: ScrollText, editHref: "/admin/pages/govscraper-terms", publicPath: "/govscraper/terms" },
+        ],
+      },
+      {
         title: "OCOI — תוסף ניגוד עניינים",
         items: [
           { slug: "ocoi-extension", label: "ראשי", icon: Code2, editHref: "/admin/pages/ocoi-extension", publicPath: "/ocoi-extension" },
