@@ -34,10 +34,19 @@ function objArray(v: unknown): Record<string, unknown>[] {
 // scopes (4 = defamation, 6 = FOI) until one returns the document.
 const RULINGS_SCOPES = [4, 6];
 
+// Map upstream scope → parent dashboard so the detail page can render a
+// "back to <listing>" link instead of relying on window.history. Detail
+// pages are routinely opened directly from share links / search engines,
+// so the history-based back button no-ops half the time.
+const SCOPE_TO_PARENT: Record<number, { slug: string; title: string }> = {
+  4: { slug: "/defamation-rulings", title: "פסקי דין בלשון הרע" },
+  6: { slug: "/foi-judgments", title: "פסיקות חופש מידע" },
+};
+
 async function fetchDoc(
   id: number,
   apiKey: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<{ doc: Record<string, unknown>; scope: number } | null> {
   const filter = encodeURIComponent(
     JSON.stringify({ field: "meta.id", op: "eq", value: id }),
   );
@@ -53,7 +62,7 @@ async function fetchDoc(
       if (!res.ok) continue;
       const body = (await res.json()) as { items?: Record<string, unknown>[] };
       const doc = Array.isArray(body.items) ? body.items[0] : undefined;
-      if (doc) return doc;
+      if (doc) return { doc, scope };
     } catch {
       // try next scope
     }
@@ -64,8 +73,10 @@ async function fetchDoc(
 async function getRuling(id: number): Promise<DetailRuling | null> {
   const apiKey = getApiKey();
   if (!apiKey) return null;
-  const doc = await fetchDoc(id, apiKey);
-  if (!doc) return null;
+  const found = await fetchDoc(id, apiKey);
+  if (!found) return null;
+  const { doc, scope } = found;
+  const parent = SCOPE_TO_PARENT[scope] ?? null;
   const ai = ((doc.ai || doc.ai_analysis) as Record<string, unknown>) || {};
   const sql = (doc.sql as Record<string, unknown>) || {};
   const meta = (doc.meta as Record<string, unknown>) || {};
@@ -89,6 +100,8 @@ async function getRuling(id: number): Promise<DetailRuling | null> {
     defenses: objArray(sql["הגנות_שנטענו"]),
     publications: objArray(sql["רשימת_פרסומים"]),
     documentUrl: `/api/rulings/documents/${Number(doc.id ?? id)}/file`,
+    parentSlug: parent?.slug ?? null,
+    parentTitle: parent?.title ?? null,
   };
 }
 

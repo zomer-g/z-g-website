@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { StructuredFieldRows } from "../rulings-list";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
 
@@ -18,6 +20,12 @@ export interface DetailRuling {
   defenses: Record<string, unknown>[];
   publications: Record<string, unknown>[];
   documentUrl: string;
+  // Parent dashboard derived from the upstream scope (4=defamation,
+  // 6=FOI). Used for the breadcrumb and back link so users opening a
+  // ruling directly from a share link still understand which listing
+  // it belongs to.
+  parentSlug: string | null;
+  parentTitle: string | null;
 }
 
 function fmtDate(s: string): string {
@@ -48,16 +56,50 @@ export function RulingDetail({ ruling }: { ruling: DetailRuling }) {
       ? ruling.compensation.toLocaleString("he-IL") + " ₪"
       : ruling.compensation || "";
 
+  const parentSlug = ruling.parentSlug;
+  const parentTitle = ruling.parentTitle;
+  const backHref = parentSlug ?? "/";
+  const backLabel = parentTitle
+    ? `חזרה ל${parentTitle}`
+    : "חזרה לדף הראשי";
+
   return (
     <article dir="rtl" className="max-w-3xl mx-auto">
+      {/* Breadcrumb — anchors the page inside its parent dashboard so
+          users arriving from a share link or search result immediately
+          see this is part of e.g. /defamation-rulings, not a stray page. */}
+      <nav
+        aria-label="פירורי לחם"
+        className="mb-3 text-xs text-gray-500 flex items-center flex-wrap gap-1"
+      >
+        <Link href="/" className="hover:text-gray-800 hover:underline">
+          ראשי
+        </Link>
+        {parentSlug && parentTitle ? (
+          <>
+            <span aria-hidden="true">›</span>
+            <Link
+              href={parentSlug}
+              className="hover:text-gray-800 hover:underline"
+            >
+              {parentTitle}
+            </Link>
+          </>
+        ) : null}
+        <span aria-hidden="true">›</span>
+        <span className="text-gray-700 truncate max-w-[60%]">
+          {ruling.caseName || `פסק דין ${ruling.id}`}
+        </span>
+      </nav>
+
       <div className="mb-4">
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          className="text-sm text-gray-500 hover:text-gray-800"
+        <Link
+          href={backHref}
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
         >
-          → חזרה
-        </button>
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          <span>{backLabel}</span>
+        </Link>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white shadow-md p-6">
