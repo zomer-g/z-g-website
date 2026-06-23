@@ -157,9 +157,15 @@ function pickByKeyHint(
 type PillKind = "accepted" | "rejected" | "na" | "on" | "off";
 type RowStatus = { kind: PillKind; label: string };
 
-// Map a Hebrew acceptance value ("כן"/"לא"/"לא נדונה"/…) to a status pill.
+// Map an acceptance value to a status pill. Accepts both the string form
+// ("כן"/"לא"/"לא נדונה"/…) used by defamation's הגנות_שנטענו and the boolean
+// form (true/false) used by FOI's טענות_סעיפי_חוק_שנדונו.האם_הטענה_התקבלה.
 function rowStatusFromValue(raw: unknown): RowStatus | null {
   if (raw == null || raw === "") return null;
+  if (typeof raw === "boolean")
+    return raw
+      ? { kind: "accepted", label: "כן" }
+      : { kind: "rejected", label: "לא" };
   const s = String(raw).trim();
   if (s.includes("נדונה") || s.includes("לא נדון"))
     return { kind: "na", label: "לא נדונה" };
@@ -172,9 +178,15 @@ function rowStatusFromValue(raw: unknown): RowStatus | null {
 
 // Boolean parameters (e.g. נקבע_כלשון_הרע, חלו_הגנות) become a pill labelled
 // with the field name; true is highlighted (noteworthy flag), false muted.
+// A boolean that is itself the row's acceptance status (האם_הטענה_התקבלה) is
+// skipped here — it's already shown by the כן/לא status pill, so we don't
+// double-render it as a "לא האם הטענה התקבלה" flag.
 function boolPillsFor(item: Record<string, unknown>): RowStatus[] {
+  const norm = (s: string) => s.replace(/[\s_]/g, "");
+  const STATUS_HINTS = ["התקבלה", "תוצאה", "סטטוס"];
   return Object.keys(item)
     .filter((k) => typeof item[k] === "boolean")
+    .filter((k) => !STATUS_HINTS.some((h) => norm(k).includes(norm(h))))
     .map((k) => {
       const on = item[k] as boolean;
       const label = fieldKeyToLabel(k);
