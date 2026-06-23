@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     const t0 = Date.now();
     const counts = force ? await forceSync() : await syncVersionCheck();
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    const total = counts.police + counts.prosecutor + counts.labor;
     return NextResponse.json({
       ok: true,
       mode: force ? "force" : "version-check",
@@ -34,7 +35,9 @@ export async function POST(req: NextRequest) {
       police: counts.police,
       prosecutor: counts.prosecutor,
       labor: counts.labor,
-      total: counts.police + counts.prosecutor + counts.labor,
+      total,
+      // Shown to the admin in the editor's refresh feedback.
+      message: `המאגר עודכן: ${total.toLocaleString("he-IL")} רשומות (משטרה ${counts.police.toLocaleString("he-IL")}, פרקליטות ${counts.prosecutor.toLocaleString("he-IL")}, עבודה ${counts.labor.toLocaleString("he-IL")}) — ${elapsed} שניות`,
     });
   } catch (err) {
     console.error("ca-sync forced sync error:", err);

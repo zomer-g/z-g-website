@@ -30,7 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, LeamPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -582,6 +582,21 @@ export default function SiteEditorPageEditor({
                     ),
                   },
                 ],
+              }}
+            />
+          )}
+          {slug === "conditional-arrangements" && (
+            <DashboardPageEditor<ConditionalArrangementsPageContent>
+              content={content as ConditionalArrangementsPageContent}
+              onChange={setContent}
+              cacheControls={{
+                // POST hits the CKAN sync (version-check: re-downloads only the
+                // sources whose ODATA resource changed). This is the manual
+                // trigger for refreshing the conditional-arrangements database.
+                refreshEndpoint: "/api/conditional-arrangements/sync",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
               }}
             />
           )}
