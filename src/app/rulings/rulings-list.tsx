@@ -315,7 +315,10 @@ export function LawClaimsTable({
                     </td>
                     <td className="py-1.5 px-2 whitespace-nowrap">
                       {clause != null && clause !== "" ? (
-                        <span className="font-mono text-gray-700 bg-gray-100 rounded px-1.5 py-0.5">
+                        <span
+                          className="inline-block font-mono font-bold text-sm rounded-md px-2 py-1"
+                          style={{ color: C_PRIMARY, background: "#e1ecf3" }}
+                        >
                           {formatFieldValue(clause)}
                         </span>
                       ) : (
