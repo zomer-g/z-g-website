@@ -225,6 +225,120 @@ const ROW_STATUS_STYLE: Record<
   },
 };
 
+// A clear accepted(✓כן)/rejected(✗לא)/na pill for a claim's status — used by
+// the law-claims table so the reader sees at a glance whether a legal ground
+// was upheld or rejected.
+function StatusPill({ status }: { status: RowStatus | null }) {
+  if (!status) return <span className="text-gray-400">—</span>;
+  const style = ROW_STATUS_STYLE[status.kind];
+  const glyph =
+    status.kind === "accepted" ? "✓" : status.kind === "rejected" ? "✗" : "•";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${style.pill}`}
+    >
+      <span aria-hidden="true">{glyph}</span>
+      {status.label}
+    </span>
+  );
+}
+
+// Renders an array-of-objects field as a real table — one row per item, with
+// columns for the law, the section, its description, and an accepted/rejected
+// status pill. Tuned for FOI's "טענות סעיפי חוק שנדונו" so the layout mirrors
+// the source viewer and the reader can scan which grounds were upheld/rejected.
+export function LawClaimsTable({
+  label,
+  items,
+}: {
+  label: string;
+  items: Record<string, unknown>[];
+}) {
+  return (
+    <div className="block mt-3 pt-3 border-t border-gray-200">
+      <dt className="flex items-center gap-2 mb-2">
+        <span
+          className="inline-block w-1 h-4 rounded-full"
+          style={{ background: C_PRIMARY }}
+        />
+        <span className="text-sm font-bold" style={{ color: C_PRIMARY }}>
+          {label}
+        </span>
+        <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">
+          {items.length}
+        </span>
+      </dt>
+      <dd>
+        <div className="overflow-x-auto rounded-lg border border-gray-200">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500">
+                <th className="text-right font-semibold py-1.5 px-2">שם החוק</th>
+                <th className="text-right font-semibold py-1.5 px-2 whitespace-nowrap">
+                  סעיף
+                </th>
+                <th className="text-right font-semibold py-1.5 px-2">
+                  תיאור הסעיף
+                </th>
+                <th className="text-center font-semibold py-1.5 px-2 whitespace-nowrap">
+                  התקבלה?
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => {
+                const lawName = pickByKeyHint(item, ["שם_החוק", "שם_חוק", "שם"]);
+                const clause = pickByKeyHint(item, ["סעיף_החוק", "סעיף"]);
+                const desc = pickByKeyHint(item, [
+                  "תיאור_הסעיף",
+                  "תיאור",
+                  "הסבר",
+                  "נימוק",
+                ]);
+                const status = rowStatusFromValue(
+                  pickByKeyHint(item, [
+                    "האם_הטענה_התקבלה",
+                    "התקבלה",
+                    "תוצאה",
+                    "סטטוס",
+                  ]),
+                );
+                return (
+                  <tr
+                    key={i}
+                    className="border-t border-gray-200 align-top"
+                  >
+                    <td className="py-1.5 px-2 text-gray-700">
+                      {lawName != null && lawName !== ""
+                        ? formatFieldValue(lawName)
+                        : "—"}
+                    </td>
+                    <td className="py-1.5 px-2 whitespace-nowrap">
+                      {clause != null && clause !== "" ? (
+                        <span className="font-mono text-gray-700 bg-gray-100 rounded px-1.5 py-0.5">
+                          {formatFieldValue(clause)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-1.5 px-2 text-gray-600 leading-relaxed min-w-[12rem]">
+                      {desc != null && desc !== "" ? formatFieldValue(desc) : "—"}
+                    </td>
+                    <td className="py-1.5 px-2 text-center whitespace-nowrap">
+                      <StatusPill status={status} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </dd>
+    </div>
+  );
+}
+
 // Renders an array-of-objects field as elegant status rows. Tuned for the
 // "defenses claimed" table (status pill + name + clause badge + reasoning) but
 // degrades gracefully for any object-array: it shows whatever of those parts
@@ -375,6 +489,19 @@ function RulingCard({
             // gets its own elegant status-row renderer instead of being
             // flattened to "[object Object]" text.
             if (isObjectArray(value)) {
+              // The FOI "טענות סעיפי חוק שנדונו" list reads far better as a real
+              // table (law / section / description / accepted?) than as stacked
+              // status rows — it mirrors the source viewer's layout.
+              const tail = key.split(".").slice(1).join(".");
+              if (tail === "טענות_סעיפי_חוק_שנדונו") {
+                return (
+                  <LawClaimsTable
+                    key={key}
+                    label={fieldKeyToLabel(key)}
+                    items={value}
+                  />
+                );
+              }
               return (
                 <StructuredFieldRows
                   key={key}
