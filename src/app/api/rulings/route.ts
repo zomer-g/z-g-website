@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   fetchUpstreamRulingsPage,
   fetchUpstreamRulingsSchema,
+  fetchAllUpstreamRulings,
   UpstreamError,
   type UpstreamRulingItem,
   type UpstreamSchemaField,
@@ -18,9 +19,101 @@ import type {
   RulingsFilterField,
   RulingsSortField,
   SortDir,
+  LawSectionFilterConfig,
+  LawSectionSelection,
 } from "@/types/ruling-filter";
-import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
+import { VALID_FILTER_CONTROLS, LAW_SECTION_FILTER_KEY } from "@/types/ruling-filter";
 import { createHash } from "crypto";
+
+// Collapse a law name to the canonical short form used as the map key — drop
+// the ", התש..-YYYY" year suffix so variants merge. Mirrors the build script.
+function canonLaw(name: string): string {
+  return String(name)
+    .replace(/,?\s*הת[^,]*?-?\s*\d{4}.*$/u, "")
+    .replace(/[\s,]+$/u, "")
+    .trim();
+}
+
+// Does a document satisfy the law/section selection? Reads the array field,
+// scopes sections to elements matching the chosen law, and applies OR/AND.
+function matchesLawSection(
+  doc: UpstreamRulingItem,
+  sel: LawSectionSelection,
+  cfg: LawSectionFilterConfig,
+): boolean {
+  const sql = ((doc as Record<string, unknown>).sql as Record<string, unknown>) || {};
+  const arr = sql[cfg.arrayKey];
+  const elements = Array.isArray(arr)
+    ? (arr.filter((x) => x && typeof x === "object") as Record<string, unknown>[])
+    : [];
+  const elLaw = (el: Record<string, unknown>): string => {
+    for (const k of cfg.lawSubKeys) {
+      const v = el[k];
+      if (typeof v === "string" && v.trim()) return canonLaw(v);
+    }
+    return "";
+  };
+  // Restrict to elements of the chosen law (when a law is selected).
+  const scoped = sel.law
+    ? elements.filter((el) => elLaw(el) === sel.law)
+    : elements;
+  if (sel.law && scoped.length === 0) return false;
+  const wanted = (sel.sections || []).filter(Boolean);
+  if (wanted.length === 0) return true; // law-only filter
+  const present = new Set(
+    scoped
+      .map((el) => el[cfg.sectionSubKey])
+      .filter((v): v is string => typeof v === "string" && v.trim() !== ""),
+  );
+  return sel.mode === "and"
+    ? wanted.every((s) => present.has(s))
+    : wanted.some((s) => present.has(s));
+}
+
+function parseLawSectionSelection(
+  userFilters: Record<string, unknown>,
+): LawSectionSelection | null {
+  const raw = userFilters[LAW_SECTION_FILTER_KEY];
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const law = typeof o.law === "string" ? o.law.trim() : "";
+  const sections = Array.isArray(o.sections)
+    ? o.sections.map((s) => String(s)).filter(Boolean)
+    : [];
+  const mode = o.mode === "and" ? "and" : "or";
+  if (!law && sections.length === 0) return null;
+  return { law: law || undefined, sections, mode };
+}
+
+// Bulk (law-narrowed) snapshot cache for the in-memory section filter, so we
+// don't re-pull the corpus on every page / section toggle.
+interface BulkEntry {
+  docs: UpstreamRulingItem[];
+  ts: number;
+  ttl: number;
+}
+const bulkCache = new Map<string, BulkEntry>();
+const BULK_CACHE_MAX = 24;
+function bulkGet(key: string): UpstreamRulingItem[] | null {
+  const e = bulkCache.get(key);
+  if (!e) return null;
+  if (Date.now() - e.ts >= e.ttl) {
+    bulkCache.delete(key);
+    return null;
+  }
+  bulkCache.delete(key);
+  bulkCache.set(key, e);
+  return e.docs;
+}
+function bulkSet(key: string, docs: UpstreamRulingItem[], ttl: number) {
+  bulkCache.delete(key);
+  bulkCache.set(key, { docs, ts: Date.now(), ttl });
+  while (bulkCache.size > BULK_CACHE_MAX) {
+    const oldest = bulkCache.keys().next().value;
+    if (!oldest) break;
+    bulkCache.delete(oldest);
+  }
+}
 
 const SCOPE_MAP: Record<string, { id: number; pageSlug: string }> = {
   defamation:      { id: 4, pageSlug: "defamation-rulings" },
@@ -133,8 +226,35 @@ interface PageConfig {
   displayFields: string[];
   filterFields: RulingsFilterField[];
   sortFields: RulingsSortField[];
+  lawSectionFilter: LawSectionFilterConfig | null;
   scope: number; // 0 = use the per-category default
   pageSize: number;
+}
+
+function readLawSectionFilter(q: unknown): LawSectionFilterConfig | null {
+  if (!q || typeof q !== "object") return null;
+  const ls = (q as { lawSectionFilter?: unknown }).lawSectionFilter;
+  if (!ls || typeof ls !== "object") return null;
+  const o = ls as Record<string, unknown>;
+  if (
+    typeof o.arrayKey !== "string" ||
+    typeof o.sectionSubKey !== "string" ||
+    !o.map ||
+    typeof o.map !== "object"
+  ) {
+    return null;
+  }
+  return {
+    label: typeof o.label === "string" ? o.label : "סינון לפי חוק וסעיף",
+    arrayKey: o.arrayKey,
+    lawSubKeys: Array.isArray(o.lawSubKeys)
+      ? o.lawSubKeys.map((s) => String(s)).filter(Boolean)
+      : [],
+    sectionSubKey: o.sectionSubKey,
+    upstreamLawField:
+      typeof o.upstreamLawField === "string" ? o.upstreamLawField : "",
+    map: o.map as Record<string, string[]>,
+  };
 }
 
 // 24 = LCM(2,3,4) — full rows at every grid breakpoint (1/2/3/4 cols).
@@ -212,6 +332,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       displayFields,
       filterFields,
       sortFields,
+      lawSectionFilter: readLawSectionFilter(content?.query),
       scope,
       pageSize,
     };
@@ -223,6 +344,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       displayFields: [],
       filterFields: [],
       sortFields: [],
+      lawSectionFilter: null,
       scope: 0,
       pageSize: DEFAULT_PAGE_SIZE,
     };
@@ -416,6 +538,88 @@ export async function GET(req: NextRequest) {
       sortKey = (reqDir === "asc" ? "" : "-") + reqSort;
     }
 
+    const lawSectionResponse = config.lawSectionFilter
+      ? { label: config.lawSectionFilter.label, map: config.lawSectionFilter.map }
+      : undefined;
+
+    // ── In-app law/section filter path ──
+    // TAG-IT can't match the parenthesised section values, so when the user
+    // picks a law and/or sections we narrow upstream by law (contains, which
+    // is paren-free and safe), pull the bulk snapshot, then filter + paginate
+    // the section match (OR/AND) in memory.
+    const lsSel = config.lawSectionFilter
+      ? parseLawSectionSelection(userFilters)
+      : null;
+    if (config.lawSectionFilter && lsSel) {
+      const cfg = config.lawSectionFilter;
+      const narrowClauses: FilterExpression[] = [];
+      if (lsSel.law && cfg.upstreamLawField) {
+        narrowClauses.push({
+          field: cfg.upstreamLawField,
+          op: "contains",
+          value: lsSel.law,
+        });
+      }
+      const narrowFilter = combineFilters(combined, narrowClauses);
+      const narrowJson = narrowFilter ? JSON.stringify(narrowFilter) : "";
+      const bulkKey = `s${scopeId}|${createHash("sha1")
+        .update(narrowJson + "|" + sortKey)
+        .digest("hex")
+        .slice(0, 16)}`;
+      let docs = bulkGet(bulkKey);
+      if (!docs) {
+        try {
+          docs = await fetchAllUpstreamRulings({
+            scopeId,
+            filterJson: narrowJson || undefined,
+            sortKey: sortKey || "-meta.document_date",
+          });
+        } catch (err) {
+          if (err instanceof UpstreamError) {
+            return NextResponse.json(
+              {
+                error: "שגיאה ב-TAG-IT",
+                upstreamStatus: err.status,
+                upstreamBody: err.body.slice(0, 500),
+              },
+              { status: 502 },
+            );
+          }
+          throw err;
+        }
+        if (docs === null) {
+          return NextResponse.json(
+            {
+              error: "שגיאה בטעינת פסיקה",
+              detail: "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured",
+            },
+            { status: 502 },
+          );
+        }
+        bulkSet(bulkKey, docs, config.ttlMs);
+      }
+      const matched = docs.filter((d) => matchesLawSection(d, lsSel, cfg));
+      const start = (page - 1) * size;
+      const pageItems = matched.slice(start, start + size);
+      const schemaFieldsLs = config.filterFields.some((f) => f.control === "select")
+        ? await getScopeSchema(scopeId)
+        : [];
+      return NextResponse.json(
+        {
+          total: matched.length,
+          page,
+          size,
+          rulings: pageItems.map(normalize),
+          displayFields: config.displayFields,
+          filterFields: config.filterFields,
+          filterOptions: selectOptionsFromSchema(schemaFieldsLs, config.filterFields),
+          sortFields: config.sortFields,
+          lawSectionFilter: lawSectionResponse,
+        },
+        { headers: { "Cache-Control": "private, no-store", "X-Cache": "BULK" } },
+      );
+    }
+
     // ── Fetch ONE page (with a small TTL cache) ──
     const cacheKey = `s${scopeId}|sz${size}|p${page}|${createHash("sha1")
       .update(filterJson + "|" + sortKey)
@@ -478,6 +682,7 @@ export async function GET(req: NextRequest) {
         filterFields: config.filterFields,
         filterOptions,
         sortFields: config.sortFields,
+        lawSectionFilter: lawSectionResponse,
       },
       {
         headers: {

@@ -27,11 +27,37 @@ interface FilterField {
   control: FilterControl;
 }
 
+// Reserved userFilters key carrying the cascading law/section selection.
+const LAW_SECTION_KEY = "__lawSection";
+
+interface LawSectionSel {
+  law?: string;
+  sections?: string[];
+  mode?: "or" | "and";
+}
+
+// Cascading law→section filter config sent by the API (closed dropdown lists).
+interface LawSectionFilterCfg {
+  label: string;
+  map: Record<string, string[]>;
+}
+
 // User filter selections, keyed by field key.
 type UserFilterValue =
   | string
   | { min?: number; max?: number }
-  | { from?: string; to?: string };
+  | { from?: string; to?: string }
+  | LawSectionSel;
+
+function isLawSectionSel(v: unknown): v is LawSectionSel {
+  return (
+    !!v &&
+    typeof v === "object" &&
+    ("law" in v || "sections" in v || "mode" in v) &&
+    !("min" in v) &&
+    !("from" in v)
+  );
+}
 
 interface RulingsResponse {
   total: number;
@@ -48,6 +74,8 @@ interface RulingsResponse {
   filterOptions?: Record<string, string[]>;
   // User-facing sort options (first = default).
   sortFields?: { key: string; label: string }[];
+  // Cascading law→section filter config (FOI). Absent = not shown.
+  lawSectionFilter?: LawSectionFilterCfg;
 }
 
 type SortDir = "asc" | "desc";
@@ -651,6 +679,9 @@ function optionLabel(o: string): string {
 function isFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
+  if (isLawSectionSel(v)) {
+    return !!(v.law && v.law.trim()) || (Array.isArray(v.sections) && v.sections.length > 0);
+  }
   if (typeof v === "object") return Object.values(v).some((x) => x != null && x !== "");
   return false;
 }
@@ -663,6 +694,7 @@ function FilterBar({
   onApply,
   onClear,
   legislation,
+  lawSectionFilter,
 }: {
   fields: FilterField[];
   options: Record<string, string[]>;
@@ -671,14 +703,126 @@ function FilterBar({
   onApply: () => void;
   onClear: () => void;
   legislation?: LegislationLink[];
+  lawSectionFilter?: LawSectionFilterCfg;
 }) {
   const setField = (key: string, value: UserFilterValue) =>
     setDraft({ ...draft, [key]: value });
 
-  const anyActive = fields.some((f) => isFilterActive(draft[f.key]));
+  const anyActive =
+    fields.some((f) => isFilterActive(draft[f.key])) ||
+    isFilterActive(draft[LAW_SECTION_KEY]);
+
+  // Current law/section selection (normalised).
+  const lsRaw = draft[LAW_SECTION_KEY];
+  const ls: LawSectionSel = isLawSectionSel(lsRaw)
+    ? lsRaw
+    : { law: "", sections: [], mode: "or" };
+  const lsSections = ls.sections ?? [];
+  const lsMode = ls.mode ?? "or";
+  const lawList = lawSectionFilter ? Object.keys(lawSectionFilter.map) : [];
+  const sectionList =
+    lawSectionFilter && ls.law ? lawSectionFilter.map[ls.law] ?? [] : [];
+  const setLs = (next: LawSectionSel) => setField(LAW_SECTION_KEY, next);
+  const toggleSection = (sec: string) => {
+    const has = lsSections.includes(sec);
+    setLs({
+      ...ls,
+      sections: has
+        ? lsSections.filter((s) => s !== sec)
+        : [...lsSections, sec],
+      mode: lsMode,
+    });
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      {lawSectionFilter ? (
+        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <span className="text-xs font-semibold text-gray-700">
+              {lawSectionFilter.label}
+            </span>
+            {lsSections.length > 1 ? (
+              <div className="inline-flex rounded-md border border-gray-300 overflow-hidden text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setLs({ ...ls, mode: "or", sections: lsSections })}
+                  className="px-2 py-1 font-semibold transition"
+                  style={
+                    lsMode === "or"
+                      ? { background: C_PRIMARY, color: "#fff" }
+                      : { background: "#fff", color: C_PRIMARY }
+                  }
+                  title="פסקי דין שדנו לפחות באחד מהסעיפים שנבחרו"
+                >
+                  אחד מהם
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLs({ ...ls, mode: "and", sections: lsSections })}
+                  className="px-2 py-1 font-semibold transition border-r border-gray-300"
+                  style={
+                    lsMode === "and"
+                      ? { background: C_PRIMARY, color: "#fff" }
+                      : { background: "#fff", color: C_PRIMARY }
+                  }
+                  title="פסקי דין שדנו בכל הסעיפים שנבחרו"
+                >
+                  כולם
+                </button>
+              </div>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-500 mb-1">
+                שם החוק
+              </label>
+              <select
+                value={ls.law ?? ""}
+                onChange={(e) =>
+                  setLs({ law: e.target.value, sections: [], mode: lsMode })
+                }
+                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+              >
+                <option value="">בחר/י חוק…</option>
+                {lawList.map((law) => (
+                  <option key={law} value={law}>
+                    {law}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {ls.law && sectionList.length > 0 ? (
+            <div className="mt-2">
+              <label className="block text-[11px] font-semibold text-gray-500 mb-1">
+                סעיפים{lsSections.length > 0 ? ` (${lsSections.length} נבחרו)` : ""}
+              </label>
+              <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-0.5">
+                {sectionList.map((sec) => {
+                  const on = lsSections.includes(sec);
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => toggleSection(sec)}
+                      className="font-mono text-xs rounded-md px-2 py-1 border transition"
+                      style={
+                        on
+                          ? { background: C_PRIMARY, color: "#fff", borderColor: C_PRIMARY }
+                          : { background: "#fff", color: C_PRIMARY, borderColor: "#cbd5e1" }
+                      }
+                    >
+                      {sec}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {fields.map((f) => {
           const v = draft[f.key];
@@ -986,6 +1130,8 @@ export function RulingsList({
   const filterFields = data?.filterFields ?? [];
   const filterOptions = data?.filterOptions ?? {};
   const sortFields = data?.sortFields ?? [];
+  const lawSectionFilter = data?.lawSectionFilter;
+  const showFilterBar = filterFields.length > 0 || !!lawSectionFilter;
   // The control reflects the active sort: explicit user choice, or the
   // server's default (first configured field) when the user hasn't picked.
   const activeSortKey = sortKey || sortFields[0]?.key || "";
@@ -1002,7 +1148,7 @@ export function RulingsList({
 
   return (
     <div dir="rtl">
-      {filterFields.length > 0 ? (
+      {showFilterBar ? (
         <FilterBar
           fields={filterFields}
           options={filterOptions}
@@ -1011,6 +1157,7 @@ export function RulingsList({
           onApply={applyFilters}
           onClear={clearFilters}
           legislation={legislation}
+          lawSectionFilter={lawSectionFilter}
         />
       ) : null}
 
@@ -1032,7 +1179,7 @@ export function RulingsList({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {filterFields.length === 0 ? (
+          {!showFilterBar ? (
             <LegislationMenu items={legislation} align="end" />
           ) : null}
           <button

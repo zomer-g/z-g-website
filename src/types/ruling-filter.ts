@@ -95,6 +95,41 @@ export interface RulingsSortField {
 export type SortDir = "asc" | "desc";
 
 /**
+ * Cascading law→section filter over an array-of-objects field (FOI's
+ * sql.טענות_סעיפי_חוק_שנדונו). The user picks a law, then one or more of its
+ * sections, with OR ("any of") / AND ("all of") logic. TAG-IT cannot match the
+ * parenthesised section values server-side, so this filter is applied IN MEMORY
+ * against the bulk-fetched (law-narrowed) snapshot — `map` holds the closed
+ * dropdown lists, built by a corpus scan.
+ */
+export interface LawSectionFilterConfig {
+  label: string;
+  // sql sub-key holding the array of claim objects (e.g. "טענות_סעיפי_חוק_שנדונו").
+  arrayKey: string;
+  // element keys to read the law name from (first present wins).
+  lawSubKeys: string[];
+  // element key holding the section value (e.g. "סעיף_החוק").
+  sectionSubKey: string;
+  // dotted field used for an upstream `contains` narrow (law has no parens, so
+  // it filters fine) — shrinks the in-memory set before section matching.
+  upstreamLawField: string;
+  // canonical law name → its closed list of section values.
+  map: Record<string, string[]>;
+}
+
+/**
+ * The shape a user's law/section selection takes inside the userFilters object,
+ * under the reserved key LAW_SECTION_FILTER_KEY.
+ */
+export interface LawSectionSelection {
+  law?: string;
+  sections?: string[];
+  mode?: "or" | "and";
+}
+
+export const LAW_SECTION_FILTER_KEY = "__lawSection";
+
+/**
  * Per-page query config. Lives inside FoiRulingsPageContent /
  * DefamationRulingsPageContent and drives both the upstream request and the
  * rendered card. `customQuery` is null when the admin hasn't set anything;
@@ -106,6 +141,8 @@ export interface RulingsPageQuery {
   displayFields: string[]; // ordered list of field keys to render per card
   filterFields: RulingsFilterField[]; // user-facing filter controls
   sortFields: RulingsSortField[]; // user-facing sort options (first = default)
+  // Optional cascading law→section filter (FOI). undefined = not shown.
+  lawSectionFilter?: LawSectionFilterConfig | null;
   // ── API parameters the admin controls ──
   // TAG-IT scope id to pull from. 0/undefined → fall back to the per-page
   // built-in default (defamation=4, FOI=6).
