@@ -254,6 +254,9 @@ function readLawSectionFilter(q: unknown): LawSectionFilterConfig | null {
     upstreamLawField:
       typeof o.upstreamLawField === "string" ? o.upstreamLawField : "",
     map: o.map as Record<string, string[]>,
+    lawOrder: Array.isArray(o.lawOrder)
+      ? o.lawOrder.map((s) => String(s)).filter(Boolean)
+      : undefined,
   };
 }
 
@@ -539,7 +542,11 @@ export async function GET(req: NextRequest) {
     }
 
     const lawSectionResponse = config.lawSectionFilter
-      ? { label: config.lawSectionFilter.label, map: config.lawSectionFilter.map }
+      ? {
+          label: config.lawSectionFilter.label,
+          map: config.lawSectionFilter.map,
+          lawOrder: config.lawSectionFilter.lawOrder,
+        }
       : undefined;
 
     // ── In-app law/section filter path ──

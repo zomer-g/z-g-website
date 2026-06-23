@@ -40,6 +40,8 @@ interface LawSectionSel {
 interface LawSectionFilterCfg {
   label: string;
   map: Record<string, string[]>;
+  // Law display order (most-cited first); falls back to map key order.
+  lawOrder?: string[];
 }
 
 // User filter selections, keyed by field key.
@@ -719,7 +721,12 @@ function FilterBar({
     : { law: "", sections: [], mode: "or" };
   const lsSections = ls.sections ?? [];
   const lsMode = ls.mode ?? "or";
-  const lawList = lawSectionFilter ? Object.keys(lawSectionFilter.map) : [];
+  const lawList = lawSectionFilter
+    ? lawSectionFilter.lawOrder &&
+      lawSectionFilter.lawOrder.length > 0
+      ? lawSectionFilter.lawOrder.filter((l) => l in lawSectionFilter.map)
+      : Object.keys(lawSectionFilter.map)
+    : [];
   const sectionList =
     lawSectionFilter && ls.law ? lawSectionFilter.map[ls.law] ?? [] : [];
   const setLs = (next: LawSectionSel) => setField(LAW_SECTION_KEY, next);

@@ -22,6 +22,9 @@ const SECTION_RE = /^\d+(\([^)]+\)|[א-ת])*$/u;
 
 async function main() {
   const byLaw = new Map<string, Set<string>>();
+  // How many distinct rulings cite each law — drives the dropdown order so the
+  // most-common law (חוק חופש המידע) sits at the top, not buried mid-list.
+  const lawDocCount = new Map<string, number>();
   let page = 1;
   let total = Infinity;
   let seen = 0;
@@ -35,6 +38,7 @@ async function main() {
       seen++;
       const arr = (r.fields ?? {})[ARR];
       if (!Array.isArray(arr)) continue;
+      const lawsInDoc = new Set<string>();
       for (const el of arr) {
         if (!el || typeof el !== "object") continue;
         const rawLaw = String(el["שם_חוק_רשמי"] ?? el["שם_החוק"] ?? "").trim();
@@ -43,27 +47,45 @@ async function main() {
         if (!law || !sec || !SECTION_RE.test(sec)) continue;
         if (!byLaw.has(law)) byLaw.set(law, new Set());
         byLaw.get(law)!.add(sec);
+        lawsInDoc.add(law);
+      }
+      for (const law of lawsInDoc) {
+        lawDocCount.set(law, (lawDocCount.get(law) ?? 0) + 1);
       }
     }
     process.stdout.write(`page ${page}: seen ${seen}/${total}\r`);
     page++;
   }
 
-  // Sort sections naturally (numeric prefix, then the rest), laws by frequency.
+  // Sort sections naturally (numeric prefix, then the rest).
   const secKey = (s: string) => {
     const m = /^(\d+)/.exec(s);
     return [m ? parseInt(m[1], 10) : 9999, s] as [number, string];
   };
+  // Laws ordered by document frequency desc (tiebreak: more sections, then name).
+  // Stored as an explicit array because Postgres jsonb does NOT preserve object
+  // key order — the frontend must read `lawOrder`, not Object.keys(map).
+  const lawOrder = [...byLaw.keys()].sort((a, b) => {
+    const ca = lawDocCount.get(a) ?? 0, cb = lawDocCount.get(b) ?? 0;
+    if (cb !== ca) return cb - ca;
+    const sa = byLaw.get(a)!.size, sb = byLaw.get(b)!.size;
+    return sb - sa || a.localeCompare(b, "he");
+  });
   const map: Record<string, string[]> = {};
-  const order = [...byLaw.entries()].sort((a, b) => b[1].size - a[1].size);
-  for (const [law, set] of order) {
-    map[law] = [...set].sort((a, b) => {
+  for (const law of lawOrder) {
+    map[law] = [...byLaw.get(law)!].sort((a, b) => {
       const ka = secKey(a), kb = secKey(b);
       return ka[0] - kb[0] || ka[1].localeCompare(kb[1], "he");
     });
   }
-  writeFileSync("scripts/lawsection-map.json", JSON.stringify(map, null, 1));
-  console.log(`\nDONE: ${Object.keys(map).length} laws, scanned ${seen} docs`);
-  console.log("top laws:", order.slice(0, 6).map(([l, s]) => `${l}(${s.size})`).join(", "));
+  writeFileSync(
+    "scripts/lawsection-map.json",
+    JSON.stringify({ map, lawOrder }, null, 1),
+  );
+  console.log(`\nDONE: ${lawOrder.length} laws, scanned ${seen} docs`);
+  console.log(
+    "top laws:",
+    lawOrder.slice(0, 6).map((l) => `${l}(${lawDocCount.get(l)} docs)`).join(", "),
+  );
 }
 main();

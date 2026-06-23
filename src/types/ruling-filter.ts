@@ -115,6 +115,9 @@ export interface LawSectionFilterConfig {
   upstreamLawField: string;
   // canonical law name → its closed list of section values.
   map: Record<string, string[]>;
+  // Display order for the law dropdown (most-cited first). Needed because
+  // Postgres jsonb does not preserve `map`'s key insertion order.
+  lawOrder?: string[];
 }
 
 /**

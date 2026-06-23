@@ -8,11 +8,10 @@ const prisma = new PrismaClient({ adapter });
 
 const SLUG = "foi-judgments"; // GUARD: this script must NEVER touch foi-costs.
 
-// Cascade map (law → its closed list of sections), built by
-// scripts/foi-build-lawsection-map.ts from a corpus scan.
-const LAW_SECTION_MAP: Record<string, string[]> = JSON.parse(
-  readFileSync("scripts/lawsection-map.json", "utf-8"),
-);
+// Cascade map (law → its closed list of sections) + lawOrder (laws by doc
+// frequency), built by scripts/foi-build-lawsection-map.ts from a corpus scan.
+const LAW_SECTION_DATA: { map: Record<string, string[]>; lawOrder: string[] } =
+  JSON.parse(readFileSync("scripts/lawsection-map.json", "utf-8"));
 
 // FOI ("חופש מידע") detailed-view config — mirrors the defamation page's
 // rich card layout, using the fields TAG-IT extracts for scope-6 documents
@@ -68,7 +67,10 @@ const QUERY = {
     lawSubKeys: ["שם_חוק_רשמי", "שם_החוק"],
     sectionSubKey: "סעיף_החוק",
     upstreamLawField: "sql.טענות_סעיפי_חוק_שנדונו.שם_חוק_רשמי",
-    map: LAW_SECTION_MAP,
+    map: LAW_SECTION_DATA.map,
+    // Explicit display order (laws by doc frequency) — jsonb won't preserve the
+    // map's key order, so the dropdown reads this instead of Object.keys(map).
+    lawOrder: LAW_SECTION_DATA.lawOrder,
   },
 };
 
