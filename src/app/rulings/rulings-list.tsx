@@ -269,18 +269,22 @@ export function LawClaimsTable({
         </span>
       </dt>
       <dd>
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="w-full text-xs border-collapse">
+        <div className="rounded-lg border border-gray-200 overflow-hidden">
+          <table className="w-full table-fixed text-xs border-collapse">
+            <colgroup>
+              <col className="w-[22%]" />
+              <col className="w-[22%]" />
+              <col className="w-[34%]" />
+              <col className="w-[22%]" />
+            </colgroup>
             <thead>
               <tr className="bg-gray-50 text-gray-500">
                 <th className="text-right font-semibold py-1.5 px-2">שם החוק</th>
-                <th className="text-right font-semibold py-1.5 px-2 whitespace-nowrap">
-                  סעיף
-                </th>
+                <th className="text-right font-semibold py-1.5 px-2">סעיף</th>
                 <th className="text-right font-semibold py-1.5 px-2">
                   תיאור הסעיף
                 </th>
-                <th className="text-center font-semibold py-1.5 px-2 whitespace-nowrap">
+                <th className="text-center font-semibold py-1.5 px-2">
                   התקבלה?
                 </th>
               </tr>
@@ -308,15 +312,15 @@ export function LawClaimsTable({
                     key={i}
                     className="border-t border-gray-200 align-top"
                   >
-                    <td className="py-1.5 px-2 text-gray-700">
+                    <td className="py-1.5 px-2 text-gray-700 break-words">
                       {lawName != null && lawName !== ""
                         ? formatFieldValue(lawName)
                         : "—"}
                     </td>
-                    <td className="py-1.5 px-2 whitespace-nowrap">
+                    <td className="py-1.5 px-2 break-words">
                       {clause != null && clause !== "" ? (
                         <span
-                          className="inline-block font-mono font-bold text-sm rounded-md px-2 py-1"
+                          className="inline-block font-mono font-bold text-sm rounded-md px-1.5 py-0.5"
                           style={{ color: C_PRIMARY, background: "#e1ecf3" }}
                         >
                           {formatFieldValue(clause)}
@@ -325,10 +329,10 @@ export function LawClaimsTable({
                         "—"
                       )}
                     </td>
-                    <td className="py-1.5 px-2 text-gray-600 leading-relaxed min-w-[12rem]">
+                    <td className="py-1.5 px-2 text-gray-600 leading-relaxed break-words">
                       {desc != null && desc !== "" ? formatFieldValue(desc) : "—"}
                     </td>
-                    <td className="py-1.5 px-2 text-center whitespace-nowrap">
+                    <td className="py-1.5 px-2 text-center">
                       <StatusPill status={status} />
                     </td>
                   </tr>
