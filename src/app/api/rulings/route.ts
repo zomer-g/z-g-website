@@ -394,10 +394,18 @@ function userFilterClauses(
     if (v == null) continue;
     if (f.control === "text") {
       const s = String(v).trim();
-      if (s) clauses.push({ field: f.key, op: "contains", value: s });
+      if (s) {
+        const op = f.matchOp === "eq" ? "eq" : "contains";
+        clauses.push({ field: f.key, op, value: s });
+      }
     } else if (f.control === "select") {
       const s = String(v).trim();
-      if (s) clauses.push({ field: f.key, op: "eq", value: s });
+      if (s) {
+        // Default is exact match; "contains" is the opt-in escape hatch for
+        // noisy fields with a curated option list (e.g. court-name → city).
+        const op = f.matchOp === "contains" ? "contains" : "eq";
+        clauses.push({ field: f.key, op, value: s });
+      }
     } else if (f.control === "boolean") {
       const s = String(v).trim();
       if (s === "true") clauses.push({ field: f.key, op: "eq", value: true });

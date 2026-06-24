@@ -1844,20 +1844,63 @@ function AdvancedQuerySection({
                   </select>
                 </div>
                 {f.control === "select" && (
-                  <Input
-                    value={(f.options || []).join(", ")}
-                    onChange={(e) =>
-                      updateFilterField(i, {
-                        options: e.target.value
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder="ערכים לבחירה, מופרדים בפסיק (ריק = מהסכמה)"
-                    dir="rtl"
-                    className="w-full text-xs"
-                  />
+                  <>
+                    <Input
+                      value={(f.options || []).join(", ")}
+                      onChange={(e) =>
+                        updateFilterField(i, {
+                          options: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="ערכים לבחירה, מופרדים בפסיק (ריק = מהסכמה)"
+                      dir="rtl"
+                      className="w-full text-xs"
+                    />
+                    <div className="flex items-center gap-2">
+                      <label className="text-[11px] font-semibold text-muted whitespace-nowrap">
+                        אופן ההתאמה:
+                      </label>
+                      <select
+                        value={f.matchOp ?? "eq"}
+                        onChange={(e) =>
+                          updateFilterField(i, {
+                            matchOp: e.target.value as "eq" | "contains",
+                          })
+                        }
+                        className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                        dir="rtl"
+                      >
+                        <option value="eq">התאמה מדויקת (eq)</option>
+                        <option value="contains">מכיל את הערך (contains)</option>
+                      </select>
+                      <span className="text-[11px] text-muted">
+                        בחר contains כאשר רוצים שאפשרות אחת תתפוס כמה וריאנטים של אותו ערך (לדוגמה "ירושלים" יתפוס את כל וריאנטי בית המשפט).
+                      </span>
+                    </div>
+                  </>
+                )}
+                {f.control === "text" && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-muted whitespace-nowrap">
+                      אופן ההתאמה:
+                    </label>
+                    <select
+                      value={f.matchOp ?? "contains"}
+                      onChange={(e) =>
+                        updateFilterField(i, {
+                          matchOp: e.target.value as "eq" | "contains",
+                        })
+                      }
+                      className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                      dir="rtl"
+                    >
+                      <option value="contains">מכיל את הערך (contains)</option>
+                      <option value="eq">התאמה מדויקת (eq)</option>
+                    </select>
+                  </div>
                 )}
               </div>
             ))}

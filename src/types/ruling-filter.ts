@@ -80,6 +80,13 @@ export interface RulingsFilterField {
   // over values discovered from the upstream schema (needed for fields whose
   // schema doesn't advertise enum samples, e.g. sql.הגנות_שנטענו.התקבלה).
   options?: string[];
+  // For "select" / "text": how to match the user's choice against the field.
+  // Defaults to "eq" for select / "contains" for text. The escape hatch is
+  // "contains" on select — useful when the underlying field has many noisy
+  // variants of the same logical value (e.g. dozens of court-name spellings
+  // that all contain the city). Then options can be a clean curated list
+  // (cities) and any document whose court name contains the choice matches.
+  matchOp?: "eq" | "contains";
 }
 
 /**
