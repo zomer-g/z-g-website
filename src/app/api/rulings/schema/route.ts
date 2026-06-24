@@ -21,6 +21,7 @@ const CATEGORY_MAP: Record<string, { scope: number; slug: string }> = {
   foi: { scope: 6, slug: "foi-rulings" },
   "foi-judgments": { scope: 6, slug: "foi-judgments" },
   "foi-costs": { scope: 6, slug: "foi-costs" },
+  "drug-sentencing": { scope: 1, slug: "drug-sentencing" },
 };
 
 type RulingsContent =

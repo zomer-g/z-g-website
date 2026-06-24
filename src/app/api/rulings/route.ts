@@ -13,6 +13,7 @@ import type {
   FoiRulingsPageContent,
   FoiJudgmentsPageContent,
   FoiCostsPageContent,
+  DrugSentencingPageContent,
 } from "@/types/content";
 import type {
   FilterExpression,
@@ -121,6 +122,7 @@ const SCOPE_MAP: Record<string, { id: number; pageSlug: string }> = {
   foi:             { id: 6, pageSlug: "foi-rulings" },
   "foi-judgments": { id: 6, pageSlug: "foi-judgments" },
   "foi-costs":     { id: 6, pageSlug: "foi-costs" },
+  "drug-sentencing": { id: 1, pageSlug: "drug-sentencing" },
 };
 
 const DEFAULT_TTL_MINUTES = 60;
@@ -270,6 +272,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       | FoiRulingsPageContent
       | FoiJudgmentsPageContent
       | FoiCostsPageContent
+      | DrugSentencingPageContent
       | DefamationRulingsPageContent;
     switch (pageSlug) {
       case "foi-judgments":
@@ -281,6 +284,10 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
         break;
       case "foi-rulings":
         content = await getPageContent<FoiRulingsPageContent>("foi-rulings");
+        break;
+      case "drug-sentencing":
+        content =
+          await getPageContent<DrugSentencingPageContent>("drug-sentencing");
         break;
       default:
         content = await getPageContent<DefamationRulingsPageContent>(

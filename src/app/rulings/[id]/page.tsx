@@ -32,7 +32,7 @@ function objArray(v: unknown): Record<string, unknown>[] {
 // endpoint with a meta.id filter returns the full doc (ai+sql+meta), but it's
 // scoped, and the id alone doesn't tell us the scope. So try the known rulings
 // scopes (4 = defamation, 6 = FOI) until one returns the document.
-const RULINGS_SCOPES = [4, 6];
+const RULINGS_SCOPES = [4, 6, 1];
 
 // Map upstream scope → parent dashboard so the detail page can render a
 // "back to <listing>" link instead of relying on window.history. Detail
@@ -41,6 +41,7 @@ const RULINGS_SCOPES = [4, 6];
 const SCOPE_TO_PARENT: Record<number, { slug: string; title: string }> = {
   4: { slug: "/defamation-rulings", title: "פסקי דין בלשון הרע" },
   6: { slug: "/foi-judgments", title: "פסיקות חופש מידע" },
+  1: { slug: "/drug-sentencing", title: "גזרי דין בעבירות סמים" },
 };
 
 async function fetchDoc(

@@ -523,6 +523,18 @@ export interface FoiCostsPageContent {
   query: import("./ruling-filter").RulingsPageQuery;
 }
 
+// ── Drug-Sentencing Rulings Page (גזרי דין בעבירות סמים) — TAG-IT scope 1 ──
+// Base-filtered to sentencing docs whose sql.סוגיות_ענישה contains "סמים".
+
+export interface DrugSentencingPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+  legislation?: LegislationLink[];
+  allowedDocTypes: string[];
+  query: import("./ruling-filter").RulingsPageQuery;
+}
+
 // ── Conditional Arrangements Dashboard Page Content ──
 
 export interface ConditionalArrangementsPageContent {
@@ -553,6 +565,7 @@ export type PageContentMap = {
   "foi-rulings": FoiRulingsPageContent;
   "foi-judgments": FoiJudgmentsPageContent;
   "foi-costs": FoiCostsPageContent;
+  "drug-sentencing": DrugSentencingPageContent;
   "conditional-arrangements": ConditionalArrangementsPageContent;
   leam: LeamPageContent;
 };

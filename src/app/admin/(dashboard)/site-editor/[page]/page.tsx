@@ -30,7 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -53,6 +53,7 @@ const PAGE_LABELS: Record<string, string> = {
   "defamation-rulings": "פסקי דין בלשון הרע",
   "foi-judgments": "פסיקות חופש מידע",
   "foi-costs": "הוצאות חופש מידע",
+  "drug-sentencing": "גזרי דין בעבירות סמים",
   leam: "לעם — אתרים אזרחיים",
 };
 
@@ -75,6 +76,7 @@ const PAGE_URLS: Record<string, string> = {
   "defamation-rulings": "/defamation-rulings",
   "foi-judgments": "/foi-judgments",
   "foi-costs": "/foi-costs",
+  "drug-sentencing": "/drug-sentencing",
   leam: "/o",
 };
 
@@ -577,6 +579,39 @@ export default function SiteEditorPageEditor({
                         op: "ge",
                         value: 10000,
                       },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              }}
+            />
+          )}
+          {slug === "drug-sentencing" && (
+            <DashboardPageEditor<DrugSentencingPageContent>
+              content={content as DrugSentencingPageContent}
+              onChange={setContent}
+              showLegislation
+              cacheControls={{
+                refreshEndpoint: "/api/rulings/refresh",
+                ttlField: "cacheTtlMinutes",
+                minMinutes: 1,
+                maxMinutes: 1440,
+              }}
+              docTypeFilter={{
+                field: "allowedDocTypes",
+                description:
+                  "סינון מהיר לפי כותרת ה-AI (ai.כותרת_המסמך). בעמוד הזה הסינון העיקרי נעשה דרך השאילתה המתקדמת (סוגיות_ענישה מכיל סמים), אז כאן בדרך כלל אפשר להשאיר ריק.",
+                presets: ["גזר דין", "הכרעת דין", "פסק דין"],
+              }}
+              advancedQuery={{
+                field: "query",
+                schemaHintUrl: "/api/rulings/schema?category=drug-sentencing",
+                examples: [
+                  {
+                    label: "סוגיות ענישה מכילות \"סמים\"",
+                    json: JSON.stringify(
+                      { field: "sql.סוגיות_ענישה", op: "contains", value: "סמים" },
                       null,
                       2,
                     ),

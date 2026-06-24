@@ -1017,7 +1017,7 @@ export function RulingsList({
   category,
   legislation,
 }: {
-  category: "foi" | "defamation" | "foi-judgments" | "foi-costs";
+  category: "foi" | "defamation" | "foi-judgments" | "foi-costs" | "drug-sentencing";
   legislation?: LegislationLink[];
 }) {
   // Seed once from the URL so a shared link restores the exact searched view.

@@ -68,6 +68,15 @@ const FOI_RULINGS_DEFAULT = {
   cacheTtlMinutes: 60,
 };
 
+const DRUG_SENTENCING_DEFAULT = {
+  isPublic: false,
+  hero: {
+    title: "גזרי דין בעבירות סמים",
+    subtitle: "גזרי דין אחרונים בעבירות סמים — נאשמים, הרשעות, ענישה וסוגי הסמים",
+  },
+  cacheTtlMinutes: 60,
+};
+
 // Mirrors DEFAULT_LEAM_CONTENT in src/lib/content-defaults.ts. The runtime
 // page deep-merges DB content with the defaults map, so this only seeds the
 // initial row — admins are free to edit any field after that.
@@ -577,6 +586,11 @@ async function main() {
     "foi-rulings",
     "פסקי דין בעתירות חופש מידע",
     FOI_RULINGS_DEFAULT,
+  );
+  await ensureDashboardPage(
+    "drug-sentencing",
+    "גזרי דין בעבירות סמים",
+    DRUG_SENTENCING_DEFAULT,
   );
   await ensureDashboardPage("leam", "לעם — אתרים אזרחיים", LEAM_DEFAULT);
   await bumpRulingsPageSize();

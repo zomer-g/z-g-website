@@ -18,6 +18,7 @@ import type {
   FoiRulingsPageContent,
   FoiJudgmentsPageContent,
   FoiCostsPageContent,
+  DrugSentencingPageContent,
   ConditionalArrangementsPageContent,
   LeamPageContent,
 } from "@/types/content";
@@ -711,6 +712,37 @@ export const DEFAULT_FOI_COSTS_CONTENT: FoiCostsPageContent = {
   },
 };
 
+/* ─── Drug-Sentencing Rulings Page (גזרי דין בעבירות סמים) ───
+   TAG-IT scope 1 (criminal sentencing), base-filtered to drug cases. The real
+   display/filter config lives in the prod DB Page row — this is just the
+   first-deploy fallback. */
+
+export const DEFAULT_DRUG_SENTENCING_CONTENT: DrugSentencingPageContent = {
+  isPublic: false,
+  hero: {
+    title: "גזרי דין בעבירות סמים",
+    subtitle: "גזרי דין אחרונים בעבירות סמים — נאשמים, הרשעות, ענישה וסוגי הסמים",
+  },
+  cacheTtlMinutes: 60,
+  legislation: [
+    {
+      label: "פקודת הסמים המסוכנים [נוסח חדש], התשל\"ג–1973",
+      url: "https://he.wikisource.org/wiki/פקודת_הסמים_המסוכנים",
+      kind: "law" as const,
+    },
+  ],
+  allowedDocTypes: [],
+  query: {
+    // Restrict scope-1 sentencing docs to drug cases.
+    customQuery: { field: "sql.סוגיות_ענישה", op: "contains", value: "סמים" },
+    displayFields: [],
+    filterFields: [],
+    sortFields: [],
+    scope: 1,
+    pageSize: 24,
+  },
+};
+
 /* ─── Conditional Arrangements Dashboard Page ─── */
 
 export const DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT: ConditionalArrangementsPageContent = {
@@ -826,6 +858,7 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
   "foi-judgments": DEFAULT_FOI_JUDGMENTS_CONTENT,
   "foi-costs": DEFAULT_FOI_COSTS_CONTENT,
+  "drug-sentencing": DEFAULT_DRUG_SENTENCING_CONTENT,
   "conditional-arrangements": DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT,
   leam: DEFAULT_LEAM_CONTENT,
 };
