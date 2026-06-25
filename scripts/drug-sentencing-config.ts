@@ -63,6 +63,15 @@ const QUERY = {
           matchOp: "contains",
           options: ["מאסר בפועל", "מאסר על תנאי", "מאסר בעבודות שירות", "קנס", "פיצוי", "שירות לתועלת הציבור", "צו מבחן", "חילוט", "התחייבות", "פסילת רישיון נהיגה"],
         },
+        // Drug quantity — normalized max grams (number range).
+        { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number" },
+        // Punishment value ranges — one numeric field per component type
+        // (units baked into the field, since they differ per type).
+        { key: "meta.prison_actual_months", label: "מאסר בפועל (חודשים)", control: "number" },
+        { key: "meta.prison_suspended_months", label: "מאסר על תנאי (חודשים)", control: "number" },
+        { key: "meta.community_service_hours", label: "של\"צ (שעות)", control: "number" },
+        { key: "meta.fine_shekels", label: "קנס (₪)", control: "number" },
+        { key: "meta.compensation_shekels", label: "פיצוי (₪)", control: "number" },
         {
           key: "meta.offense_laws",
           label: "חוק העבירה",
@@ -70,6 +79,9 @@ const QUERY = {
           matchOp: "contains",
           options: ["פקודת הסמים המסוכנים", "חוק העונשין", "חוק הכניסה לישראל", "חוק כלי הירייה"],
         },
+        // Offense section — array of section tokens (full "144(א)" + basic
+        // "144"); contains = exact-token match, so the user types a section.
+        { key: "meta.offense_sections", label: "סעיף עבירה", control: "text" },
         { key: "meta.document_date", label: "תאריך", control: "date" },
       ],
   // meta.severity_score (promoted from ai._חומרת_ציון) is index-sortable —
