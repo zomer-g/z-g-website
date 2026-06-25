@@ -87,6 +87,10 @@ export interface RulingsFilterField {
   // that all contain the city). Then options can be a clean curated list
   // (cities) and any document whose court name contains the choice matches.
   matchOp?: "eq" | "contains";
+  // Optional collapsible-group label. Filters sharing a `group` render together
+  // inside an accordion section (collapsed by default) so a long filter set
+  // isn't all on screen at once. Ungrouped filters stay always-visible.
+  group?: string;
 }
 
 /**

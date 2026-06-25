@@ -25,6 +25,8 @@ interface FilterField {
   key: string;
   label: string;
   control: FilterControl;
+  // Optional accordion-group label; grouped filters collapse together.
+  group?: string;
 }
 
 // Reserved userFilters key carrying the cascading law/section selection.
@@ -978,6 +980,156 @@ function FilterBar({
     });
   };
 
+  // ── Accordion grouping ──
+  // Filters that share a `group` collapse together inside a section (so a long
+  // filter set isn't all on screen). Ungrouped filters stay always-visible.
+  const ungroupedFields = fields.filter((f) => !f.group);
+  const groupNames = fields
+    .filter((f) => f.group)
+    .reduce<string[]>(
+      (acc, f) => (acc.includes(f.group!) ? acc : [...acc, f.group!]),
+      [],
+    );
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () =>
+      new Set(
+        // Open any group that already has an active filter (e.g. from a shared
+        // link), so the user sees their active selections.
+        groupNames.filter((g) =>
+          fields.some((f) => f.group === g && isFilterActive(draft[f.key])),
+        ),
+      ),
+  );
+  const toggleGroup = (g: string) =>
+    setOpenGroups((prev) => {
+      const n = new Set(prev);
+      if (n.has(g)) n.delete(g);
+      else n.add(g);
+      return n;
+    });
+
+  const renderField = (f: FilterField) => {
+    const v = draft[f.key];
+    if (f.control === "text") {
+      return (
+        <div key={f.key}>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            {f.label}
+          </label>
+          <input
+            type="text"
+            value={typeof v === "string" ? v : ""}
+            onChange={(e) => setField(f.key, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onApply();
+            }}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+          />
+        </div>
+      );
+    }
+    if (f.control === "select" || f.control === "boolean") {
+      // Boolean fields use a fixed כן/לא option set; selects use the distinct
+      // values discovered server-side.
+      const opts =
+        f.control === "boolean" ? ["true", "false"] : options[f.key] || [];
+      return (
+        <div key={f.key}>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            {f.label}
+          </label>
+          <select
+            value={typeof v === "string" ? v : ""}
+            onChange={(e) => setField(f.key, e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+          >
+            <option value="">הכל</option>
+            {opts.map((o) => (
+              <option key={o} value={o}>
+                {optionLabel(o)}
+              </option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    if (f.control === "number") {
+      const range = (typeof v === "object" ? v : {}) as {
+        min?: number;
+        max?: number;
+      };
+      return (
+        <div key={f.key}>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            {f.label}
+          </label>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              placeholder="מ-"
+              value={range.min ?? ""}
+              onChange={(e) =>
+                setField(f.key, {
+                  ...range,
+                  min: e.target.value === "" ? undefined : Number(e.target.value),
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+              dir="ltr"
+            />
+            <span className="text-gray-400">–</span>
+            <input
+              type="number"
+              placeholder="עד"
+              value={range.max ?? ""}
+              onChange={(e) =>
+                setField(f.key, {
+                  ...range,
+                  max: e.target.value === "" ? undefined : Number(e.target.value),
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+              dir="ltr"
+            />
+          </div>
+        </div>
+      );
+    }
+    // date range
+    const range = (typeof v === "object" ? v : {}) as {
+      from?: string;
+      to?: string;
+    };
+    return (
+      <div key={f.key}>
+        <label className="block text-xs font-semibold text-gray-600 mb-1">
+          {f.label}
+        </label>
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            value={range.from ?? ""}
+            onChange={(e) =>
+              setField(f.key, { ...range, from: e.target.value || undefined })
+            }
+            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+            dir="ltr"
+          />
+          <span className="text-gray-400">–</span>
+          <input
+            type="date"
+            value={range.to ?? ""}
+            onChange={(e) =>
+              setField(f.key, { ...range, to: e.target.value || undefined })
+            }
+            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+            dir="ltr"
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
       {lawSectionFilter ? (
@@ -1068,128 +1220,43 @@ function FilterBar({
         </div>
       ) : null}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {fields.map((f) => {
-          const v = draft[f.key];
-          if (f.control === "text") {
-            return (
-              <div key={f.key}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  {f.label}
-                </label>
-                <input
-                  type="text"
-                  value={typeof v === "string" ? v : ""}
-                  onChange={(e) => setField(f.key, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onApply();
-                  }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                />
-              </div>
-            );
-          }
-          if (f.control === "select" || f.control === "boolean") {
-            // Boolean fields use a fixed כן/לא option set; selects use the
-            // distinct values discovered server-side.
-            const opts =
-              f.control === "boolean" ? ["true", "false"] : options[f.key] || [];
-            return (
-              <div key={f.key}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  {f.label}
-                </label>
-                <select
-                  value={typeof v === "string" ? v : ""}
-                  onChange={(e) => setField(f.key, e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
-                >
-                  <option value="">הכל</option>
-                  {opts.map((o) => (
-                    <option key={o} value={o}>
-                      {optionLabel(o)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            );
-          }
-          if (f.control === "number") {
-            const range = (typeof v === "object" ? v : {}) as {
-              min?: number;
-              max?: number;
-            };
-            return (
-              <div key={f.key}>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  {f.label}
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <input
-                    type="number"
-                    placeholder="מ-"
-                    value={range.min ?? ""}
-                    onChange={(e) =>
-                      setField(f.key, {
-                        ...range,
-                        min: e.target.value === "" ? undefined : Number(e.target.value),
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
-                    dir="ltr"
-                  />
-                  <span className="text-gray-400">–</span>
-                  <input
-                    type="number"
-                    placeholder="עד"
-                    value={range.max ?? ""}
-                    onChange={(e) =>
-                      setField(f.key, {
-                        ...range,
-                        max: e.target.value === "" ? undefined : Number(e.target.value),
-                      })
-                    }
-                    className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
-            );
-          }
-          // date range
-          const range = (typeof v === "object" ? v : {}) as {
-            from?: string;
-            to?: string;
-          };
-          return (
-            <div key={f.key}>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">
-                {f.label}
-              </label>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  value={range.from ?? ""}
-                  onChange={(e) =>
-                    setField(f.key, { ...range, from: e.target.value || undefined })
-                  }
-                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
-                  dir="ltr"
-                />
-                <span className="text-gray-400">–</span>
-                <input
-                  type="date"
-                  value={range.to ?? ""}
-                  onChange={(e) =>
-                    setField(f.key, { ...range, to: e.target.value || undefined })
-                  }
-                  className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
-                  dir="ltr"
-                />
-              </div>
-            </div>
-          );
-        })}
+        {ungroupedFields.map((f) => renderField(f))}
       </div>
+      {groupNames.map((g) => {
+        const gFields = fields.filter((f) => f.group === g);
+        const activeCount = gFields.filter((f) =>
+          isFilterActive(draft[f.key]),
+        ).length;
+        const open = openGroups.has(g);
+        return (
+          <div key={g} className="mt-3 rounded-lg border border-gray-200">
+            <button
+              type="button"
+              onClick={() => toggleGroup(g)}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              aria-expanded={open}
+            >
+              <span className="text-gray-400 text-[11px] w-3 inline-block">
+                {open ? "▾" : "◂"}
+              </span>
+              <span>{g}</span>
+              {activeCount > 0 ? (
+                <span
+                  className="text-[11px] font-semibold text-white rounded-full px-1.5"
+                  style={{ background: C_PRIMARY }}
+                >
+                  {activeCount}
+                </span>
+              ) : null}
+            </button>
+            {open ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 px-3 pb-3">
+                {gFields.map((f) => renderField(f))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
 
       <div className="flex items-center justify-between gap-2 mt-4">
         <LegislationMenu items={legislation} align="start" />
