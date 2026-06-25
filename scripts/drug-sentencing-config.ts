@@ -85,14 +85,13 @@ const QUERY = {
         // Offense section — array of section tokens (full "144(א)" + basic
         // "144"); contains = exact-token match, so the user types a section.
         { key: "meta.offense_sections", label: "סעיף עבירה", control: "text", group: "עבירה" },
-        // ── Group "הודאה ותוצאה" — per-defendant boolean flags ──
-        // PENDING TAG-IT: the raw nested booleans sql.נאשמים[].הודה_באשמה /
-        // עונש_מוסכם / ביטול_הרשעה / סטייה_משיקולי_שיקום time out (not indexed).
-        // Wire these once TAG-IT exposes indexed meta.* booleans, e.g.:
-        //   { key: "meta.confessed", label: "הודה באשמה", control: "boolean", group: "הודאה ותוצאה" },
-        //   { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "הודאה ותוצאה" },
-        //   { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "הודאה ותוצאה" },
-        //   { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "הודאה ותוצאה" },
+        // ── Group "הודאה ותוצאה" — any-defendant boolean flags (Phase 3) ──
+        // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
+        // sql.נאשמים[] booleans time out and must NOT be used.
+        { key: "meta.confessed", label: "הודה באשמה", control: "boolean", group: "הודאה ותוצאה" },
+        { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "הודאה ותוצאה" },
+        { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "הודאה ותוצאה" },
+        { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "הודאה ותוצאה" },
       ],
   // meta.severity_score (promoted from ai._חומרת_ציון) is index-sortable.
   // Default sort = severity ascending (מקל לחמור) — first entry + defaultDir asc
