@@ -376,6 +376,223 @@ export function LawClaimsTable({
   );
 }
 
+// Coerce a value to an array of plain objects (for nested sub-tables).
+function objArray(v: unknown): Record<string, unknown>[] {
+  return Array.isArray(v)
+    ? v.filter((x): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x))
+    : [];
+}
+
+// Shared section header (accent bar + bold label + count badge).
+function FieldSectionHead({ label, count }: { label: string; count: number }) {
+  return (
+    <dt className="flex items-center gap-2 mb-2">
+      <span className="inline-block w-1 h-4 rounded-full" style={{ background: C_PRIMARY }} />
+      <span className="text-sm font-bold" style={{ color: C_PRIMARY }}>{label}</span>
+      <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">
+        {count}
+      </span>
+    </dt>
+  );
+}
+
+// FOI/drug-style fixed table shell with a header row.
+function MiniTable({
+  cols,
+  rows,
+}: {
+  cols: { label: string; w: string; center?: boolean }[];
+  rows: React.ReactNode[][];
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 overflow-hidden">
+      <table className="w-full table-fixed text-xs border-collapse">
+        <colgroup>
+          {cols.map((c, i) => (
+            <col key={i} style={{ width: c.w }} />
+          ))}
+        </colgroup>
+        <thead>
+          <tr className="bg-gray-50 text-gray-500">
+            {cols.map((c, i) => (
+              <th
+                key={i}
+                className={`${c.center ? "text-center" : "text-right"} font-semibold py-1.5 px-2`}
+              >
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, ri) => (
+            <tr key={ri} className="border-t border-gray-200 align-top">
+              {r.map((cell, ci) => (
+                <td
+                  key={ci}
+                  className={`py-1.5 px-2 break-words ${cols[ci]?.center ? "text-center" : ""} text-gray-700`}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// Per-drug list (FOI scope-1 "פירוט עבירות סמים"): one row per substance —
+// offense type / drug / quantity / unit.
+export function DrugOffensesTable({
+  label,
+  items,
+}: {
+  label: string;
+  items: Record<string, unknown>[];
+}) {
+  return (
+    <div className="block mt-3 pt-3 border-t border-gray-200">
+      <FieldSectionHead label={label} count={items.length} />
+      <dd>
+        <MiniTable
+          cols={[
+            { label: "סוג העבירה", w: "40%" },
+            { label: "סוג הסם", w: "26%" },
+            { label: "כמות", w: "18%", center: true },
+            { label: "יחידה", w: "16%", center: true },
+          ]}
+          rows={items.map((it) => {
+            const off = pickByKeyHint(it, ["סוג_העבירה", "עבירה"]);
+            const drug = pickByKeyHint(it, ["סוג_הסם", "סם"]);
+            const amt = pickByKeyHint(it, ["מספר_כמות", "כמות"]);
+            const unit = pickByKeyHint(it, ["יחידת_מידה", "יחידה"]);
+            return [
+              off != null && off !== "" ? formatFieldValue(off) : "—",
+              drug != null && drug !== "" ? (
+                <span className="font-semibold text-gray-800">{formatFieldValue(drug)}</span>
+              ) : (
+                "—"
+              ),
+              amt != null && amt !== "" ? formatFieldValue(amt) : "—",
+              unit != null && unit !== "" ? formatFieldValue(unit) : "—",
+            ];
+          })}
+        />
+      </dd>
+    </div>
+  );
+}
+
+// Per-defendant list (scope-1 "נאשמים"): name + plea/outcome flags, then nested
+// convictions (הרשעות) and punishment (פירוט_ענישה) sub-tables.
+export function DefendantsList({
+  label,
+  items,
+}: {
+  label: string;
+  items: Record<string, unknown>[];
+}) {
+  const FLAGS: [string, string][] = [
+    ["הודה_באשמה", "הודה באשמה"],
+    ["עונש_מוסכם", "עונש מוסכם"],
+    ["ביטול_הרשעה", "ביטול הרשעה"],
+    ["סטייה_משיקולי_שיקום", "סטייה משיקולי שיקום"],
+  ];
+  return (
+    <div className="block mt-3 pt-3 border-t border-gray-200">
+      <FieldSectionHead label={label} count={items.length} />
+      <dd>
+        <ul className="space-y-3">
+          {items.map((def, i) => {
+            const name = pickByKeyHint(def, ["שם"]);
+            const convictions = objArray(def["הרשעות"]);
+            const punishment = objArray(def["פירוט_ענישה"]);
+            return (
+              <li key={i} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="font-bold text-gray-800">
+                    {name != null && name !== "" ? formatFieldValue(name) : `נאשם ${i + 1}`}
+                  </span>
+                  {FLAGS.filter(([k]) => def[k] === true).map(([k, lbl]) => (
+                    <span
+                      key={k}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200"
+                    >
+                      <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: "#f59e0b" }} />
+                      {lbl}
+                    </span>
+                  ))}
+                </div>
+                {convictions.length > 0 ? (
+                  <div className="mb-2">
+                    <div className="text-[11px] font-semibold text-gray-500 mb-1">הרשעות</div>
+                    <MiniTable
+                      cols={[
+                        { label: "שם החוק", w: "26%" },
+                        { label: "סעיף", w: "16%" },
+                        { label: "תיאור העבירה", w: "40%" },
+                        { label: "עבירות", w: "18%", center: true },
+                      ]}
+                      rows={convictions.map((c) => {
+                        const law = pickByKeyHint(c, ["שם_החוק", "שם_חוק_רשמי"]);
+                        const sec = pickByKeyHint(c, ["סעיף_מהותי", "סעיף"]);
+                        const extra = c["סעיפים_נלווים"];
+                        const desc = pickByKeyHint(c, ["תיאור_העבירה", "תיאור"]);
+                        const n = pickByKeyHint(c, ["מספר_עבירות"]);
+                        return [
+                          law != null && law !== "" ? formatFieldValue(law) : "—",
+                          sec != null && sec !== "" ? (
+                            <span className="font-mono font-bold text-[11px] rounded px-1.5 py-0.5" style={{ color: C_PRIMARY, background: "#e1ecf3" }}>
+                              {formatFieldValue(sec)}
+                              {Array.isArray(extra) && extra.length ? " +" + formatFieldValue(extra) : ""}
+                            </span>
+                          ) : (
+                            "—"
+                          ),
+                          desc != null && desc !== "" ? formatFieldValue(desc) : "—",
+                          n != null && n !== "" ? formatFieldValue(n) : "—",
+                        ];
+                      })}
+                    />
+                  </div>
+                ) : null}
+                {punishment.length > 0 ? (
+                  <div>
+                    <div className="text-[11px] font-semibold text-gray-500 mb-1">פירוט ענישה</div>
+                    <MiniTable
+                      cols={[
+                        { label: "סוג העונש", w: "50%" },
+                        { label: "ערך", w: "28%", center: true },
+                        { label: "יחידה", w: "22%", center: true },
+                      ]}
+                      rows={punishment.map((p) => {
+                        const kind = pickByKeyHint(p, ["סוג_העונש", "סוג_הרכיב"]);
+                        const val = pickByKeyHint(p, ["ערך"]);
+                        const unit = pickByKeyHint(p, ["יחידה"]);
+                        return [
+                          kind != null && kind !== "" ? (
+                            <span className="font-semibold text-gray-800">{formatFieldValue(kind)}</span>
+                          ) : (
+                            "—"
+                          ),
+                          val != null && val !== "" ? formatFieldValue(val) : "—",
+                          unit != null && unit !== "" ? formatFieldValue(unit) : "—",
+                        ];
+                      })}
+                    />
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      </dd>
+    </div>
+  );
+}
+
 // Renders an array-of-objects field as elegant status rows. Tuned for the
 // "defenses claimed" table (status pill + name + clause badge + reasoning) but
 // degrades gracefully for any object-array: it shows whatever of those parts
@@ -533,6 +750,26 @@ function RulingCard({
               if (tail === "טענות_סעיפי_חוק_שנדונו") {
                 return (
                   <LawClaimsTable
+                    key={key}
+                    label={fieldKeyToLabel(key)}
+                    items={value}
+                  />
+                );
+              }
+              // Drug-sentencing (scope 1): per-drug + per-defendant lists get
+              // dedicated nested-table renderers.
+              if (tail === "פירוט_עבירות_סמים") {
+                return (
+                  <DrugOffensesTable
+                    key={key}
+                    label={fieldKeyToLabel(key)}
+                    items={value}
+                  />
+                );
+              }
+              if (tail === "נאשמים") {
+                return (
+                  <DefendantsList
                     key={key}
                     label={fieldKeyToLabel(key)}
                     items={value}

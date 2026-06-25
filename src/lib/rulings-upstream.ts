@@ -91,11 +91,13 @@ export interface RulingsPageResult {
   total: number;
 }
 
-// Hard per-request timeout. TAG-IT can be slow to apply a text `contains`
-// filter on a large scope (it scans the corpus) — without a timeout the
-// fetch hangs the whole serverless function until Render kills it. We abort
-// well under Render's proxy limit so the route returns a clean 502 instead.
-const PAGE_TIMEOUT_MS = 22_000;
+// Hard per-request timeout. Most scope queries return in ~1-2s, but a COLD
+// load (first request after the per-scope catalog cache expires, ~5 min) can
+// take longer on a big scope like scope-1 (~49k docs) — TAG-IT recommends a
+// ≥30s client budget for that. We set 35s so cold loads succeed (then the
+// route's page cache keeps subsequent loads fast), while still aborting before
+// the fetch hangs the serverless function indefinitely.
+const PAGE_TIMEOUT_MS = 35_000;
 const SCHEMA_TIMEOUT_MS = 9_000;
 
 async function fetchWithTimeout(
