@@ -17,6 +17,15 @@ const NO_FILTER = process.argv[2] === "nofilter";
 const PROBE = process.argv[2] === "probe";
 
 const QUERY = {
+  // Base = drug cases (meta.topics ⊇ סמים).
+  // TODO(when re-backfill of meta.has_drug_type finishes): switch to the AND
+  // below so the opening page only shows cards with a non-empty drug table.
+  // Holding off because the field is freshly deployed and empty on historical
+  // docs → eq true currently matches 0 (would blank the page). The AND-tree
+  // itself works (code default customQuery is null → deepMerge takes it whole):
+  //   { op: "and", clauses: [
+  //       { field: "meta.topics", op: "contains", value: "סמים" },
+  //       { field: "meta.has_drug_type", op: "eq", value: true } ] }
   customQuery: NO_FILTER
     ? null
     : { field: "meta.topics", op: "contains", value: "סמים" },
