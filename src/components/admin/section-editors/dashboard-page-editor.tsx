@@ -1110,6 +1110,7 @@ interface SchemaField {
 const CONTROL_LABELS: Record<FilterControl, string> = {
   text: "חיפוש חופשי",
   select: "בחירה מרשימה",
+  multiselect: "בחירה מרובה",
   number: "טווח מספרי",
   date: "טווח תאריכים",
   boolean: "כן / לא",
