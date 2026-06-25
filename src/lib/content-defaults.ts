@@ -733,8 +733,11 @@ export const DEFAULT_DRUG_SENTENCING_CONTENT: DrugSentencingPageContent = {
   ],
   allowedDocTypes: [],
   query: {
-    // Restrict scope-1 sentencing docs to drug cases.
-    customQuery: { field: "sql.סוגיות_ענישה", op: "contains", value: "סמים" },
+    // null so the DB row's customQuery is taken WHOLESALE by deepMerge — a
+    // non-null leaf default here corrupts an AND-tree DB customQuery (deepMerge
+    // would mix this leaf's field/value into the and-node). The live base
+    // filter lives in the DB Page row (scripts/drug-sentencing-config.ts).
+    customQuery: null,
     displayFields: [],
     filterFields: [],
     sortFields: [],
