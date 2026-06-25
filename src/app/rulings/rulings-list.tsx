@@ -77,7 +77,7 @@ interface RulingsResponse {
   // Distinct values for each "select" control, computed server-side.
   filterOptions?: Record<string, string[]>;
   // User-facing sort options (first = default).
-  sortFields?: { key: string; label: string }[];
+  sortFields?: { key: string; label: string; defaultDir?: SortDir }[];
   // Cascading law→section filter config (FOI). Absent = not shown.
   lawSectionFilter?: LawSectionFilterCfg;
 }
@@ -1446,6 +1446,11 @@ export function RulingsList({
   // The control reflects the active sort: explicit user choice, or the
   // server's default (first configured field) when the user hasn't picked.
   const activeSortKey = sortKey || sortFields[0]?.key || "";
+  // Direction shown/active: the user's choice if they picked a sort, else the
+  // default field's configured direction (which the server applies on load).
+  const activeSortDir: SortDir = sortKey
+    ? sortDir
+    : sortFields[0]?.defaultDir ?? "desc";
 
   const total = data?.total ?? 0;
   // The server is authoritative on page size (admin-configurable). Fall back
@@ -1524,13 +1529,20 @@ export function RulingsList({
               <button
                 type="button"
                 onClick={() => {
-                  setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                  // On the (server-applied) default sort, the user hasn't set an
+                  // explicit sortKey yet — promote it so the toggle takes effect.
+                  if (!sortKey) {
+                    setSortKey(activeSortKey);
+                    setSortDir(activeSortDir === "desc" ? "asc" : "desc");
+                  } else {
+                    setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+                  }
                   setPage(1);
                 }}
-                title={sortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
+                title={activeSortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
                 className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
               >
-                {sortDir === "desc" ? "יורד ↓" : "עולה ↑"}
+                {activeSortDir === "desc" ? "יורד ↓" : "עולה ↑"}
               </button>
             </>
           ) : null}

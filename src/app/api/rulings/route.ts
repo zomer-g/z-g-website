@@ -554,6 +554,13 @@ export async function GET(req: NextRequest) {
     let sortKey = "";
     if (reqSort && config.sortFields.some((s) => s.key === reqSort)) {
       sortKey = (reqDir === "asc" ? "" : "-") + reqSort;
+    } else if (!reqSort && config.sortFields[0]?.defaultDir) {
+      // No explicit sort from the client → apply the first configured sort's
+      // default direction server-side, so the initial page load is ordered by
+      // it (the client can't send it on the first fetch — it doesn't know the
+      // sortFields config until the response arrives).
+      const def = config.sortFields[0];
+      sortKey = (def.defaultDir === "asc" ? "" : "-") + def.key;
     }
 
     const lawSectionResponse = config.lawSectionFilter

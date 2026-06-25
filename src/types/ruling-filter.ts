@@ -101,6 +101,10 @@ export interface RulingsFilterField {
 export interface RulingsSortField {
   key: string;   // e.g. "meta.document_date", "sql.סכום_הוצאות_שקלים"
   label: string; // shown in the sort dropdown
+  // Direction applied when this is the active default sort (the first entry,
+  // before the user picks anything). undefined → no server-side default sort
+  // (rely on TAG-IT's newest-first order).
+  defaultDir?: SortDir;
 }
 
 export type SortDir = "asc" | "desc";
