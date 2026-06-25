@@ -19,7 +19,7 @@ interface Ruling {
   fields?: Record<string, unknown>;
 }
 
-type FilterControl = "text" | "select" | "number" | "date" | "boolean";
+type FilterControl = "text" | "select" | "multiselect" | "number" | "date" | "boolean";
 
 interface FilterField {
   key: string;
@@ -49,6 +49,7 @@ interface LawSectionFilterCfg {
 // User filter selections, keyed by field key.
 type UserFilterValue =
   | string
+  | string[]
   | { min?: number; max?: number }
   | { from?: string; to?: string }
   | LawSectionSel;
@@ -57,6 +58,7 @@ function isLawSectionSel(v: unknown): v is LawSectionSel {
   return (
     !!v &&
     typeof v === "object" &&
+    !Array.isArray(v) &&
     ("law" in v || "sections" in v || "mode" in v) &&
     !("min" in v) &&
     !("from" in v)
@@ -920,6 +922,7 @@ function optionLabel(o: string): string {
 function isFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
+  if (Array.isArray(v)) return v.length > 0;
   if (isLawSectionSel(v)) {
     return !!(v.law && v.law.trim()) || (Array.isArray(v.sections) && v.sections.length > 0);
   }
@@ -1025,6 +1028,44 @@ function FilterBar({
             }}
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
           />
+        </div>
+      );
+    }
+    if (f.control === "multiselect") {
+      const opts = options[f.key] || [];
+      const sel = Array.isArray(v) ? v : [];
+      const toggle = (o: string) =>
+        setField(f.key, sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o]);
+      return (
+        <div key={f.key}>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            {f.label}
+            {sel.length > 0 ? ` (${sel.length})` : ""}
+          </label>
+          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1 border border-gray-300 rounded-md">
+            {opts.length === 0 ? (
+              <span className="text-xs text-gray-400 px-1">—</span>
+            ) : (
+              opts.map((o) => {
+                const on = sel.includes(o);
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => toggle(o)}
+                    className="text-xs rounded-md px-2 py-1 border transition"
+                    style={
+                      on
+                        ? { background: C_PRIMARY, color: "#fff", borderColor: C_PRIMARY }
+                        : { background: "#fff", color: C_PRIMARY, borderColor: "#cbd5e1" }
+                    }
+                  >
+                    {optionLabel(o)}
+                  </button>
+                );
+              })
+            )}
+          </div>
         </div>
       );
     }
@@ -1327,6 +1368,9 @@ export function RulingsList({
   // Seed once from the URL so a shared link restores the exact searched view.
   const [urlSeed] = useState(readUrlState);
   const [data, setData] = useState<RulingsResponse | null>(null);
+  // Filter/sort CONFIG, fetched first (?meta=1) so the filter bar renders
+  // immediately while the (possibly slow) results load separately.
+  const [config, setConfig] = useState<RulingsResponse | null>(null);
   const [page, setPage] = useState(urlSeed.page);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1393,6 +1437,23 @@ export function RulingsList({
     fetchData(category, page, appliedFilters, sortKey, sortDir);
   }, [fetchData, category, page, appliedFilters, sortKey, sortDir]);
 
+  // Fetch the filter/sort CONFIG up front (fast — no TAG-IT document query) so
+  // the filter bar appears immediately, before the (possibly slow) results.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/rulings?category=${encodeURIComponent(category)}&meta=1`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!cancelled && j) setConfig(j as RulingsResponse);
+      })
+      .catch(() => {
+        /* fall back to config from the results response */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
+
   // Mirror the applied search into the URL so the address bar can be shared.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1438,10 +1499,12 @@ export function RulingsList({
     }
   };
 
-  const filterFields = data?.filterFields ?? [];
-  const filterOptions = data?.filterOptions ?? {};
-  const sortFields = data?.sortFields ?? [];
-  const lawSectionFilter = data?.lawSectionFilter;
+  // Filter/sort config comes from the fast `?meta=1` response when available,
+  // so the bar shows before results; falls back to the results response.
+  const filterFields = config?.filterFields ?? data?.filterFields ?? [];
+  const filterOptions = config?.filterOptions ?? data?.filterOptions ?? {};
+  const sortFields = config?.sortFields ?? data?.sortFields ?? [];
+  const lawSectionFilter = config?.lawSectionFilter ?? data?.lawSectionFilter;
   const showFilterBar = filterFields.length > 0 || !!lawSectionFilter;
   // The control reflects the active sort: explicit user choice, or the
   // server's default (first configured field) when the user hasn't picked.

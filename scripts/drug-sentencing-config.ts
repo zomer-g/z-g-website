@@ -22,6 +22,9 @@ const QUERY = {
     : { field: "meta.topics", op: "contains", value: "סמים" },
   scope: 1,
   pageSize: 24,
+  // Show only 6 results until the user applies a filter (then 24) — keeps the
+  // initial (slow, full-corpus) load light and nudges toward filtering.
+  initialPageSize: 6,
   displayFields: [
     "ai.שם_התיק",
     "ai.תקציר",
@@ -51,10 +54,10 @@ const QUERY = {
         // (not eq) to match an array element. Curated options override the noisy
         // mid-backfill enum sample; swap for TAG-IT's full canonical list later.
         {
+          // Multi-select → OR (`in`) over the GIN array meta.drug_types.
           key: "meta.drug_types",
           label: "סוג הסם",
-          control: "select",
-          matchOp: "contains",
+          control: "multiselect",
           options: ["קוקאין", "קנאביס", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
           group: "סמים",
         },

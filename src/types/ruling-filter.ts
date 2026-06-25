@@ -68,6 +68,7 @@ export type FilterExpression = LeafFilter | AndFilter | OrFilter | NotFilter;
 export type FilterControl =
   | "text"
   | "select"
+  | "multiselect" // pick several values; matches as OR (`in`) over an array field
   | "number"
   | "date"
   | "boolean";
@@ -167,6 +168,10 @@ export interface RulingsPageQuery {
   scope?: number;
   // Results per page on the public listing. undefined → built-in default (12).
   pageSize?: number;
+  // Smaller page size used for the INITIAL view (before the user applies any
+  // filter), so a slow/large scope shows a quick teaser; `pageSize` kicks in
+  // once a filter is active. undefined → always use pageSize.
+  initialPageSize?: number;
 }
 
 export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
@@ -181,6 +186,7 @@ export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {
 export const VALID_FILTER_CONTROLS: FilterControl[] = [
   "text",
   "select",
+  "multiselect",
   "number",
   "date",
   "boolean",

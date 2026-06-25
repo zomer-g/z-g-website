@@ -231,6 +231,7 @@ interface PageConfig {
   lawSectionFilter: LawSectionFilterConfig | null;
   scope: number; // 0 = use the per-category default
   pageSize: number;
+  initialPageSize: number; // 0 = none → always use pageSize
 }
 
 function readLawSectionFilter(q: unknown): LawSectionFilterConfig | null {
@@ -335,6 +336,11 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       Number.isFinite(sizeRaw) && sizeRaw > 0
         ? Math.min(MAX_PAGE_SIZE, Math.floor(sizeRaw))
         : DEFAULT_PAGE_SIZE;
+    const initRaw = Number(content?.query?.initialPageSize);
+    const initialPageSize =
+      Number.isFinite(initRaw) && initRaw > 0
+        ? Math.min(MAX_PAGE_SIZE, Math.floor(initRaw))
+        : 0; // 0 = none → always use pageSize
     return {
       ttlMs: ttlMinutes * 60_000,
       allowedDocTypes: allowed,
@@ -345,6 +351,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       lawSectionFilter: readLawSectionFilter(content?.query),
       scope,
       pageSize,
+      initialPageSize,
     };
   } catch {
     return {
@@ -357,6 +364,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       lawSectionFilter: null,
       scope: 0,
       pageSize: DEFAULT_PAGE_SIZE,
+      initialPageSize: 0,
     };
   }
 }
@@ -372,6 +380,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
 */
 type UserFilterValue =
   | string
+  | string[]
   | { min?: number; max?: number }
   | { from?: string; to?: string };
 
@@ -413,6 +422,13 @@ function userFilterClauses(
         const op = f.matchOp === "contains" ? "contains" : "eq";
         clauses.push({ field: f.key, op, value: s });
       }
+    } else if (f.control === "multiselect") {
+      // Several chosen values, matched as OR via `in` over an array field
+      // (e.g. meta.drug_types in ["קוקאין","חשיש"]).
+      const arr = Array.isArray(v)
+        ? v.map((x) => String(x).trim()).filter(Boolean)
+        : [];
+      if (arr.length) clauses.push({ field: f.key, op: "in", value: arr });
     } else if (f.control === "boolean") {
       const s = String(v).trim();
       if (s === "true") clauses.push({ field: f.key, op: "eq", value: true });
@@ -462,7 +478,7 @@ function selectOptionsFromSchema(
   const byKey = new Map(fields.map((f) => [f.key, f]));
   const out: Record<string, string[]> = {};
   for (const ff of filterFields) {
-    if (ff.control !== "select") continue;
+    if (ff.control !== "select" && ff.control !== "multiselect") continue;
     // Admin-provided fixed options win over upstream enum samples.
     if (Array.isArray(ff.options) && ff.options.length > 0) {
       out[ff.key] = ff.options.map((v) => String(v)).filter(Boolean);
@@ -520,7 +536,42 @@ export async function GET(req: NextRequest) {
 
     const config = await readPageConfig(scope.pageSlug);
     const scopeId = config.scope > 0 ? config.scope : scope.id;
-    const size = config.pageSize;
+
+    const needsSchemaOptions = config.filterFields.some(
+      (f) => f.control === "select" || f.control === "multiselect",
+    );
+
+    // ── Config-only (?meta=1) ──
+    // Returns just the filter/sort config (no TAG-IT document query), so the
+    // client can render the filter bar IMMEDIATELY while the (possibly slow)
+    // results load in a second request.
+    if (searchParams.get("meta") === "1") {
+      const schemaFields = needsSchemaOptions ? await getScopeSchema(scopeId) : [];
+      return NextResponse.json(
+        {
+          configOnly: true,
+          displayFields: config.displayFields,
+          filterFields: config.filterFields,
+          filterOptions: selectOptionsFromSchema(schemaFields, config.filterFields),
+          sortFields: config.sortFields,
+          lawSectionFilter: config.lawSectionFilter
+            ? {
+                label: config.lawSectionFilter.label,
+                map: config.lawSectionFilter.map,
+                lawOrder: config.lawSectionFilter.lawOrder,
+              }
+            : undefined,
+        },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
+
+    // Smaller first page (initialPageSize) until the user applies a filter.
+    const hasUserFilters = !!searchParams.get("userFilters");
+    const size =
+      !hasUserFilters && config.initialPageSize > 0
+        ? config.initialPageSize
+        : config.pageSize;
 
     // ── Build the upstream filter ──
     // Base = admin customQuery, else synthesized from allowedDocTypes (so
@@ -630,7 +681,7 @@ export async function GET(req: NextRequest) {
       const matched = docs.filter((d) => matchesLawSection(d, lsSel, cfg));
       const start = (page - 1) * size;
       const pageItems = matched.slice(start, start + size);
-      const schemaFieldsLs = config.filterFields.some((f) => f.control === "select")
+      const schemaFieldsLs = needsSchemaOptions
         ? await getScopeSchema(scopeId)
         : [];
       return NextResponse.json(
@@ -696,7 +747,7 @@ export async function GET(req: NextRequest) {
 
     // Select dropdown values come from the scope schema (enum samples), not a
     // corpus scan — cheap and cached.
-    const schemaFields = config.filterFields.some((f) => f.control === "select")
+    const schemaFields = needsSchemaOptions
       ? await getScopeSchema(scopeId)
       : [];
     const filterOptions = selectOptionsFromSchema(schemaFields, config.filterFields);
