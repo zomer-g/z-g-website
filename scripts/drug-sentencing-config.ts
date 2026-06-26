@@ -17,18 +17,19 @@ const NO_FILTER = process.argv[2] === "nofilter";
 const PROBE = process.argv[2] === "probe";
 
 const QUERY = {
-  // Base = drug cases (meta.topics ⊇ סמים).
-  // TODO(when re-backfill of meta.has_drug_type finishes): switch to the AND
-  // below so the opening page only shows cards with a non-empty drug table.
-  // Holding off because the field is freshly deployed and empty on historical
-  // docs → eq true currently matches 0 (would blank the page). The AND-tree
-  // itself works (code default customQuery is null → deepMerge takes it whole):
-  //   { op: "and", clauses: [
-  //       { field: "meta.topics", op: "contains", value: "סמים" },
-  //       { field: "meta.has_drug_type", op: "eq", value: true } ] }
+  // Base = drug cases (meta.topics ⊇ סמים) that ALSO have a non-empty drug-
+  // offenses table (meta.has_drug_type) — so the opening page only shows cards
+  // with a drug type. AND-tree works because the code default customQuery is
+  // null (deepMerge takes this wholesale). (~4,665 docs as of the 100% backfill.)
   customQuery: NO_FILTER
     ? null
-    : { field: "meta.topics", op: "contains", value: "סמים" },
+    : {
+        op: "and",
+        clauses: [
+          { field: "meta.topics", op: "contains", value: "סמים" },
+          { field: "meta.has_drug_type", op: "eq", value: true },
+        ],
+      },
   scope: 1,
   pageSize: 24,
   // Show only 6 results until the user applies a filter (then 24) — keeps the
@@ -67,7 +68,8 @@ const QUERY = {
           key: "meta.drug_types",
           label: "סוג הסם",
           control: "multiselect",
-          options: ["קוקאין", "קנאביס", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
+          // Ordered by prod frequency (קנאביס 2.3k, קוקאין 1.1k, חשיש 1k…).
+          options: ["קנאביס", "קוקאין", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
           group: "סמים",
         },
         { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
@@ -77,7 +79,8 @@ const QUERY = {
           label: "רכיב ענישה",
           control: "select",
           matchOp: "contains",
-          options: ["מאסר בפועל", "מאסר על תנאי", "מאסר בעבודות שירות", "קנס", "פיצוי", "שירות לתועלת הציבור", "צו מבחן", "חילוט", "התחייבות", "פסילת רישיון נהיגה"],
+          // Ordered by prod frequency (מאסר על תנאי 41k, מאסר בפועל 25k, קנס 24k…).
+          options: ["מאסר על תנאי", "מאסר בפועל", "קנס", "פיצוי", "התחייבות כספית", "מאסר בעבודות שירות", "צו מבחן", "שירות לתועלת הציבור", "פסילת רישיון נהיגה", "חילוט"],
           group: "ענישה",
         },
         { key: "meta.prison_actual_months", label: "מאסר בפועל (חודשים)", control: "number", group: "ענישה" },
