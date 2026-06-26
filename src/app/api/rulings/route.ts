@@ -562,7 +562,14 @@ export async function GET(req: NextRequest) {
               }
             : undefined,
         },
-        { headers: { "Cache-Control": "private, no-store" } },
+        {
+          // Config changes rarely (admin edits) → cache it longer; the filter
+          // bar then renders instantly on repeat/returning loads.
+          headers: {
+            "Cache-Control":
+              "public, max-age=300, s-maxage=600, stale-while-revalidate=3600",
+          },
+        },
       );
     }
 
@@ -696,7 +703,13 @@ export async function GET(req: NextRequest) {
           sortFields: config.sortFields,
           lawSectionFilter: lawSectionResponse,
         },
-        { headers: { "Cache-Control": "private, no-store", "X-Cache": "BULK" } },
+        {
+          headers: {
+            "Cache-Control":
+              "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+            "X-Cache": "BULK",
+          },
+        },
       );
     }
 
@@ -766,7 +779,12 @@ export async function GET(req: NextRequest) {
       },
       {
         headers: {
-          "Cache-Control": "private, no-store",
+          // Public rulings data — let the browser/CDN cache it so repeat loads,
+          // pagination-back, and other users' identical queries are instant.
+          // stale-while-revalidate serves the cached copy immediately while a
+          // fresh one is fetched in the background.
+          "Cache-Control":
+            "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
           "X-Cache": cacheStatus,
         },
       },
