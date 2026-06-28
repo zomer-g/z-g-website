@@ -163,6 +163,48 @@ export async function GET(req: NextRequest) {
   }
   const page = Math.floor(skip / limit) + 1;
 
+  // Temporary diagnostic: ?debug=probe runs a matrix of sort options alongside
+  // the text_query to find which combination TAG-IT accepts (text_query alone
+  // 500s). Remove once verified.
+  if (params.get("debug") === "probe") {
+    const sortsToTry: (string | undefined)[] = [
+      undefined,
+      "-meta.document_date",
+      "-rank",
+      "rank",
+      "-meta.severity_score",
+    ];
+    const results = [];
+    for (const sk of sortsToTry) {
+      try {
+        const raw = await fetchUpstreamRulingsPage({
+          scopeId: COMPTROLLER_SCOPE,
+          page: 1,
+          size: 3,
+          textQuery: q || undefined,
+          sortKey: sk,
+        });
+        const first = raw?.items?.[0] as Record<string, unknown> | undefined;
+        results.push({
+          sort: sk ?? "(none)",
+          ok: true,
+          total: raw?.total ?? null,
+          hasSnippet: first ? "snippet" in first : null,
+          hasRank: first ? "rank" in first : null,
+          snippet: first ? String(first.snippet ?? "").slice(0, 120) : null,
+          ids: (raw?.items ?? []).map((x) => (x as { id: number }).id),
+        });
+      } catch (err) {
+        results.push({
+          sort: sk ?? "(none)",
+          ok: false,
+          error: err instanceof UpstreamError ? `${err.status}: ${err.body.slice(0, 120)}` : String(err),
+        });
+      }
+    }
+    return NextResponse.json({ q: q || null, results });
+  }
+
   // Temporary diagnostic: ?debug=raw returns the raw TAG-IT item shape so we can
   // confirm field paths + whether text_query/sort force the nested shape. Remove
   // once the scope-13 mapping is verified.
