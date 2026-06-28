@@ -147,13 +147,20 @@ export async function GET(req: NextRequest) {
   const filter = andAll(clauses);
   const filterJson = filter ? JSON.stringify(filter) : undefined;
 
-  // No explicit sort while searching → keep TAG-IT's relevance order.
+  // Sort selection. Sending a sort (or text_query) forces TAG-IT's "new shape"
+  // response ({id, ai, sql, meta, snippet, rank}); without either, the legacy
+  // path returns flat items AND ignores text_query. So: explicit user sort wins;
+  // otherwise while searching we send no sort (text_query → relevance order +
+  // new shape); for a plain listing we default to newest-first, which both
+  // orders sensibly and forces the new shape.
   const sortParam = params.get("sort");
   const dir = params.get("dir") === "asc" ? "" : "-";
-  const sortKey =
-    sortParam && config.sortFields.some((s) => s.key === sortParam)
-      ? `${dir}${sortParam}`
-      : undefined;
+  let sortKey: string | undefined;
+  if (sortParam && config.sortFields.some((s) => s.key === sortParam)) {
+    sortKey = `${dir}${sortParam}`;
+  } else if (!q) {
+    sortKey = "-meta.document_date";
+  }
   const page = Math.floor(skip / limit) + 1;
 
   let result;

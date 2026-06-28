@@ -42,26 +42,31 @@ const SNIPPET_PATHS = ["snippet"];
 // the route, so we return the raw value here.
 const RANK_PATHS = ["rank", "meta.rank"];
 
+function descend(root: Record<string, unknown> | undefined, parts: string[]): unknown {
+  if (!root) return undefined;
+  let cur: unknown = root;
+  for (const p of parts) {
+    if (cur && typeof cur === "object" && p in (cur as Record<string, unknown>)) {
+      cur = (cur as Record<string, unknown>)[p];
+    } else {
+      return undefined;
+    }
+  }
+  return cur != null && cur !== "" ? cur : undefined;
+}
+
 function resolvePath(item: UpstreamRulingItem, path: string): unknown {
   const parts = path.split(".");
-  // Try the dotted path against the document and against each known group.
-  const roots: Array<Record<string, unknown> | undefined> = [
-    item as Record<string, unknown>,
-    item.ai_analysis as Record<string, unknown> | undefined,
-  ];
-  for (const root of roots) {
-    if (!root) continue;
-    let cur: unknown = root;
-    for (const p of parts) {
-      if (cur && typeof cur === "object" && p in (cur as Record<string, unknown>)) {
-        cur = (cur as Record<string, unknown>)[p];
-      } else {
-        cur = undefined;
-        break;
-      }
-    }
-    if (cur != null && cur !== "") return cur;
-  }
+  const top = item as Record<string, unknown>;
+  // New shape: nested under ai/sql/meta (or legacy ai_analysis). The dotted
+  // path resolves directly against the document.
+  const nested =
+    descend(top, parts) ??
+    descend(top.ai_analysis as Record<string, unknown> | undefined, parts);
+  if (nested != null) return nested;
+  // Flat shape: the group prefix is absent and the bare key sits at the top
+  // level (e.g. "document_date" instead of "meta.document_date").
+  if (parts.length > 1) return descend(top, [parts[parts.length - 1]]);
   return undefined;
 }
 
