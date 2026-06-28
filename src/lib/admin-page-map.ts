@@ -39,6 +39,7 @@ import {
   BarChart3,
   Scale,
   BookOpen,
+  FileSearch,
   Globe,
   type LucideIcon,
 } from "lucide-react";
@@ -111,6 +112,7 @@ export const PAGE_GROUPS: PageGroup[] = [
       { slug: "foi-judgments", label: "פסיקות חופש מידע", icon: Scale, publicPath: "/foi-judgments" },
       { slug: "foi-costs", label: "הוצאות חופש מידע", icon: Scale, publicPath: "/foi-costs" },
       { slug: "drug-sentencing", label: "גזרי דין בעבירות סמים", icon: Scale, publicPath: "/drug-sentencing" },
+      { slug: "comptroller-reports", label: "דוחות מבקר המדינה", icon: FileSearch, publicPath: "/comptroller-reports" },
     ],
   },
   {

@@ -30,7 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -54,6 +54,7 @@ const PAGE_LABELS: Record<string, string> = {
   "foi-judgments": "פסיקות חופש מידע",
   "foi-costs": "הוצאות חופש מידע",
   "drug-sentencing": "גזרי דין בעבירות סמים",
+  "comptroller-reports": "דוחות מבקר המדינה",
   leam: "לעם — אתרים אזרחיים",
 };
 
@@ -77,6 +78,7 @@ const PAGE_URLS: Record<string, string> = {
   "foi-judgments": "/foi-judgments",
   "foi-costs": "/foi-costs",
   "drug-sentencing": "/drug-sentencing",
+  "comptroller-reports": "/comptroller-reports",
   leam: "/o",
 };
 
@@ -612,6 +614,40 @@ export default function SiteEditorPageEditor({
                     label: "סוגיות ענישה מכילות \"סמים\"",
                     json: JSON.stringify(
                       { field: "sql.סוגיות_ענישה", op: "contains", value: "סמים" },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              }}
+            />
+          )}
+          {slug === "comptroller-reports" && (
+            <DashboardPageEditor<ComptrollerReportsPageContent>
+              content={content as ComptrollerReportsPageContent}
+              onChange={setContent}
+              advancedQuery={{
+                field: "query",
+                showApiParams: false,
+                examples: [
+                  {
+                    label: "סינון לפי גוף מבוקר (report_group)",
+                    json: JSON.stringify(
+                      { field: "meta.report_group", op: "in", value: ["משרד הבריאות"] },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "טווח תאריכים",
+                    json: JSON.stringify(
+                      {
+                        op: "and",
+                        clauses: [
+                          { field: "meta.document_date", op: "ge", value: "2018-01-01" },
+                          { field: "meta.document_date", op: "le", value: "2018-12-31" },
+                        ],
+                      },
                       null,
                       2,
                     ),
