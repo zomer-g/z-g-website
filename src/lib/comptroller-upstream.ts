@@ -17,6 +17,7 @@ import {
   type UpstreamRulingItem,
 } from "@/lib/rulings-upstream";
 import type { ComptrollerReport } from "@/types/comptroller-report";
+import type { FilterExpression } from "@/types/ruling-filter";
 
 export const COMPTROLLER_SCOPE = 13;
 
@@ -152,8 +153,53 @@ const REPORT_TYPE_SERIES: string[] = [
   "ביקורת על האיגודים",
 ];
 
-export async function fetchReportGroupFacets(): Promise<ReportGroupFacet[]> {
-  return REPORT_TYPE_SERIES.map((label) => ({ label }));
+// Dynamic report-type facets: for each series, count how many docs match the
+// CURRENT query (text_query + base filter, excluding the report-type selection
+// itself) via a cheap size=1 `total` query. Types with 0 matches are dropped,
+// so the pills reflect what's actually in the displayed results. Cached per
+// (query + base filter) so pagination / repeat loads don't re-query.
+const facetCache = new Map<string, { ts: number; facets: ReportGroupFacet[] }>();
+const FACET_TTL_MS = 10 * 60_000;
+const FACET_MAX_ENTRIES = 60;
+
+export async function fetchReportTypeFacets(opts: {
+  textQuery?: string;
+  baseFilter?: FilterExpression | null;
+}): Promise<ReportGroupFacet[]> {
+  const key = JSON.stringify({ q: opts.textQuery ?? "", f: opts.baseFilter ?? null });
+  const cached = facetCache.get(key);
+  if (cached && Date.now() - cached.ts < FACET_TTL_MS) return cached.facets;
+
+  const counts = await Promise.all(
+    REPORT_TYPE_SERIES.map(async (type) => {
+      const typeClause: FilterExpression = {
+        field: "meta.report_group",
+        op: "in",
+        value: [type],
+      };
+      const filter: FilterExpression = opts.baseFilter
+        ? { op: "and", clauses: [opts.baseFilter, typeClause] }
+        : typeClause;
+      const res = await fetchUpstreamRulingsPage({
+        scopeId: COMPTROLLER_SCOPE,
+        page: 1,
+        size: 1,
+        textQuery: opts.textQuery,
+        filterJson: JSON.stringify(filter),
+        sortKey: opts.textQuery ? undefined : "-meta.document_date",
+      }).catch(() => null);
+      return { label: type, count: res?.total ?? 0 };
+    }),
+  );
+
+  const facets = counts
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count);
+  facetCache.set(key, { ts: Date.now(), facets });
+  if (facetCache.size > FACET_MAX_ENTRIES) {
+    facetCache.delete(facetCache.keys().next().value as string);
+  }
+  return facets;
 }
 
 export interface FetchComptrollerPageOptions {

@@ -7,7 +7,7 @@ import type {
   RulingsSortField,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
-import { fetchComptrollerPage, fetchReportGroupFacets } from "@/lib/comptroller-upstream";
+import { fetchComptrollerPage, fetchReportTypeFacets } from "@/lib/comptroller-upstream";
 import { UpstreamError } from "@/lib/rulings-upstream";
 
 export const dynamic = "force-dynamic";
@@ -136,15 +136,21 @@ export async function GET(req: NextRequest) {
 
   const config = await readConfig();
 
-  // Build the combined server-side filter: admin base + native date range +
-  // source pills (report_group) + admin-configured user filters.
-  const clauses: FilterExpression[] = [];
-  if (config.customQuery) clauses.push(config.customQuery);
-  if (dateFrom) clauses.push({ field: "meta.document_date", op: "ge", value: dateFrom });
-  if (dateTo) clauses.push({ field: "meta.document_date", op: "le", value: dateTo });
-  if (sources.length) clauses.push({ field: "meta.report_group", op: "in", value: sources });
-  clauses.push(...buildUserClauses(config.filterFields, parseJsonObject(params.get("userFilters"))));
-  const filter = andAll(clauses);
+  // Base filter = everything EXCEPT the report-type (source) selection: admin
+  // base + native date range + admin-configured user filters. The report-type
+  // facet counts are computed against this base (so every type's count reflects
+  // the current search, letting the user switch types). The main query then
+  // also applies the selected report types on top.
+  const baseClauses: FilterExpression[] = [];
+  if (config.customQuery) baseClauses.push(config.customQuery);
+  if (dateFrom) baseClauses.push({ field: "meta.document_date", op: "ge", value: dateFrom });
+  if (dateTo) baseClauses.push({ field: "meta.document_date", op: "le", value: dateTo });
+  baseClauses.push(...buildUserClauses(config.filterFields, parseJsonObject(params.get("userFilters"))));
+  const baseFilter = andAll(baseClauses);
+
+  const mainClauses = [...baseClauses];
+  if (sources.length) mainClauses.push({ field: "meta.report_group", op: "in", value: sources });
+  const filter = andAll(mainClauses);
   const filterJson = filter ? JSON.stringify(filter) : undefined;
 
   // Sort selection. Sending a sort (or text_query) forces TAG-IT's "new shape"
@@ -163,15 +169,16 @@ export async function GET(req: NextRequest) {
   }
   const page = Math.floor(skip / limit) + 1;
 
+  // Fetch the page of results AND the dynamic report-type facet counts together
+  // (the facets are ~11 cheap count queries; running them in parallel with the
+  // main query keeps total latency ≈ the slower of the two).
   let result;
+  let reportTypeFacets;
   try {
-    result = await fetchComptrollerPage({
-      page,
-      size: limit,
-      textQuery: q || undefined,
-      filterJson,
-      sortKey,
-    });
+    [result, reportTypeFacets] = await Promise.all([
+      fetchComptrollerPage({ page, size: limit, textQuery: q || undefined, filterJson, sortKey }),
+      fetchReportTypeFacets({ textQuery: q || undefined, baseFilter }),
+    ]);
   } catch (err) {
     // Surface TAG-IT's own error body verbatim (e.g. an unknown_field).
     if (err instanceof UpstreamError) {
@@ -196,11 +203,6 @@ export async function GET(req: NextRequest) {
       filterOptions[f.key] = f.options;
     }
   }
-
-  // Report-type facet pills (report_group) shown in the filter screen — the
-  // full list with counts, cached. Clicking one filters via the `source` param
-  // → report_group `in` clause. Best-effort: an empty list just hides the pills.
-  const reportTypeFacets = await fetchReportGroupFacets().catch(() => []);
 
   return NextResponse.json(
     {
