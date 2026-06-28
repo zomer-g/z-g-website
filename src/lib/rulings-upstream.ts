@@ -83,6 +83,10 @@ export interface FetchRulingsPageOptions {
   size: number;
   filterJson?: string;
   sortKey?: string; // e.g. "-meta.document_date"
+  // Full-text search over the document MD/text (TAG-IT `text_query`). Used by
+  // the comptroller-reports page; for scopes where TAG-IT doesn't index the
+  // text it's simply ignored upstream and the page still lists.
+  textQuery?: string;
   signal?: AbortSignal;
 }
 
@@ -134,6 +138,9 @@ export async function fetchUpstreamRulingsPage(
   u.searchParams.set("size", String(opts.size));
   if (opts.filterJson) u.searchParams.set("filter", opts.filterJson);
   if (opts.sortKey) u.searchParams.set("sort", opts.sortKey);
+  if (opts.textQuery && opts.textQuery.trim()) {
+    u.searchParams.set("text_query", opts.textQuery.trim());
+  }
 
   const MAX_ATTEMPTS = 2;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {

@@ -14,6 +14,7 @@ import type {
   SanegoriaPageContent,
   ClassActionsPageContent,
   GuidelinesPageContent,
+  ComptrollerReportsPageContent,
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
   FoiJudgmentsPageContent,
@@ -541,6 +542,26 @@ export const DEFAULT_GUIDELINES_CONTENT: GuidelinesPageContent = {
   },
 };
 
+/* ─── Comptroller Reports Page (TAG-IT scope 13) ─── */
+
+export const DEFAULT_COMPTROLLER_REPORTS_CONTENT: ComptrollerReportsPageContent = {
+  // Kept private until TAG-IT exposes scope 13 on the public API; flip to true
+  // (or set isPublic in the DB Page row) once data flows. Admins can preview it
+  // regardless via the auth gate in the page.
+  isPublic: false,
+  hero: {
+    title: "דוחות מבקר המדינה",
+    subtitle: "מאגר דוחות מבקר המדינה — חיפוש חופשי בתוך תוכן הדוחות",
+  },
+  cacheTtlMinutes: 60,
+  query: {
+    customQuery: null,
+    displayFields: [],
+    filterFields: [],
+    sortFields: [],
+  },
+};
+
 /* ─── Defamation Rulings Dashboard Page ─── */
 
 export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = {
@@ -857,6 +878,7 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   sanegoria: DEFAULT_SANEGORIA_CONTENT,
   "class-actions": DEFAULT_CLASS_ACTIONS_CONTENT,
   guidelines: DEFAULT_GUIDELINES_CONTENT,
+  "comptroller-reports": DEFAULT_COMPTROLLER_REPORTS_CONTENT,
   "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
   "foi-judgments": DEFAULT_FOI_JUDGMENTS_CONTENT,
