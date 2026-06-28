@@ -7,8 +7,8 @@ import type {
   RulingsSortField,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
-import { fetchComptrollerPage } from "@/lib/comptroller-upstream";
-import { UpstreamError } from "@/lib/rulings-upstream";
+import { fetchComptrollerPage, COMPTROLLER_SCOPE } from "@/lib/comptroller-upstream";
+import { UpstreamError, fetchUpstreamRulingsPage } from "@/lib/rulings-upstream";
 
 export const dynamic = "force-dynamic";
 
@@ -162,6 +162,44 @@ export async function GET(req: NextRequest) {
     sortKey = "-meta.document_date";
   }
   const page = Math.floor(skip / limit) + 1;
+
+  // Temporary diagnostic: ?debug=raw returns the raw TAG-IT item shape so we can
+  // confirm field paths + whether text_query/sort force the nested shape. Remove
+  // once the scope-13 mapping is verified.
+  if (params.get("debug") === "raw") {
+    try {
+      const raw = await fetchUpstreamRulingsPage({
+        scopeId: COMPTROLLER_SCOPE,
+        page,
+        size: limit,
+        textQuery: q || undefined,
+        filterJson,
+        sortKey,
+      });
+      const first = raw?.items?.[0] as Record<string, unknown> | undefined;
+      const groups = (k: string) =>
+        first && first[k] && typeof first[k] === "object"
+          ? Object.keys(first[k] as Record<string, unknown>)
+          : null;
+      return NextResponse.json({
+        sentSortKey: sortKey ?? null,
+        sentTextQuery: q || null,
+        sentFilter: filterJson ?? null,
+        total: raw?.total ?? null,
+        topLevelKeys: first ? Object.keys(first) : null,
+        aiKeys: groups("ai") ?? groups("ai_analysis"),
+        sqlKeys: groups("sql"),
+        metaKeys: groups("meta"),
+        hasSnippet: first ? "snippet" in first : null,
+        hasRank: first ? "rank" in first : null,
+        sample: JSON.stringify(first ?? {}).slice(0, 1500),
+      });
+    } catch (err) {
+      return NextResponse.json({
+        debugError: err instanceof UpstreamError ? `${err.status}: ${err.body.slice(0, 300)}` : String(err),
+      });
+    }
+  }
 
   let result;
   try {
