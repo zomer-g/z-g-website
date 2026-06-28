@@ -8,7 +8,6 @@ import type {
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
 import { fetchComptrollerPage } from "@/lib/comptroller-upstream";
-import type { ComptrollerReport } from "@/types/comptroller-report";
 import { UpstreamError } from "@/lib/rulings-upstream";
 
 export const dynamic = "force-dynamic";
@@ -60,38 +59,70 @@ function clampInt(v: string | null, min: number, fallback: number): number {
   return Number.isFinite(n) ? Math.max(min, Math.floor(n)) : fallback;
 }
 
-// Combine the admin base filter with the date range into a single AND tree.
-// meta.document_date is the standard indexed date field across TAG-IT scopes,
-// so a ge/le range is safe even before the scope-13 schema is finalized.
-function buildFilter(
-  customQuery: FilterExpression | null,
-  dateFrom: string | null,
-  dateTo: string | null,
-): FilterExpression | null {
+// Translate the user's active filter selections into TAG-IT filter clauses so
+// they're applied server-side (the result set is paginated upstream, so they
+// CAN'T be applied in memory on a single page). Shapes mirror what the
+// dashboard sends: string (text/select), {min,max} (number), {from,to} (date),
+// string[] (multiselect).
+function buildUserClauses(
+  filterFields: RulingsFilterField[],
+  userFilters: Record<string, unknown>,
+): FilterExpression[] {
   const clauses: FilterExpression[] = [];
-  if (customQuery) clauses.push(customQuery);
-  if (dateFrom) clauses.push({ field: "meta.document_date", op: "ge", value: dateFrom });
-  if (dateTo) clauses.push({ field: "meta.document_date", op: "le", value: dateTo });
+  for (const f of filterFields) {
+    const v = userFilters[f.key];
+    if (v == null || v === "") continue;
+    if (f.control === "text") {
+      if (typeof v === "string" && v.trim()) {
+        clauses.push({ field: f.key, op: "contains", value: v.trim() });
+      }
+    } else if (f.control === "select") {
+      if (typeof v === "string" && v.trim()) {
+        clauses.push({ field: f.key, op: f.matchOp === "contains" ? "contains" : "eq", value: v });
+      }
+    } else if (f.control === "multiselect") {
+      const arr = Array.isArray(v) ? v.filter((x) => x !== "" && x != null) : [];
+      if (arr.length) clauses.push({ field: f.key, op: "in", value: arr as (string | number)[] });
+    } else if (f.control === "number") {
+      const r = v as { min?: number; max?: number };
+      if (r.min != null) clauses.push({ field: f.key, op: "ge", value: r.min });
+      if (r.max != null) clauses.push({ field: f.key, op: "le", value: r.max });
+    } else if (f.control === "date") {
+      const r = v as { from?: string; to?: string };
+      if (r.from) clauses.push({ field: f.key, op: "ge", value: r.from });
+      if (r.to) clauses.push({ field: f.key, op: "le", value: r.to });
+    } else if (f.control === "boolean") {
+      if (v === "true" || v === "false" || typeof v === "boolean") {
+        clauses.push({ field: f.key, op: "eq", value: v === true || v === "true" });
+      }
+    }
+  }
+  return clauses;
+}
+
+function andAll(clauses: FilterExpression[]): FilterExpression | null {
   if (clauses.length === 0) return null;
   if (clauses.length === 1) return clauses[0];
   return { op: "and", clauses };
 }
 
-interface SourceFacet {
-  label: string;
-  count: number;
+function parseJsonObject(raw: string | null): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const o = JSON.parse(raw);
+    return o && typeof o === "object" ? (o as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
-function computeSourceFacets(items: ComptrollerReport[]): SourceFacet[] {
-  const counts = new Map<string, number>();
-  for (const it of items) {
-    const label = (it.source_label || "").trim();
-    if (!label) continue;
-    counts.set(label, (counts.get(label) ?? 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "he"));
+// Normalize raw ts_rank floats to a 0–100 relevance, relative to the strongest
+// hit on this page (results arrive already sorted by rank). Items without a
+// rank (no text_query) map to undefined → no tier badge.
+function normalizeRanks(ranks: (number | undefined)[]): (number | undefined)[] {
+  const max = ranks.reduce<number>((m, r) => (r != null && r > m ? r : m), 0);
+  if (max <= 0) return ranks.map(() => undefined);
+  return ranks.map((r) => (r == null ? undefined : Math.max(1, Math.round((r / max) * 100))));
 }
 
 export async function GET(req: NextRequest) {
@@ -101,13 +132,22 @@ export async function GET(req: NextRequest) {
   const q = params.get("q")?.trim() || "";
   const dateFrom = params.get("date_from") || null;
   const dateTo = params.get("date_to") || null;
-  const sourceFilter = new Set(params.getAll("source").filter(Boolean));
+  const sources = params.getAll("source").filter(Boolean);
 
   const config = await readConfig();
 
-  // Server-side filter + pagination + full-text live on TAG-IT.
-  const filter = buildFilter(config.customQuery, dateFrom, dateTo);
+  // Build the combined server-side filter: admin base + native date range +
+  // source pills (report_group) + admin-configured user filters.
+  const clauses: FilterExpression[] = [];
+  if (config.customQuery) clauses.push(config.customQuery);
+  if (dateFrom) clauses.push({ field: "meta.document_date", op: "ge", value: dateFrom });
+  if (dateTo) clauses.push({ field: "meta.document_date", op: "le", value: dateTo });
+  if (sources.length) clauses.push({ field: "meta.report_group", op: "in", value: sources });
+  clauses.push(...buildUserClauses(config.filterFields, parseJsonObject(params.get("userFilters"))));
+  const filter = andAll(clauses);
   const filterJson = filter ? JSON.stringify(filter) : undefined;
+
+  // No explicit sort while searching → keep TAG-IT's relevance order.
   const sortParam = params.get("sort");
   const dir = params.get("dir") === "asc" ? "" : "-";
   const sortKey =
@@ -126,8 +166,7 @@ export async function GET(req: NextRequest) {
       sortKey,
     });
   } catch (err) {
-    // Surface TAG-IT's own error body so we can see e.g. "scope must be one of
-    // [4,6]" while scope 13 is still being enabled operator-side.
+    // Surface TAG-IT's own error body verbatim (e.g. an unknown_field).
     if (err instanceof UpstreamError) {
       return NextResponse.json(
         { error: `Upstream ${err.status}: ${err.body.slice(0, 300)}` },
@@ -142,19 +181,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "API not configured" }, { status: 503 });
   }
 
-  // Facets are computed from the current page (approximate). Source-pill
-  // narrowing is applied in-memory on the page for now; both become exact once
-  // the scope-13 schema lets us push the audited-body field to TAG-IT.
-  const facets = { sources: computeSourceFacets(result.items) };
-
-  let items = result.items;
-  let snippets = result.snippets;
-  let relevance = result.relevance;
-  if (sourceFilter.size > 0) {
-    const keep = items.map((it) => sourceFilter.has((it.source_label || "").trim()));
-    items = items.filter((_, i) => keep[i]);
-    snippets = snippets.filter((_, i) => keep[i]);
-    relevance = relevance.filter((_, i) => keep[i]);
+  // Configured select dropdowns get their options from the filterField itself
+  // (curated/enum list), since we don't scan a full corpus here.
+  const filterOptions: Record<string, string[]> = {};
+  for (const f of config.filterFields) {
+    if ((f.control === "select" || f.control === "multiselect") && Array.isArray(f.options)) {
+      filterOptions[f.key] = f.options;
+    }
   }
 
   return NextResponse.json(
@@ -162,14 +195,16 @@ export async function GET(req: NextRequest) {
       total: result.total,
       skip,
       limit,
-      items,
-      snippets,
-      relevance,
-      facets,
+      items: result.items,
+      snippets: result.snippets,
+      relevance: normalizeRanks(result.ranks),
+      // Category filtering is via the configured report_group select, not the
+      // page-derived source pills, so we don't surface pill facets.
+      facets: { sources: [] },
       filterFields: config.filterFields,
       sortFields: config.sortFields,
       displayFields: config.displayFields,
-      filterOptions: {},
+      filterOptions,
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

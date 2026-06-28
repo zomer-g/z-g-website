@@ -167,10 +167,27 @@ function Badge({
   );
 }
 
-// Wrap each query term inside the snippet with a highlight span so the user
-// sees why this card was returned.
+// Render the snippet with matched terms highlighted. TAG-IT's full-text search
+// already wraps matches in «…» guillemets — when present we convert those to
+// <mark>. Otherwise we fall back to highlighting the query terms ourselves.
 function HighlightedSnippet({ text, query }: { text: string; query: string }) {
   if (!text) return null;
+  if (text.includes("«")) {
+    const parts = text.split(/(«[^»]*»)/g);
+    return (
+      <>
+        {parts.map((part, i) =>
+          /^«[^»]*»$/.test(part) ? (
+            <mark key={i} className="bg-yellow-100 text-inherit px-0.5 rounded">
+              {part.slice(1, -1)}
+            </mark>
+          ) : (
+            <span key={i}>{part}</span>
+          ),
+        )}
+      </>
+    );
+  }
   const terms = query
     .split(/\s+/)
     .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))

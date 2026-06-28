@@ -22,21 +22,25 @@ export const COMPTROLLER_SCOPE = 13;
 
 // First matching (present, non-empty) path wins. Paths are dotted and resolved
 // against the merged {ai, sql, meta, <flat>} document.
+// ✅ Confirmed against the live scope-13 API: meta.document_title /
+// meta.document_date / meta.report_group are structured fields. The ai.* paths
+// for summary/topic are still best-guess fallbacks pending a sample doc.
 const FIELD_PATHS = {
-  title: ["ai.שם_הדוח", "ai.כותרת_הדוח", "ai.כותרת", "ai.שם_המסמך", "filename"],
-  date: ["meta.document_date", "ai.תאריך_הדוח", "ai.תאריך_פרסום"],
-  // Audited body / responsible ministry.
-  source: ["ai.גוף_מבוקר", "ai.משרד", "ai.הגוף_המבוקר", "meta.audited_body"],
+  title: ["meta.document_title", "ai.שם_הדוח", "ai.כותרת_הדוח", "ai.כותרת", "filename"],
+  date: ["meta.document_date", "ai.תאריך_פרסום"],
   topic: ["ai.נושא", "ai.תחום", "ai.נושא_הדוח"],
   summary: ["ai.תקציר", "ai.תמצית", "ai.תקציר_הדוח"],
-  reportType: ["ai.סוג_הדוח", "ai.סדרת_הדוח", "meta.report_type"],
-  reportYear: ["ai.שנת_הדוח", "meta.report_year"],
 } as const;
 
-// Where a full-text result may carry its snippet + rank (when TAG-IT's public
-// text_query returns them). All optional.
-const SNIPPET_PATHS = ["snippet", "highlight", "meta.snippet", "meta.highlight"];
-const RANK_PATHS = ["meta.rank", "rank", "score", "meta.score", "relevance"];
+// report_group is an array (a doc may belong to several series/bodies). It's
+// the only structured "category" field — drives the badge + the select filter.
+const REPORT_GROUP_PATHS = ["meta.report_group"];
+
+// Full-text result extras returned by TAG-IT's text_query.
+const SNIPPET_PATHS = ["snippet"];
+// ts_rank relevance (small unbounded float). Normalized to 0–100 per page by
+// the route, so we return the raw value here.
+const RANK_PATHS = ["rank", "meta.rank"];
 
 function resolvePath(item: UpstreamRulingItem, path: string): unknown {
   const parts = path.split(".");
@@ -74,38 +78,41 @@ function asStr(v: unknown): string | undefined {
   return typeof v === "string" ? v : String(v);
 }
 
+// Resolve a field that may be a string or string[] into a clean string array.
+function resolveArray(item: UpstreamRulingItem, paths: readonly string[]): string[] {
+  const v = pick(item, paths);
+  if (v == null || v === "") return [];
+  if (Array.isArray(v)) return v.map((x) => String(x)).filter((s) => s.trim() !== "");
+  return [String(v)];
+}
+
 /** Map a raw TAG-IT scope-13 document onto the flat card shape. */
 export function mapComptrollerDoc(item: UpstreamRulingItem): ComptrollerReport {
+  const reportGroup = resolveArray(item, REPORT_GROUP_PATHS);
   return {
     id: Number(item.id),
     filename: asStr(item.filename),
     document_title: asStr(pick(item, FIELD_PATHS.title)),
     document_date: asStr(pick(item, FIELD_PATHS.date)),
-    source_label: asStr(pick(item, FIELD_PATHS.source)),
+    // First group drives the card badge; the full array stays for any future
+    // multi-group display + is what the report_group select filter targets.
+    source_label: reportGroup[0],
+    report_group: reportGroup,
     topic: asStr(pick(item, FIELD_PATHS.topic)),
     summary: asStr(pick(item, FIELD_PATHS.summary)),
-    report_type: asStr(pick(item, FIELD_PATHS.reportType)),
-    report_year: asStr(pick(item, FIELD_PATHS.reportYear)),
   };
 }
 
-/** Extract a per-result text snippet, if TAG-IT returned one. */
+/** Per-result text snippet (TAG-IT highlights matches with «…»). */
 export function extractSnippet(item: UpstreamRulingItem): string {
   return asStr(pick(item, SNIPPET_PATHS)) ?? "";
 }
 
-/**
- * Extract a 0–100 relevance score from whatever rank/score TAG-IT returned.
- * Heuristic: if the value is already 0–100 use it; if it's a 0–1 cosine-style
- * score scale it up; otherwise return undefined (card shows no tier badge).
- */
-export function extractRelevance(item: UpstreamRulingItem): number | undefined {
+/** Raw ts_rank relevance (small float); the route normalizes per page. */
+export function extractRank(item: UpstreamRulingItem): number | undefined {
   const raw = pick(item, RANK_PATHS);
   const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return undefined;
-  if (n >= 0 && n <= 1) return Math.round(n * 100);
-  if (n > 1 && n <= 100) return Math.round(n);
-  return undefined;
+  return Number.isFinite(n) ? n : undefined;
 }
 
 export interface FetchComptrollerPageOptions {
@@ -121,8 +128,8 @@ export interface ComptrollerPageResult {
   items: ComptrollerReport[];
   total: number;
   snippets: string[];
-  relevance: (number | undefined)[];
-  // raw items kept for facet computation (source labels live on the mapped doc)
+  // Raw ts_rank per item (undefined when no text_query); route normalizes 0–100.
+  ranks: (number | undefined)[];
 }
 
 /**
@@ -144,8 +151,8 @@ export async function fetchComptrollerPage(
   if (!res) return null;
   const items = res.items.map(mapComptrollerDoc);
   const snippets = res.items.map(extractSnippet);
-  const relevance = res.items.map(extractRelevance);
-  return { items, total: res.total, snippets, relevance };
+  const ranks = res.items.map(extractRank);
+  return { items, total: res.total, snippets, ranks };
 }
 
 /**
