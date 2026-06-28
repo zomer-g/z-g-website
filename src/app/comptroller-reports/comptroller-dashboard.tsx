@@ -48,7 +48,7 @@ const EMPTY_FILTERS: Filters = {
 
 interface SourceFacet {
   label: string;
-  count: number;
+  count?: number;
 }
 
 interface SearchResponse {
@@ -564,12 +564,14 @@ export function ComptrollerDashboard() {
                     }
                   >
                     <span>{f.label}</span>
-                    <span
-                      className="rounded-full px-1.5 text-[10px] tabular-nums"
-                      style={active ? { background: "rgba(255,255,255,0.2)" } : { background: "#eef2f7" }}
-                    >
-                      {f.count}
-                    </span>
+                    {f.count != null ? (
+                      <span
+                        className="rounded-full px-1.5 text-[10px] tabular-nums"
+                        style={active ? { background: "rgba(255,255,255,0.2)" } : { background: "#eef2f7" }}
+                      >
+                        {f.count}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -585,12 +587,6 @@ export function ComptrollerDashboard() {
                     style={{ background: C_PRIMARY, color: "white", borderColor: C_PRIMARY }}
                   >
                     <span>{label}</span>
-                    <span
-                      className="rounded-full px-1.5 text-[10px] tabular-nums"
-                      style={{ background: "rgba(255,255,255,0.2)" }}
-                    >
-                      0
-                    </span>
                   </button>
                 ))}
             </div>

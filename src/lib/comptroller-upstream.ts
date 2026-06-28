@@ -14,6 +14,7 @@
  */
 import {
   fetchUpstreamRulingsPage,
+  fetchUpstreamRulingsSchema,
   type UpstreamRulingItem,
 } from "@/lib/rulings-upstream";
 import type { ComptrollerReport } from "@/types/comptroller-report";
@@ -125,74 +126,37 @@ export function extractRank(item: UpstreamRulingItem): number | undefined {
 }
 
 /* ── Report-type facets (report_group) ──
-   The filter screen shows the full list of report types as clickable pills
-   (like the guidelines source facets). Counts come from a one-time scan of the
-   whole scope-13 corpus, cached in-process (Render runs a persistent Node
-   server, so module state survives between requests). */
+   The filter screen shows the list of report types as clickable pills (like the
+   guidelines source facets). Sourced from the TAG-IT schema's
+   `enum_values_sample` for meta.report_group — ONE fast, best-effort call (9s
+   timeout, returns null on failure) rather than a full-corpus scan, which timed
+   out on scope 13 and blocked every request. No per-type counts available this
+   way (the pills omit the count badge). Cached in-process (Render runs a
+   persistent Node server, so module state survives between requests). */
 
 export interface ReportGroupFacet {
   label: string;
-  count: number;
+  count?: number;
 }
 
 let facetCache: { ts: number; facets: ReportGroupFacet[] } | null = null;
-const FACET_TTL_MS = 30 * 60_000;
-const FACET_PAGE_SIZE = 100;
-const FACET_MAX_PAGES = 15; // 981 docs ≈ 10 pages; cap as a safety net.
-const FACET_PARALLEL = 5;
+const FACET_TTL_MS = 60 * 60_000;
 
-export async function fetchReportGroupFacets(
-  signal?: AbortSignal,
-): Promise<ReportGroupFacet[]> {
+export async function fetchReportGroupFacets(): Promise<ReportGroupFacet[]> {
   if (facetCache && Date.now() - facetCache.ts < FACET_TTL_MS) {
     return facetCache.facets;
   }
-  // First page tells us the total → how many pages to pull.
-  const first = await fetchUpstreamRulingsPage({
-    scopeId: COMPTROLLER_SCOPE,
-    page: 1,
-    size: FACET_PAGE_SIZE,
-    sortKey: "-meta.document_date",
-    signal,
-  }).catch(() => null);
-  if (!first) return facetCache?.facets ?? [];
-
-  const counts = new Map<string, number>();
-  const tally = (items: UpstreamRulingItem[]) => {
-    for (const it of items) {
-      for (const g of resolveArray(it, REPORT_GROUP_PATHS)) {
-        counts.set(g, (counts.get(g) ?? 0) + 1);
-      }
-    }
-  };
-  tally(first.items);
-
-  const totalPages = Math.min(
-    FACET_MAX_PAGES,
-    Math.max(1, Math.ceil((first.total || first.items.length) / FACET_PAGE_SIZE)),
-  );
-  const rest: number[] = [];
-  for (let p = 2; p <= totalPages; p++) rest.push(p);
-  for (let i = 0; i < rest.length; i += FACET_PARALLEL) {
-    const batch = rest.slice(i, i + FACET_PARALLEL);
-    const pages = await Promise.all(
-      batch.map((p) =>
-        fetchUpstreamRulingsPage({
-          scopeId: COMPTROLLER_SCOPE,
-          page: p,
-          size: FACET_PAGE_SIZE,
-          sortKey: "-meta.document_date",
-          signal,
-        }).catch(() => null),
-      ),
-    );
-    for (const pg of pages) if (pg) tally(pg.items);
-  }
-
-  const facets = Array.from(counts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "he"));
-  facetCache = { ts: Date.now(), facets };
+  const fields = await fetchUpstreamRulingsSchema(COMPTROLLER_SCOPE).catch(() => null);
+  if (!fields) return facetCache?.facets ?? [];
+  const field = fields.find((f) => f.key === "meta.report_group");
+  const values = Array.isArray(field?.enum_values_sample) ? field.enum_values_sample : [];
+  const facets: ReportGroupFacet[] = values
+    .map((v) => String(v).trim())
+    .filter((v) => v !== "")
+    .sort((a, b) => a.localeCompare(b, "he"))
+    .map((label) => ({ label }));
+  // Cache only a non-empty result so a transient schema miss retries next time.
+  if (facets.length) facetCache = { ts: Date.now(), facets };
   return facets;
 }
 
