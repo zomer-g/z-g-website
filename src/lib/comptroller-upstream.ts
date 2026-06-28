@@ -14,7 +14,6 @@
  */
 import {
   fetchUpstreamRulingsPage,
-  fetchUpstreamRulingsSchema,
   type UpstreamRulingItem,
 } from "@/lib/rulings-upstream";
 import type { ComptrollerReport } from "@/types/comptroller-report";
@@ -126,38 +125,35 @@ export function extractRank(item: UpstreamRulingItem): number | undefined {
 }
 
 /* ── Report-type facets (report_group) ──
-   The filter screen shows the list of report types as clickable pills (like the
-   guidelines source facets). Sourced from the TAG-IT schema's
-   `enum_values_sample` for meta.report_group — ONE fast, best-effort call (9s
-   timeout, returns null on failure) rather than a full-corpus scan, which timed
-   out on scope 13 and blocked every request. No per-type counts available this
-   way (the pills omit the count badge). Cached in-process (Render runs a
-   persistent Node server, so module state survives between requests). */
+   The filter screen shows the report TYPES as clickable pills (like the
+   guidelines source facets); clicking one filters via the report_group `in`
+   path. meta.report_group actually mixes ~11 thematic report SERIES with ~185
+   individual audited bodies (ministries, municipalities, companies). The user
+   wants "report types", so the pills are the curated series subset — values
+   copied verbatim from the live corpus so the `in` filter matches exactly.
+   Ordered most-common-first (per the known corpus distribution). */
 
 export interface ReportGroupFacet {
   label: string;
   count?: number;
 }
 
-let facetCache: { ts: number; facets: ReportGroupFacet[] } | null = null;
-const FACET_TTL_MS = 60 * 60_000;
+const REPORT_TYPE_SERIES: string[] = [
+  "מטלות רוחב",
+  "דוח מימון בחירות ברשויות המקומיות",
+  "עיונים, מאמרים, ספרים",
+  "דוח מימון מפלגות",
+  "דוח נציב תלונות הציבור",
+  "דוח ביקורת מיוחד",
+  "מטלות רוחב ומטלות בין-משרדיות",
+  "דוח מעקב",
+  "דוח מימון בחירות מקדימות (פריימריז)",
+  "חוות דעת",
+  "ביקורת על האיגודים",
+];
 
 export async function fetchReportGroupFacets(): Promise<ReportGroupFacet[]> {
-  if (facetCache && Date.now() - facetCache.ts < FACET_TTL_MS) {
-    return facetCache.facets;
-  }
-  const fields = await fetchUpstreamRulingsSchema(COMPTROLLER_SCOPE).catch(() => null);
-  if (!fields) return facetCache?.facets ?? [];
-  const field = fields.find((f) => f.key === "meta.report_group");
-  const values = Array.isArray(field?.enum_values_sample) ? field.enum_values_sample : [];
-  const facets: ReportGroupFacet[] = values
-    .map((v) => String(v).trim())
-    .filter((v) => v !== "")
-    .sort((a, b) => a.localeCompare(b, "he"))
-    .map((label) => ({ label }));
-  // Cache only a non-empty result so a transient schema miss retries next time.
-  if (facets.length) facetCache = { ts: Date.now(), facets };
-  return facets;
+  return REPORT_TYPE_SERIES.map((label) => ({ label }));
 }
 
 export interface FetchComptrollerPageOptions {
