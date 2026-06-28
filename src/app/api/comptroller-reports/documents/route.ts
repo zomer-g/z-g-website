@@ -7,7 +7,7 @@ import type {
   RulingsSortField,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
-import { fetchComptrollerPage } from "@/lib/comptroller-upstream";
+import { fetchComptrollerPage, fetchReportGroupFacets } from "@/lib/comptroller-upstream";
 import { UpstreamError } from "@/lib/rulings-upstream";
 
 export const dynamic = "force-dynamic";
@@ -197,6 +197,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Report-type facet pills (report_group) shown in the filter screen — the
+  // full list with counts, cached. Clicking one filters via the `source` param
+  // → report_group `in` clause. Best-effort: an empty list just hides the pills.
+  const reportTypeFacets = await fetchReportGroupFacets().catch(() => []);
+
   return NextResponse.json(
     {
       total: result.total,
@@ -205,9 +210,7 @@ export async function GET(req: NextRequest) {
       items: result.items,
       snippets: result.snippets,
       relevance: normalizeRanks(result.ranks),
-      // Category filtering is via the configured report_group select, not the
-      // page-derived source pills, so we don't surface pill facets.
-      facets: { sources: [] },
+      facets: { sources: reportTypeFacets },
       filterFields: config.filterFields,
       sortFields: config.sortFields,
       displayFields: config.displayFields,

@@ -26,10 +26,13 @@ export const COMPTROLLER_SCOPE = 13;
 // meta.document_date / meta.report_group are structured fields. The ai.* paths
 // for summary/topic are still best-guess fallbacks pending a sample doc.
 const FIELD_PATHS = {
-  title: ["meta.document_title", "ai.שם_הדוח", "ai.כותרת_הדוח", "ai.כותרת", "filename"],
-  date: ["meta.document_date", "ai.תאריך_פרסום"],
-  topic: ["ai.נושא", "ai.תחום", "ai.נושא_הדוח"],
-  summary: ["ai.תקציר", "ai.תמצית", "ai.תקציר_הדוח"],
+  title: ["meta.document_title", "ai.כותרת_המסמך", "ai.שם_הדוח", "filename"],
+  date: ["meta.document_date", "ai.תאריך_המסמך"],
+  // The audit series / source of the report (e.g. "מבקר המדינה — ביקורת על
+  // השלטון המקומי"). Confirmed present on scope-13 docs as ai.מקור_הנחיה.
+  series: ["ai.מקור_הנחיה", "ai.מקור"],
+  topic: ["ai.נושא", "ai.תחום"],
+  summary: ["ai.תקציר", "ai.תמצית"],
 } as const;
 
 // report_group is an array (a doc may belong to several series/bodies). It's
@@ -99,10 +102,11 @@ export function mapComptrollerDoc(item: UpstreamRulingItem): ComptrollerReport {
     filename: asStr(item.filename),
     document_title: asStr(pick(item, FIELD_PATHS.title)),
     document_date: asStr(pick(item, FIELD_PATHS.date)),
-    // First group drives the card badge; the full array stays for any future
-    // multi-group display + is what the report_group select filter targets.
+    // First group drives the card badge; the full array stays for the report-
+    // type facet pills (matched via the report_group `in` filter).
     source_label: reportGroup[0],
     report_group: reportGroup,
+    series: asStr(pick(item, FIELD_PATHS.series)),
     topic: asStr(pick(item, FIELD_PATHS.topic)),
     summary: asStr(pick(item, FIELD_PATHS.summary)),
   };
@@ -118,6 +122,78 @@ export function extractRank(item: UpstreamRulingItem): number | undefined {
   const raw = pick(item, RANK_PATHS);
   const n = typeof raw === "number" ? raw : Number(raw);
   return Number.isFinite(n) ? n : undefined;
+}
+
+/* ── Report-type facets (report_group) ──
+   The filter screen shows the full list of report types as clickable pills
+   (like the guidelines source facets). Counts come from a one-time scan of the
+   whole scope-13 corpus, cached in-process (Render runs a persistent Node
+   server, so module state survives between requests). */
+
+export interface ReportGroupFacet {
+  label: string;
+  count: number;
+}
+
+let facetCache: { ts: number; facets: ReportGroupFacet[] } | null = null;
+const FACET_TTL_MS = 30 * 60_000;
+const FACET_PAGE_SIZE = 100;
+const FACET_MAX_PAGES = 15; // 981 docs ≈ 10 pages; cap as a safety net.
+const FACET_PARALLEL = 5;
+
+export async function fetchReportGroupFacets(
+  signal?: AbortSignal,
+): Promise<ReportGroupFacet[]> {
+  if (facetCache && Date.now() - facetCache.ts < FACET_TTL_MS) {
+    return facetCache.facets;
+  }
+  // First page tells us the total → how many pages to pull.
+  const first = await fetchUpstreamRulingsPage({
+    scopeId: COMPTROLLER_SCOPE,
+    page: 1,
+    size: FACET_PAGE_SIZE,
+    sortKey: "-meta.document_date",
+    signal,
+  }).catch(() => null);
+  if (!first) return facetCache?.facets ?? [];
+
+  const counts = new Map<string, number>();
+  const tally = (items: UpstreamRulingItem[]) => {
+    for (const it of items) {
+      for (const g of resolveArray(it, REPORT_GROUP_PATHS)) {
+        counts.set(g, (counts.get(g) ?? 0) + 1);
+      }
+    }
+  };
+  tally(first.items);
+
+  const totalPages = Math.min(
+    FACET_MAX_PAGES,
+    Math.max(1, Math.ceil((first.total || first.items.length) / FACET_PAGE_SIZE)),
+  );
+  const rest: number[] = [];
+  for (let p = 2; p <= totalPages; p++) rest.push(p);
+  for (let i = 0; i < rest.length; i += FACET_PARALLEL) {
+    const batch = rest.slice(i, i + FACET_PARALLEL);
+    const pages = await Promise.all(
+      batch.map((p) =>
+        fetchUpstreamRulingsPage({
+          scopeId: COMPTROLLER_SCOPE,
+          page: p,
+          size: FACET_PAGE_SIZE,
+          sortKey: "-meta.document_date",
+          signal,
+        }).catch(() => null),
+      ),
+    );
+    for (const pg of pages) if (pg) tally(pg.items);
+  }
+
+  const facets = Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, "he"));
+  facetCache = { ts: Date.now(), facets };
+  return facets;
 }
 
 export interface FetchComptrollerPageOptions {

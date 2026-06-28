@@ -90,6 +90,16 @@ export function ComptrollerDetail({ doc }: { doc: ComptrollerReport }) {
             </>
           ) : null}
         </div>
+        {doc.series ? (
+          <div className="text-sm text-gray-700 mt-1">
+            <span className="font-semibold">סדרת הדוח:</span> {doc.series}
+          </div>
+        ) : null}
+        {doc.report_group && doc.report_group.length > 0 ? (
+          <div className="text-sm text-gray-700 mt-1">
+            <span className="font-semibold">גוף מבוקר:</span> {doc.report_group.join(", ")}
+          </div>
+        ) : null}
         {doc.summary ? (
           <p className="text-sm text-gray-600 leading-relaxed mt-4 whitespace-pre-line">
             {doc.summary}

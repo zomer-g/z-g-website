@@ -14,8 +14,12 @@ export interface ComptrollerReport {
   filename?: string;
   document_title?: string;
   document_date?: string;
-  // Audited body / ministry — drives the "source" facet pills + badge.
+  // Audited body / report series — drives the "report type" facet pills + badge.
   source_label?: string;
+  // Full report_group array (a doc may belong to several series/bodies).
+  report_group?: string[];
+  // Audit series / source of the report (ai.מקור_הנחיה).
+  series?: string;
   // Subject / domain of the report.
   topic?: string;
   // Short abstract shown on the card.

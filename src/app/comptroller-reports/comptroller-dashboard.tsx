@@ -298,6 +298,16 @@ function ReportCard({
       <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
         <span className="font-semibold">תאריך פרסום:</span> {fmtDate(doc.document_date)}
       </div>
+      {doc.series ? (
+        <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
+          <span className="font-semibold">סדרת הדוח:</span> {doc.series}
+        </div>
+      ) : null}
+      {doc.report_group && doc.report_group.length > 0 ? (
+        <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
+          <span className="font-semibold">גוף מבוקר:</span> {doc.report_group.join(", ")}
+        </div>
+      ) : null}
       {doc.topic ? (
         <div className="relative z-10 text-sm text-gray-700 mb-1 pointer-events-none">
           <span className="font-semibold">נושא:</span> {doc.topic}
@@ -525,7 +535,7 @@ export function ComptrollerDashboard() {
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
               <label className="block text-xs font-semibold text-gray-600">
-                גופים בתוצאות הנוכחיות (לחיצה מסננת מיד)
+                סוגי דוחות (לחיצה לסינון)
               </label>
               {filters.sources.length > 0 ? (
                 <button
@@ -533,7 +543,7 @@ export function ComptrollerDashboard() {
                   onClick={clearAllSourcesImmediate}
                   className="text-xs font-semibold text-gray-600 hover:underline"
                 >
-                  ניקוי סינון גוף
+                  ניקוי סינון סוג
                 </button>
               ) : null}
             </div>
