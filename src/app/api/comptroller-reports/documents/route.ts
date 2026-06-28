@@ -7,8 +7,8 @@ import type {
   RulingsSortField,
 } from "@/types/ruling-filter";
 import { VALID_FILTER_CONTROLS } from "@/types/ruling-filter";
-import { fetchComptrollerPage, COMPTROLLER_SCOPE } from "@/lib/comptroller-upstream";
-import { UpstreamError, fetchUpstreamRulingsPage } from "@/lib/rulings-upstream";
+import { fetchComptrollerPage } from "@/lib/comptroller-upstream";
+import { UpstreamError } from "@/lib/rulings-upstream";
 
 export const dynamic = "force-dynamic";
 
@@ -162,123 +162,6 @@ export async function GET(req: NextRequest) {
     sortKey = "-meta.document_date";
   }
   const page = Math.floor(skip / limit) + 1;
-
-  // Temporary diagnostic: ?debug=tagit hits TAG-IT directly with controlled
-  // param combos to isolate what makes text_query 500. Remove once verified.
-  if (params.get("debug") === "tagit") {
-    const base = process.env.TAGIT_API_URL || "https://tag-it.biz";
-    const key = process.env.RULINGS_API_KEY || process.env.CLASS_ACTION_API_KEY || "";
-    const Q = q || "ביטחון";
-    const combos: { label: string; qs: Record<string, string> }[] = [
-      { label: "example (size only)", qs: { scope: "13", text_query: Q, size: "5" } },
-      { label: "+page", qs: { scope: "13", text_query: Q, size: "5", page: "1" } },
-      { label: "+sort date (no page)", qs: { scope: "13", text_query: Q, size: "5", sort: "-meta.document_date" } },
-      { label: "+sort+page", qs: { scope: "13", text_query: Q, size: "5", page: "1", sort: "-meta.document_date" } },
-      { label: "no text_query baseline", qs: { scope: "13", size: "5", page: "1", sort: "-meta.document_date" } },
-      { label: "q param name", qs: { scope: "13", q: Q, size: "5" } },
-      { label: "search param name", qs: { scope: "13", search: Q, size: "5" } },
-    ];
-    const out = [];
-    for (const c of combos) {
-      const u = new URL(`${base}/api/public/rulings/documents`);
-      for (const [k, v] of Object.entries(c.qs)) u.searchParams.set(k, v);
-      try {
-        const res = await fetch(u.toString(), { headers: { "X-API-Key": key, Accept: "application/json" }, cache: "no-store" });
-        const body = await res.text();
-        let total = null, firstKeys = null, hasSnip = null;
-        try {
-          const j = JSON.parse(body);
-          total = j.total ?? null;
-          const it = (j.items || j.documents || [])[0];
-          if (it) { firstKeys = Object.keys(it); hasSnip = "snippet" in it; }
-        } catch { /* non-json */ }
-        out.push({ label: c.label, status: res.status, total, hasSnip, firstKeys, body: res.ok ? undefined : body.slice(0, 200) });
-      } catch (err) {
-        out.push({ label: c.label, error: String(err) });
-      }
-    }
-    return NextResponse.json({ q: Q, combos: out });
-  }
-
-  // Temporary diagnostic: ?debug=probe runs a matrix of sort options alongside
-  // the text_query to find which combination TAG-IT accepts (text_query alone
-  // 500s). Remove once verified.
-  if (params.get("debug") === "probe") {
-    const sortsToTry: (string | undefined)[] = [
-      undefined,
-      "-meta.document_date",
-      "-rank",
-      "rank",
-      "-meta.severity_score",
-    ];
-    const results = [];
-    for (const sk of sortsToTry) {
-      try {
-        const raw = await fetchUpstreamRulingsPage({
-          scopeId: COMPTROLLER_SCOPE,
-          page: 1,
-          size: 3,
-          textQuery: q || undefined,
-          sortKey: sk,
-        });
-        const first = raw?.items?.[0] as Record<string, unknown> | undefined;
-        results.push({
-          sort: sk ?? "(none)",
-          ok: true,
-          total: raw?.total ?? null,
-          hasSnippet: first ? "snippet" in first : null,
-          hasRank: first ? "rank" in first : null,
-          snippet: first ? String(first.snippet ?? "").slice(0, 120) : null,
-          ids: (raw?.items ?? []).map((x) => (x as { id: number }).id),
-        });
-      } catch (err) {
-        results.push({
-          sort: sk ?? "(none)",
-          ok: false,
-          error: err instanceof UpstreamError ? `${err.status}: ${err.body.slice(0, 120)}` : String(err),
-        });
-      }
-    }
-    return NextResponse.json({ q: q || null, results });
-  }
-
-  // Temporary diagnostic: ?debug=raw returns the raw TAG-IT item shape so we can
-  // confirm field paths + whether text_query/sort force the nested shape. Remove
-  // once the scope-13 mapping is verified.
-  if (params.get("debug") === "raw") {
-    try {
-      const raw = await fetchUpstreamRulingsPage({
-        scopeId: COMPTROLLER_SCOPE,
-        page,
-        size: limit,
-        textQuery: q || undefined,
-        filterJson,
-        sortKey,
-      });
-      const first = raw?.items?.[0] as Record<string, unknown> | undefined;
-      const groups = (k: string) =>
-        first && first[k] && typeof first[k] === "object"
-          ? Object.keys(first[k] as Record<string, unknown>)
-          : null;
-      return NextResponse.json({
-        sentSortKey: sortKey ?? null,
-        sentTextQuery: q || null,
-        sentFilter: filterJson ?? null,
-        total: raw?.total ?? null,
-        topLevelKeys: first ? Object.keys(first) : null,
-        aiKeys: groups("ai") ?? groups("ai_analysis"),
-        sqlKeys: groups("sql"),
-        metaKeys: groups("meta"),
-        hasSnippet: first ? "snippet" in first : null,
-        hasRank: first ? "rank" in first : null,
-        sample: JSON.stringify(first ?? {}).slice(0, 1500),
-      });
-    } catch (err) {
-      return NextResponse.json({
-        debugError: err instanceof UpstreamError ? `${err.status}: ${err.body.slice(0, 300)}` : String(err),
-      });
-    }
-  }
 
   let result;
   try {
