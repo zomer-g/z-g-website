@@ -544,6 +544,22 @@ export function DrugOffensesTable({
 
 // Per-defendant list (scope-1 "נאשמים"): name + plea/outcome flags, then nested
 // convictions (הרשעות) and punishment (פירוט_ענישה) sub-tables.
+// A מתחם bound (מתחם_מינימום / מתחם_מקסימום) is an object
+// { ערך, יחידה, טקסט_מקור, סוג_הרכיב }. Render the human-readable source text
+// when present, else compose "<value> <unit> · <kind>".
+function fmtRangeBound(x: unknown): string {
+  if (x == null || x === "") return "—";
+  if (typeof x === "object" && !Array.isArray(x)) {
+    const o = x as Record<string, unknown>;
+    const txt = o["טקסט_מקור"];
+    if (txt != null && txt !== "") return String(txt);
+    const num = [o["ערך"], o["יחידה"]].filter((v) => v != null && v !== "").join(" ");
+    const kind = o["סוג_הרכיב"];
+    return [num, kind].filter((v) => v != null && v !== "").join(" · ") || "—";
+  }
+  return formatFieldValue(x);
+}
+
 export function DefendantsList({
   label,
   items,
@@ -630,12 +646,10 @@ export function DefendantsList({
                       ]}
                       rows={ranges.map((r) => {
                         const grp = pickByKeyHint(r, ["קבוצת_עבירות", "קבוצה"]);
-                        const mn = pickByKeyHint(r, ["מתחם_מינימום", "מינימום"]);
-                        const mx = pickByKeyHint(r, ["מתחם_מקסימום", "מקסימום"]);
                         return [
                           grp != null && grp !== "" ? formatFieldValue(grp) : "—",
-                          mn != null && mn !== "" ? formatFieldValue(mn) : "—",
-                          mx != null && mx !== "" ? formatFieldValue(mx) : "—",
+                          fmtRangeBound(r["מתחם_מינימום"]),
+                          fmtRangeBound(r["מתחם_מקסימום"]),
                         ];
                       })}
                     />
