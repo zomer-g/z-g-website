@@ -61,7 +61,7 @@ interface SearchResponse {
   relevance?: number[];
   facets?: { sources: SourceFacet[] };
   // Admin-configured extras (present on the listing endpoint; optional).
-  filterFields?: { key: string; label: string; control: "text" | "select" | "number" | "date" | "boolean" }[];
+  filterFields?: { key: string; label: string; control: "text" | "select" | "number" | "date" | "yearrange" | "boolean" }[];
   sortFields?: { key: string; label: string }[];
   displayFields?: string[];
   filterOptions?: Record<string, string[]>;

@@ -1113,6 +1113,7 @@ const CONTROL_LABELS: Record<FilterControl, string> = {
   multiselect: "בחירה מרובה",
   number: "טווח מספרי",
   date: "טווח תאריכים",
+  yearrange: "טווח שנים",
   boolean: "כן / לא",
 };
 
