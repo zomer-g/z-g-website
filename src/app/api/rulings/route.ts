@@ -438,7 +438,9 @@ function userFilterClauses(
       const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
       if (r.min != null) clauses.push({ field: f.key, op: "ge", value: r.min });
       if (r.max != null) clauses.push({ field: f.key, op: "le", value: r.max });
-    } else if (f.control === "date") {
+    } else if (f.control === "date" || f.control === "yearrange") {
+      // yearrange stores ISO year-boundary dates (YYYY-01-01 … YYYY-12-31), so
+      // it's the same ge/le date range as a plain date filter.
       const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
       if (r.from) clauses.push({ field: f.key, op: "ge", value: r.from });
       if (r.to) clauses.push({ field: f.key, op: "le", value: r.to });

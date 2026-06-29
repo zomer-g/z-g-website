@@ -71,6 +71,7 @@ export type FilterControl =
   | "multiselect" // pick several values; matches as OR (`in`) over an array field
   | "number"
   | "date"
+  | "yearrange" // pick a start/end YEAR; sent as a date ge/le range (Jan 1 … Dec 31)
   | "boolean";
 
 export interface RulingsFilterField {
@@ -189,6 +190,7 @@ export const VALID_FILTER_CONTROLS: FilterControl[] = [
   "multiselect",
   "number",
   "date",
+  "yearrange",
   "boolean",
 ];
 

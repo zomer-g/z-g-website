@@ -19,7 +19,7 @@ interface Ruling {
   fields?: Record<string, unknown>;
 }
 
-type FilterControl = "text" | "select" | "multiselect" | "number" | "date" | "boolean";
+type FilterControl = "text" | "select" | "multiselect" | "number" | "date" | "yearrange" | "boolean";
 
 interface FilterField {
   key: string;
@@ -106,6 +106,59 @@ function fmtDate(s: string | null | undefined) {
   const d = new Date(s);
   if (Number.isNaN(d.getTime())) return s;
   return dateFmt.format(d);
+}
+
+// Small icon button that copies arbitrary text (not a URL) to the clipboard,
+// with a 1.5s checkmark confirmation. Used next to the case title.
+function CopyTextButton({ text, label = "העתק" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } catch {
+        /* ignore */
+      }
+      ta.remove();
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      title={copied ? "הועתק" : label}
+      aria-label={copied ? "הועתק" : label}
+      className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md border transition"
+      style={
+        copied
+          ? { borderColor: "#16a34a", color: "#16a34a", background: "#f0fdf4" }
+          : { borderColor: "#cbd5e1", color: C_MUTED, background: "#fff" }
+      }
+    >
+      {copied ? (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </button>
+  );
 }
 
 function SkeletonCard() {
@@ -494,9 +547,13 @@ export function DrugOffensesTable({
 export function DefendantsList({
   label,
   items,
+  ranges,
 }: {
   label: string;
   items: Record<string, unknown>[];
+  // Doc-level punishment ranges (sql.מתחמי_ענישה) — display only, shown inside
+  // each defendant block between the convictions and the punishment detail.
+  ranges?: Record<string, unknown>[];
 }) {
   const FLAGS: [string, string][] = [
     ["הודה_באשמה", "הודה באשמה"],
@@ -557,6 +614,28 @@ export function DefendantsList({
                           ),
                           desc != null && desc !== "" ? formatFieldValue(desc) : "—",
                           n != null && n !== "" ? formatFieldValue(n) : "—",
+                        ];
+                      })}
+                    />
+                  </div>
+                ) : null}
+                {ranges && ranges.length > 0 ? (
+                  <div className="mb-2">
+                    <div className="text-[11px] font-semibold text-gray-500 mb-1">מתחמי ענישה</div>
+                    <MiniTable
+                      cols={[
+                        { label: "קבוצת עבירות", w: "52%" },
+                        { label: "מתחם מינימום", w: "24%", center: true },
+                        { label: "מתחם מקסימום", w: "24%", center: true },
+                      ]}
+                      rows={ranges.map((r) => {
+                        const grp = pickByKeyHint(r, ["קבוצת_עבירות", "קבוצה"]);
+                        const mn = pickByKeyHint(r, ["מתחם_מינימום", "מינימום"]);
+                        const mx = pickByKeyHint(r, ["מתחם_מקסימום", "מקסימום"]);
+                        return [
+                          grp != null && grp !== "" ? formatFieldValue(grp) : "—",
+                          mn != null && mn !== "" ? formatFieldValue(mn) : "—",
+                          mx != null && mx !== "" ? formatFieldValue(mx) : "—",
                         ];
                       })}
                     />
@@ -731,14 +810,28 @@ function RulingCard({
         className="relative rounded-xl shadow-md border border-gray-200 bg-white p-5 hover:shadow-lg transition flex flex-col"
         dir="rtl"
       >
-        <h3
-          className="text-base font-bold leading-snug mb-2"
-          style={{ color: C_PRIMARY }}
-        >
-          {headerValue != null && headerValue !== ""
-            ? formatFieldValue(headerValue)
-            : "—"}
-        </h3>
+        {(() => {
+          const name =
+            headerValue != null && headerValue !== ""
+              ? formatFieldValue(headerValue)
+              : "—";
+          const dateStr = ruling.date ? fmtDate(ruling.date) : "";
+          const titleText = dateStr ? `${name} (${dateStr})` : name;
+          return (
+            <div className="flex items-start gap-2 mb-2">
+              <h3
+                className="text-base font-bold leading-snug flex-1"
+                style={{ color: C_PRIMARY }}
+              >
+                {name}
+                {dateStr ? (
+                  <span className="font-semibold text-gray-500"> ({dateStr})</span>
+                ) : null}
+              </h3>
+              <CopyTextButton text={titleText} label="העתק כותרת ותאריך" />
+            </div>
+          );
+        })()}
 
         <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
           {rest.map((key) => {
@@ -777,6 +870,7 @@ function RulingCard({
                     key={key}
                     label={fieldKeyToLabel(key)}
                     items={value}
+                    ranges={objArray(ruling.fields?.["sql.מתחמי_ענישה"])}
                   />
                 );
               }
@@ -1132,6 +1226,60 @@ function FilterBar({
               className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
               dir="ltr"
             />
+          </div>
+        </div>
+      );
+    }
+    if (f.control === "yearrange") {
+      const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
+      const fromYear = r.from ? r.from.slice(0, 4) : "";
+      const toYear = r.to ? r.to.slice(0, 4) : "";
+      const nowY = new Date().getFullYear();
+      const years: number[] = [];
+      for (let y = nowY; y >= 2000; y--) years.push(y);
+      return (
+        <div key={f.key}>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            {f.label}
+          </label>
+          <div className="flex items-center gap-1.5">
+            <select
+              value={fromYear}
+              onChange={(e) =>
+                setField(f.key, {
+                  ...r,
+                  from: e.target.value ? `${e.target.value}-01-01` : undefined,
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+              dir="ltr"
+            >
+              <option value="">משנת</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+            <span className="text-gray-400">–</span>
+            <select
+              value={toYear}
+              onChange={(e) =>
+                setField(f.key, {
+                  ...r,
+                  to: e.target.value ? `${e.target.value}-12-31` : undefined,
+                })
+              }
+              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+              dir="ltr"
+            >
+              <option value="">עד שנת</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       );
