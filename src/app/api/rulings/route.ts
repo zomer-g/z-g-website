@@ -606,6 +606,11 @@ export async function GET(req: NextRequest) {
     );
     const filterJson = combined ? JSON.stringify(combined) : "";
 
+    // ── Free-text search over the document content (TAG-IT text_query) ──
+    // Optional general search across the whole document text, independent of the
+    // structured field filters.
+    const textQuery = searchParams.get("text")?.trim() || "";
+
     // ── Sort ──
     // Honour a user-chosen sort field (validated against the configured list).
     // Otherwise send nothing and rely on TAG-IT's default newest-first order.
@@ -614,6 +619,11 @@ export async function GET(req: NextRequest) {
     let sortKey = "";
     if (reqSort && config.sortFields.some((s) => s.key === reqSort)) {
       sortKey = (reqDir === "asc" ? "" : "-") + reqSort;
+    } else if (textQuery) {
+      // A free-text search → order by relevance (TAG-IT's fast text path). The
+      // configured default sort (e.g. severity) combined with text_query is slow
+      // and times out, so we explicitly ask for the relevance ordering instead.
+      sortKey = "relevance";
     } else if (!reqSort && config.sortFields[0]?.defaultDir) {
       // No explicit sort from the client → apply the first configured sort's
       // default direction server-side, so the initial page load is ordered by
@@ -622,11 +632,6 @@ export async function GET(req: NextRequest) {
       const def = config.sortFields[0];
       sortKey = (def.defaultDir === "asc" ? "" : "-") + def.key;
     }
-
-    // ── Free-text search over the document content (TAG-IT text_query) ──
-    // Optional general search across the whole document text, independent of the
-    // structured field filters.
-    const textQuery = searchParams.get("text")?.trim() || "";
 
     const lawSectionResponse = config.lawSectionFilter
       ? {
