@@ -173,6 +173,9 @@ export interface RulingsPageQuery {
   // filter), so a slow/large scope shows a quick teaser; `pageSize` kicks in
   // once a filter is active. undefined → always use pageSize.
   initialPageSize?: number;
+  // Show a general free-text content search box (TAG-IT text_query). Each result
+  // then carries meta.snippet (highlighted «…») + meta.rank.
+  fullTextSearch?: boolean;
 }
 
 export const EMPTY_RULINGS_QUERY: RulingsPageQuery = {

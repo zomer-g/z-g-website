@@ -232,6 +232,7 @@ interface PageConfig {
   scope: number; // 0 = use the per-category default
   pageSize: number;
   initialPageSize: number; // 0 = none → always use pageSize
+  fullTextSearch: boolean; // show a free-text content search box (text_query)
 }
 
 function readLawSectionFilter(q: unknown): LawSectionFilterConfig | null {
@@ -352,6 +353,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       scope,
       pageSize,
       initialPageSize,
+      fullTextSearch: content?.query?.fullTextSearch === true,
     };
   } catch {
     return {
@@ -365,6 +367,7 @@ async function readPageConfig(pageSlug: string): Promise<PageConfig> {
       scope: 0,
       pageSize: DEFAULT_PAGE_SIZE,
       initialPageSize: 0,
+      fullTextSearch: false,
     };
   }
 }
@@ -556,6 +559,7 @@ export async function GET(req: NextRequest) {
           filterFields: config.filterFields,
           filterOptions: selectOptionsFromSchema(schemaFields, config.filterFields),
           sortFields: config.sortFields,
+          fullTextSearch: config.fullTextSearch,
           lawSectionFilter: config.lawSectionFilter
             ? {
                 label: config.lawSectionFilter.label,
@@ -714,6 +718,7 @@ export async function GET(req: NextRequest) {
           filterFields: config.filterFields,
           filterOptions: selectOptionsFromSchema(schemaFieldsLs, config.filterFields),
           sortFields: config.sortFields,
+          fullTextSearch: config.fullTextSearch,
           lawSectionFilter: lawSectionResponse,
         },
         {
@@ -789,6 +794,7 @@ export async function GET(req: NextRequest) {
         filterFields: config.filterFields,
         filterOptions,
         sortFields: config.sortFields,
+        fullTextSearch: config.fullTextSearch,
         lawSectionFilter: lawSectionResponse,
       },
       {

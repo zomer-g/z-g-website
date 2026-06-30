@@ -82,6 +82,8 @@ interface RulingsResponse {
   sortFields?: { key: string; label: string; defaultDir?: SortDir }[];
   // Cascading law→section filter config (FOI). Absent = not shown.
   lawSectionFilter?: LawSectionFilterCfg;
+  // When true, show a free-text content search box (TAG-IT text_query).
+  fullTextSearch?: boolean;
 }
 
 type SortDir = "asc" | "desc";
@@ -544,6 +546,26 @@ export function DrugOffensesTable({
 
 // Per-defendant list (scope-1 "נאשמים"): name + plea/outcome flags, then nested
 // convictions (הרשעות) and punishment (פירוט_ענישה) sub-tables.
+// Renders a text_query snippet, turning TAG-IT's «…» match markers into
+// highlighted <mark> spans.
+function HighlightedSnippet({ text }: { text: string }) {
+  if (!text) return null;
+  const parts = text.split(/(«[^»]*»)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^«[^»]*»$/.test(part) ? (
+          <mark key={i} className="bg-yellow-200 text-inherit px-0.5 rounded">
+            {part.slice(1, -1)}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 // A מתחם bound (מתחם_מינימום / מתחם_מקסימום) is an object
 // { ערך, יחידה, טקסט_מקור, סוג_הרכיב }. Compose each bound from its OWN value +
 // unit + kind (e.g. "6 חודשים מאסר בפועל") so the min and max show their
@@ -854,6 +876,18 @@ function RulingCard({
               <CopyTextButton text={titleText} label="העתק כותרת ותאריך" />
             </div>
           );
+        })()}
+
+        {(() => {
+          const snip = ruling.fields?.["meta.snippet"];
+          return typeof snip === "string" && snip.trim() ? (
+            <div className="mb-3 rounded-md bg-amber-50 border-r-2 border-amber-300 px-3 py-2 text-xs leading-relaxed text-gray-800">
+              <div className="text-[10px] font-semibold text-amber-700 mb-1 uppercase tracking-wide">
+                התאמה בטקסט
+              </div>
+              <HighlightedSnippet text={snip} />
+            </div>
+          ) : null;
         })()}
 
         <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
@@ -1538,12 +1572,14 @@ function readUrlState(): {
   sortKey: string;
   sortDir: SortDir;
   page: number;
+  text: string;
 } {
   const empty = {
     filters: {} as Record<string, UserFilterValue>,
     sortKey: "",
     sortDir: "desc" as SortDir,
     page: 1,
+    text: "",
   };
   if (typeof window === "undefined") return empty;
   const sp = new URLSearchParams(window.location.search);
@@ -1560,7 +1596,8 @@ function readUrlState(): {
   const sortKey = sp.get("sort") || "";
   const sortDir: SortDir = sp.get("dir") === "asc" ? "asc" : "desc";
   const page = Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
-  return { filters, sortKey, sortDir, page };
+  const text = sp.get("text") || "";
+  return { filters, sortKey, sortDir, page, text };
 }
 
 export function RulingsList({
@@ -1593,6 +1630,11 @@ export function RulingsList({
   const [sortKey, setSortKey] = useState<string>(urlSeed.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(urlSeed.sortDir);
 
+  // Free-text content search (TAG-IT text_query). Draft = the input; applied =
+  // what's been sent to the API.
+  const [textDraft, setTextDraft] = useState<string>(urlSeed.text);
+  const [textApplied, setTextApplied] = useState<string>(urlSeed.text);
+
   // "Copied" feedback for the share-link button.
   const [copied, setCopied] = useState(false);
 
@@ -1603,6 +1645,7 @@ export function RulingsList({
       filters: Record<string, UserFilterValue>,
       sKey: string,
       sDir: SortDir,
+      text: string,
     ) => {
       setLoading(true);
       setError(null);
@@ -1623,6 +1666,7 @@ export function RulingsList({
           params.set("sort", sKey);
           params.set("dir", sDir);
         }
+        if (text) params.set("text", text);
         const res = await fetch(`/api/rulings?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as RulingsResponse;
@@ -1639,8 +1683,8 @@ export function RulingsList({
   );
 
   useEffect(() => {
-    fetchData(category, page, appliedFilters, sortKey, sortDir);
-  }, [fetchData, category, page, appliedFilters, sortKey, sortDir]);
+    fetchData(category, page, appliedFilters, sortKey, sortDir, textApplied);
+  }, [fetchData, category, page, appliedFilters, sortKey, sortDir, textApplied]);
 
   // Fetch the filter/sort CONFIG up front (fast — no TAG-IT document query) so
   // the filter bar appears immediately, before the (possibly slow) results.
@@ -1673,6 +1717,7 @@ export function RulingsList({
       sp.set("sort", sortKey);
       sp.set("dir", sortDir);
     }
+    if (textApplied) sp.set("text", textApplied);
     if (page > 1) sp.set("page", String(page));
     const qs = sp.toString();
     window.history.replaceState(
@@ -1680,7 +1725,7 @@ export function RulingsList({
       "",
       qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
     );
-  }, [appliedFilters, sortKey, sortDir, page]);
+  }, [appliedFilters, sortKey, sortDir, page, textApplied]);
 
   const applyFilters = () => {
     setPage(1);
@@ -1690,6 +1735,15 @@ export function RulingsList({
     setDraftFilters({});
     setPage(1);
     setAppliedFilters({});
+  };
+  const applyText = () => {
+    setPage(1);
+    setTextApplied(textDraft.trim());
+  };
+  const clearText = () => {
+    setTextDraft("");
+    setTextApplied("");
+    setPage(1);
   };
 
   // Copy the current (search-synced) URL so it can be shared.
@@ -1711,6 +1765,8 @@ export function RulingsList({
   const sortFields = config?.sortFields ?? data?.sortFields ?? [];
   const lawSectionFilter = config?.lawSectionFilter ?? data?.lawSectionFilter;
   const showFilterBar = filterFields.length > 0 || !!lawSectionFilter;
+  const fullTextSearch =
+    (config?.fullTextSearch ?? data?.fullTextSearch) === true;
   // The control reflects the active sort: explicit user choice, or the
   // server's default (first configured field) when the user hasn't picked.
   const activeSortKey = sortKey || sortFields[0]?.key || "";
@@ -1732,6 +1788,46 @@ export function RulingsList({
 
   return (
     <div dir="rtl">
+      {fullTextSearch ? (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+          <label
+            htmlFor="rulings-fulltext"
+            className="block text-xs font-semibold text-gray-700 mb-1"
+          >
+            חיפוש חופשי בכל תוכן המסמך
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              id="rulings-fulltext"
+              type="text"
+              value={textDraft}
+              onChange={(e) => setTextDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") applyText();
+              }}
+              placeholder='חיפוש מילים בתוך גזרי הדין (תומך "ביטוי מדויק")'
+              className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={applyText}
+              className="text-sm font-semibold rounded-md px-4 py-2 text-white shrink-0"
+              style={{ background: C_PRIMARY }}
+            >
+              חיפוש
+            </button>
+            {textApplied ? (
+              <button
+                type="button"
+                onClick={clearText}
+                className="text-sm font-semibold rounded-md px-3 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 shrink-0"
+              >
+                ניקוי
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {showFilterBar ? (
         <FilterBar
           fields={filterFields}
