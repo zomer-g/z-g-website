@@ -66,10 +66,10 @@ const QUERY = {
         { key: "meta.case_name", label: "חיפוש בשם התיק (לרבות מספר התיק)", control: "text" },
         // Court ערכאה — exact match on the new indexed meta.court_instance (works).
         { key: "meta.court_instance", label: "ערכאה", control: "select", options: ["שלום", "מחוזי", "עליון", "תעבורה", "נוער"] },
-        // City — multi-select (OR via `in`) over meta.court_city. Re-enabled after
-        // TAG-IT round-2 (court_city indexed + array-filterable + enum populated).
-        // Options come from the schema enum (no curated list).
-        { key: "meta.court_city", label: "עיר", control: "multiselect" },
+        // City — open text search over meta.court_city (the chip selector of ~49
+        // cities looked cluttered). meta.court_city is now a GIN array, so
+        // `contains` matches the exact city name typed.
+        { key: "meta.court_city", label: "חיפוש לפי עיר", control: "text" },
         // Judge — free-text over meta.judges. TAG-IT stripped titles so the clean
         // name works ("שי ברגר" → 31), BUT `contains` is exact-element, so a
         // partial ("ברגר") returns 0 → label asks for the full name. (A real
@@ -112,9 +112,20 @@ const QUERY = {
         { key: "meta.fine_shekels", label: "קנס (₪)", control: "number", group: "ענישה" },
         { key: "meta.compensation_shekels", label: "פיצוי (₪)", control: "number", group: "ענישה" },
         // ── Group "עבירה" (collapsible) ──
-        // Law names EXCLUDING פקודת הסמים המסוכנים — searching offenses under the
-        // drug ordinance is done separately via section tags (pending the clean
-        // meta.drug_ordinance_sections field from TAG-IT; see the handoff).
+        // First row: drug-ordinance section TAGS — multi-select (OR via `in`) over
+        // the GIN array meta.drug_ordinance_sections (base sections under פקודת
+        // הסמים המסוכנים only). Options are CURATED in frequency order (most-common
+        // first: 7=possession 837, 13=trafficking 217, 19א, 6, 10…); the client
+        // shows the top few and collapses the rare ones behind a "show more".
+        // Renders full-width → its own row.
+        {
+          key: "meta.drug_ordinance_sections",
+          label: "סעיף בפקודת הסמים",
+          control: "multiselect",
+          options: ["7", "13", "19א", "6", "10", "3", "9", "2", "13א", "31", "12", "25", "1", "9א", "21", "36", "19", "10א", "36א", "14", "113", "0", "7ק", "413", "4", "384"],
+          group: "עבירה",
+        },
+        // Second row: the other-law name + a free-text section (any law).
         {
           key: "meta.offense_laws",
           label: "חוק העבירה (שאינו פקודת הסמים)",
@@ -123,14 +134,6 @@ const QUERY = {
           options: ["חוק העונשין", "חוק הכניסה לישראל", "חוק כלי הירייה", "פקודת התעבורה"],
           group: "עבירה",
         },
-        // Drug-ordinance section TAGS — multi-select (OR via `in`) over the new
-        // GIN array meta.drug_ordinance_sections (base sections under פקודת הסמים
-        // המסוכנים only, e.g. 7/13/19א/21). Options from TAG-IT's schema enum.
-        // Ungrouped (no `group`) → ALWAYS VISIBLE, like the user asked (was
-        // hidden inside the collapsed "עבירה" accordion).
-        { key: "meta.drug_ordinance_sections", label: "סעיף בפקודת הסמים", control: "multiselect" },
-        // Generic offense section (any law) — array of section tokens (full
-        // "144(א)" + basic "144"); contains = exact-token match, user types one.
         { key: "meta.offense_sections", label: "סעיף עבירה (כל חוק)", control: "text", group: "עבירה" },
         // ── Group "הודאה ותוצאה" — any-defendant boolean flags (Phase 3) ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
