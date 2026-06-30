@@ -623,6 +623,22 @@ export function DefendantsList({
                   <span className="font-bold text-gray-800">
                     {name != null && name !== "" ? formatFieldValue(name) : `נאשם ${i + 1}`}
                   </span>
+                  {(() => {
+                    // The defendant's primary/most-severe punishment as TAG-IT
+                    // computed it (sql.נאשמים[]._ענישה_עיקרית_סוג). Useful on its
+                    // own, and lets you eyeball whether the case-level
+                    // primary_punishment_type / severity_score picked the right
+                    // (harshest) defendant.
+                    const main = def["_ענישה_עיקרית_סוג"];
+                    return main != null && main !== "" ? (
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200"
+                        title="העונש העיקרי/החמור ביותר של נאשם זה (מ-TAG-IT)"
+                      >
+                        עונש עיקרי: {formatFieldValue(main)}
+                      </span>
+                    ) : null;
+                  })()}
                   {FLAGS.filter(([k]) => def[k] === true).map(([k, lbl]) => (
                     <span
                       key={k}
