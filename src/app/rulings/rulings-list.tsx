@@ -545,17 +545,26 @@ export function DrugOffensesTable({
 // Per-defendant list (scope-1 "נאשמים"): name + plea/outcome flags, then nested
 // convictions (הרשעות) and punishment (פירוט_ענישה) sub-tables.
 // A מתחם bound (מתחם_מינימום / מתחם_מקסימום) is an object
-// { ערך, יחידה, טקסט_מקור, סוג_הרכיב }. Render the human-readable source text
-// when present, else compose "<value> <unit> · <kind>".
+// { ערך, יחידה, טקסט_מקור, סוג_הרכיב }. Compose each bound from its OWN value +
+// unit + kind (e.g. "6 חודשים מאסר בפועל") so the min and max show their
+// distinct numbers. We deliberately do NOT use טקסט_מקור — it's frequently the
+// full range sentence ("...בין 6 ל-18 חודשי מאסר") repeated identically on both
+// bounds, which made min and max look duplicated. Falls back to טקסט_מקור only
+// when no structured value exists.
 function fmtRangeBound(x: unknown): string {
   if (x == null || x === "") return "—";
   if (typeof x === "object" && !Array.isArray(x)) {
     const o = x as Record<string, unknown>;
-    const txt = o["טקסט_מקור"];
-    if (txt != null && txt !== "") return String(txt);
-    const num = [o["ערך"], o["יחידה"]].filter((v) => v != null && v !== "").join(" ");
+    const numUnit = [o["ערך"], o["יחידה"]]
+      .filter((v) => v != null && v !== "")
+      .join(" ");
     const kind = o["סוג_הרכיב"];
-    return [num, kind].filter((v) => v != null && v !== "").join(" · ") || "—";
+    const composed = [numUnit, kind]
+      .filter((v) => v != null && v !== "")
+      .join(" ");
+    if (composed) return composed;
+    const txt = o["טקסט_מקור"];
+    return txt != null && txt !== "" ? String(txt) : "—";
   }
   return formatFieldValue(x);
 }
