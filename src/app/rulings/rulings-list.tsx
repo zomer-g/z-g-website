@@ -608,6 +608,16 @@ export function DefendantsList({
     ["ביטול_הרשעה", "ביטול הרשעה"],
     ["סטייה_משיקולי_שיקום", "סטייה משיקולי שיקום"],
   ];
+  // Tri-state binary tags: [field, label-when-true, label-when-false]. Unlike
+  // FLAGS (shown only when true), these reflect the cataloged yes/no value, so
+  // "no criminal record" / "court didn't deviate" are surfaced too. They render
+  // only when the field is actually present (boolean), since they're newly
+  // cataloged and absent from most documents.
+  const TRISTATE: [string, string, string][] = [
+    ["עבר_פלילי_מוזכר", "עבר פלילי", "ללא עבר פלילי"],
+    ["הגנה_ביקשה_חריגה_ממתחם", "ההגנה ביקשה חריגה ממתחם", "ההגנה לא ביקשה חריגה"],
+    ["ביהמש_חרג_ממתחם", 'ביהמ"ש חרג ממתחם', 'ביהמ"ש לא חרג ממתחם'],
+  ];
   return (
     <div className="block mt-3 pt-3 border-t border-gray-200">
       <FieldSectionHead label={label} count={items.length} />
@@ -648,6 +658,28 @@ export function DefendantsList({
                       {lbl}
                     </span>
                   ))}
+                  {/* Newly-cataloged binary tags (sparse — not in every doc). Shown
+                      whenever the field is present (boolean), reflecting yes/no:
+                      colored pill when true, muted gray when false. */}
+                  {TRISTATE.filter(([k]) => typeof def[k] === "boolean").map(([k, onLbl, offLbl]) => {
+                    const on = def[k] === true;
+                    return (
+                      <span
+                        key={k}
+                        className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 border ${
+                          on
+                            ? "bg-rose-50 text-rose-700 border-rose-200"
+                            : "bg-gray-100 text-gray-500 border-gray-200"
+                        }`}
+                      >
+                        <span
+                          className="inline-block w-1.5 h-1.5 rounded-full"
+                          style={{ background: on ? "#e11d48" : "#9ca3af" }}
+                        />
+                        {on ? onLbl : offLbl}
+                      </span>
+                    );
+                  })}
                 </div>
                 {convictions.length > 0 ? (
                   <div className="mb-2">
