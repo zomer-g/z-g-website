@@ -36,13 +36,17 @@ const QUERY = {
   // initial (slow, full-corpus) load light and nudges toward filtering.
   initialPageSize: 6,
   displayFields: [
+    // The document date is now shown in the card title (in parentheses), so
+    // it's intentionally NOT a separate row here.
     "ai.שם_התיק",
     "ai.תקציר",
     "meta.topics",
     "ai.בית_משפט",
-    "meta.document_date",
     "ai.שופטים",
-    // array tables with dedicated renderers (DefendantsList / DrugOffensesTable):
+    // array tables with dedicated renderers (DefendantsList / DrugOffensesTable).
+    // DefendantsList also renders the doc-level sql.מתחמי_ענישה inside each
+    // defendant block (between convictions and punishment) — no display field
+    // needed for it (read straight from the flattened fields).
     "sql.נאשמים",
     "sql.פירוט_עבירות_סמים",
   ],
@@ -56,9 +60,23 @@ const QUERY = {
       ]
     : [
         // ── Always-visible (ungrouped) ──
-        { key: "ai.שם_התיק", label: "חיפוש בשם התיק", control: "text" },
-        { key: "ai.בית_משפט", label: "בית משפט", control: "select" },
-        { key: "meta.document_date", label: "תאריך", control: "date" },
+        // Case name is searched via meta.case_name (a scalar string TAG-IT can
+        // filter with `contains`) — it embeds the case number, so the search
+        // covers it. The old ai.שם_התיק filter wasn't TAG-IT-filterable.
+        { key: "meta.case_name", label: "חיפוש בשם התיק (לרבות מספר התיק)", control: "text" },
+        // Court ערכאה — exact match on the new indexed meta.court_instance (works).
+        { key: "meta.court_instance", label: "ערכאה", control: "select", options: ["שלום", "מחוזי", "עליון", "תעבורה", "נוער"] },
+        // City — multi-select (OR via `in`) over meta.court_city. Re-enabled after
+        // TAG-IT round-2 (court_city indexed + array-filterable + enum populated).
+        // Options come from the schema enum (no curated list).
+        { key: "meta.court_city", label: "עיר", control: "multiselect" },
+        // Judge — free-text over meta.judges. TAG-IT stripped titles so the clean
+        // name works ("שי ברגר" → 31), BUT `contains` is exact-element, so a
+        // partial ("ברגר") returns 0 → label asks for the full name. (A real
+        // substring match or a populated judges enum is still a TAG-IT follow-up.)
+        { key: "meta.judges", label: "חיפוש לפי שם השופט (שם מלא, ללא תואר)", control: "text" },
+        // Year range instead of a full date picker.
+        { key: "meta.document_date", label: "טווח שנים", control: "yearrange" },
         // ── Group "סמים" (collapsible) ──
         // GIN-indexed array (like meta.topics) — a select must send `contains`
         // (not eq) to match an array element. Curated options override the noisy
@@ -74,13 +92,18 @@ const QUERY = {
         },
         { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
         // ── Group "ענישה" (collapsible) — value ranges per component type ──
+        // Filter by the MOST-SEVERE punishment component in the case (the new
+        // indexed meta.primary_punishment_type = the harshest defendant's
+        // primary component, clean canonical name). So selecting "מאסר על תנאי"
+        // returns only cases whose harshest component is מאסר על תנאי — i.e. with
+        // no מאסר בפועל. Options come from TAG-IT's schema enum (exact values).
         {
-          key: "meta.punishment_types",
-          label: "רכיב ענישה",
+          key: "meta.primary_punishment_type",
+          label: "רכיב הענישה החמור ביותר בתיק",
           control: "select",
-          matchOp: "contains",
-          // Ordered by prod frequency (מאסר על תנאי 41k, מאסר בפועל 25k, קנס 24k…).
-          options: ["מאסר על תנאי", "מאסר בפועל", "קנס", "פיצוי", "התחייבות כספית", "מאסר בעבודות שירות", "צו מבחן", "שירות לתועלת הציבור", "פסילת רישיון נהיגה", "חילוט"],
+          // Schema enum is empty for this field, so options are curated from the
+          // corpus (clean canonical names). Severity order high→low.
+          options: ["מאסר בפועל", "מאסר בעבודות שירות", "מאסר על תנאי", "קנס", "פיצוי", "התחייבות"],
           group: "ענישה",
         },
         { key: "meta.prison_actual_months", label: "מאסר בפועל (חודשים)", control: "number", group: "ענישה" },
@@ -89,17 +112,26 @@ const QUERY = {
         { key: "meta.fine_shekels", label: "קנס (₪)", control: "number", group: "ענישה" },
         { key: "meta.compensation_shekels", label: "פיצוי (₪)", control: "number", group: "ענישה" },
         // ── Group "עבירה" (collapsible) ──
+        // Law names EXCLUDING פקודת הסמים המסוכנים — searching offenses under the
+        // drug ordinance is done separately via section tags (pending the clean
+        // meta.drug_ordinance_sections field from TAG-IT; see the handoff).
         {
           key: "meta.offense_laws",
-          label: "חוק העבירה",
+          label: "חוק העבירה (שאינו פקודת הסמים)",
           control: "select",
           matchOp: "contains",
-          options: ["פקודת הסמים המסוכנים", "חוק העונשין", "חוק הכניסה לישראל", "חוק כלי הירייה"],
+          options: ["חוק העונשין", "חוק הכניסה לישראל", "חוק כלי הירייה", "פקודת התעבורה"],
           group: "עבירה",
         },
-        // Offense section — array of section tokens (full "144(א)" + basic
-        // "144"); contains = exact-token match, so the user types a section.
-        { key: "meta.offense_sections", label: "סעיף עבירה", control: "text", group: "עבירה" },
+        // Drug-ordinance section TAGS — multi-select (OR via `in`) over the new
+        // GIN array meta.drug_ordinance_sections (base sections under פקודת הסמים
+        // המסוכנים only, e.g. 7/13/19א/21). Options from TAG-IT's schema enum.
+        // Ungrouped (no `group`) → ALWAYS VISIBLE, like the user asked (was
+        // hidden inside the collapsed "עבירה" accordion).
+        { key: "meta.drug_ordinance_sections", label: "סעיף בפקודת הסמים", control: "multiselect" },
+        // Generic offense section (any law) — array of section tokens (full
+        // "144(א)" + basic "144"); contains = exact-token match, user types one.
+        { key: "meta.offense_sections", label: "סעיף עבירה (כל חוק)", control: "text", group: "עבירה" },
         // ── Group "הודאה ותוצאה" — any-defendant boolean flags (Phase 3) ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
         // sql.נאשמים[] booleans time out and must NOT be used.
