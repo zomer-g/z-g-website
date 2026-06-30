@@ -623,6 +623,11 @@ export async function GET(req: NextRequest) {
       sortKey = (def.defaultDir === "asc" ? "" : "-") + def.key;
     }
 
+    // ── Free-text search over the document content (TAG-IT text_query) ──
+    // Optional general search across the whole document text, independent of the
+    // structured field filters.
+    const textQuery = searchParams.get("text")?.trim() || "";
+
     const lawSectionResponse = config.lawSectionFilter
       ? {
           label: config.lawSectionFilter.label,
@@ -717,7 +722,7 @@ export async function GET(req: NextRequest) {
 
     // ── Fetch ONE page (with a small TTL cache) ──
     const cacheKey = `s${scopeId}|sz${size}|p${page}|${createHash("sha1")
-      .update(filterJson + "|" + sortKey)
+      .update(filterJson + "|" + sortKey + "|" + textQuery)
       .digest("hex")
       .slice(0, 16)}`;
     let entry = pageCacheGet(cacheKey);
@@ -730,6 +735,7 @@ export async function GET(req: NextRequest) {
           size,
           filterJson: filterJson || undefined,
           sortKey: sortKey || undefined,
+          textQuery: textQuery || undefined,
         });
         if (res === null) {
           return NextResponse.json(
