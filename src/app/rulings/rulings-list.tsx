@@ -1119,6 +1119,17 @@ function FilterBar({
       return n;
     });
 
+  // Which long multiselects are expanded (showing all options vs just the top
+  // few). Tags are pre-sorted by frequency, so the common ones show by default.
+  const [expandedMs, setExpandedMs] = useState<Set<string>>(new Set());
+  const toggleMs = (k: string) =>
+    setExpandedMs((prev) => {
+      const n = new Set(prev);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
+
   const renderField = (f: FilterField) => {
     const v = draft[f.key];
     if (f.control === "text") {
@@ -1144,34 +1155,57 @@ function FilterBar({
       const sel = Array.isArray(v) ? v : [];
       const toggle = (o: string) =>
         setField(f.key, sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o]);
+      // Long lists (e.g. drug-ordinance sections) collapse to the most-common
+      // few; the rest are behind a "show more" toggle. Selected options stay
+      // visible even when collapsed.
+      const COLLAPSE_AT = 12;
+      const VISIBLE = 8;
+      const collapsible = opts.length > COLLAPSE_AT;
+      const collapsed = collapsible && !expandedMs.has(f.key);
+      const shown = collapsed
+        ? opts.filter((o, i) => i < VISIBLE || sel.includes(o))
+        : opts;
       return (
-        <div key={f.key}>
+        // Full-width within the filter grid so the chip list gets its own row.
+        <div key={f.key} className="sm:col-span-2 lg:col-span-3">
           <label className="block text-xs font-semibold text-gray-600 mb-1">
             {f.label}
             {sel.length > 0 ? ` (${sel.length})` : ""}
           </label>
-          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1 border border-gray-300 rounded-md">
+          <div className="flex flex-wrap gap-1.5 p-1 border border-gray-300 rounded-md">
             {opts.length === 0 ? (
               <span className="text-xs text-gray-400 px-1">—</span>
             ) : (
-              opts.map((o) => {
-                const on = sel.includes(o);
-                return (
+              <>
+                {shown.map((o) => {
+                  const on = sel.includes(o);
+                  return (
+                    <button
+                      key={o}
+                      type="button"
+                      onClick={() => toggle(o)}
+                      className="text-xs rounded-md px-2 py-1 border transition"
+                      style={
+                        on
+                          ? { background: C_PRIMARY, color: "#fff", borderColor: C_PRIMARY }
+                          : { background: "#fff", color: C_PRIMARY, borderColor: "#cbd5e1" }
+                      }
+                    >
+                      {optionLabel(o)}
+                    </button>
+                  );
+                })}
+                {collapsible ? (
                   <button
-                    key={o}
                     type="button"
-                    onClick={() => toggle(o)}
-                    className="text-xs rounded-md px-2 py-1 border transition"
-                    style={
-                      on
-                        ? { background: C_PRIMARY, color: "#fff", borderColor: C_PRIMARY }
-                        : { background: "#fff", color: C_PRIMARY, borderColor: "#cbd5e1" }
-                    }
+                    onClick={() => toggleMs(f.key)}
+                    className="text-xs rounded-md px-2 py-1 border border-dashed transition"
+                    style={{ background: "#f8fafc", color: C_PD, borderColor: "#cbd5e1" }}
                   >
-                    {optionLabel(o)}
+                    {collapsed ? `+ עוד ${opts.length - VISIBLE}` : "− הצג פחות"}
                   </button>
-                );
-              })
+                ) : null}
+              </>
             )}
           </div>
         </div>
