@@ -620,10 +620,11 @@ export async function GET(req: NextRequest) {
     if (reqSort && config.sortFields.some((s) => s.key === reqSort)) {
       sortKey = (reqDir === "asc" ? "" : "-") + reqSort;
     } else if (textQuery) {
-      // A free-text search → order by relevance (TAG-IT's fast text path). The
-      // configured default sort (e.g. severity) combined with text_query is slow
-      // and times out, so we explicitly ask for the relevance ordering instead.
-      sortKey = "relevance";
+      // A free-text search → send NO sort, so TAG-IT uses its fast default order
+      // for text_query (newest-first). The configured default sort (e.g.
+      // severity) combined with text_query times out, and `sort=relevance` is
+      // rejected upstream (unknown_field), so neither can be used here.
+      sortKey = "";
     } else if (!reqSort && config.sortFields[0]?.defaultDir) {
       // No explicit sort from the client → apply the first configured sort's
       // default direction server-side, so the initial page load is ordered by
