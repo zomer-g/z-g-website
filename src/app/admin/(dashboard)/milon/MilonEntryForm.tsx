@@ -54,19 +54,35 @@ function slugify(s: string) {
     .toLowerCase();
 }
 
+/** Normalize the incoming `definitions` value into editable rows. Accepts an
+ *  array of {text,label} objects OR a JSON-encoded string of the same (defends
+ *  against the JSON column arriving stringified after serialization). Always
+ *  returns at least one row so the form has an editable field. */
+function parseDefinitions(raw: unknown): Definition[] {
+  let arr: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      arr = [];
+    }
+  }
+  if (Array.isArray(arr) && arr.length > 0) {
+    return arr.map((d) => ({
+      text: (d as Definition)?.text ?? "",
+      label: (d as Definition)?.label ?? "",
+    }));
+  }
+  return [{ text: "", label: "" }];
+}
+
 export default function MilonEntryForm({ initialValues, mode }: MilonEntryFormProps) {
   const router = useRouter();
 
   const [form, setForm] = useState<FormValues>({
     ...DEFAULT_VALUES,
     ...initialValues,
-    definitions:
-      initialValues?.definitions && initialValues.definitions.length > 0
-        ? initialValues.definitions.map((d) => ({
-            text: (d as Definition).text ?? "",
-            label: (d as Definition).label ?? "",
-          }))
-        : [{ text: "", label: "" }],
+    definitions: parseDefinitions(initialValues?.definitions),
     domains: initialValues?.domains
       ? Array.isArray(initialValues.domains)
         ? (initialValues.domains as string[]).join(", ")

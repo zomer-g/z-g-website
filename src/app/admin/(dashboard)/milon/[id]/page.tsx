@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import MilonEntryForm from "../MilonEntryForm";
 
+// Always fetch the entry fresh — never serve a statically cached (possibly
+// stale/empty) version of the edit form on production.
+export const dynamic = "force-dynamic";
+
 export default async function EditMilonEntryPage({
   params,
 }: {
