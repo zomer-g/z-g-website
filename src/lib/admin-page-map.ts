@@ -39,6 +39,7 @@ import {
   BarChart3,
   Scale,
   BookOpen,
+  BookMarked,
   FileSearch,
   Globe,
   type LucideIcon,
@@ -54,6 +55,11 @@ export interface PageDef {
    *  footer, article-detail, service-detail) and for pages whose URL is
    *  derived dynamically (services/[slug], articles/[slug]). */
   publicPath?: string;
+  /** Page managed by its own dedicated admin tool (its own model/table, not a
+   *  CMS `Page` row) — e.g. the dictionary. The site-editor grid skips the
+   *  /api/content status fetch for these and shows a neutral "ניהול" badge
+   *  instead of "לא נמצא". */
+  dedicatedTool?: boolean;
 }
 
 export interface ProjectSubGroup {
@@ -113,6 +119,7 @@ export const PAGE_GROUPS: PageGroup[] = [
       { slug: "foi-costs", label: "הוצאות חופש מידע", icon: Scale, publicPath: "/foi-costs" },
       { slug: "drug-sentencing", label: "גזרי דין בעבירות סמים", icon: Scale, publicPath: "/drug-sentencing" },
       { slug: "comptroller-reports", label: "דוחות מבקר המדינה", icon: FileSearch, publicPath: "/comptroller-reports" },
+      { slug: "milon", label: "מילון", icon: BookMarked, editHref: "/admin/milon", publicPath: "/dictionary", dedicatedTool: true },
     ],
   },
   {

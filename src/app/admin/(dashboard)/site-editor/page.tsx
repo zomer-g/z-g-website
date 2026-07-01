@@ -45,6 +45,9 @@ export default function SiteEditorPage() {
       try {
         const results = await Promise.allSettled(
           PAGE_DEFS.map(async (def) => {
+            // Dedicated-tool pages (own model/table, e.g. the dictionary) have
+            // no /api/content row — skip the fetch so they don't show "לא נמצא".
+            if (def.dedicatedTool) return null;
             const res = await fetch(`/api/content/${def.slug}?draft=true`);
             if (!res.ok) return null;
             return (await res.json()) as PageData;
@@ -124,7 +127,9 @@ export default function SiteEditorPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              {card?.data ? (
+              {def.dedicatedTool ? (
+                <Badge variant="muted">ניהול ייעודי</Badge>
+              ) : card?.data ? (
                 <Badge variant={isPublished ? "success" : "muted"}>
                   {isPublished ? "פורסם" : "טיוטה"}
                 </Badge>
