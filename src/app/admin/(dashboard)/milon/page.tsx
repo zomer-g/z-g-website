@@ -12,6 +12,7 @@ interface MilonEntry {
   vocalized: string;
   partOfSpeech: string;
   domains: string[];
+  definitions: { text: string; label?: string }[];
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   order: number;
 }
@@ -133,10 +134,26 @@ export default function AdminMilonPage() {
                     >
                       <td className="px-4 py-3 text-sm text-muted">{entry.order}</td>
                       <td className="px-4 py-3">
-                        <div>
-                          <span className="font-bold text-primary">{entry.vocalized}</span>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/milon/${entry.id}`)}
+                          className="block text-right"
+                        >
+                          <span className="font-bold text-primary hover:underline">
+                            {entry.vocalized}
+                          </span>
                           <span className="mr-2 text-xs text-muted">({entry.term})</span>
-                        </div>
+                          {entry.definitions?.length > 0 && (
+                            <span className="mt-1 block max-w-md text-xs leading-relaxed text-muted line-clamp-2">
+                              {entry.definitions
+                                .map(
+                                  (d, di) =>
+                                    `${di + 1}. ${d.label ? `[${d.label}] ` : ""}${d.text}`,
+                                )
+                                .join("  ")}
+                            </span>
+                          )}
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">{entry.partOfSpeech}</td>
                       <td className="px-4 py-3">
