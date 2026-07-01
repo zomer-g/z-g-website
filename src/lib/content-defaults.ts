@@ -143,6 +143,7 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "מיזמים", href: "/projects", children: [] },
     { label: "תחומי עיסוק", href: "/services", children: [] },
     { label: "מאמרים", href: "/articles" },
+    { label: "מילון", href: "/dictionary" },
     { label: "פרסומים", href: "/media" },
     // "תובענות ייצוגיות" used to be a top-level entry — it lives
     // under /projects → /class-actions and is now in the "מיזמים"

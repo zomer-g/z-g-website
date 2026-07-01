@@ -27,6 +27,8 @@ import {
   BookOpen,
   ScrollText,
   Scale,
+  Feather,
+  BookMarked,
   type LucideIcon,
 } from "lucide-react";
 
@@ -58,6 +60,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "עורך האתר", href: "/admin/site-editor", icon: PenTool },
       { label: "מאמרים", href: "/admin/posts", icon: FileText },
+      { label: "הפליליסט", href: "/admin/plilist", icon: Feather },
+      { label: "מילון", href: "/admin/milon", icon: BookMarked },
       { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
       { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
       { label: "העלאת קבצים", href: "/admin/media", icon: Image },

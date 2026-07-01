@@ -55,6 +55,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   posts         Post[]
+  plilistPosts  PlilistPost[]
   createdAt     DateTime  @default(now())
 }
 
@@ -69,6 +70,28 @@ model Post {
   author      User       @relation(fields: [authorId], references: [id])
   authorId    String
   category    String?
+  tags        String[]   @default([])
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  seoTitle    String?
+  seoDesc     String?
+}
+
+// "הפליליסט" — the attorney's personal-perspective blog. Kept as its own
+// table (not a flavour of Post) so the professional "מאמרים" content and its
+// queries stay completely untouched. Hidden from the public nav; reachable at
+// /haplilist.
+model PlilistPost {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  content     Json
+  excerpt     String?
+  coverImage  String?
+  status      PostStatus @default(DRAFT)
+  author      User       @relation(fields: [authorId], references: [id])
+  authorId    String
   tags        String[]   @default([])
   publishedAt DateTime?
   createdAt   DateTime   @default(now())
@@ -786,6 +809,25 @@ model McpOauthAuthCode {
 
   @@index([expiresAt])
   @@map("mcp_oauth_auth_codes")
+}
+
+model MilonEntry {
+  id           String     @id @default(cuid())
+  slug         String     @unique
+  term         String
+  vocalized    String
+  partOfSpeech String     @map("part_of_speech")
+  etymology    String?
+  inflections  String?
+  domains      String[]   @default([])
+  definitions  Json
+  example      String
+  order        Int        @default(0)
+  status       PostStatus @default(DRAFT)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("milon_entries")
 }
 
 model McpOauthAccessToken {
