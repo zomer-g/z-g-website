@@ -31,6 +31,12 @@ const BASE = (process.env.MONITOR_BASE_URL || "https://www.z-g.co.il").replace(
 const TIMEOUT_MS = Number(process.env.MONITOR_TIMEOUT_MS || 90_000);
 // Above this we still PASS but warn — a canary for creeping slowness.
 const SLOW_MS = Number(process.env.MONITOR_SLOW_MS || 15_000);
+// Retry transient failures (timeout / 5xx) before declaring a break. The first
+// hit to a cold TAG-IT scope can 504→502 or time out; a warmed retry usually
+// succeeds, so this keeps a *scheduled* alert from flapping on warm-up blips
+// while still failing hard on genuine outages.
+const RETRIES = Number(process.env.MONITOR_RETRIES || 3);
+const RETRY_DELAY_MS = Number(process.env.MONITOR_RETRY_DELAY_MS || 5_000);
 
 interface Check {
   /** Human label shown in the test name. */
@@ -148,16 +154,59 @@ async function fetchJson(
   }
 }
 
-console.log(`\n[monitor] target: ${BASE}  (timeout ${TIMEOUT_MS}ms)\n`);
+/**
+ * Fetch with transient-failure retries. Returns as soon as a request comes
+ * back HTTP 200; otherwise retries (with a warm-up delay) up to RETRIES times
+ * and returns the LAST attempt's result — so a persistent break (e.g. a 400
+ * unknown_field wrapped as 502) still surfaces after exhausting retries.
+ */
+/**
+ * A permanent error won't fix itself on retry — e.g. our route wraps a TAG-IT
+ * 4xx (unknown_field, bad category) as a 502 carrying `upstreamStatus` in the
+ * body, or the route itself returns a 4xx. Fail fast on those instead of
+ * burning the full retry budget; keep retrying genuine transients (timeout,
+ * upstream 5xx, network).
+ */
+function isPermanent(r: { status: number; json: any } | null): boolean {
+  if (!r) return false;
+  if (r.status >= 400 && r.status < 500) return true;
+  const up = Number(r.json?.upstreamStatus);
+  return up >= 400 && up < 500;
+}
+
+async function fetchJsonWithRetry(path: string) {
+  let last: Awaited<ReturnType<typeof fetchJson>> | null = null;
+  let lastErr: Error | null = null;
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    try {
+      last = await fetchJson(path);
+      if (last.status === 200) return { result: last, attempts: attempt };
+      if (isPermanent(last)) return { result: last, attempts: attempt };
+    } catch (err) {
+      lastErr = err as Error;
+    }
+    if (attempt < RETRIES) {
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    }
+  }
+  if (last) return { result: last, attempts: RETRIES };
+  throw lastErr ?? new Error("request failed");
+}
+
+console.log(
+  `\n[monitor] target: ${BASE}  (timeout ${TIMEOUT_MS}ms, up to ${RETRIES} attempts)\n`,
+);
 
 for (const check of CHECKS) {
   test(`${check.name}  →  ${check.path}`, async () => {
-    const { status, ms, json, bodyText } = await fetchJson(check.path);
+    const { result, attempts } = await fetchJsonWithRetry(check.path);
+    const { status, ms, json, bodyText } = result;
+    const retryNote = attempts > 1 ? ` (after ${attempts} attempts)` : "";
 
     assert.equal(
       status,
       200,
-      `${check.page} [${check.upstream}] returned HTTP ${status} in ${ms}ms\n  body: ${bodyText.slice(0, 300)}`,
+      `${check.page} [${check.upstream}] returned HTTP ${status}${retryNote} in ${ms}ms\n  body: ${bodyText.slice(0, 300)}`,
     );
     assert.ok(json, `${check.page}: response was not valid JSON: ${bodyText.slice(0, 200)}`);
 
@@ -169,10 +218,10 @@ for (const check of CHECKS) {
 
     if (ms > SLOW_MS) {
       console.warn(
-        `[monitor] SLOW  ${check.page}: ${n} records in ${ms}ms (> ${SLOW_MS}ms)`,
+        `[monitor] SLOW  ${check.page}: ${n} records in ${ms}ms${retryNote} (> ${SLOW_MS}ms)`,
       );
     } else {
-      console.log(`[monitor] ok    ${check.page}: ${n} records in ${ms}ms`);
+      console.log(`[monitor] ok    ${check.page}: ${n} records in ${ms}ms${retryNote}`);
     }
   });
 }

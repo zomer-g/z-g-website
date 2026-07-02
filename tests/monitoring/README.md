@@ -44,9 +44,17 @@ Exit code is non-zero if anything fails — safe to wire into cron / uptime chec
 
 ## Scheduling (early warning)
 
-Point a scheduler at `npm run test:monitor` and alert on non-zero exit. Options:
-a GitHub Actions scheduled workflow (`on: schedule: cron`), a Render Cron Job,
-or an uptime service hitting the endpoints directly. Ask Claude to wire one up.
+A GitHub Actions workflow — `.github/workflows/monitor.yml` — runs this every
+3 hours against production and can be triggered manually from the Actions tab
+(**Run workflow**). It needs no secrets; when it fails, GitHub emails the repo
+owner. Change the `cron:` line to adjust frequency.
+
+To also run the direct TAG-IT probe in CI, add a repo secret `RULINGS_API_KEY`
+(Settings → Secrets and variables → Actions) — the workflow passes it through.
+
+The monitor retries transient failures (timeout / upstream 5xx) up to 3 times
+before failing, so a cold-cache blip on the slow scopes below doesn't flap the
+alert; permanent errors (e.g. a renamed filter field) fail fast.
 
 ## Known-flaky note
 
