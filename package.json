@@ -15,6 +15,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
+    "test:monitor": "node --import tsx --test tests/monitoring/*.test.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
