@@ -426,12 +426,24 @@ function userFilterClauses(
         clauses.push({ field: f.key, op, value: s });
       }
     } else if (f.control === "multiselect") {
-      // Several chosen values, matched as OR via `in` over an array field
-      // (e.g. meta.drug_types in ["קוקאין","חשיש"]).
+      // Several chosen values over a GIN array field. Two modes, chosen by the
+      // user via a sidecar key `<field>::mode`:
+      //   "or"  (default) → `in`  → array contains ANY of the values.
+      //   "and"           → AND of `contains` → array contains ALL of them.
       const arr = Array.isArray(v)
         ? v.map((x) => String(x).trim()).filter(Boolean)
         : [];
-      if (arr.length) clauses.push({ field: f.key, op: "in", value: arr });
+      if (arr.length) {
+        const mode = userFilters[`${f.key}::mode`];
+        if (mode === "and" && arr.length > 1) {
+          clauses.push({
+            op: "and",
+            clauses: arr.map((val) => ({ field: f.key, op: "contains", value: val })),
+          });
+        } else {
+          clauses.push({ field: f.key, op: "in", value: arr });
+        }
+      }
     } else if (f.control === "boolean") {
       const s = String(v).trim();
       if (s === "true") clauses.push({ field: f.key, op: "eq", value: true });

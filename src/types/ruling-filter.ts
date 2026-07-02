@@ -82,6 +82,11 @@ export interface RulingsFilterField {
   // over values discovered from the upstream schema (needed for fields whose
   // schema doesn't advertise enum samples, e.g. sql.הגנות_שנטענו.התקבלה).
   options?: string[];
+  // For "select" / "multiselect": display-only labels per option VALUE. The
+  // filter value sent upstream stays the raw option (e.g. "13"); the user sees
+  // the mapped label (e.g. "13 יצוא, יבוא, מסחר והספקה"). Missing keys fall back
+  // to the raw value.
+  optionLabels?: Record<string, string>;
   // For "select" / "text": how to match the user's choice against the field.
   // Defaults to "eq" for select / "contains" for text. The escape hatch is
   // "contains" on select — useful when the underlying field has many noisy

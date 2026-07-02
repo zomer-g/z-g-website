@@ -27,7 +27,15 @@ interface FilterField {
   control: FilterControl;
   // Optional accordion-group label; grouped filters collapse together.
   group?: string;
+  // Display-only labels per option value (select / multiselect). The stored/sent
+  // value stays the raw option; missing keys fall back to the raw value.
+  optionLabels?: Record<string, string>;
 }
+
+// Sidecar draft key carrying a multiselect's AND/OR mode (e.g.
+// "meta.drug_ordinance_sections::mode" → "and"). Kept separate so the option
+// array value stays a plain string[].
+const MS_MODE_SUFFIX = "::mode";
 
 // Reserved userFilters key carrying the cascading law/section selection.
 const LAW_SECTION_KEY = "__lawSection";
@@ -1111,8 +1119,10 @@ function RulingCard({
 
 /* ── User filter bar ── */
 
-// Friendly label for a select option value — booleans read as כן/לא.
-function optionLabel(o: string): string {
+// Friendly label for a select option value — booleans read as כן/לא; an
+// optional per-field map supplies richer labels (e.g. ordinance section titles).
+function optionLabel(o: string, labels?: Record<string, string>): string {
+  if (labels && labels[o]) return labels[o];
   if (o === "true") return "כן";
   if (o === "false") return "לא";
   return o;
@@ -1246,6 +1256,10 @@ function FilterBar({
       const sel = Array.isArray(v) ? v : [];
       const toggle = (o: string) =>
         setField(f.key, sel.includes(o) ? sel.filter((x) => x !== o) : [...sel, o]);
+      // AND/OR mode carried in the sidecar draft key. Default "or" (any-of).
+      const modeKey = f.key + MS_MODE_SUFFIX;
+      const msMode = draft[modeKey] === "and" ? "and" : "or";
+      const setMode = (m: "or" | "and") => setField(modeKey, m);
       // Long lists (e.g. drug-ordinance sections) collapse to the most-common
       // few; the rest are behind a "show more" toggle. Selected options stay
       // visible even when collapsed.
@@ -1259,10 +1273,43 @@ function FilterBar({
       return (
         // Full-width within the filter grid so the chip list gets its own row.
         <div key={f.key} className="sm:col-span-2 lg:col-span-3">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            {f.label}
-            {sel.length > 0 ? ` (${sel.length})` : ""}
-          </label>
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <label className="text-xs font-semibold text-gray-600">
+              {f.label}
+              {sel.length > 0 ? ` (${sel.length})` : ""}
+            </label>
+            {/* AND/OR toggle — only meaningful once 2+ options are picked. */}
+            {sel.length > 1 ? (
+              <div className="inline-flex rounded-md border border-gray-300 overflow-hidden text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setMode("or")}
+                  className="px-2 py-0.5 font-semibold transition"
+                  style={
+                    msMode === "or"
+                      ? { background: C_PRIMARY, color: "#fff" }
+                      : { background: "#fff", color: C_PRIMARY }
+                  }
+                  title="תוצאות שמכילות לפחות אחד מהערכים שנבחרו (או)"
+                >
+                  או
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("and")}
+                  className="px-2 py-0.5 font-semibold transition border-r border-gray-300"
+                  style={
+                    msMode === "and"
+                      ? { background: C_PRIMARY, color: "#fff" }
+                      : { background: "#fff", color: C_PRIMARY }
+                  }
+                  title="תוצאות שמכילות את כל הערכים שנבחרו (גם וגם)"
+                >
+                  גם
+                </button>
+              </div>
+            ) : null}
+          </div>
           <div className="flex flex-wrap gap-1.5 p-1 border border-gray-300 rounded-md">
             {opts.length === 0 ? (
               <span className="text-xs text-gray-400 px-1">—</span>
@@ -1282,7 +1329,7 @@ function FilterBar({
                           : { background: "#fff", color: C_PRIMARY, borderColor: "#cbd5e1" }
                       }
                     >
-                      {optionLabel(o)}
+                      {optionLabel(o, f.optionLabels)}
                     </button>
                   );
                 })}
@@ -1320,7 +1367,7 @@ function FilterBar({
             <option value="">הכל</option>
             {opts.map((o) => (
               <option key={o} value={o}>
-                {optionLabel(o)}
+                {optionLabel(o, f.optionLabels)}
               </option>
             ))}
           </select>
@@ -1704,9 +1751,15 @@ export function RulingsList({
           category: cat,
           page: String(p),
         });
-        const activeEntries = Object.entries(filters).filter(([, v]) =>
-          isFilterActive(v),
-        );
+        const activeEntries = Object.entries(filters).filter(([k, v]) => {
+          // A multiselect mode sidecar (`<field>::mode`) rides along only when
+          // its base field is actually active — so a stale mode never counts as
+          // a filter on its own (would wrongly flip initialPageSize → pageSize).
+          if (k.endsWith(MS_MODE_SUFFIX)) {
+            return isFilterActive(filters[k.slice(0, -MS_MODE_SUFFIX.length)]);
+          }
+          return isFilterActive(v);
+        });
         if (activeEntries.length > 0) {
           params.set("userFilters", JSON.stringify(Object.fromEntries(activeEntries)));
         }
@@ -1755,9 +1808,14 @@ export function RulingsList({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams();
-    const active = Object.entries(appliedFilters).filter(([, v]) =>
-      isFilterActive(v),
-    );
+    const active = Object.entries(appliedFilters).filter(([k, v]) => {
+      // Keep a multiselect mode sidecar only when its base field is active
+      // (mirrors the fetch serialization), so shared URLs stay clean.
+      if (k.endsWith(MS_MODE_SUFFIX)) {
+        return isFilterActive(appliedFilters[k.slice(0, -MS_MODE_SUFFIX.length)]);
+      }
+      return isFilterActive(v);
+    });
     if (active.length > 0) {
       sp.set("filters", JSON.stringify(Object.fromEntries(active)));
     }

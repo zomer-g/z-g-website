@@ -35,6 +35,10 @@ const QUERY = {
   // Show only 6 results until the user applies a filter (then 24) — keeps the
   // initial (slow, full-corpus) load light and nudges toward filtering.
   initialPageSize: 6,
+  // Free-text content search box (TAG-IT text_query over the full judgment text;
+  // enabled for scope 1 after TAG-IT FTS-indexed the content). Results carry
+  // meta.snippet (highlighted «…») + meta.rank.
+  fullTextSearch: true,
   displayFields: [
     // The document date is now shown in the card title (in parentheses), so
     // it's intentionally NOT a separate row here.
@@ -122,7 +126,36 @@ const QUERY = {
           key: "meta.drug_ordinance_sections",
           label: "סעיף בפקודת הסמים",
           control: "multiselect",
-          options: ["7", "13", "19א", "6", "10", "3", "9", "2", "13א", "31", "12", "25", "1", "9א", "21", "36", "19", "10א", "36א", "14", "113", "0", "7ק", "413", "4", "384"],
+          // Cleaned list (TAG-IT validated sections 1–42 + real letter-sections).
+          // 13א was merged into 13; 0/113/413/384/7ק were invalid and removed.
+          options: ["7", "13", "19א", "6", "10", "3", "9", "2", "31", "12", "25", "1", "9א", "21", "36", "19", "10א", "36א", "14", "4"],
+          // Marginal headings (כותרות שוליים) from פקודת הסמים המסוכנים [נוסח
+          // חדש], תשל"ג-1973 (he.wikisource). Display-only — the filter value
+          // stays the bare section number. NOTE: "9א" has no fallback here on
+          // purpose — there is no section 9א in the ordinance (9=חצרים →
+          // 10=כלים → 10א=כלים אסורים), so it shows bare; it's a TAG-IT
+          // cataloging artifact worth cleaning up upstream.
+          optionLabels: {
+            "1": "1 הגדרות",
+            "2": "2 פרטי היתר יבוא",
+            "3": "3 פרטי היתר יצוא",
+            "4": "4 פרטי היתר הטיה",
+            "6": "6 ייצור, הכנה והפקה",
+            "7": "7 החזקה ושימוש",
+            "9": "9 חצרים",
+            "10": "10 כלים",
+            "10א": "10א כלים אסורים",
+            "12": "12 שימוש מותר",
+            "13": "13 יצוא, יבוא, מסחר והספקה",
+            "14": "14 תיווך",
+            "19": "19 סייג",
+            "19א": "19א עונשין",
+            "21": "21 הדחת קטין לסמים מסוכנים",
+            "25": "25 מאסר חובה",
+            "31": "31 חזקות",
+            "36": "36 חילוט רשות",
+            "36א": "36א חילוט רכוש בהליך פלילי",
+          },
           group: "עבירה",
         },
         // Second row: the other-law name + a free-text section (any law).
