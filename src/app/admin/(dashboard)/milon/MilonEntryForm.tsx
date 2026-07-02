@@ -295,37 +295,54 @@ export default function MilonEntryForm({ initialValues, mode }: MilonEntryFormPr
             הוסף הגדרה
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {form.definitions.map((def, i) => (
-            <div key={i} className="flex gap-2 items-start">
-              <span className="mt-2.5 text-xs font-semibold text-muted shrink-0 w-4 text-center">
-                {i + 1}.
-              </span>
-              <input
-                className={inputCls + " w-28 shrink-0"}
-                value={def.label}
-                onChange={(e) => setDef(i, "label", e.target.value)}
-                placeholder="בהשאלה"
-                dir="rtl"
-              />
+            <div
+              key={i}
+              className="rounded-lg border border-border bg-gray-50/50 p-4"
+            >
+              {/* Row header: number + remove */}
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm font-semibold text-primary">
+                  הגדרה {i + 1}
+                </span>
+                {form.definitions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeDef(i)}
+                    className="inline-flex items-center gap-1 rounded p-1 text-xs text-gray-400 transition-colors hover:bg-red-100 hover:text-red-600"
+                    aria-label={`הסר הגדרה ${i + 1}`}
+                  >
+                    <Trash2 size={14} />
+                    הסר
+                  </button>
+                )}
+              </div>
+
+              {/* Main definition text — the prominent field */}
+              <label className="mb-1 block text-xs font-medium text-muted">
+                טקסט ההגדרה
+              </label>
               <textarea
-                className={inputCls + " flex-1 resize-none"}
-                rows={2}
+                className={inputCls + " w-full resize-none"}
+                rows={3}
                 value={def.text}
                 onChange={(e) => setDef(i, "text", e.target.value)}
-                placeholder="הגדרה..."
+                placeholder="כתוב כאן את ההגדרה המלאה..."
                 dir="rtl"
               />
-              {form.definitions.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeDef(i)}
-                  className="mt-1 rounded p-1.5 text-gray-400 hover:bg-red-100 hover:text-red-600 transition-colors"
-                  aria-label="הסר הגדרה"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
+
+              {/* Optional label/tag — clearly secondary */}
+              <label className="mb-1 mt-3 block text-xs font-medium text-muted">
+                תווית (אופציונלי — למשל &quot;בהשאלה&quot;, &quot;ברשתות החברתיות&quot;)
+              </label>
+              <input
+                className={inputCls + " w-full sm:w-64"}
+                value={def.label}
+                onChange={(e) => setDef(i, "label", e.target.value)}
+                placeholder="השאר ריק אם אין"
+                dir="rtl"
+              />
             </div>
           ))}
         </div>
