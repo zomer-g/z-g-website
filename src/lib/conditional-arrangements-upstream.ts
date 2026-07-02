@@ -206,11 +206,19 @@ export async function getLatestResourceId(datasetId: string): Promise<string | n
   const json = (await res.json()) as OverVersionObject[] | { results: OverVersionObject[] };
   const versions = Array.isArray(json) ? json : (json.results ?? []);
   if (!versions.length) return null;
-  // Pick the version with the highest version_number
-  const latest = versions.reduce((best, v) =>
-    v.version_number > best.version_number ? v : best,
+  // Newest version first. over.org.il recently began storing some scraped
+  // versions as Cloudflare R2 CSV paths ("r2:datasets/…") instead of loading
+  // them into the CKAN DataStore. datastore_search returns 404 for an R2 path,
+  // so skip those and fall back to the newest version that still exposes a real
+  // DataStore resource UUID — that data is a few days older but queryable.
+  const sorted = [...versions].sort(
+    (a, b) => b.version_number - a.version_number,
   );
-  return latest.resource_mappings?.[RESOURCE_KEY] ?? null;
+  for (const v of sorted) {
+    const rid = v.resource_mappings?.[RESOURCE_KEY];
+    if (rid && !rid.startsWith("r2:")) return rid;
+  }
+  return null;
 }
 
 /* ─── odata.org.il — CKAN DataStore pagination ───────────────────────── */
