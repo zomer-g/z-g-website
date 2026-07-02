@@ -219,3 +219,37 @@ html.view-clean .skip-link {
 html.view-clean body {
   padding-top: 0 !important;
 }
+
+/* ── /dictionary interactive lexicon ── */
+@keyframes milonFlip {
+  from {
+    opacity: 0;
+    transform: translateX(-14px) rotateY(-4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) rotateY(0);
+  }
+}
+.milon-flip {
+  animation: milonFlip 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: right center;
+}
+/* Subtle aged-paper backdrop for the open dictionary page. */
+.milon-paper {
+  background-color: #fdfcf9;
+  background-image:
+    radial-gradient(circle at 15% 12%, rgba(201, 168, 76, 0.05), transparent 40%),
+    radial-gradient(circle at 85% 88%, rgba(26, 54, 93, 0.04), transparent 45%);
+}
+.milon-index-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+.milon-index-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.milon-index-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
