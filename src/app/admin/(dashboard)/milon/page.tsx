@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import HeaderSettingsPanel from "./HeaderSettingsPanel";
 
 interface MilonEntry {
   id: string;
@@ -97,6 +98,9 @@ export default function AdminMilonPage() {
           ערך חדש
         </Button>
       </div>
+
+      {/* Public-page hero title / subtitle */}
+      <HeaderSettingsPanel />
 
       {entries.length === 0 ? (
         <div className="rounded-lg border border-border bg-background p-12 text-center">

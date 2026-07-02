@@ -3,6 +3,11 @@ import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { prisma } from "@/lib/prisma";
 import DictionaryBrowser, { type MilonEntryRow } from "./DictionaryBrowser";
+import {
+  DICTIONARY_HEADER_DEFAULTS,
+  DICTIONARY_HEADER_SLUG,
+  type DictionaryHeader,
+} from "./header-defaults";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +31,26 @@ async function getEntries(): Promise<MilonEntryRow[]> {
   }
 }
 
+async function getHeader(): Promise<DictionaryHeader> {
+  try {
+    const page = await prisma.page.findUnique({
+      where: { slug: DICTIONARY_HEADER_SLUG },
+      select: { content: true },
+    });
+    const c = (page?.content ?? {}) as Partial<DictionaryHeader>;
+    return {
+      title: c.title?.trim() || DICTIONARY_HEADER_DEFAULTS.title,
+      subtitle: c.subtitle?.trim() || DICTIONARY_HEADER_DEFAULTS.subtitle,
+    };
+  } catch {
+    return DICTIONARY_HEADER_DEFAULTS;
+  }
+}
+
 /* ─── Page ─── */
 
 export default async function MilonPage() {
-  const entries = await getEntries();
+  const [entries, header] = await Promise.all([getEntries(), getHeader()]);
 
   return (
     <PublicLayout>
@@ -44,11 +65,10 @@ export default async function MilonPage() {
             id="milon-heading"
             className="font-serif text-5xl font-bold tracking-tight text-white sm:text-6xl"
           >
-            מִילוֹן
+            {header.title}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/75 sm:text-lg">
-            ביטויים ומונחים שהמצאתי סביב הפעילות בתחומי משפט, טכנולוגיה ושקיפות
-            ממשלתית — כי לפעמים השפה הקיימת לא מספיקה.
+            {header.subtitle}
           </p>
         </Container>
       </section>
