@@ -204,9 +204,46 @@ export async function syncScope(
   try {
     let page = 1;
     let total = Infinity;
+    // Walk-start for the prune cutoff. A full walk that resumes an earlier
+    // interrupted walk keeps THAT walk's start time, so docs upserted by the
+    // earlier attempt aren't pruned as "unseen".
+    let walkStart = startedAt;
     // Safety cap: largest scope today is ~50k docs = 500 pages.
     const HARD_PAGE_CAP = 1200;
     const maxPages = mode === "incremental" ? incrementalPages : HARD_PAGE_CAP;
+
+    if (mode === "full") {
+      // Resume an interrupted full walk — TAG-IT 502s intermittently, and a
+      // several-hundred-page walk rarely survives in one run. New uploads
+      // only push unseen docs to LATER pages (upload-date order), so
+      // continuing from the last clean page stays a superset; the rare
+      // deletion-shift miss is corrected by the next complete walk.
+      const st = await prisma.tagitSyncState
+        .findUnique({ where: { scopeId } })
+        .catch(() => null);
+      const RESUME_MAX_AGE_MS = 48 * 3600_000;
+      if (
+        st &&
+        st.lastFullPage > 0 &&
+        st.fullSyncStartedAt &&
+        Date.now() - st.fullSyncStartedAt.getTime() < RESUME_MAX_AGE_MS
+      ) {
+        page = st.lastFullPage + 1;
+        walkStart = st.fullSyncStartedAt;
+        console.log(
+          `rulings-mirror: scope ${scopeId} resuming full walk from page ${page}`,
+        );
+      } else {
+        await prisma.tagitSyncState
+          .upsert({
+            where: { scopeId },
+            create: { scopeId, lastFullPage: 0, fullSyncStartedAt: startedAt },
+            update: { lastFullPage: 0, fullSyncStartedAt: startedAt },
+          })
+          .catch(() => {});
+      }
+    }
+
     while (page <= maxPages && (page - 1) * PAGE_SIZE < total) {
       const res = await fetchPagePatiently(scopeId, page);
       if (!res) {
@@ -219,6 +256,11 @@ export async function syncScope(
       await upsertBatch(scopeId, res.items);
       result.pagesFetched += 1;
       result.docsUpserted += res.items.length;
+      if (mode === "full") {
+        await prisma.tagitSyncState
+          .updateMany({ where: { scopeId }, data: { lastFullPage: page } })
+          .catch(() => {});
+      }
       if (res.items.length < PAGE_SIZE) break; // last page
       page += 1;
       // Be gentle with TAG-IT's small box.
@@ -233,12 +275,32 @@ export async function syncScope(
     );
 
     if (mode === "full") {
-      // Every page fetched cleanly → anything we didn't touch this run no
-      // longer exists upstream (deleted / marked duplicate / scope hidden).
-      const pruned = await prisma.tagitDoc.deleteMany({
-        where: { scopeId, syncedAt: { lt: startedAt } },
+      // The walk completed → anything untouched since walkStart no longer
+      // exists upstream (deleted / marked duplicate / scope hidden). Guarded:
+      // if the candidate count is implausibly large (a resume edge case or a
+      // shrunken upstream total), skip pruning and let the next clean walk
+      // handle it — never mass-delete on a suspect signal.
+      const pruneCandidates = await prisma.tagitDoc.count({
+        where: { scopeId, syncedAt: { lt: walkStart } },
       });
-      result.docsPruned = pruned.count;
+      const mirroredNow = await prisma.tagitDoc.count({ where: { scopeId } });
+      const pruneCap = Math.max(50, Math.floor(mirroredNow * 0.05));
+      if (pruneCandidates > 0 && pruneCandidates <= pruneCap) {
+        const pruned = await prisma.tagitDoc.deleteMany({
+          where: { scopeId, syncedAt: { lt: walkStart } },
+        });
+        result.docsPruned = pruned.count;
+      } else if (pruneCandidates > pruneCap) {
+        console.warn(
+          `rulings-mirror: scope ${scopeId} skipping prune of ${pruneCandidates} docs (> cap ${pruneCap})`,
+        );
+      }
+      await prisma.tagitSyncState
+        .updateMany({
+          where: { scopeId },
+          data: { lastFullPage: 0, fullSyncStartedAt: null },
+        })
+        .catch(() => {});
       await updateSyncState(scopeId, {
         upstreamTotal: result.upstreamTotal,
         lastFullSyncAt: new Date(),
@@ -279,15 +341,28 @@ export function isSyncRunning(): boolean {
   return syncInFlight !== null;
 }
 
-/** Run a sync across all mirrored scopes; concurrent calls join the run. */
+/**
+ * Run a sync across all mirrored scopes; concurrent calls join the run.
+ * mode="auto" picks per scope: FULL (with resume) until the scope has ever
+ * completed a full walk, then incremental — so the regular 15-min tick keeps
+ * chipping away at interrupted bootstraps until every scope is ready.
+ */
 export function syncAllScopes(
-  mode: "incremental" | "full",
+  mode: "incremental" | "full" | "auto",
 ): Promise<SyncRunResult[]> {
   if (syncInFlight) return syncInFlight;
   syncInFlight = (async () => {
     const results: SyncRunResult[] = [];
     for (const scopeId of mirrorScopes()) {
-      results.push(await syncScope(scopeId, mode));
+      let scopeMode: "incremental" | "full" =
+        mode === "auto" ? "incremental" : mode;
+      if (mode === "auto") {
+        const st = await prisma.tagitSyncState
+          .findUnique({ where: { scopeId } })
+          .catch(() => null);
+        if (!st?.lastFullSyncAt) scopeMode = "full";
+      }
+      results.push(await syncScope(scopeId, scopeMode));
     }
     return results;
   })().finally(() => {

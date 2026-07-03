@@ -46,7 +46,9 @@ export async function register() {
         await syncAllScopes("full");
         return;
       }
-      await syncAllScopes("incremental");
+      // "auto" = incremental for ready scopes, full-with-resume for scopes
+      // whose bootstrap walk hasn't completed yet (TAG-IT 502s interrupt it).
+      await syncAllScopes("auto");
     } catch (err) {
       console.error("rulings-mirror: scheduled sync failed:", err);
     }
@@ -62,7 +64,7 @@ export async function register() {
       const hasUnsynced = mirrorScopes().some((id) => !synced.has(id));
       if (hasUnsynced && !isSyncRunning()) {
         console.log("rulings-mirror: bootstrap full sync starting");
-        await syncAllScopes("full").catch((err) =>
+        await syncAllScopes("auto").catch((err) =>
           console.error("rulings-mirror: bootstrap sync failed:", err),
         );
       }

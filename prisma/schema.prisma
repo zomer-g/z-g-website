@@ -885,6 +885,12 @@ model TagitSyncState {
   // contains; scalar → substring) — persisted here so the mirror keeps
   // exact filter semantics even when TAG-IT is unreachable.
   fieldSchema       Json?     @map("field_schema")
+  // Full-walk resume state: TAG-IT 502s intermittently, so a full walk of a
+  // large scope rarely survives in one run. lastFullPage = last page upserted
+  // cleanly; the next full run resumes from lastFullPage+1 as long as
+  // fullSyncStartedAt is fresh. Both reset when the walk completes.
+  lastFullPage      Int       @default(0) @map("last_full_page")
+  fullSyncStartedAt DateTime? @map("full_sync_started_at")
   lastIncrementalAt DateTime? @map("last_incremental_at")
   lastFullSyncAt    DateTime? @map("last_full_sync_at")
   lastError         String?   @map("last_error")
