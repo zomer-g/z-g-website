@@ -88,6 +88,11 @@ export interface FetchRulingsPageOptions {
   // text it's simply ignored upstream and the page still lists.
   textQuery?: string;
   signal?: AbortSignal;
+  // Per-request timeout override. The mirror SYNC passes a patient budget
+  // (~3 min): a cold TAG-IT schema build takes >2 min under load, and a
+  // background sync would rather wait than abort/retry into the same wall.
+  // User-facing requests keep the default PAGE_TIMEOUT_MS.
+  timeoutMs?: number;
 }
 
 export interface RulingsPageResult {
@@ -98,10 +103,13 @@ export interface RulingsPageResult {
 // Hard per-request timeout. Most scope queries return in ~1-2s, but a COLD
 // load (first request after the per-scope catalog cache expires, ~5 min) can
 // take longer on a big scope like scope-1 (~49k docs) — TAG-IT recommends a
-// ≥30s client budget for that. We set 35s so cold loads succeed (then the
-// route's page cache keeps subsequent loads fast), while still aborting before
-// the fetch hangs the serverless function indefinitely.
-const PAGE_TIMEOUT_MS = 35_000;
+// ≥30s client budget for that. Scope 4 (defamation) has also been observed
+// intermittently taking ~13–45s for its filtered default query. We set 50s so
+// those slow-but-completing loads succeed (then the route's page cache keeps
+// subsequent loads fast) instead of 504-ing, while still bounding the wait well
+// under Render's ~60s proxy limit. Paired with a single attempt on timeout
+// (see below) so the worst case stays ~50s, not 2×.
+const PAGE_TIMEOUT_MS = 50_000;
 const SCHEMA_TIMEOUT_MS = 9_000;
 
 async function fetchWithTimeout(
@@ -142,20 +150,25 @@ export async function fetchUpstreamRulingsPage(
     u.searchParams.set("text_query", opts.textQuery.trim());
   }
 
+  const timeoutMs = opts.timeoutMs ?? PAGE_TIMEOUT_MS;
   const MAX_ATTEMPTS = 2;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     let res: Response;
     try {
-      res = await fetchWithTimeout(u.toString(), apiKey, PAGE_TIMEOUT_MS, opts.signal);
+      res = await fetchWithTimeout(u.toString(), apiKey, timeoutMs, opts.signal);
     } catch (err) {
-      // AbortError = our timeout (TAG-IT too slow) or caller cancelled.
-      if (attempt < MAX_ATTEMPTS) {
+      // AbortError = our timeout (TAG-IT too slow) or caller cancelled. Don't
+      // retry a timeout — the query is genuinely slow, so a second attempt just
+      // doubles the wait (this was turning a 50s slow load into a 100s one).
+      // Retry only genuine transient network errors.
+      const isAbort = (err as Error)?.name === "AbortError";
+      if (!isAbort && attempt < MAX_ATTEMPTS) {
         await new Promise((r) => setTimeout(r, 600));
         continue;
       }
       throw new UpstreamError(
         504,
-        `TAG-IT request timed out after ${PAGE_TIMEOUT_MS}ms (${(err as Error)?.name || "fetch error"})`,
+        `TAG-IT request timed out after ${timeoutMs}ms (${(err as Error)?.name || "fetch error"})`,
       );
     }
     if (res.ok) {
