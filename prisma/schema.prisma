@@ -841,3 +841,54 @@ model McpOauthAccessToken {
   @@index([expiresAt])
   @@map("mcp_oauth_access_tokens")
 }
+
+// ── TAG-IT local mirror ──
+// A periodically-synced copy of the TAG-IT rulings corpora, so /api/rulings
+// serves listings from OUR Postgres (tens of ms) instead of querying
+// tag-it.biz per request (observed 136–151s cold, 502s when its box is
+// thrashing). `data` holds the full upstream document in its "new shape"
+// ({id, ai:{}, sql:{}, meta:{}}) so the existing normalize/flatten pipeline
+// works on it unchanged. text_query (full-text) searches still pass through
+// to TAG-IT — the mirror does not hold document text.
+model TagitDoc {
+  scopeId Int @map("scope_id")
+  docId   Int @map("doc_id")
+  data    Json
+  // Promoted from meta.document_date for the default newest-first sort;
+  // null when the upstream doc has no parseable date (sorted last).
+  documentDate DateTime? @map("document_date")
+  syncedAt     DateTime  @updatedAt @map("synced_at")
+
+  @@id([scopeId, docId])
+  @@index([scopeId, documentDate(sort: Desc)])
+  // The /rulings/[id] detail page looks up by doc id alone (scope unknown).
+  @@index([docId])
+  // Accelerates `data @? '$.meta.topics[*] ? (@ == "…")'`-style jsonpath
+  // predicates (the compiled form of eq / array-contains filter leaves).
+  @@index([data(ops: JsonbPathOps)], type: Gin)
+  @@map("tagit_docs")
+}
+
+// One row per mirrored scope: sync bookkeeping + the upstream `total`, so the
+// route can tell an empty mirror ("not synced yet — fall back to upstream")
+// from a genuinely empty scope. Scopes are mirrored in FULL (no base filter;
+// z-g-db has 15GB disk, the whole corpus is ~0.5GB) so the mirror stays valid
+// whatever the admin sets as the page query. syncFilterHash is kept for a
+// future filtered-mirror mode; it is null for full mirrors.
+model TagitSyncState {
+  scopeId           Int       @id @map("scope_id")
+  upstreamTotal     Int?      @map("upstream_total")
+  mirroredCount     Int       @default(0) @map("mirrored_count")
+  syncFilterHash    String?   @map("sync_filter_hash")
+  // TAG-IT's field catalog for the scope, captured at sync time. The query
+  // compiler needs each field's declared type ("string[]" → exact-element
+  // contains; scalar → substring) — persisted here so the mirror keeps
+  // exact filter semantics even when TAG-IT is unreachable.
+  fieldSchema       Json?     @map("field_schema")
+  lastIncrementalAt DateTime? @map("last_incremental_at")
+  lastFullSyncAt    DateTime? @map("last_full_sync_at")
+  lastError         String?   @map("last_error")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("tagit_sync_state")
+}

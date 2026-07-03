@@ -46,8 +46,18 @@ const SCOPE_TO_PARENT: Record<number, { slug: string; title: string }> = {
 
 async function fetchDoc(
   id: number,
-  apiKey: string,
+  apiKey: string | undefined,
 ): Promise<{ doc: Record<string, unknown>; scope: number } | null> {
+  // Local mirror first — a PK-ish lookup in our Postgres instead of up to
+  // three TAG-IT list queries (which can take minutes when its box is loaded).
+  try {
+    const { findMirrorDoc } = await import("@/lib/rulings-mirror");
+    const hit = await findMirrorDoc(id);
+    if (hit) return { doc: hit.item as Record<string, unknown>, scope: hit.scopeId };
+  } catch (err) {
+    console.error("rulings mirror doc lookup failed; trying upstream:", err);
+  }
+  if (!apiKey) return null;
   const filter = encodeURIComponent(
     JSON.stringify({ field: "meta.id", op: "eq", value: id }),
   );
@@ -72,8 +82,9 @@ async function fetchDoc(
 }
 
 async function getRuling(id: number): Promise<DetailRuling | null> {
+  // No early bail on a missing API key — the local mirror can serve the doc
+  // even when TAG-IT credentials are absent (fetchDoc handles both).
   const apiKey = getApiKey();
-  if (!apiKey) return null;
   const found = await fetchDoc(id, apiKey);
   if (!found) return null;
   const { doc, scope } = found;

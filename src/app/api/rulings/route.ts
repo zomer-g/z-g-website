@@ -7,6 +7,11 @@ import {
   type UpstreamRulingItem,
   type UpstreamSchemaField,
 } from "@/lib/rulings-upstream";
+import {
+  mirrorReady,
+  queryMirrorPage,
+  queryMirrorBulk,
+} from "@/lib/rulings-mirror";
 import { getPageContent } from "@/lib/content";
 import type {
   DefamationRulingsPageContent,
@@ -35,36 +40,73 @@ function canonLaw(name: string): string {
     .trim();
 }
 
-// Does a document satisfy the law/section selection? Reads the array field,
-// scopes sections to elements matching the chosen law, and applies OR/AND.
+// Does a document satisfy the law/section selection? Extracts (law, section)
+// pairs from the claims field, scopes sections to the chosen law, applies
+// OR/AND. Handles BOTH document shapes:
+//  • legacy nested: sql[arrayKey] = [{שם_חוק_רשמי, סעיף_החוק, …}, …]
+//  • current flat:  TAG-IT's schema stopped advertising the parent key and
+//    instead emits parallel leaf arrays under flat dotted keys, e.g.
+//    sql["טענות_סעיפי_חוק_שנדונו.שם_חוק_רשמי"] = [law, law, …] and
+//    sql["טענות_סעיפי_חוק_שנדונו.סעיף_החוק"] = [section, section, …],
+//    aligned by element order.
+function lawSectionPairs(
+  sql: Record<string, unknown>,
+  cfg: LawSectionFilterConfig,
+): { law: string; section: string }[] {
+  const parent = sql[cfg.arrayKey];
+  if (Array.isArray(parent)) {
+    const elements = parent.filter(
+      (x) => x && typeof x === "object",
+    ) as Record<string, unknown>[];
+    if (elements.length > 0) {
+      return elements.map((el) => {
+        let law = "";
+        for (const k of cfg.lawSubKeys) {
+          const v = el[k];
+          if (typeof v === "string" && v.trim()) {
+            law = canonLaw(v);
+            break;
+          }
+        }
+        const sec = el[cfg.sectionSubKey];
+        return { law, section: typeof sec === "string" ? sec : "" };
+      });
+    }
+  }
+  // Flat parallel arrays.
+  const asArr = (v: unknown): unknown[] =>
+    Array.isArray(v) ? v : v == null || v === "" ? [] : [v];
+  let laws: unknown[] = [];
+  for (const k of cfg.lawSubKeys) {
+    laws = asArr(sql[`${cfg.arrayKey}.${k}`]);
+    if (laws.length) break;
+  }
+  const sections = asArr(sql[`${cfg.arrayKey}.${cfg.sectionSubKey}`]);
+  const n = Math.max(laws.length, sections.length);
+  const pairs: { law: string; section: string }[] = [];
+  for (let i = 0; i < n; i++) {
+    pairs.push({
+      law: typeof laws[i] === "string" ? canonLaw(laws[i] as string) : "",
+      section: typeof sections[i] === "string" ? (sections[i] as string) : "",
+    });
+  }
+  return pairs;
+}
+
 function matchesLawSection(
   doc: UpstreamRulingItem,
   sel: LawSectionSelection,
   cfg: LawSectionFilterConfig,
 ): boolean {
   const sql = ((doc as Record<string, unknown>).sql as Record<string, unknown>) || {};
-  const arr = sql[cfg.arrayKey];
-  const elements = Array.isArray(arr)
-    ? (arr.filter((x) => x && typeof x === "object") as Record<string, unknown>[])
-    : [];
-  const elLaw = (el: Record<string, unknown>): string => {
-    for (const k of cfg.lawSubKeys) {
-      const v = el[k];
-      if (typeof v === "string" && v.trim()) return canonLaw(v);
-    }
-    return "";
-  };
+  const pairs = lawSectionPairs(sql, cfg);
   // Restrict to elements of the chosen law (when a law is selected).
-  const scoped = sel.law
-    ? elements.filter((el) => elLaw(el) === sel.law)
-    : elements;
+  const scoped = sel.law ? pairs.filter((p) => p.law === sel.law) : pairs;
   if (sel.law && scoped.length === 0) return false;
   const wanted = (sel.sections || []).filter(Boolean);
   if (wanted.length === 0) return true; // law-only filter
   const present = new Set(
-    scoped
-      .map((el) => el[cfg.sectionSubKey])
-      .filter((v): v is string => typeof v === "string" && v.trim() !== ""),
+    scoped.map((p) => p.section).filter((s) => s.trim() !== ""),
   );
   return sel.mode === "and"
     ? wanted.every((s) => present.has(s))
@@ -649,6 +691,9 @@ export async function GET(req: NextRequest) {
       const def = config.sortFields[0];
       sortKey = (def.defaultDir === "asc" ? "" : "-") + def.key;
     }
+    // Decomposed form for the local-mirror query ("" → default newest-first).
+    const sortDesc = !sortKey || sortKey.startsWith("-");
+    const sortField = sortKey ? sortKey.replace(/^-/, "") : null;
 
     const lawSectionResponse = config.lawSectionFilter
       ? {
@@ -683,6 +728,27 @@ export async function GET(req: NextRequest) {
         .digest("hex")
         .slice(0, 16)}`;
       let docs = bulkGet(bulkKey);
+      let bulkSource = "BULK";
+      // Local mirror first — the upstream crawl (30 pages × ~1s, or much
+      // worse when TAG-IT is loaded) becomes a single indexed SQL query.
+      if (!docs && (await mirrorReady(scopeId))) {
+        try {
+          docs = await queryMirrorBulk({
+            scopeId,
+            filter: narrowFilter,
+            sortKey: sortField,
+            sortDesc,
+          });
+          bulkSource = "MIRROR-BULK";
+          bulkSet(bulkKey, docs, config.ttlMs);
+        } catch (err) {
+          console.error(
+            "rulings mirror bulk query failed; falling back to upstream:",
+            err,
+          );
+          docs = null;
+        }
+      }
       if (!docs) {
         try {
           docs = await fetchAllUpstreamRulings({
@@ -737,7 +803,7 @@ export async function GET(req: NextRequest) {
           headers: {
             "Cache-Control":
               "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
-            "X-Cache": "BULK",
+            "X-Cache": bulkSource,
           },
         },
       );
@@ -750,6 +816,32 @@ export async function GET(req: NextRequest) {
       .slice(0, 16)}`;
     let entry = pageCacheGet(cacheKey);
     let cacheStatus = entry ? "HIT" : "MISS";
+    if (!entry) {
+      // ── Local mirror first ──
+      // Serves the page from OUR Postgres in tens of ms. text_query is the
+      // exception — full-text search needs the document text, which only
+      // TAG-IT holds. Any mirror failure falls through to the upstream path.
+      if (!textQuery && (await mirrorReady(scopeId))) {
+        try {
+          const res = await queryMirrorPage({
+            scopeId,
+            page,
+            size,
+            filter: combined,
+            sortKey: sortField,
+            sortDesc,
+          });
+          pageCacheSet(cacheKey, res.items, res.total, config.ttlMs);
+          entry = { items: res.items, total: res.total, ts: Date.now(), ttl: config.ttlMs };
+          cacheStatus = "MIRROR";
+        } catch (err) {
+          console.error(
+            "rulings mirror page query failed; falling back to upstream:",
+            err,
+          );
+        }
+      }
+    }
     if (!entry) {
       try {
         const res = await fetchUpstreamRulingsPage({
