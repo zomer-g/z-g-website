@@ -128,7 +128,11 @@ function normalizeRanks(ranks: (number | undefined)[]): (number | undefined)[] {
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const skip = clampInt(params.get("skip"), 0, 0);
-  const limit = Math.min(100, Math.max(1, clampInt(params.get("limit"), 1, 24)));
+  // Cap at 12: scope-13's sorted "new shape" projection on TAG-IT scales
+  // ~2.2s/doc, so size 24 + sort times out (~54s → 502). 12 completes in ~17s.
+  // Defence-in-depth alongside the client PAGE_SIZE=12 so a direct/oversized
+  // request can't re-trigger the timeout. Revisit once TAG-IT indexes the sort.
+  const limit = Math.min(12, Math.max(1, clampInt(params.get("limit"), 1, 12)));
   const q = params.get("q")?.trim() || "";
   const dateFrom = params.get("date_from") || null;
   const dateTo = params.get("date_to") || null;

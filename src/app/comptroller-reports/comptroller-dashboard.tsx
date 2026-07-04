@@ -12,9 +12,13 @@ import type { ComptrollerReport } from "@/types/comptroller-report";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
 
-// 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
+// 12 = LCM(1, 2, 3) × 2 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
-const PAGE_SIZE = 24;
+// Capped at 12 (not 24) because scope-13's sorted "new shape" projection on
+// TAG-IT scales ~2.2s/doc: size 24 + sort=-meta.document_date takes ~54s and
+// times out (502), while size 12 completes in ~17s. Pending a TAG-IT-side fix
+// (index/project the sort field like meta.foi_costs_shekels), keep this at 12.
+const PAGE_SIZE = 12;
 
 const C_PRIMARY = "#1a365d";
 const C_PD = "#2a6f97";

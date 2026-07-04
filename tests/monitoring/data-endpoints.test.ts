@@ -99,10 +99,14 @@ const CHECKS: Check[] = [
     count: (j) => j.total,
   },
   {
+    // NOTE: test the REAL page size, not limit=1. A limit=1 probe returned fast
+    // while the actual page (limit=24, since capped to 12) sorted by
+    // meta.document_date timed out at 50s → 502. Mirror what the page requests
+    // so size/sort-scaling regressions surface here.
     name: "דוחות מבקר המדינה (comptroller · scope 13)",
     page: "/comptroller-reports",
     upstream: "TAG-IT · rulings scope 13",
-    path: "/api/comptroller-reports/documents?limit=1",
+    path: "/api/comptroller-reports/documents?limit=12&skip=0",
     count: (j) => j.total,
   },
   {
