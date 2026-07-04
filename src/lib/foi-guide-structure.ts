@@ -77,6 +77,13 @@ function collectHeadings(html: string): Heading[] {
   return out;
 }
 
+// Only h2 headings mark the top-level "this subsection is about clause X"
+// boundary. Deeper headings can ALSO happen to mention a clause in passing
+// (e.g. an h3 aside "11.5.5 היחס בין סעיף 9(א)(4) לסעיף 20" nested inside the
+// 9(א)(4) h2) without meaning a new clause subsection has started — matching
+// on those too would make the following examples list look like a sibling of
+// that aside rather than a child of the real owning h2, and wrongly trip the
+// combined-block heuristic below.
 function nearestLawSectionRef(
   headings: Heading[],
   beforePos: number,
@@ -84,10 +91,60 @@ function nearestLawSectionRef(
   for (let i = headings.length - 1; i >= 0; i--) {
     const h = headings[i];
     if (h.pos >= beforePos) continue;
+    if (h.level !== 2) continue;
     const mm = h.text.match(LAW_SECTION_RE);
     if (mm) return { ref: mm[1], heading: h };
   }
   return null;
+}
+
+// Every distinct clause ref an example's own text mentions, normalised, in
+// order of appearance. Only consulted for "combined" examples blocks — see
+// isNestedExamplesHeading.
+function allSectionRefsInText(text: string): string[] {
+  const seen = new Set<string>();
+  const re = new RegExp(LAW_SECTION_RE.source, "g");
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    seen.add(normaliseSectionRef(m[1]));
+  }
+  return [...seen];
+}
+
+// Numbered heading prefix: "12.2.3 דוגמאות…" → "12.2.3", "13.7 דוגמאות…" → "13.7".
+function numberingPrefix(headingText: string): string | null {
+  const m = headingText.match(/^(\d+(?:\.\d+)*)/);
+  return m ? m[1] : null;
+}
+
+// Most chapters nest one examples list directly under its own clause heading
+// — e.g. h2 "12.2 סעיף 9(ב)(1)…" followed by h3 "12.2.3 דוגמאות שהוכרעו…":
+// the examples heading's numbering is a strict extension of its clause's
+// (starts with "12.2."). There, every example in the block genuinely is
+// about that one clause, even though its own sentence rarely restates the
+// clause number and sometimes cites an unrelated clause as an aside (e.g.
+// "…גם בהתבסס על סעיף 9(א)(1)") — that aside must NOT be taken as the
+// example's real topic.
+//
+// Some chapters (e.g. 13 – סעיף 14) instead run ONE combined examples list
+// as its own top-level heading (h2 "13.7 דוגמאות שהוכרעו…") covering several
+// sibling sub-clauses with no per-clause sub-heading of its own — there the
+// nearest-preceding-heading guess is just wrong for most examples, and each
+// example's own clause citation is the only signal available.
+function isNestedExamplesHeading(examplesHeading: Heading, lawHeading: Heading): boolean {
+  const exPrefix = numberingPrefix(examplesHeading.text);
+  const lawPrefix = numberingPrefix(lawHeading.text);
+  if (!exPrefix || !lawPrefix) return true; // no numbering info — assume normal case
+  return exPrefix.startsWith(`${lawPrefix}.`);
+}
+
+// Decide which clause a single example in a COMBINED block belongs to: the
+// first clause its own text mentions, or — if it mentions none (short items
+// often lean on the preceding item's topic) — whatever the previous example
+// in the same block resolved to.
+function resolveCombinedItemRef(text: string, lastRef: string): string {
+  const mentioned = allSectionRefsInText(text);
+  return mentioned.length > 0 ? mentioned[0] : lastRef;
 }
 
 // Pull the footnote ids referenced inside a single list/paragraph item — all
@@ -134,10 +191,26 @@ export function extractLawSections(
   const headings = collectHeadings(html);
   const exampleHeads = headings.filter((h) => EXAMPLES_HEADING_RE.test(h.text));
 
-  const sections: LawSection[] = [];
+  // Every clause that owns a dedicated heading somewhere in the chapter —
+  // used to give a resolved-but-not-nominal ref (case 2 in resolveItemRef) a
+  // real heading label + anchor instead of a synthetic one.
+  const headingByRef = new Map<string, Heading>();
+  for (const h of headings) {
+    const mm = h.text.match(LAW_SECTION_RE);
+    if (!mm) continue;
+    const ref = normaliseSectionRef(mm[1]);
+    if (!headingByRef.has(ref)) headingByRef.set(ref, h);
+  }
+
+  // Keyed by resolved ref, not by block — a combined examples list can
+  // scatter examples for the same clause across positions, and a chapter can
+  // repeat the same clause heading across sub-parts. Both cases must merge.
+  const byRef = new Map<string, LawSection>();
+
   for (const eh of exampleHeads) {
     const law = nearestLawSectionRef(headings, eh.pos);
     if (!law) continue;
+    const nominalRef = normaliseSectionRef(law.ref);
 
     // Slice the examples block: from this heading to the next heading.
     const next = headings.find((h) => h.pos > eh.pos);
@@ -146,9 +219,10 @@ export function extractLawSections(
       next ? next.pos : Math.min(html.length, eh.pos + 12000),
     );
 
-    const examples: DecidedExample[] = [];
+    const combined = !isNestedExamplesHeading(eh, law.heading);
+
     let bucket: ExampleOutcome = "unspecified";
-    let order = 0;
+    let lastRef = nominalRef;
 
     // Walk the block in document order over both list items and paragraphs.
     // We interleave by position so decision-bucket markers (plain <p>) flip
@@ -186,31 +260,32 @@ export function extractLawSections(
       // A real decided-case example cites at least one ruling.
       if (rulings.length === 0) continue;
 
-      examples.push({
+      const ref = combined ? resolveCombinedItemRef(text, lastRef) : nominalRef;
+      lastRef = ref;
+
+      let section = byRef.get(ref);
+      if (!section) {
+        const dedicated = headingByRef.get(ref);
+        const owningHeading = ref === nominalRef ? law.heading : dedicated;
+        const anchorId = owningHeading?.id ?? (ref === nominalRef ? eh.id : null);
+        section = {
+          sectionRef: ref,
+          heading: owningHeading?.text ?? `סעיף ${ref}`,
+          anchorUrl: anchorId ? `${chapterUrl}#${anchorId}` : chapterUrl,
+          examples: [],
+        };
+        byRef.set(ref, section);
+      }
+      section.examples.push({
         description: text,
         outcome: classifyOutcome(bucket, text),
         rulings,
-        order: order++,
+        order: section.examples.length,
       });
     }
-
-    if (examples.length === 0) continue;
-
-    const anchorId = law.heading.id ?? eh.id;
-    const anchorUrl = anchorId
-      ? `${chapterUrl}#${anchorId}`
-      : chapterUrl;
-
-    sections.push({
-      sectionRef: normaliseSectionRef(law.ref),
-      heading: law.heading.text,
-      anchorUrl,
-      examples,
-    });
   }
 
-  // A chapter can repeat the same clause heading across sub-parts; merge.
-  return mergeByRef(sections);
+  return [...byRef.values()];
 }
 
 // Normalise spacing/format of the clause ref so "9(ב)(4)" and "9 (ב) (4)"
@@ -219,18 +294,3 @@ function normaliseSectionRef(ref: string): string {
   return ref.replace(/\s+/g, "");
 }
 
-function mergeByRef(sections: LawSection[]): LawSection[] {
-  const byRef = new Map<string, LawSection>();
-  for (const s of sections) {
-    const existing = byRef.get(s.sectionRef);
-    if (!existing) {
-      byRef.set(s.sectionRef, s);
-    } else {
-      const offset = existing.examples.length;
-      existing.examples.push(
-        ...s.examples.map((e) => ({ ...e, order: e.order + offset })),
-      );
-    }
-  }
-  return [...byRef.values()];
-}
