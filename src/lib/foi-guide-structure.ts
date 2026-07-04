@@ -63,13 +63,15 @@ function collectHeadings(html: string): Heading[] {
   while ((m = re.exec(html)) !== null) {
     const attrs = m[2];
     const idMatch = attrs.match(/\bid="([^"]+)"/i);
-    // Some headings carry the anchor on a nested <a name="…">.
+    // Some headings carry the anchor on a nested <a name="…"> (legacy) or a
+    // nested <span id="…" class="anchor"> (current site format).
     const aNameMatch = m[3].match(/<a[^>]*\bname="([^"]+)"/i);
+    const spanIdMatch = m[3].match(/<span[^>]*\bid="([^"]+)"/i);
     out.push({
       pos: m.index,
       level: parseInt(m[1], 10),
       text: cleanText(htmlToText(m[3])),
-      id: idMatch?.[1] ?? aNameMatch?.[1] ?? null,
+      id: idMatch?.[1] ?? aNameMatch?.[1] ?? spanIdMatch?.[1] ?? null,
     });
   }
   return out;
@@ -88,12 +90,15 @@ function nearestLawSectionRef(
   return null;
 }
 
-// Pull the footnote ids referenced inside a single list/paragraph item — both
-// the inline marker forms: href="#_ftnN" / name-anchor and bare "[Nא]".
+// Pull the footnote ids referenced inside a single list/paragraph item — all
+// the inline marker forms: href="#fnN" (current site), href="#_ftnN" /
+// name-anchor (legacy) and bare "[Nא]" text markers.
 function footnoteIdsInItem(itemHtml: string, itemText: string): string[] {
   const ids = new Set<string>();
-  const hrefRe = /href="#_ftn(?:ref)?(\d+)"/gi;
   let m: RegExpExecArray | null;
+  const fnRe = /href="#fn(\d+)"/gi;
+  while ((m = fnRe.exec(itemHtml)) !== null) ids.add(m[1]);
+  const hrefRe = /href="#_ftn(?:ref)?(\d+)"/gi;
   while ((m = hrefRe.exec(itemHtml)) !== null) ids.add(m[1]);
   const bareRe = /\[(\d+[א-ת]?\d*[א-ת]?)\]/g;
   while ((m = bareRe.exec(itemText)) !== null) ids.add(m[1]);
@@ -119,6 +124,12 @@ export function extractLawSections(
   chapterUrl: string,
   footnotes: CaseLawCitation[],
 ): LawSection[] {
+  // Truncate at the footnote-definitions block: its <li> items cite rulings
+  // and would otherwise be swept into the LAST examples block of the chapter
+  // as bogus "decided examples".
+  const fnStart = html.search(/<div[^>]*class="footnotes"|<a[^>]*\bid="#_ftn/i);
+  if (fnStart > 0) html = html.slice(0, fnStart);
+
   const footnoteById = new Map(footnotes.map((f) => [f.footnoteId, f]));
   const headings = collectHeadings(html);
   const exampleHeads = headings.filter((h) => EXAMPLES_HEADING_RE.test(h.text));

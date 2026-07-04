@@ -1,13 +1,18 @@
 // Crawls https://foiguide.org.il/ — the Hebrew Freedom of Information Guide.
 //
 // The site is WordPress + Elementor. Each chapter is one page, with the article
-// rendered as a series of `<div class="elementor-widget-container">` blocks
-// containing real article HTML (h1/h2/p/ol/ul/...). Footnotes sit in their own
-// container at the bottom: each is a `<p><a name="_ftnN">[N]</a> ...</p>`
-// paragraph, with case-law links inline (nevo.co.il, supremedecisions, etc.).
+// rendered as real article HTML (h1/h2/p/ol/ul/...).
+//
+// FOOTNOTE FORMATS — the site redesign (2026) changed the markup:
+//   • CURRENT: inline markers are `<sup><a id="fnrefN" href="#fnN">N</a></sup>`
+//     and the definitions live at the bottom in
+//     `<div class="footnotes"><ol><li id="fnN"><span>…</span></li>…`.
+//   • LEGACY: inline markers were `[N]` anchors pointing at `#_ftnN`, and each
+//     definition was a `<p><a name="_ftnN">[N]</a> ...</p>` paragraph. Kept as
+//     a fallback in case parts of the site still render the old export.
 //
 // We deliberately use regex parsing rather than pulling in cheerio: the markup
-// is stable WP/Elementor output and the parse surface we need is small.
+// is stable WP output and the parse surface we need is small.
 
 export const FOI_INDEX_URL =
   "https://foiguide.org.il/אינדקס-חוק-חופש-המידע/";
@@ -218,31 +223,28 @@ export function parseChapter(html: string, url: string): ParsedChapter {
   const articleEnd = findArticleEnd(tail);
   const articleHtml = tail.slice(0, articleEnd);
 
-  // 3. Separate body from footnotes. The footnote DEFINITIONS at the bottom
-  //    of the page are the only anchors carrying `id="#_ftn…"` (with the
-  //    leading '#'); the inline body markers don't. This holds for BOTH
-  //    formats the guide uses:
-  //      • most chapters: definition is `<a id="#_ftnref1" name="_ftn1">`
-  //      • chapter 10 etc: definition is `<a id="#_ftn1" name="_ftnref1">`
-  //    Matching on `id="#_ftn` (which prefixes both `#_ftn1` and `#_ftnref1`)
-  //    reliably finds where the footnotes block starts in either format —
-  //    the previous `name="_ftn\d+"` test missed chapter 10 entirely.
-  const firstFootnoteAnchor = articleHtml.search(
-    /<a[^>]*\bid="#_ftn/i,
-  );
+  // 3. Separate body from footnotes.
+  //    CURRENT format: the definitions block is `<div class="footnotes">`.
+  //    LEGACY format: the definitions are the only anchors carrying
+  //    `id="#_ftn…"` (with the leading '#') — matching on `id="#_ftn`
+  //    (which prefixes both `#_ftn1` and `#_ftnref1`) finds the block start
+  //    in either legacy sub-format.
+  const footnotesStart = findFootnotesStart(articleHtml);
   const bodyHtml =
-    firstFootnoteAnchor > 0 ? articleHtml.slice(0, firstFootnoteAnchor) : articleHtml;
+    footnotesStart > 0 ? articleHtml.slice(0, footnotesStart) : articleHtml;
   const footnotesHtml =
-    firstFootnoteAnchor > 0 ? articleHtml.slice(firstFootnoteAnchor) : "";
+    footnotesStart > 0 ? articleHtml.slice(footnotesStart) : "";
 
-  // 4. Extract footnotes BEFORE htmlToText eats the structure. Each footnote
-  //    paragraph is a `<p>...[N]...</p>` with the [N] either inside a
-  //    `<a name="_ftnN">` (standard numeric) or as plain text `[Nא]` /
-  //    `[NאM]` (numbered with Hebrew suffix — additions). We capture both.
+  // 4. Extract footnotes BEFORE htmlToText eats the structure.
   const footnotes = extractFootnotes(footnotesHtml);
 
-  // 5. Body text — strip tags, normalise whitespace.
-  const bodyText = cleanText(htmlToText(bodyHtml));
+  // 5. Body text — normalise the inline footnote markers to literal `[N]`
+  //    BEFORE stripping tags. The whole downstream pipeline (chunker,
+  //    search-time citation pairing, structure extractor) matches `[N]`
+  //    markers in plain text; the current site renders them as
+  //    `<sup><a href="#fnN">N</a></sup>`, which htmlToText would otherwise
+  //    collapse into a bare digit glued to the preceding word.
+  const bodyText = cleanText(htmlToText(inlineMarkersToBrackets(bodyHtml)));
 
   return {
     title,
@@ -266,10 +268,66 @@ function findArticleEnd(tail: string): number {
   return Math.min(...cutPoints);
 }
 
+// Where the footnote-definitions block starts, or -1 if none found.
+function findFootnotesStart(articleHtml: string): number {
+  const current = articleHtml.search(/<div[^>]*class="footnotes"/i);
+  if (current > 0) return current;
+  return articleHtml.search(/<a[^>]*\bid="#_ftn/i);
+}
+
+// Replace inline `<sup><a … href="#fnN">N</a></sup>` markers (current site
+// format) with a literal `[N]` so plain-text consumers keep the reference.
+// Legacy inline markers already render as `[N]` text and pass through as-is.
+export function inlineMarkersToBrackets(html: string): string {
+  return html.replace(
+    /<sup[^>]*>\s*<a[^>]*href="#fn(\d+)"[^>]*>[\s\S]*?<\/a>\s*<\/sup>/gi,
+    "[$1]",
+  );
+}
+
 function extractFootnotes(html: string): CaseLawCitation[] {
   if (!html.trim()) return [];
 
-  // Split on <p> boundaries — each footnote is its own paragraph.
+  // CURRENT format: `<li id="fnN"><span>…</span></li>` items inside
+  // `<div class="footnotes"><ol>`. The block can be rendered twice on the
+  // page (desktop + mobile widgets), so dedup by id — first wins.
+  if (/<li[^>]*\bid="fn\d+"/i.test(html)) {
+    const out: CaseLawCitation[] = [];
+    const seen = new Set<string>();
+    const liRe = /<li[^>]*\bid="fn(\d+)"[^>]*>([\s\S]*?)<\/li>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = liRe.exec(html)) !== null) {
+      const id = m[1];
+      if (seen.has(id)) continue;
+      seen.add(id);
+
+      const inner = m[2];
+      const links: string[] = [];
+      const hrefRe = /href="([^"]+)"/gi;
+      let mm: RegExpExecArray | null;
+      while ((mm = hrefRe.exec(inner)) !== null) {
+        // Attribute values are HTML-escaped ("&amp;") — decode or the link 404s.
+        const u = decodeEntities(mm[1]);
+        if (u.startsWith("#")) continue; // back-links to the inline marker
+        if (!links.includes(u)) links.push(u);
+      }
+
+      const text = cleanText(htmlToText(inner));
+      if (!text) continue;
+
+      out.push({
+        footnoteId: id,
+        text,
+        links,
+        isCaseLaw: links.some(isCaseLawUrl) || looksLikeCaseLawText(text),
+      });
+    }
+    out.sort((a, b) => parseInt(a.footnoteId, 10) - parseInt(b.footnoteId, 10));
+    return out;
+  }
+
+  // LEGACY format: split on <p> boundaries — each footnote is its own
+  // paragraph, `<p><a name="_ftnN">[N]</a> …</p>` or bare `[Nא]` additions.
   const paras = html.split(/<\/p>/i).map((p) => p + "</p>");
 
   const out: CaseLawCitation[] = [];
@@ -282,7 +340,7 @@ function extractFootnotes(html: string): CaseLawCitation[] {
     const hrefRe = /href="([^"]+)"/gi;
     let mm: RegExpExecArray | null;
     while ((mm = hrefRe.exec(p)) !== null) {
-      const u = mm[1];
+      const u = decodeEntities(mm[1]);
       if (u.startsWith("#")) continue;
       if (!links.includes(u)) links.push(u);
     }

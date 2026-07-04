@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
     chunksCreated: 0,
     sectionsCreated: 0,
     examplesCreated: 0,
+    prunedDocs: 0,
     failed: 0,
     failedSlugs: [] as string[],
     firstError: null as { slug: string; message: string } | null,
@@ -277,6 +278,27 @@ export async function POST(req: NextRequest) {
         stats.firstError = { slug: ref.slug, message };
       }
       console.error(`FOI Guide ingest failed for ${ref.slug}:`, err);
+    }
+  }
+
+  // Prune docs whose URL no longer appears in the live index (the 2026 site
+  // redesign moved chapters to /chapter-N/ URLs) — stale rows would keep
+  // serving dead links and duplicate content through the MCP. Only prune on
+  // a COMPLETE pass: a soft-deadline stop hasn't seen every live chapter, and
+  // the index itself was validated non-empty above.
+  if (!stoppedEarly && stats.failed === 0) {
+    const liveUrls = new Set(index.map((r) => r.url));
+    const staleIds = existingDocs
+      .filter((d) => !liveUrls.has(d.url))
+      .map((d) => d.id);
+    if (staleIds.length > 0) {
+      await prisma.$transaction([
+        // FoiLawSection has no FK relation to the doc — delete explicitly
+        // (its examples cascade); chunks cascade from the doc delete.
+        prisma.foiLawSection.deleteMany({ where: { docId: { in: staleIds } } }),
+        prisma.foiGuideDoc.deleteMany({ where: { id: { in: staleIds } } }),
+      ]);
+      stats.prunedDocs = staleIds.length;
     }
   }
 

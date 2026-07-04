@@ -64,38 +64,44 @@ function splitOversizedBlock(block: string): string[] {
   });
 }
 
-// The "דוגמאות שהוכרעו בבתי-המשפט" heading marks the start of the case-law
-// section. Everything from that heading until the next H2-equivalent (we use
-// the next "תקציר" / "סיכום" heading or chapter end) is tagged section="case-law"
-// so the MCP can prioritise these chunks when returning court-decision context.
+// A "דוגמאות שהוכרעו בבתי-המשפט" heading marks the start of a case-law
+// region, tagged section="case-law" so the MCP can prioritise these chunks
+// when returning court-decision context. The current site has ONE SUCH REGION
+// PER LAW CLAUSE (e.g. 12.2.3, 12.3.4, …), each ending where the next
+// numbered section heading begins — so we collect multiple regions, ending
+// each at a heading-like paragraph ("12.3 סעיף 9(ב)(2)…", "תקציר", "נספח").
 const CASE_LAW_HEADING_PATTERNS = [
   /דוגמאות שהוכרעו בבתי[- ]המשפט/,
   /דוגמאות מבתי[- ]המשפט/,
 ];
-const CASE_LAW_END_PATTERNS = [/^תקציר/, /^סיכום/];
+const CASE_LAW_END_PATTERNS = [
+  /^תקציר/,
+  /^סיכום/,
+  /^נספח/,
+  /^סעיף\s+\d/,
+  // Numbered section heading like "12.3 סעיף…" / "12.5.5 מבחני המשנה" —
+  // but NOT a case-law heading itself ("12.3.4 דוגמאות שהוכרעו…"), which is
+  // checked first by the caller.
+  /^\d+(?:\.\d+)+\s/,
+];
 
 function splitBodyByCaseLawSection(
   paragraphs: string[],
 ): { body: string[]; caseLaw: string[] } {
-  let startIdx = -1;
-  for (let i = 0; i < paragraphs.length; i++) {
-    if (CASE_LAW_HEADING_PATTERNS.some((re) => re.test(paragraphs[i]))) {
-      startIdx = i;
-      break;
+  const body: string[] = [];
+  const caseLaw: string[] = [];
+  let inCaseLaw = false;
+  for (const p of paragraphs) {
+    if (CASE_LAW_HEADING_PATTERNS.some((re) => re.test(p))) {
+      inCaseLaw = true;
+      caseLaw.push(p);
+      continue;
     }
-  }
-  if (startIdx === -1) return { body: paragraphs, caseLaw: [] };
-
-  let endIdx = paragraphs.length;
-  for (let i = startIdx + 1; i < paragraphs.length; i++) {
-    if (CASE_LAW_END_PATTERNS.some((re) => re.test(paragraphs[i]))) {
-      endIdx = i;
-      break;
+    if (inCaseLaw && CASE_LAW_END_PATTERNS.some((re) => re.test(p))) {
+      inCaseLaw = false;
     }
+    (inCaseLaw ? caseLaw : body).push(p);
   }
-
-  const body = [...paragraphs.slice(0, startIdx), ...paragraphs.slice(endIdx)];
-  const caseLaw = paragraphs.slice(startIdx, endIdx);
   return { body, caseLaw };
 }
 

@@ -7,6 +7,7 @@ import {
   parseChapter,
 } from "../src/lib/foi-guide-crawler";
 import { chunkFoiChapter } from "../src/lib/foi-guide-chunker";
+import { extractLawSections } from "../src/lib/foi-guide-structure";
 
 async function main() {
   console.log("→ Fetching index from foiguide.org.il …");
@@ -17,10 +18,11 @@ async function main() {
     console.log(`        ${ref.url}`);
   }
 
-  // Pick chapter 12 (סעיף 14 — has the case-law section we verified).
+  // Pick chapter 12 (סעיף 9(ב) — the richest case-law chapter on the
+  // redesigned site).
   const target =
     index.find((r) => r.title.startsWith("12 ")) ??
-    index.find((r) => /סעיף 14/.test(r.title)) ??
+    index.find((r) => /סעיף 9\(ב\)/.test(r.title)) ??
     index[Math.min(11, index.length - 1)];
 
   console.log(`\n→ Fetching chapter ${target.order}: ${target.title}`);
@@ -58,6 +60,16 @@ async function main() {
     console.log(`  ${chunks[0].text.slice(0, 200)}…`);
   }
 
+  // Structured law-section → decided-example extraction.
+  const sections = extractLawSections(html, target.url, parsed.footnotes);
+  const exampleCount = sections.reduce((n, s) => n + s.examples.length, 0);
+  console.log(`\n  law sections extracted: ${sections.length}`);
+  for (const s of sections) {
+    console.log(
+      `    ${s.sectionRef} — ${s.examples.length} examples — ${s.heading.slice(0, 60)}`,
+    );
+  }
+
   if (index.length < 15) {
     throw new Error(
       `Expected at least 15 chapters in the index; got ${index.length}`,
@@ -66,6 +78,17 @@ async function main() {
   if (caseLawFns.length === 0) {
     throw new Error(
       "Expected case-law footnotes in chapter 12 but found none — check the parser",
+    );
+  }
+  if (!/\[\d+\]/.test(parsed.bodyText)) {
+    throw new Error(
+      "Expected [N] footnote markers in body text — inline-marker conversion failed",
+    );
+  }
+  if (sections.length < 5 || exampleCount < 20) {
+    throw new Error(
+      `Expected ≥5 law sections with ≥20 decided examples in chapter 12; ` +
+        `got ${sections.length} sections / ${exampleCount} examples`,
     );
   }
   console.log("\n✓ Crawler smoke test passed.");
