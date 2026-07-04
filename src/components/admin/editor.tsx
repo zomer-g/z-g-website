@@ -9,6 +9,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import {
   Bold,
   Italic,
+  Underline as UnderlineIcon,
   Heading2,
   Heading3,
   List,
@@ -887,6 +888,8 @@ function sanitizeContent(node: Record<string, unknown>): Record<string, unknown>
 
 export function Editor({ initialContent, onChange }: EditorProps) {
   const [showAiWriter, setShowAiWriter] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const cleanContent = initialContent ? sanitizeContent(initialContent) : undefined;
 
   const editor = useEditor({
@@ -945,12 +948,38 @@ export function Editor({ initialContent, onChange }: EditorProps) {
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
+  // Opens the OS file picker; the actual upload happens in handleImageFile.
   const handleImage = () => {
-    const url = window.prompt("הזינו כתובת תמונה:", "https://");
+    fileInputRef.current?.click();
+  };
 
-    if (!url) return;
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // reset so picking the same file again re-triggers change
+    if (!file) return;
 
-    editor.chain().focus().setImage({ src: url }).run();
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "שגיאה בהעלאת התמונה");
+      }
+
+      const data = await res.json();
+      editor.chain().focus().setImage({ src: data.url }).run();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "שגיאה בהעלאת התמונה");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleInsertInfoBlock = () => {
@@ -1013,6 +1042,14 @@ export function Editor({ initialContent, onChange }: EditorProps) {
           ariaLabel="נטוי"
         >
           <Italic size={16} />
+        </ToolbarButton>
+
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={editor.isActive("underline")}
+          ariaLabel="קו תחתון"
+        >
+          <UnderlineIcon size={16} />
         </ToolbarButton>
 
         <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
@@ -1087,9 +1124,23 @@ export function Editor({ initialContent, onChange }: EditorProps) {
           <Link2 size={16} />
         </ToolbarButton>
 
-        <ToolbarButton onClick={handleImage} ariaLabel="תמונה">
-          <ImageIcon size={16} />
+        <ToolbarButton
+          onClick={handleImage}
+          ariaLabel={uploadingImage ? "מעלה תמונה..." : "העלאת תמונה"}
+        >
+          {uploadingImage ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <ImageIcon size={16} />
+          )}
         </ToolbarButton>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handleImageFile}
+        />
 
         <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
 

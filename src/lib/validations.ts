@@ -21,6 +21,18 @@ export const postSchema = z.object({
   seoDesc: z.string().optional(),
 });
 
+export const plilistPostSchema = z.object({
+  title: z.string().min(1, "כותרת נדרשת"),
+  slug: z.string().min(1, "slug נדרש"),
+  content: z.any(),
+  excerpt: z.string().optional(),
+  coverImage: z.string().optional(),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
+  tags: z.array(z.string()).default([]),
+  seoTitle: z.string().optional(),
+  seoDesc: z.string().optional(),
+});
+
 export const serviceSchema = z.object({
   title: z.string().min(1, "כותרת נדרשת"),
   slug: z.string().min(1, "slug נדרש"),
@@ -55,6 +67,7 @@ export const mediaAppearanceSchema = z.object({
 
 export type SubmissionInput = z.infer<typeof submissionSchema>;
 export type PostInput = z.infer<typeof postSchema>;
+export type PlilistPostInput = z.infer<typeof plilistPostSchema>;
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type PageInput = z.infer<typeof pageSchema>;
 export type MediaAppearanceInput = z.infer<typeof mediaAppearanceSchema>;

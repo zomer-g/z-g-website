@@ -143,8 +143,10 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "מיזמים", href: "/projects", children: [] },
     { label: "תחומי עיסוק", href: "/services", children: [] },
     { label: "מאמרים", href: "/articles" },
-    { label: "מילון", href: "/dictionary" },
+    { label: "הפליליסט", href: "/haplilist" },
     { label: "פרסומים", href: "/media" },
+    // "מילון" moved out of the top-level menu — it now lives under the
+    // "מיזמים" dropdown (populated from the projects content).
     // "תובענות ייצוגיות" used to be a top-level entry — it lives
     // under /projects → /class-actions and is now in the "מיזמים"
     // dropdown, so dropping the dedicated link trims the menu
@@ -327,6 +329,14 @@ export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
       url: "/pach-hamishpat",
       icon: "Trash2",
       tags: ["נט המשפט", "דיווח קהילתי", "סטטוס בזמן אמת"],
+    },
+    {
+      title: "מילון",
+      subtitle: "מילון מונחים משפטיים — הלקסיקון של המונחים שטבעתי",
+      description: "מילון עברי של מונחים משפטיים שטבעתי, המנגיש רעיונות ותופעות מעולם המשפט הפלילי והמנהלי בשפה ברורה. כל ערך מסביר את המונח, ההקשר שבו הוא נולד והשימוש בו.",
+      url: "/dictionary",
+      icon: "BookOpen",
+      tags: ["מילון", "מונחים משפטיים", "שפה משפטית"],
     },
   ],
   cta: {
