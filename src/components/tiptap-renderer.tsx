@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getIcon } from "@/lib/icons";
+import { safeHref } from "@/lib/utils";
 
 /* ─── Types for TipTap / ProseMirror JSON ─── */
 
@@ -72,6 +73,8 @@ function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
         return <strong>{acc}</strong>;
       case "italic":
         return <em>{acc}</em>;
+      case "underline":
+        return <u>{acc}</u>;
       case "code":
         return (
           <code className="rounded bg-gray-100 px-1.5 py-0.5 text-sm font-mono">
@@ -79,14 +82,19 @@ function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
           </code>
         );
       case "link": {
-        const href = (mark.attrs?.href as string) ?? "#";
+        const href = safeHref((mark.attrs?.href as string) ?? "#");
+        // Honor an explicit target="_blank" (set by the editor / content author),
+        // and fall back to the external-URL heuristic for links that don't set one.
+        const explicitBlank =
+          (mark.attrs?.target as string | undefined) === "_blank";
         const isExternal =
           href.startsWith("http") && !href.includes(process.env.NEXT_PUBLIC_SITE_URL ?? "");
+        const openInNewTab = explicitBlank || isExternal;
         return (
           <Link
             href={href}
             className="font-semibold text-primary underline underline-offset-2 hover:text-accent transition-colors duration-200"
-            {...(isExternal
+            {...(openInNewTab
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
           >
@@ -368,7 +376,7 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
                   )}
                   {item.url && (
                     <a
-                      href={item.url}
+                      href={safeHref(item.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 underline underline-offset-2 hover:text-indigo-800 transition-colors"
