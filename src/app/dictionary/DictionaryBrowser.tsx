@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Search, ChevronRight, ChevronLeft, BookOpen, X } from "lucide-react";
+import { Search, ChevronRight, ChevronLeft, BookOpen, X, Link2, Check } from "lucide-react";
 
 /* ─── Types ─── */
 
@@ -12,6 +12,7 @@ interface Definition {
 
 export interface MilonEntryRow {
   id: string;
+  slug: string;
   term: string;
   vocalized: string;
   partOfSpeech: string;
@@ -55,6 +56,7 @@ export default function DictionaryBrowser({
   const [selectedId, setSelectedId] = useState<string>(entries[0]?.id ?? "");
   const [query, setQuery] = useState("");
   const [animKey, setAnimKey] = useState(0);
+  const [copied, setCopied] = useState(false);
   const paneRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(
@@ -68,12 +70,44 @@ export default function DictionaryBrowser({
   const selected = entries[selectedIndex] ?? entries[0];
 
   const goTo = useCallback(
-    (id: string) => {
+    (id: string, updateHash = true) => {
       setSelectedId(id);
       setAnimKey((k) => k + 1);
+      // Reflect the selection in the URL so the current entry is shareable
+      // (/dictionary#<slug>). replaceState (not push) keeps the browser Back
+      // button leaving the page instead of stepping through every entry.
+      if (updateHash) {
+        const slug = entries.find((e) => e.id === id)?.slug;
+        if (slug) {
+          window.history.replaceState(null, "", `#${slug}`);
+        }
+      }
     },
-    [],
+    [entries],
   );
+
+  // Deep-linking: on mount (and on manual hash edits / back-forward), select
+  // the entry named in the URL hash, e.g. /dictionary#mistatagreed.
+  useEffect(() => {
+    function selectFromHash() {
+      const slug = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      if (!slug) return;
+      const match = entries.find((e) => e.slug === slug);
+      if (match && match.id !== selectedId) goTo(match.id, false);
+    }
+    selectFromHash();
+    window.addEventListener("hashchange", selectFromHash);
+    return () => window.removeEventListener("hashchange", selectFromHash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
+
+  const copyLink = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}#${selected.slug}`;
+    void navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [selected]);
 
   const step = useCallback(
     (dir: 1 | -1) => {
@@ -188,9 +222,30 @@ export default function DictionaryBrowser({
                 <BookOpen className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
                 מילון · עו״ד גיא זומר
               </span>
-              <span className="tabular-nums">
-                ערך {selectedIndex + 1} מתוך {entries.length}
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-muted transition-colors hover:bg-accent/10 hover:text-accent-text focus-visible:outline-2 focus-visible:outline-accent"
+                  aria-label="העתקת קישור ישיר לערך זה"
+                  title="העתקת קישור ישיר לערך"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      הועתק
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      קישור
+                    </>
+                  )}
+                </button>
+                <span className="tabular-nums">
+                  ערך {selectedIndex + 1} מתוך {entries.length}
+                </span>
+              </div>
             </div>
 
             {/* Watermark first letter */}
