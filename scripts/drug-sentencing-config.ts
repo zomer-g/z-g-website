@@ -81,40 +81,11 @@ const QUERY = {
         { key: "meta.judges", label: "חיפוש לפי שם השופט (שם מלא, ללא תואר)", control: "text" },
         // Year range instead of a full date picker.
         { key: "meta.document_date", label: "טווח שנים", control: "yearrange" },
-        // ── Group "סמים" (collapsible) ──
-        // GIN-indexed array (like meta.topics) — a select must send `contains`
-        // (not eq) to match an array element. Curated options override the noisy
-        // mid-backfill enum sample; swap for TAG-IT's full canonical list later.
-        {
-          // Multi-select → OR (`in`) over the GIN array meta.drug_types.
-          key: "meta.drug_types",
-          label: "סוג הסם",
-          control: "multiselect",
-          // Ordered by prod frequency (קנאביס 2.3k, קוקאין 1.1k, חשיש 1k…).
-          options: ["קנאביס", "קוקאין", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
-          group: "סמים",
-        },
-        { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
-        // ── Group "ענישה" (collapsible) — value ranges per component type ──
-        // Filter by the MOST-SEVERE punishment component in the case (the new
-        // indexed meta.primary_punishment_type = the harshest defendant's
-        // primary component, clean canonical name). So selecting "מאסר על תנאי"
-        // returns only cases whose harshest component is מאסר על תנאי — i.e. with
-        // no מאסר בפועל. Options come from TAG-IT's schema enum (exact values).
-        {
-          key: "meta.primary_punishment_type",
-          label: "רכיב הענישה החמור ביותר בתיק",
-          control: "select",
-          // Schema enum is empty for this field, so options are curated from the
-          // corpus (clean canonical names). Severity order high→low.
-          options: ["מאסר בפועל", "מאסר בעבודות שירות", "מאסר על תנאי", "קנס", "פיצוי", "התחייבות"],
-          group: "ענישה",
-        },
-        { key: "meta.prison_actual_months", label: "מאסר בפועל (חודשים)", control: "number", group: "ענישה" },
-        { key: "meta.prison_suspended_months", label: "מאסר על תנאי (חודשים)", control: "number", group: "ענישה" },
-        { key: "meta.community_service_hours", label: "של\"צ (שעות)", control: "number", group: "ענישה" },
-        { key: "meta.fine_shekels", label: "קנס (₪)", control: "number", group: "ענישה" },
-        { key: "meta.compensation_shekels", label: "פיצוי (₪)", control: "number", group: "ענישה" },
+        // ── Group order below is deliberate: עבירה, סמים, הודאה ותוצאה, ענישה
+        // (groupNames in rulings-list.tsx's FilterBar renders groups in first-
+        // appearance order of this array, so the group ORDER here is the UI order —
+        // reordering fields within a group doesn't matter, only which group's
+        // first field comes first). ──
         // ── Group "עבירה" (collapsible) ──
         // First row: drug-ordinance section TAGS — multi-select (OR via `in`) over
         // the GIN array meta.drug_ordinance_sections (base sections under פקודת
@@ -168,6 +139,20 @@ const QUERY = {
           group: "עבירה",
         },
         { key: "meta.offense_sections", label: "סעיף עבירה (כל חוק)", control: "text", group: "עבירה" },
+        // ── Group "סמים" (collapsible) ──
+        // GIN-indexed array (like meta.topics) — a select must send `contains`
+        // (not eq) to match an array element. Curated options override the noisy
+        // mid-backfill enum sample; swap for TAG-IT's full canonical list later.
+        {
+          // Multi-select → OR (`in`) over the GIN array meta.drug_types.
+          key: "meta.drug_types",
+          label: "סוג הסם",
+          control: "multiselect",
+          // Ordered by prod frequency (קנאביס 2.3k, קוקאין 1.1k, חשיש 1k…).
+          options: ["קנאביס", "קוקאין", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
+          group: "סמים",
+        },
+        { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
         // ── Group "הודאה ותוצאה" — any-defendant boolean flags (Phase 3) ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
         // sql.נאשמים[] booleans time out and must NOT be used.
@@ -175,6 +160,31 @@ const QUERY = {
         { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "הודאה ותוצאה" },
         { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "הודאה ותוצאה" },
         { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "הודאה ותוצאה" },
+        // NOTE: עבר_פלילי_מוזכר / הופעל_עונש_על_תנאי_קודם are shown as TAGS
+        // (rulings-list.tsx TRISTATE) but can't be added here yet — they only
+        // exist as raw sql.נאשמים[] booleans, which TIME OUT as filters (same
+        // issue hit court_city/judges in round 2). Needs a TAG-IT meta.*
+        // promotion first (see scratchpad/tagit-followup-priors-drug.md).
+        // ── Group "ענישה" (collapsible) — value ranges per component type ──
+        // Filter by the MOST-SEVERE punishment component in the case (the new
+        // indexed meta.primary_punishment_type = the harshest defendant's
+        // primary component, clean canonical name). So selecting "מאסר על תנאי"
+        // returns only cases whose harshest component is מאסר על תנאי — i.e. with
+        // no מאסר בפועל. Options come from TAG-IT's schema enum (exact values).
+        {
+          key: "meta.primary_punishment_type",
+          label: "רכיב הענישה החמור ביותר בתיק",
+          control: "select",
+          // Schema enum is empty for this field, so options are curated from the
+          // corpus (clean canonical names). Severity order high→low.
+          options: ["מאסר בפועל", "מאסר בעבודות שירות", "מאסר על תנאי", "קנס", "פיצוי", "התחייבות"],
+          group: "ענישה",
+        },
+        { key: "meta.prison_actual_months", label: "מאסר בפועל (חודשים)", control: "number", group: "ענישה" },
+        { key: "meta.prison_suspended_months", label: "מאסר על תנאי (חודשים)", control: "number", group: "ענישה" },
+        { key: "meta.community_service_hours", label: "של\"צ (שעות)", control: "number", group: "ענישה" },
+        { key: "meta.fine_shekels", label: "קנס (₪)", control: "number", group: "ענישה" },
+        { key: "meta.compensation_shekels", label: "פיצוי (₪)", control: "number", group: "ענישה" },
       ],
   // meta.severity_score (promoted from ai._חומרת_ציון) is index-sortable.
   // Default sort = severity ascending (מקל לחמור) — first entry + defaultDir asc
