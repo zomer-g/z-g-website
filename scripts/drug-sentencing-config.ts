@@ -81,7 +81,7 @@ const QUERY = {
         { key: "meta.judges", label: "חיפוש לפי שם השופט (שם מלא, ללא תואר)", control: "text" },
         // Year range instead of a full date picker.
         { key: "meta.document_date", label: "טווח שנים", control: "yearrange" },
-        // ── Group order below is deliberate: עבירה, סמים, הודאה ותוצאה, ענישה
+        // ── Group order below is deliberate: עבירה, סמים, גזירת העונש, ענישה
         // (groupNames in rulings-list.tsx's FilterBar renders groups in first-
         // appearance order of this array, so the group ORDER here is the UI order —
         // reordering fields within a group doesn't matter, only which group's
@@ -153,18 +153,21 @@ const QUERY = {
           group: "סמים",
         },
         { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
-        // ── Group "הודאה ותוצאה" — any-defendant boolean flags (Phase 3) ──
+        // ── Group "גזירת העונש" — any-defendant boolean flags (Phase 3) ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
         // sql.נאשמים[] booleans time out and must NOT be used.
-        { key: "meta.confessed", label: "הודה באשמה", control: "boolean", group: "הודאה ותוצאה" },
-        { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "הודאה ותוצאה" },
-        { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "הודאה ותוצאה" },
-        { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "הודאה ותוצאה" },
-        // NOTE: עבר_פלילי_מוזכר / הופעל_עונש_על_תנאי_קודם are shown as TAGS
-        // (rulings-list.tsx TRISTATE) but can't be added here yet — they only
-        // exist as raw sql.נאשמים[] booleans, which TIME OUT as filters (same
-        // issue hit court_city/judges in round 2). Needs a TAG-IT meta.*
-        // promotion first (see scratchpad/tagit-followup-priors-drug.md).
+        { key: "meta.confessed", label: "הודה באשמה", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "גזירת העונש" },
+        // NOTE: the rest of the binary sql.נאשמים[] flags (עבר_פלילי_מוזכר,
+        // הופעל_עונש_על_תנאי_קודם, הגנה_ביקשה_חריגה_ממתחם, ביהמש_חרג_ממתחם,
+        // הוטל_מאסר_בפועל, הוטל_מאסר_בעבודות_שירות) are all shown as TAGS
+        // (rulings-list.tsx FLAGS/TRISTATE) but can't be added here yet — they
+        // only exist as raw sql.נאשמים[] booleans, which TIME OUT as filters
+        // (same issue hit court_city/judges in round 2, reconfirmed live for
+        // הופעל_עונש_על_תנאי_קודם). Needs a TAG-IT meta.* promotion first for
+        // all six (see scratchpad/tagit-followup-priors-drug.md).
         // ── Group "ענישה" (collapsible) — value ranges per component type ──
         // Filter by the MOST-SEVERE punishment component in the case (the new
         // indexed meta.primary_punishment_type = the harshest defendant's
