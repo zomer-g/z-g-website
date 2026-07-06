@@ -153,21 +153,23 @@ const QUERY = {
           group: "סמים",
         },
         { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
-        // ── Group "גזירת העונש" — any-defendant boolean flags (Phase 3) ──
+        // ── Group "גזירת העונש" — any-defendant boolean flags ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
-        // sql.נאשמים[] booleans time out and must NOT be used.
+        // sql.נאשמים[] booleans time out and must NOT be used. All 10 binary
+        // per-defendant flags TAG-IT catalogs now have a meta.* promotion —
+        // this group is the complete set (matches the FLAGS/TRISTATE tags in
+        // rulings-list.tsx one-for-one). Live-probed all six new ones
+        // (2-7s each, no timeout) before wiring.
         { key: "meta.confessed", label: "הודה באשמה", control: "boolean", group: "גזירת העונש" },
         { key: "meta.agreed_sentence", label: "עונש מוסכם", control: "boolean", group: "גזירת העונש" },
         { key: "meta.conviction_annulled", label: "ביטול הרשעה", control: "boolean", group: "גזירת העונש" },
         { key: "meta.rehab_deviation", label: "סטייה משיקולי שיקום", control: "boolean", group: "גזירת העונש" },
-        // NOTE: the rest of the binary sql.נאשמים[] flags (עבר_פלילי_מוזכר,
-        // הופעל_עונש_על_תנאי_קודם, הגנה_ביקשה_חריגה_ממתחם, ביהמש_חרג_ממתחם,
-        // הוטל_מאסר_בפועל, הוטל_מאסר_בעבודות_שירות) are all shown as TAGS
-        // (rulings-list.tsx FLAGS/TRISTATE) but can't be added here yet — they
-        // only exist as raw sql.נאשמים[] booleans, which TIME OUT as filters
-        // (same issue hit court_city/judges in round 2, reconfirmed live for
-        // הופעל_עונש_על_תנאי_קודם). Needs a TAG-IT meta.* promotion first for
-        // all six (see scratchpad/tagit-followup-priors-drug.md).
+        { key: "meta.priors_mentioned", label: "עבר פלילי", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.prior_suspended_activated", label: "הופעל עונש על תנאי קודם", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.defense_requested_deviation", label: "ההגנה ביקשה חריגה ממתחם", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.court_deviated_from_range", label: 'ביהמ"ש חרג ממתחם', control: "boolean", group: "גזירת העונש" },
+        { key: "meta.actual_prison_imposed", label: "הוטל מאסר בפועל", control: "boolean", group: "גזירת העונש" },
+        { key: "meta.community_service_imposed", label: "הוטל מאסר בעבודות שירות", control: "boolean", group: "גזירת העונש" },
         // ── Group "ענישה" (collapsible) — value ranges per component type ──
         // Filter by the MOST-SEVERE punishment component in the case (the new
         // indexed meta.primary_punishment_type = the harshest defendant's
