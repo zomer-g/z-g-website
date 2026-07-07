@@ -96,12 +96,14 @@ export function PipelineMap() {
       };
     };
 
-    const paths: EdgePath[] = PIPELINE_EDGES.map((edge) => {
+    const paths: EdgePath[] = [];
+
+    for (const edge of PIPELINE_EDGES) {
       const from = nodeById.get(edge.from);
       const to = nodeById.get(edge.to);
       const fromRect = rectFor(edge.from);
       const toRect = rectFor(edge.to);
-      if (!from || !to || !fromRect || !toRect) return null;
+      if (!from || !to || !fromRect || !toRect) continue;
 
       let d: string;
       let labelX: number;
@@ -133,14 +135,14 @@ export function PipelineMap() {
         labelY = sy + dy / 2;
       }
 
-      return {
+      paths.push({
         key: `${edge.from}->${edge.to}`,
         d,
         labelX,
         labelY,
         label: sameLayer ? undefined : edge.label,
-      };
-    }).filter((p): p is EdgePath => p !== null);
+      });
+    }
 
     setEdgePaths(paths);
   }, []);
