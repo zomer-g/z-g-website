@@ -5,6 +5,8 @@ import Link from "next/link";
 import {
   ScrollText,
   Globe2,
+  Globe,
+  DownloadCloud,
   FolderKanban,
   History,
   Scale,
@@ -32,6 +34,8 @@ import {
 const ICON_MAP: Record<PipelineIcon, LucideIcon> = {
   ScrollText,
   Globe2,
+  Globe,
+  DownloadCloud,
   FolderKanban,
   History,
   Scale,
@@ -470,7 +474,7 @@ export function PipelineMap({
               ) : (
                 <div className="mb-4" />
               )}
-              <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
+              <div className="flex flex-wrap justify-center gap-y-6 gap-x-10 sm:gap-x-16 lg:gap-x-20">
                 {nodesByLayer(layer).map((node) => {
                   const Icon = ICON_MAP[node.icon];
                   const state = nodeState(node.id);

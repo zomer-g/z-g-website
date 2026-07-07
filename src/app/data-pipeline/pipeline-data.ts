@@ -10,6 +10,8 @@ export type PipelineLayer = "source" | "storage" | "consumer";
 export type PipelineIcon =
   | "ScrollText"
   | "Globe2"
+  | "Globe"
+  | "DownloadCloud"
   | "FolderKanban"
   | "History"
   | "Scale"
@@ -45,7 +47,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
       "גורד פסקי דין והחלטות מאתר בתי המשפט (court.gov.il) ומאתר בית המשפט העליון: חיפוש לפי מספר תיק, הורדת החלטות (PDF/HTML), יומני דיונים, ופנקס התובענות הייצוגיות (מטא-דאטה + כל ה-PDF-ים). פועל בארכיטקטורת שרת (Render) מול worker מקומי עם דפדפן אמיתי, עם API ציבורי ולוח מעקב משימות. כל המסמכים שנאספים מוזנים אל TAG-IT.",
     tags: ["בתי משפט", "פסקי דין", "תובענות ייצוגיות"],
     href: "https://github.com/zomer-g/court_downloader",
-    icon: "ScrollText",
+    icon: "DownloadCloud",
   },
   {
     id: "cwext",
@@ -54,8 +56,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
     name: "לץ המשפט",
     tagline: "תוסף דפדפן — נט המשפט",
     description:
-      "תוסף Chrome לעורכי דין, מתמחים ובעלי דין: מזהה תיק בנט המשפט ומוריד את כל מסמכיו כ-ZIP עם אינדקס CSV, וכן רשימות דיונים. יעד ההורדה יכול להיות מקומי, Google Drive או שרת API אישי — כך שהמסמכים יכולים לזרום גם אל TAG-IT.",
-    tags: ["תוסף Chrome", "נט המשפט", "מסמכים"],
+      "תוסף Chrome לעורכי דין, מתמחים ובעלי דין: מזהה תיק בנט המשפט ומוריד את כל מסמכיו כ-ZIP עם אינדקס, וכן רשימות דיונים. חולק את תשתית הקוד עם Court Downloader, אך רץ לוקאלית בלבד בדפדפן המשתמש — הקבצים נשמרים אצלו, והוא אינו מזין אף מערכת אחרת בתהליך.",
+    tags: ["תוסף Chrome", "נט המשפט", "מקומי"],
     href: "/court-downloader",
     icon: "Puzzle",
   },
@@ -69,7 +71,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
       "פלטפורמת גריפה רב-רכיבית: האתר האחוד של הממשלה (gov.il), נדל״ן (עסקאות מרשות המסים, גם בהיקף ארצי מבוזר), שכבות GIS מ-GovMap, מאגרי data.gov.il ואתר צה״ל (idf.il). כל מה שנאסף מוזן כעדכון גרסה אל OVER.",
     tags: ["gov.il", "נדל״ן", "GovMap", "data.gov.il"],
     href: "https://github.com/zomer-g/govil-scraper",
-    icon: "Globe2",
+    icon: "DownloadCloud",
   },
   {
     id: "govext",
@@ -78,8 +80,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
     name: "לץ הממשל",
     tagline: "תוסף דפדפן — אתרי ממשלה",
     description:
-      "תוסף Chrome שמזהה מאגרי נתונים פתוחים באתרי ממשלה ישראליים (gov.il, נדל״ן, GovMap, מנהל התכנון ועוד) ומאפשר להוריד אותם בלחיצה כ-CSV/GeoJSON/ZIP. חלק ממיזם השקיפות של גרסאות לעם (OVER), ומזין אליו מאגרים.",
-    tags: ["תוסף Chrome", "מאגרי ממשלה", "מידע פתוח"],
+      "תוסף Chrome שמזהה מאגרי נתונים פתוחים באתרי ממשלה ישראליים (gov.il, נדל״ן, GovMap, מנהל התכנון ועוד) ומאפשר להוריד אותם בלחיצה כ-CSV/GeoJSON/ZIP. חולק את תשתית הקוד עם govil-scraper, אך רץ לוקאלית ועצמאית בדפדפן המשתמש ואינו מזין אף מערכת אחרת בתהליך.",
+    tags: ["תוסף Chrome", "מאגרי ממשלה", "מקומי"],
     href: "/govscraper",
     icon: "Puzzle",
   },
@@ -90,8 +92,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
     name: "לץ הלמ\"ס",
     tagline: "תוסף דפדפן — למ\"ס",
     description:
-      "תוסף לאיסוף נתונים מאתר הלשכה המרכזית לסטטיסטיקה (הלמ\"ס). נמצא בקשר דו-כיווני עם OVER — מושך ממנו מאגרים מתועדים כדי לעבוד עליהם, ומזין אליו גרסאות ונתונים חדשים שנאספו.",
-    tags: ["תוסף Chrome", "למ\"ס", "סטטיסטיקה"],
+      "תוסף לאיסוף וניתוח נתונים מאתר הלשכה המרכזית לסטטיסטיקה (הלמ\"ס). התוסף היחיד בסדרה שמחובר לשרת של OVER — הוא ניגש דרכו לאינדקס המאגרים ומריץ מולו שאילתות (בקשה ותשובה).",
+    tags: ["תוסף Chrome", "למ\"ס", "שאילתות ל-OVER"],
     icon: "Puzzle",
   },
 
@@ -104,7 +106,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     codeName: "smart-dms",
     tagline: "ניהול מסמכים",
     description:
-      "מערכת ניהול מסמכים: מאפשרת העלאה, קטלוג, חיפוש והורדה של מסמכים — בעיקר פסקי דין והחלטות. חלק מהמסמכים מגיעים ישירות מ-Court Downloader ומהתוסף לץ המשפט, וחלק מועברים אליה מ-OVER. חושפת API שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
+      "מערכת ניהול מסמכים: מאפשרת העלאה, קטלוג, חיפוש והורדה של מסמכים — בעיקר פסקי דין והחלטות. חלק מהמסמכים מגיעים ישירות מ-Court Downloader, וחלק מועברים אליה מ-OVER. חושפת API שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
     tags: ["ניהול מסמכים", "API"],
     href: "https://github.com/zomer-g/smart-dms",
     icon: "FolderKanban",
@@ -117,7 +119,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     codeName: "ckan-version-tracker",
     tagline: "ניהול מאגרים",
     description:
-      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. הגרסאות נשמרות ב\"מידע לעם\" (odata.org.il) וניתנות לשאילתת API. ניזון מ-govil-scraper ומהתוספים לץ הממשל ולץ הלמ\"ס. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
+      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. הגרסאות נשמרות ב\"מידע לעם\" (odata.org.il) וניתנות לשאילתת API. ניזון מ-govil-scraper. התוסף לץ הלמ\"ס מתחבר לשרת שלו כדי לגשת לאינדקס ולהריץ שאילתות. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
     tags: ["מאגרי מידע", "היסטוריית גרסאות", "API ציבורי"],
     href: "https://github.com/zomer-g/ckan-version-tracker",
     icon: "History",
@@ -158,7 +160,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
       "האתר הזה עצמו — מארח סדרה של דשבורדים ציבוריים (מאגר הנחיות, גזרי דין בעבירות סמים, סניגוריה ציבורית, תובענות ייצוגיות, דוחות מבקר המדינה, חופש מידע ועוד), שכולם נשענים על ה-API של TAG-IT ו-OVER כמקור הנתונים.",
     tags: ["דשבורדים", "שקיפות"],
     href: "/projects",
-    icon: "Scale",
+    icon: "Globe",
   },
   {
     id: "journalist-dashboard",
@@ -183,9 +185,10 @@ export interface PipelineEdge {
 
 export const PIPELINE_EDGES: PipelineEdge[] = [
   { from: "court-downloader", to: "tag-it" },
-  { from: "cwext", to: "tag-it" },
   { from: "govil-scraper", to: "over" },
-  { from: "govext", to: "over" },
+  // לץ המשפט / לץ הממשל run locally only and push nothing into the pipeline —
+  // they share code with their sibling scraper but are intentionally edgeless.
+  // לץ הלמ"ס is the only extension wired to a server: it queries OVER's index.
   { from: "cbsext", to: "over", bidirectional: true },
   { from: "over", to: "tag-it", label: "חלק מהמאגרים הם מסמכים" },
   { from: "tag-it", to: "z-g" },
