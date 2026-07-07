@@ -24,6 +24,7 @@ import type {
   DataPipelinePageContent,
   LeamPageContent,
 } from "@/types/content";
+import { PIPELINE_NODES } from "@/app/data-pipeline/pipeline-data";
 
 /* ─── Default Content (matches current hardcoded site data) ─── */
 /* This file is safe to import from both client and server components. */
@@ -882,6 +883,8 @@ export const DEFAULT_LEAM_CONTENT: LeamPageContent = {
 
 /* ─── Data Pipeline Map Page (זרימת המידע) ─── */
 
+// Per-node text defaults are derived from the structural node list so there's
+// a single source of truth; the admin can override any of them via the CMS.
 export const DEFAULT_DATA_PIPELINE_CONTENT: DataPipelinePageContent = {
   isPublic: true,
   hero: {
@@ -889,6 +892,12 @@ export const DEFAULT_DATA_PIPELINE_CONTENT: DataPipelinePageContent = {
     subtitle:
       "מאחורי כל דשבורד ציבורי עומדת שרשרת של פרויקטים: סקרייפרים שאוספים מידע גולמי, מערכות שמנהלות ומתעדות אותו, ואתרים שהופכים אותו לכלי נגיש לציבור. כך זה מתחבר.",
   },
+  nodes: Object.fromEntries(
+    PIPELINE_NODES.map((n) => [
+      n.id,
+      { name: n.name, tagline: n.tagline, description: n.description },
+    ]),
+  ),
 };
 
 /* ─── Defaults Map ─── */

@@ -21,6 +21,7 @@ import { ProjectsEditors } from "@/components/admin/section-editors/projects-edi
 import { DigitalServicesEditors } from "@/components/admin/section-editors/digital-services-editors";
 import { DashboardPageEditor } from "@/components/admin/section-editors/dashboard-page-editor";
 import { LeamEditors } from "@/components/admin/section-editors/leam-editors";
+import { DataPipelineNodesEditor } from "@/components/admin/section-editors/data-pipeline-editors";
 import {
   ArrowRight,
   Loader2,
@@ -680,10 +681,16 @@ export default function SiteEditorPageEditor({
             />
           )}
           {slug === "data-pipeline" && (
-            <DashboardPageEditor<DataPipelinePageContent>
-              content={content as DataPipelinePageContent}
-              onChange={setContent}
-            />
+            <>
+              <DashboardPageEditor<DataPipelinePageContent>
+                content={content as DataPipelinePageContent}
+                onChange={setContent}
+              />
+              <DataPipelineNodesEditor
+                content={content as DataPipelinePageContent}
+                onChange={setContent}
+              />
+            </>
           )}
         </div>
       </div>

@@ -1,29 +1,44 @@
-// Data for the /data-pipeline architecture map: the projects that scrape,
-// store and consume information across the whole system, and the edges
-// (who feeds whom) drawn between them. Kept as plain data so the diagram
-// component only has to render — no content is CMS-managed here since
-// this describes fixed infrastructure, not editable page copy.
+// Structural data for the /data-pipeline architecture map: the projects that
+// scrape, store and consume information across the whole system, and the edges
+// (who feeds whom) drawn between them. The STRUCTURE here (layers, order,
+// edges, icons, ids) is fixed; the editable TEXT (name / tagline / description)
+// is overlaid at render time from CMS content so the site owner can edit it
+// in the admin — see DataPipelinePageContent.nodes.
 
 export type PipelineLayer = "source" | "storage" | "consumer";
+
+export type PipelineIcon =
+  | "ScrollText"
+  | "Globe2"
+  | "FolderKanban"
+  | "History"
+  | "Scale"
+  | "Newspaper"
+  | "Calendar"
+  | "Network"
+  | "Puzzle";
 
 export interface PipelineNode {
   id: string;
   layer: PipelineLayer;
-  col: 0 | 1;
+  /** Display order within the layer (ascending). In the RTL layout, order 1
+   *  sits rightmost. */
+  order: number;
   name: string;
   codeName?: string;
   tagline: string;
   description: string;
   tags: string[];
   href?: string;
-  icon: "ScrollText" | "Globe2" | "FolderKanban" | "History" | "Scale" | "Newspaper";
+  icon: PipelineIcon;
 }
 
 export const PIPELINE_NODES: PipelineNode[] = [
+  /* ── Collection: scrapers + browser extensions ── */
   {
     id: "court-downloader",
     layer: "source",
-    col: 0,
+    order: 1,
     name: "Court Downloader",
     tagline: "סורק בתי המשפט",
     description:
@@ -33,9 +48,21 @@ export const PIPELINE_NODES: PipelineNode[] = [
     icon: "ScrollText",
   },
   {
+    id: "cwext",
+    layer: "source",
+    order: 2,
+    name: "לץ המשפט",
+    tagline: "תוסף דפדפן — נט המשפט",
+    description:
+      "תוסף Chrome לעורכי דין, מתמחים ובעלי דין: מזהה תיק בנט המשפט ומוריד את כל מסמכיו כ-ZIP עם אינדקס CSV, וכן רשימות דיונים. יעד ההורדה יכול להיות מקומי, Google Drive או שרת API אישי — כך שהמסמכים יכולים לזרום גם אל TAG-IT.",
+    tags: ["תוסף Chrome", "נט המשפט", "מסמכים"],
+    href: "/court-downloader",
+    icon: "Puzzle",
+  },
+  {
     id: "govil-scraper",
     layer: "source",
-    col: 1,
+    order: 3,
     name: "govil-scraper",
     tagline: "סורק אתרי ממשלה",
     description:
@@ -45,14 +72,39 @@ export const PIPELINE_NODES: PipelineNode[] = [
     icon: "Globe2",
   },
   {
+    id: "govext",
+    layer: "source",
+    order: 4,
+    name: "לץ הממשל",
+    tagline: "תוסף דפדפן — אתרי ממשלה",
+    description:
+      "תוסף Chrome שמזהה מאגרי נתונים פתוחים באתרי ממשלה ישראליים (gov.il, נדל״ן, GovMap, מנהל התכנון ועוד) ומאפשר להוריד אותם בלחיצה כ-CSV/GeoJSON/ZIP. חלק ממיזם השקיפות של גרסאות לעם (OVER), ומזין אליו מאגרים.",
+    tags: ["תוסף Chrome", "מאגרי ממשלה", "מידע פתוח"],
+    href: "/govscraper",
+    icon: "Puzzle",
+  },
+  {
+    id: "cbsext",
+    layer: "source",
+    order: 5,
+    name: "לץ הלמ\"ס",
+    tagline: "תוסף דפדפן — למ\"ס",
+    description:
+      "תוסף לאיסוף נתונים מאתר הלשכה המרכזית לסטטיסטיקה (הלמ\"ס). נמצא בקשר דו-כיווני עם OVER — מושך ממנו מאגרים מתועדים כדי לעבוד עליהם, ומזין אליו גרסאות ונתונים חדשים שנאספו.",
+    tags: ["תוסף Chrome", "למ\"ס", "סטטיסטיקה"],
+    icon: "Puzzle",
+  },
+
+  /* ── Storage, databases & APIs ── */
+  {
     id: "tag-it",
     layer: "storage",
-    col: 0,
+    order: 1,
     name: "TAG-IT",
     codeName: "smart-dms",
     tagline: "ניהול מסמכים",
     description:
-      "מערכת ניהול מסמכים: מאפשרת העלאה, קטלוג, חיפוש והורדה של מסמכים — בעיקר פסקי דין והחלטות. חלק מהמסמכים מגיעים ישירות מ-Court Downloader, וחלק מועברים אליה מ-OVER. חושפת API שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
+      "מערכת ניהול מסמכים: מאפשרת העלאה, קטלוג, חיפוש והורדה של מסמכים — בעיקר פסקי דין והחלטות. חלק מהמסמכים מגיעים ישירות מ-Court Downloader ומהתוסף לץ המשפט, וחלק מועברים אליה מ-OVER. חושפת API שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
     tags: ["ניהול מסמכים", "API"],
     href: "https://github.com/zomer-g/smart-dms",
     icon: "FolderKanban",
@@ -60,20 +112,46 @@ export const PIPELINE_NODES: PipelineNode[] = [
   {
     id: "over",
     layer: "storage",
-    col: 1,
+    order: 2,
     name: "OVER — גרסאות לעם",
     codeName: "ckan-version-tracker",
     tagline: "ניהול מאגרים",
     description:
-      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. הגרסאות נשמרות ב\"מידע לעם\" (odata.org.il) וניתנות לשאילתת API. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושפת API ציבורי שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
+      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. הגרסאות נשמרות ב\"מידע לעם\" (odata.org.il) וניתנות לשאילתת API. ניזון מ-govil-scraper ומהתוספים לץ הממשל ולץ הלמ\"ס. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
     tags: ["מאגרי מידע", "היסטוריית גרסאות", "API ציבורי"],
     href: "https://github.com/zomer-g/ckan-version-tracker",
     icon: "History",
   },
   {
+    id: "ocal",
+    layer: "storage",
+    order: 3,
+    name: "יומן לעם (OCAL)",
+    tagline: "יומני נבחרי ציבור",
+    description:
+      "פלטפורמה אזרחית (ocal.org.il) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
+    tags: ["נבחרי ציבור", "יומנים", "API"],
+    href: "https://ocal.org.il",
+    icon: "Calendar",
+  },
+  {
+    id: "ocoi",
+    layer: "storage",
+    order: 4,
+    name: "ניגוד עניינים לעם (OCOI)",
+    tagline: "גרף ניגוד עניינים",
+    description:
+      "מאגר וגרף (ocoi.org.il) של הסדרי ניגוד עניינים של נושאי משרה ציבורית, שחולצו ממסמכים ממשלתיים. דשבורד העיתונאים מקשר ישויות מהכתבות לצמתים בגרף ומציג את הזיקות הכלכליות והעסקיות שלהן.",
+    tags: ["ניגוד עניינים", "גרף קשרים", "API"],
+    href: "https://www.ocoi.org.il",
+    icon: "Network",
+  },
+
+  /* ── Consumers ── */
+  {
     id: "z-g",
     layer: "consumer",
-    col: 0,
+    order: 1,
     name: "אתר Z-G",
     tagline: "סדרת מיזמים משפטיים",
     description:
@@ -85,11 +163,11 @@ export const PIPELINE_NODES: PipelineNode[] = [
   {
     id: "journalist-dashboard",
     layer: "consumer",
-    col: 1,
+    order: 2,
     name: "דשבורד עיתונאים",
     tagline: "כלי לעיתונאים",
     description:
-      "פלטפורמה לעיתונאים לחיפוש וניתוח מידע פתוח: חיפוש כתבות, קישור ישויות לאירועים ולניגודי עניינים, וכלי חיפוש אחוד למאגרי מידע. חלק מהמאגרים שהיא מציגה ניזונים מ-TAG-IT ומ-OVER, לצד יומן לעם (Ocal) וניגוד עניינים לעם (OCOI).",
+      "פלטפורמה לעיתונאים לחיפוש וניתוח מידע פתוח: חיפוש כתבות, קישור ישויות לאירועים ולניגודי עניינים, וכלי חיפוש אחוד למאגרי מידע. ניזון מ-TAG-IT ומ-OVER, וכן מיומן לעם (OCAL) ומניגוד עניינים לעם (OCOI) להעשרת ישויות.",
     tags: ["עיתונות", "מידע פתוח"],
     icon: "Newspaper",
   },
@@ -99,21 +177,28 @@ export interface PipelineEdge {
   from: string;
   to: string;
   label?: string;
+  /** Arrowheads on both ends (data flows both directions). */
+  bidirectional?: boolean;
 }
 
 export const PIPELINE_EDGES: PipelineEdge[] = [
   { from: "court-downloader", to: "tag-it" },
+  { from: "cwext", to: "tag-it" },
   { from: "govil-scraper", to: "over" },
+  { from: "govext", to: "over" },
+  { from: "cbsext", to: "over", bidirectional: true },
   { from: "over", to: "tag-it", label: "חלק מהמאגרים הם מסמכים" },
   { from: "tag-it", to: "z-g" },
   { from: "tag-it", to: "journalist-dashboard" },
   { from: "over", to: "z-g" },
   { from: "over", to: "journalist-dashboard" },
+  { from: "ocal", to: "journalist-dashboard" },
+  { from: "ocoi", to: "journalist-dashboard" },
 ];
 
 export const LAYER_LABELS: Record<PipelineLayer, string> = {
-  source: "איסוף — סקרייפרים",
-  storage: "אחסון וניהול",
+  source: "איסוף — סקרייפרים ותוספים",
+  storage: "אחסון, מאגרים ו-API",
   consumer: "צריכה — API",
 };
 

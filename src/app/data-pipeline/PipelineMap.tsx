@@ -9,6 +9,9 @@ import {
   History,
   Scale,
   Newspaper,
+  Calendar,
+  Network,
+  Puzzle,
   ExternalLink,
   ChevronLeft,
   Database,
@@ -21,24 +24,29 @@ import {
   PIPELINE_EDGES,
   LAYER_LABELS,
   DATA_PACKAGES,
+  type PipelineIcon,
   type PipelineLayer,
   type PipelineNode,
 } from "./pipeline-data";
 
-const ICON_MAP: Record<PipelineNode["icon"], LucideIcon> = {
+const ICON_MAP: Record<PipelineIcon, LucideIcon> = {
   ScrollText,
   Globe2,
   FolderKanban,
   History,
   Scale,
   Newspaper,
+  Calendar,
+  Network,
+  Puzzle,
 };
 
 const LAYERS: PipelineLayer[] = ["source", "storage", "consumer"];
 
 const nodesByLayer = (layer: PipelineLayer) =>
-  PIPELINE_NODES.filter((n) => n.layer === layer).sort((a, b) => a.col - b.col);
+  PIPELINE_NODES.filter((n) => n.layer === layer).sort((a, b) => a.order - b.order);
 
+// Structural lookup (layer/edge geometry). Text is overlaid separately.
 const nodeById = new Map(PIPELINE_NODES.map((n) => [n.id, n]));
 const packageById = new Map(DATA_PACKAGES.map((p) => [p.id, p]));
 
@@ -53,21 +61,46 @@ for (const edge of PIPELINE_EDGES) {
 
 type VisualState = "neutral" | "active" | "dim";
 
+export interface NodeTextOverride {
+  name?: string;
+  tagline?: string;
+  description?: string;
+}
+
 interface EdgePath {
   key: string;
   d: string;
   labelX: number;
   labelY: number;
   label?: string;
+  bidirectional: boolean;
 }
 
-export function PipelineMap() {
+export function PipelineMap({
+  nodeText,
+}: {
+  nodeText?: Record<string, NodeTextOverride>;
+}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const nodeRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [box, setBox] = useState({ width: 0, height: 0 });
   const [edgePaths, setEdgePaths] = useState<EdgePath[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activePackageId, setActivePackageId] = useState<string | null>(null);
+
+  // Resolve a node's display text: CMS override (trimmed, non-empty) wins,
+  // otherwise the hardcoded default from pipeline-data.
+  const disp = useCallback(
+    (n: PipelineNode) => {
+      const o = nodeText?.[n.id];
+      return {
+        name: o?.name?.trim() || n.name,
+        tagline: o?.tagline?.trim() || n.tagline,
+        description: o?.description?.trim() || n.description,
+      };
+    },
+    [nodeText],
+  );
 
   const setNodeRef = useCallback((id: string) => {
     return (el: HTMLElement | null) => {
@@ -124,13 +157,22 @@ export function PipelineMap() {
         labelX = (sx + tx) / 2;
         labelY = midY - 8;
       } else {
-        // Cross-layer — connect bottom of source to top of target.
-        const sx = fromRect.centerX;
-        const sy = fromRect.bottom;
-        const tx = toRect.centerX;
-        const ty = toRect.top;
+        // Cross-layer — connect bottom of the upper node to top of the lower.
+        const upper = fromRect.centerY <= toRect.centerY ? fromRect : toRect;
+        const lower = fromRect.centerY <= toRect.centerY ? toRect : fromRect;
+        const sx = upper.centerX;
+        const sy = upper.bottom;
+        const tx = lower.centerX;
+        const ty = lower.top;
         const dy = Math.max(ty - sy, 1);
-        d = `M ${sx} ${sy} C ${sx} ${sy + dy * 0.55}, ${tx} ${ty - dy * 0.55}, ${tx} ${ty}`;
+        // Keep the drawn direction matching from→to so the end arrowhead
+        // lands on the target even when to is the upper node.
+        const forward = fromRect.centerY <= toRect.centerY;
+        if (forward) {
+          d = `M ${sx} ${sy} C ${sx} ${sy + dy * 0.55}, ${tx} ${ty - dy * 0.55}, ${tx} ${ty}`;
+        } else {
+          d = `M ${tx} ${ty} C ${tx} ${ty - dy * 0.55}, ${sx} ${sy + dy * 0.55}, ${sx} ${sy}`;
+        }
         labelX = (sx + tx) / 2;
         labelY = sy + dy / 2;
       }
@@ -141,6 +183,7 @@ export function PipelineMap() {
         labelX,
         labelY,
         label: sameLayer ? undefined : edge.label,
+        bidirectional: !!edge.bidirectional,
       });
     }
 
@@ -162,6 +205,12 @@ export function PipelineMap() {
       window.removeEventListener("resize", recomputePaths);
     };
   }, [recomputePaths]);
+
+  // Text edits (admin preview) can reflow card heights → recompute.
+  useEffect(() => {
+    const raf = requestAnimationFrame(recomputePaths);
+    return () => cancelAnimationFrame(raf);
+  }, [nodeText, recomputePaths]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -282,7 +331,7 @@ export function PipelineMap() {
                         key={n.id}
                         className="rounded-md bg-white/10 px-2 py-1 font-mono text-[11px] text-white"
                       >
-                        {n.name}
+                        {disp(n).name}
                       </span>
                     ))}
                   </div>
@@ -307,13 +356,6 @@ export function PipelineMap() {
               <stop offset="0%" stopColor="var(--primary-light)" />
               <stop offset="100%" stopColor="var(--accent)" />
             </linearGradient>
-            <filter id="pipeline-glow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
             <marker
               id="pipeline-arrow"
               viewBox="0 0 10 10"
@@ -339,21 +381,37 @@ export function PipelineMap() {
           </defs>
           {edgePaths.map((p) => {
             const state = edgeState(p.key);
+            const active = state === "active";
+            const suffix = active ? "-active" : "";
             return (
-              <path
-                key={p.key}
-                d={p.d}
-                fill="none"
-                stroke={state === "active" ? "url(#pipeline-grad)" : "var(--accent-text)"}
-                strokeOpacity={state === "dim" ? 0.12 : state === "active" ? 1 : 0.4}
-                strokeWidth={state === "active" ? 3 : 2}
-                strokeLinecap="round"
-                strokeDasharray="7 6"
-                markerEnd={`url(#pipeline-arrow${state === "active" ? "-active" : ""})`}
-                filter={state === "active" ? "url(#pipeline-glow)" : undefined}
-                className={cn("pipeline-edge", state === "dim" && "pipeline-edge--dim")}
-                style={state === "active" ? { animationDuration: "0.7s" } : undefined}
-              />
+              <g key={p.key}>
+                {/* Soft halo under active edges (replaces an SVG filter, which
+                    collapsed to zero width on axis-aligned paths and dropped
+                    their arrowheads). */}
+                {active ? (
+                  <path
+                    d={p.d}
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeOpacity={0.25}
+                    strokeWidth={8}
+                    strokeLinecap="round"
+                  />
+                ) : null}
+                <path
+                  d={p.d}
+                  fill="none"
+                  stroke={active ? "url(#pipeline-grad)" : "var(--accent-text)"}
+                  strokeOpacity={state === "dim" ? 0.12 : active ? 1 : 0.42}
+                  strokeWidth={active ? 3 : 2}
+                  strokeLinecap="round"
+                  strokeDasharray="7 6"
+                  markerEnd={`url(#pipeline-arrow${suffix})`}
+                  markerStart={p.bidirectional ? `url(#pipeline-arrow${suffix})` : undefined}
+                  className={cn("pipeline-edge", state === "dim" && "pipeline-edge--dim")}
+                  style={active ? { animationDuration: "0.7s" } : undefined}
+                />
+              </g>
             );
           })}
         </svg>
@@ -362,6 +420,7 @@ export function PipelineMap() {
         {edgePaths.map((p) => {
           const state = edgeState(p.key);
           if (state === "dim") return null;
+          const active = state === "active";
           return (
             <div
               key={`packet-${p.key}`}
@@ -369,14 +428,13 @@ export function PipelineMap() {
               className="pipeline-packet pointer-events-none absolute start-0 top-0 z-10 rounded-full"
               style={{
                 offsetPath: `path("${p.d}")`,
-                width: state === "active" ? 7 : 4,
-                height: state === "active" ? 7 : 4,
-                background: state === "active" ? "var(--accent)" : "var(--accent-text)",
-                boxShadow:
-                  state === "active"
-                    ? "0 0 10px 2px var(--accent)"
-                    : "0 0 4px 0 var(--accent-text)",
-                animationDuration: state === "active" ? "1.3s" : "2.6s",
+                width: active ? 7 : 4,
+                height: active ? 7 : 4,
+                background: active ? "var(--accent)" : "var(--accent-text)",
+                boxShadow: active
+                  ? "0 0 10px 2px var(--accent)"
+                  : "0 0 4px 0 var(--accent-text)",
+                animationDuration: active ? "1.3s" : "2.6s",
               }}
             />
           );
@@ -412,10 +470,11 @@ export function PipelineMap() {
               ) : (
                 <div className="mb-4" />
               )}
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-8">
+              <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
                 {nodesByLayer(layer).map((node) => {
                   const Icon = ICON_MAP[node.icon];
                   const state = nodeState(node.id);
+                  const text = disp(node);
                   return (
                     <button
                       key={node.id}
@@ -424,7 +483,7 @@ export function PipelineMap() {
                       onClick={() => setActiveId(node.id)}
                       aria-haspopup="dialog"
                       className={cn(
-                        "group relative flex w-full flex-col items-start gap-3 rounded-xl border bg-white p-5 text-start",
+                        "group relative flex w-full flex-col items-start gap-3 rounded-xl border bg-white p-4 text-start sm:w-[184px] sm:p-5 lg:w-[200px]",
                         "shadow-sm shadow-primary/5 transition-all duration-300",
                         "hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-lg hover:shadow-primary/10",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
@@ -458,11 +517,11 @@ export function PipelineMap() {
                         </span>
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold leading-snug text-primary-dark">
-                          {node.name}
+                        <h3 className="text-base font-bold leading-snug text-primary-dark">
+                          {text.name}
                         </h3>
                         <p className="mt-0.5 text-sm font-medium text-accent-text">
-                          {node.tagline}
+                          {text.tagline}
                         </p>
                         <p className="mt-1.5 font-mono text-[10px] tracking-wide text-muted/70">
                           {"// "}
@@ -518,10 +577,10 @@ export function PipelineMap() {
                   id="pipeline-modal-heading"
                   className="text-xl font-bold leading-snug text-primary-dark"
                 >
-                  {activeNode.name}
+                  {disp(activeNode).name}
                 </h2>
                 <p className="mt-0.5 text-sm font-medium text-accent-text">
-                  {activeNode.tagline}
+                  {disp(activeNode).tagline}
                   {activeNode.codeName ? (
                     <span className="text-muted"> · בקוד: {activeNode.codeName}</span>
                   ) : null}
@@ -530,7 +589,7 @@ export function PipelineMap() {
             </div>
 
             <p className="mt-5 text-sm leading-relaxed text-foreground/80">
-              {activeNode.description}
+              {disp(activeNode).description}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-2" aria-label="תגיות">
@@ -557,7 +616,7 @@ export function PipelineMap() {
                   )}
                 >
                   <span>
-                    {activeNode.href.startsWith("http") ? "לקוד המקור" : "לעמוד הפרויקט"}
+                    {activeNode.href.startsWith("http") ? "לקישור החיצוני" : "לעמוד הפרויקט"}
                   </span>
                   <ExternalLink className="h-4 w-4" aria-hidden="true" />
                 </Link>

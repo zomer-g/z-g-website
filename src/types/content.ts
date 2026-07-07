@@ -554,12 +554,20 @@ export interface ConditionalArrangementsPageContent {
 }
 
 // ── Data Pipeline Map Page (זרימת המידע) ──
-// The node/edge/package graph itself is fixed data (pipeline-data.ts, not
-// CMS-managed) — only the hero banner and visibility are editable here.
+// The graph STRUCTURE (nodes, edges, layout) is fixed data in pipeline-data.ts.
+// Editable from the admin: the hero banner, page visibility, and the text of
+// each project (name / tagline / description), keyed by node id.
+
+export interface DataPipelineNodeText {
+  name: string;
+  tagline: string;
+  description: string;
+}
 
 export interface DataPipelinePageContent {
   isPublic: boolean;
   hero: { title: string; subtitle: string };
+  nodes: Record<string, DataPipelineNodeText>;
 }
 
 // ── Union type for all page content ──

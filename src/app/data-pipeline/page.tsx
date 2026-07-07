@@ -62,7 +62,7 @@ export default async function DataPipelinePage() {
           <p className="mx-auto mb-12 max-w-xl text-center text-sm text-muted">
             לחצו על כל תיבה כדי לקרוא הסבר קצר על הפרויקט, מה הוא עושה ולאן המידע ממנו זורם.
           </p>
-          <PipelineMap />
+          <PipelineMap nodeText={content.nodes} />
         </Container>
       </section>
     </PublicLayout>
