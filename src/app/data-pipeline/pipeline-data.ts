@@ -205,6 +205,43 @@ export const LAYER_LABELS: Record<PipelineLayer, string> = {
   consumer: "צריכה — API",
 };
 
+// ── Project series (branded families) ─────────────────────────────────
+// Two named families run across the layers. Each member gets a distinctive
+// colored frame, and the whole family can be selected to light it up.
+//   • "לץ"  — the browser-extension family (לץ המשפט / הממשל / הלמ"ס)
+//   • "לעם" — the civic-transparency sites (גרסאות / יומן / ניגוד עניינים לעם)
+
+export interface PipelineSeries {
+  id: string;
+  /** Chip label in the selector. */
+  label: string;
+  /** Short badge shown on each member card. */
+  short: string;
+  nodeIds: string[];
+  /** Frame + highlight color (hex). */
+  color: string;
+  /** Dedicated page on the site, linked when the series is selected. */
+  href?: string;
+}
+
+export const PIPELINE_SERIES: PipelineSeries[] = [
+  {
+    id: "letz",
+    label: "סדרת לץ — התוספים",
+    short: "לץ",
+    nodeIds: ["cwext", "govext", "cbsext"],
+    color: "#7c3aed",
+  },
+  {
+    id: "leam",
+    label: "סדרת לעם — אתרים אזרחיים",
+    short: "לעם",
+    nodeIds: ["over", "ocal", "ocoi"],
+    color: "#0d9488",
+    href: "/o",
+  },
+];
+
 // ── Data packages ─────────────────────────────────────────────────────
 // A curated sample of real data sets that travel through the pipeline,
 // each as an explicit list of (from,to) hops. Every hop here must exist
