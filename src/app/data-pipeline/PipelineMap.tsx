@@ -292,13 +292,12 @@ export function PipelineMap({
       }
     } else if (activeSeries) {
       for (const id of activeSeries.nodeIds) nodeIds.add(id);
-      // Light the edges touching the family and their immediate neighbors,
-      // so the family's footprint is visible.
+      // Light only the edges LEAVING the family, so its reach is shown
+      // without lighting up unrelated nodes that merely feed into it
+      // (e.g. selecting לעם must not light לץ הלמ"ס, which queries OVER).
       for (const e of PIPELINE_EDGES) {
-        if (activeSeries.nodeIds.includes(e.from) || activeSeries.nodeIds.includes(e.to)) {
+        if (activeSeries.nodeIds.includes(e.from)) {
           edgeKeys.add(`${e.from}->${e.to}`);
-          nodeIds.add(e.from);
-          nodeIds.add(e.to);
         }
       }
     }
@@ -308,8 +307,7 @@ export function PipelineMap({
   const nodeState = useCallback(
     (id: string): VisualState => {
       if (activeSeries) {
-        if (activeSeries.nodeIds.includes(id)) return "active";
-        return routeNodeIds.has(id) ? "neutral" : "dim";
+        return activeSeries.nodeIds.includes(id) ? "active" : "dim";
       }
       if (activePackage) return routeNodeIds.has(id) ? "active" : "dim";
       return "neutral";
@@ -454,6 +452,8 @@ export function PipelineMap({
             {activeSeries?.href ? (
               <Link
                 href={activeSeries.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="ms-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-primary-dark transition-opacity hover:opacity-90"
                 style={{ backgroundColor: activeSeries.color, color: "#fff" }}
               >
