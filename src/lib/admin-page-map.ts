@@ -42,6 +42,7 @@ import {
   BookMarked,
   FileSearch,
   Globe,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -119,6 +120,7 @@ export const PAGE_GROUPS: PageGroup[] = [
       { slug: "foi-costs", label: "הוצאות חופש מידע", icon: Scale, publicPath: "/foi-costs" },
       { slug: "drug-sentencing", label: "גזרי דין בעבירות סמים", icon: Scale, publicPath: "/drug-sentencing" },
       { slug: "comptroller-reports", label: "דוחות מבקר המדינה", icon: FileSearch, publicPath: "/comptroller-reports" },
+      { slug: "data-pipeline", label: "זרימת המידע", icon: Workflow, publicPath: "/data-pipeline" },
       { slug: "milon", label: "מילון", icon: BookMarked, editHref: "/admin/milon", publicPath: "/dictionary", dedicatedTool: true },
     ],
   },

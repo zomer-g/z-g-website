@@ -30,7 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent, DataPipelinePageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -56,6 +56,7 @@ const PAGE_LABELS: Record<string, string> = {
   "drug-sentencing": "גזרי דין בעבירות סמים",
   "comptroller-reports": "דוחות מבקר המדינה",
   leam: "לעם — אתרים אזרחיים",
+  "data-pipeline": "זרימת המידע",
 };
 
 const PAGE_URLS: Record<string, string> = {
@@ -80,6 +81,7 @@ const PAGE_URLS: Record<string, string> = {
   "drug-sentencing": "/drug-sentencing",
   "comptroller-reports": "/comptroller-reports",
   leam: "/o",
+  "data-pipeline": "/data-pipeline",
 };
 
 /* ─── Page Editor ─── */
@@ -674,6 +676,12 @@ export default function SiteEditorPageEditor({
           {slug === "leam" && (
             <LeamEditors
               content={content as LeamPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "data-pipeline" && (
+            <DashboardPageEditor<DataPipelinePageContent>
+              content={content as DataPipelinePageContent}
               onChange={setContent}
             />
           )}

@@ -253,3 +253,37 @@ html.view-clean body {
   background: var(--accent);
   border-radius: 3px;
 }
+
+/* ── /data-pipeline map: flowing connector lines + traveling packets ── */
+@keyframes pipeline-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.pipeline-edge {
+  animation: pipeline-dash 1.4s linear infinite;
+}
+.pipeline-edge--dim {
+  animation-play-state: paused;
+}
+
+@keyframes pipeline-packet {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+.pipeline-packet {
+  offset-rotate: 0deg;
+  animation: pipeline-packet 2.6s linear infinite;
+}

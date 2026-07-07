@@ -21,6 +21,7 @@ import type {
   FoiCostsPageContent,
   DrugSentencingPageContent,
   ConditionalArrangementsPageContent,
+  DataPipelinePageContent,
   LeamPageContent,
 } from "@/types/content";
 
@@ -337,6 +338,14 @@ export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
       url: "/dictionary",
       icon: "BookOpen",
       tags: ["מילון", "מונחים משפטיים", "שפה משפטית"],
+    },
+    {
+      title: "זרימת המידע",
+      subtitle: "מפה אינטראקטיבית של איך המערכות שלי מתחברות זו לזו",
+      description: "מפה של תהליך זרימת המידע בין הפרויקטים: סקרייפרים שאוספים מבתי המשפט ומאתרי ממשלה, מערכות ניהול המסמכים והמאגרים (TAG-IT ו-OVER), ושורת האתרים והדשבורדים שניזונים מהם. לחיצה על כל פרויקט מציגה הסבר קצר עליו.",
+      url: "/data-pipeline",
+      icon: "Workflow",
+      tags: ["ארכיטקטורה", "סקרייפרים", "API", "שקיפות"],
     },
   ],
   cta: {
@@ -871,6 +880,17 @@ export const DEFAULT_LEAM_CONTENT: LeamPageContent = {
   },
 };
 
+/* ─── Data Pipeline Map Page (זרימת המידע) ─── */
+
+export const DEFAULT_DATA_PIPELINE_CONTENT: DataPipelinePageContent = {
+  isPublic: true,
+  hero: {
+    title: "זרימת המידע",
+    subtitle:
+      "מאחורי כל דשבורד ציבורי עומדת שרשרת של פרויקטים: סקרייפרים שאוספים מידע גולמי, מערכות שמנהלות ומתעדות אותו, ואתרים שהופכים אותו לכלי נגיש לציבור. כך זה מתחבר.",
+  },
+};
+
 /* ─── Defaults Map ─── */
 
 export const CONTENT_DEFAULTS: Record<string, unknown> = {
@@ -897,4 +917,5 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "drug-sentencing": DEFAULT_DRUG_SENTENCING_CONTENT,
   "conditional-arrangements": DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT,
   leam: DEFAULT_LEAM_CONTENT,
+  "data-pipeline": DEFAULT_DATA_PIPELINE_CONTENT,
 };

@@ -553,6 +553,15 @@ export interface ConditionalArrangementsPageContent {
   cacheTtlMinutes: number;
 }
 
+// ── Data Pipeline Map Page (זרימת המידע) ──
+// The node/edge/package graph itself is fixed data (pipeline-data.ts, not
+// CMS-managed) — only the hero banner and visibility are editable here.
+
+export interface DataPipelinePageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -579,6 +588,7 @@ export type PageContentMap = {
   "drug-sentencing": DrugSentencingPageContent;
   "conditional-arrangements": ConditionalArrangementsPageContent;
   leam: LeamPageContent;
+  "data-pipeline": DataPipelinePageContent;
 };
 
 export type PageSlug = keyof PageContentMap;
