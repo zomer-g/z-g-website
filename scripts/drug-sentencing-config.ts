@@ -152,7 +152,12 @@ const QUERY = {
           options: ["קנאביס", "קוקאין", "חשיש", "MDMA", "הרואין", "קטמין", "LSD", "מתאמפטמין", "בופרנורפין", "פסילוצין"],
           group: "סמים",
         },
-        { key: "meta.drug_max_grams", label: "כמות סם (גרם)", control: "number", group: "סמים" },
+        // Quantity is CORRELATED with the selected drug: when a drug type is
+        // chosen too, the route matches the same sql.פירוט_עבירות_סמים element
+        // (drug + quantity together) in memory, so "קוקאין + ≥30" means cocaine
+        // at ≥30g (not "has cocaine" AND "some drug ≥30g"). With no drug picked
+        // it falls back to the case-max (meta.drug_max_grams).
+        { key: "meta.drug_max_grams", label: "כמות הסם שנבחר (גרם)", control: "number", group: "סמים" },
         // ── Group "גזירת העונש" — any-defendant boolean flags ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
         // sql.נאשמים[] booleans time out and must NOT be used. All 10 binary

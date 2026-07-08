@@ -128,6 +128,55 @@ function parseLawSectionSelection(
   return { law: law || undefined, sections, mode };
 }
 
+/* ── Correlated drug + quantity match (scope 1) ──
+   meta.drug_types (which drugs appear) and meta.drug_max_grams (max grams of
+   ANY drug) are independent columns, so filtering on both is UNCORRELATED — a
+   case with 1g cocaine + 30g hashish wrongly matches "cocaine ≥ 30g". The
+   quantity is only tied to its drug INSIDE each sql.פירוט_עבירות_סמים[] element
+   ({ סוג_הסם, מספר_כמות, יחידת_מידה }). So when the user picks drug(s) AND a
+   quantity range we match in memory against those elements: an element must
+   satisfy BOTH the drug and the quantity. Mirrors the law/section approach. */
+interface DrugOffenseElem {
+  drug: string;
+  qty: number | null;
+}
+function drugOffenseElems(doc: UpstreamRulingItem): DrugOffenseElem[] {
+  const sql = ((doc as Record<string, unknown>).sql as Record<string, unknown>) || {};
+  const arr = sql["פירוט_עבירות_סמים"];
+  if (!Array.isArray(arr)) return [];
+  const out: DrugOffenseElem[] = [];
+  for (const e of arr) {
+    if (!e || typeof e !== "object") continue;
+    const o = e as Record<string, unknown>;
+    const drug = typeof o["סוג_הסם"] === "string" ? (o["סוג_הסם"] as string) : "";
+    const q = o["מספר_כמות"];
+    let qty: number | null = null;
+    if (typeof q === "number") qty = q;
+    else if (typeof q === "string" && q.trim() !== "" && !Number.isNaN(Number(q))) qty = Number(q);
+    out.push({ drug, qty });
+  }
+  return out;
+}
+function matchesDrugQuantity(
+  doc: UpstreamRulingItem,
+  drugs: string[],
+  mode: "or" | "and",
+  range: { min?: number; max?: number },
+): boolean {
+  const elems = drugOffenseElems(doc);
+  const inRange = (qty: number | null): boolean => {
+    if (qty == null) return false;
+    if (range.min != null && qty < range.min) return false;
+    if (range.max != null && qty > range.max) return false;
+    return true;
+  };
+  // AND: every selected drug must itself appear in an in-range element.
+  // OR : some in-range element is one of the selected drugs.
+  return mode === "and"
+    ? drugs.every((d) => elems.some((e) => e.drug === d && inRange(e.qty)))
+    : elems.some((e) => drugs.includes(e.drug) && inRange(e.qty));
+}
+
 // Bulk (law-narrowed) snapshot cache for the in-memory section filter, so we
 // don't re-pull the corpus on every page / section toggle.
 interface BulkEntry {
@@ -795,6 +844,115 @@ export async function GET(req: NextRequest) {
           displayFields: config.displayFields,
           filterFields: config.filterFields,
           filterOptions: selectOptionsFromSchema(schemaFieldsLs, config.filterFields),
+          sortFields: config.sortFields,
+          fullTextSearch: config.fullTextSearch,
+          lawSectionFilter: lawSectionResponse,
+        },
+        {
+          headers: {
+            "Cache-Control":
+              "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+            "X-Cache": bulkSource,
+          },
+        },
+      );
+    }
+
+    // ── Correlated drug + quantity path ──
+    // When the user picks drug type(s) AND a quantity range, the two must refer
+    // to the SAME drug (see matchesDrugQuantity). We narrow upstream by
+    // everything EXCEPT the (uncorrelated) quantity clause — keeping the drug
+    // presence filter, which is indexed — then match the drug↔quantity pairing
+    // in memory over the (mirror-backed) bulk snapshot and paginate.
+    const drugSelRaw = userFilters["meta.drug_types"];
+    const drugSel = Array.isArray(drugSelRaw)
+      ? drugSelRaw.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    const qtyRaw = userFilters["meta.drug_max_grams"];
+    const qtyRange =
+      qtyRaw && typeof qtyRaw === "object" && !Array.isArray(qtyRaw)
+        ? (qtyRaw as { min?: number; max?: number })
+        : {};
+    const hasQty = qtyRange.min != null || qtyRange.max != null;
+    const drugMode: "or" | "and" =
+      userFilters["meta.drug_types::mode"] === "and" ? "and" : "or";
+    if (drugSel.length > 0 && hasQty) {
+      // Narrow filter = base + all user clauses EXCEPT the quantity field.
+      const narrowFilter = combineFilters(
+        baseFilter,
+        userFilterClauses(
+          config.filterFields.filter((f) => f.key !== "meta.drug_max_grams"),
+          userFilters,
+        ),
+      );
+      const narrowJson = narrowFilter ? JSON.stringify(narrowFilter) : "";
+      const bulkKey = `s${scopeId}|dq|${createHash("sha1")
+        .update(narrowJson + "|" + sortKey)
+        .digest("hex")
+        .slice(0, 16)}`;
+      let docs = bulkGet(bulkKey);
+      let bulkSource = "BULK";
+      if (!docs && (await mirrorReady(scopeId))) {
+        try {
+          docs = await queryMirrorBulk({
+            scopeId,
+            filter: narrowFilter,
+            sortKey: sortField,
+            sortDesc,
+          });
+          bulkSource = "MIRROR-BULK";
+          bulkSet(bulkKey, docs, config.ttlMs);
+        } catch (err) {
+          console.error("rulings drug-qty mirror bulk failed; upstream fallback:", err);
+          docs = null;
+        }
+      }
+      if (!docs) {
+        try {
+          docs = await fetchAllUpstreamRulings({
+            scopeId,
+            filterJson: narrowJson || undefined,
+            sortKey: sortKey || "-meta.document_date",
+          });
+        } catch (err) {
+          if (err instanceof UpstreamError) {
+            return NextResponse.json(
+              {
+                error: "שגיאה ב-TAG-IT",
+                upstreamStatus: err.status,
+                upstreamBody: err.body.slice(0, 500),
+              },
+              { status: 502 },
+            );
+          }
+          throw err;
+        }
+        if (docs === null) {
+          return NextResponse.json(
+            {
+              error: "שגיאה בטעינת פסיקה",
+              detail: "RULINGS_API_KEY (or CLASS_ACTION_API_KEY) not configured",
+            },
+            { status: 502 },
+          );
+        }
+        bulkSet(bulkKey, docs, config.ttlMs);
+      }
+      const matched = docs.filter((d) =>
+        matchesDrugQuantity(d, drugSel, drugMode, qtyRange),
+      );
+      const start = (page - 1) * size;
+      const pageItems = matched.slice(start, start + size);
+      const schemaFieldsDq = needsSchemaOptions ? await getScopeSchema(scopeId) : [];
+      return NextResponse.json(
+        {
+          total: matched.length,
+          page,
+          size,
+          rulings: pageItems.map(normalize),
+          displayFields: config.displayFields,
+          filterFields: config.filterFields,
+          filterOptions: selectOptionsFromSchema(schemaFieldsDq, config.filterFields),
           sortFields: config.sortFields,
           fullTextSearch: config.fullTextSearch,
           lawSectionFilter: lawSectionResponse,
