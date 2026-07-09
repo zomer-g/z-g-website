@@ -46,9 +46,16 @@ const ICON_MAP: Record<PipelineIcon, LucideIcon> = {
   Calendar,
   Network,
   Puzzle,
+  Database,
 };
 
-const LAYERS: PipelineLayer[] = ["source", "storage", "consumer"];
+const LAYERS: PipelineLayer[] = [
+  "scrapers",
+  "extensions",
+  "seed",
+  "platforms",
+  "consumer",
+];
 
 const nodesByLayer = (layer: PipelineLayer) =>
   PIPELINE_NODES.filter((n) => n.layer === layer).sort((a, b) => a.order - b.order);
@@ -590,6 +597,7 @@ export function PipelineMap({
                   const state = nodeState(node.id);
                   const text = disp(node);
                   const series = seriesByNode.get(node.id);
+                  const external = node.external;
                   const glow = state === "active" ? highlightColor : null;
                   return (
                     <button
@@ -605,11 +613,14 @@ export function PipelineMap({
                           : undefined,
                       }}
                       className={cn(
-                        "group relative flex w-full flex-col items-start gap-3 rounded-xl bg-white p-4 text-start sm:w-[184px] sm:p-5 lg:w-[200px]",
+                        "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 text-start sm:w-[184px] sm:p-5 lg:w-[200px]",
                         "shadow-sm shadow-primary/5 transition-all duration-300",
                         "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10",
                         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
-                        series ? "border-2" : "border border-border/60",
+                        external
+                          ? "border border-dashed border-muted/50 bg-muted-bg/40"
+                          : "bg-white",
+                        !external && (series ? "border-2" : "border border-border/60"),
                         state === "dim" && "opacity-35 saturate-50",
                       )}
                     >
@@ -624,33 +635,64 @@ export function PipelineMap({
                       {/* HUD-style corner brackets — decorative tech accent */}
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute start-2 top-2 h-3 w-3 rounded-ss-sm border-t-2 border-s-2 border-accent/40"
+                        className={cn(
+                          "pointer-events-none absolute start-2 top-2 h-3 w-3 rounded-ss-sm border-t-2 border-s-2",
+                          external ? "border-muted/40" : "border-accent/40",
+                        )}
                       />
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute end-2 bottom-2 h-3 w-3 rounded-ee-sm border-b-2 border-e-2 border-accent/40"
+                        className={cn(
+                          "pointer-events-none absolute end-2 bottom-2 h-3 w-3 rounded-ee-sm border-b-2 border-e-2",
+                          external ? "border-muted/40" : "border-accent/40",
+                        )}
                       />
 
                       <div
                         className={cn(
-                          "relative flex h-11 w-11 items-center justify-center rounded-lg",
-                          "bg-primary/5 text-primary transition-colors duration-200",
-                          "group-hover:bg-accent/10 group-hover:text-accent",
+                          "relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-200",
+                          external
+                            ? "bg-muted/10 text-muted"
+                            : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent",
                         )}
                       >
                         <Icon className="h-5 w-5" aria-hidden="true" />
-                        <span className="absolute -end-1 -top-1 flex h-2.5 w-2.5">
-                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
-                        </span>
+                        {external ? null : (
+                          <span className="absolute -end-1 -top-1 flex h-2.5 w-2.5">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <h3 className="text-base font-bold leading-snug text-primary-dark">
+                      <div className="w-full">
+                        <h3
+                          className={cn(
+                            "text-base font-bold leading-snug",
+                            external ? "text-muted" : "text-primary-dark",
+                          )}
+                        >
                           {text.name}
                         </h3>
-                        <p className="mt-0.5 text-sm font-medium text-accent-text">
+                        <p
+                          className={cn(
+                            "mt-0.5 text-sm font-medium",
+                            external ? "text-muted/80" : "text-accent-text",
+                          )}
+                        >
                           {text.tagline}
                         </p>
+                        {node.badges?.length ? (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {node.badges.map((b) => (
+                              <span
+                                key={b}
+                                className="rounded border border-primary/20 bg-primary/5 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-primary-dark"
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                         <div className="mt-1.5 flex items-center gap-1.5">
                           {series ? (
                             <span
@@ -670,7 +712,12 @@ export function PipelineMap({
                           </span>
                         </div>
                       </div>
-                      <span className="mt-1 text-xs font-semibold text-primary/70 underline-offset-2 group-hover:underline">
+                      <span
+                        className={cn(
+                          "mt-1 text-xs font-semibold underline-offset-2 group-hover:underline",
+                          external ? "text-muted/80" : "text-primary/70",
+                        )}
+                      >
                         לפרטים
                       </span>
                     </button>

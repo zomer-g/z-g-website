@@ -5,7 +5,12 @@
 // is overlaid at render time from CMS content so the site owner can edit it
 // in the admin — see DataPipelinePageContent.nodes.
 
-export type PipelineLayer = "source" | "storage" | "consumer";
+export type PipelineLayer =
+  | "scrapers"
+  | "extensions"
+  | "seed"
+  | "platforms"
+  | "consumer";
 
 export type PipelineIcon =
   | "ScrollText"
@@ -18,7 +23,8 @@ export type PipelineIcon =
   | "Newspaper"
   | "Calendar"
   | "Network"
-  | "Puzzle";
+  | "Puzzle"
+  | "Database";
 
 export interface PipelineNode {
   id: string;
@@ -33,13 +39,18 @@ export interface PipelineNode {
   tags: string[];
   href?: string;
   icon: PipelineIcon;
+  /** Small capability chips shown on the card (e.g. "API", "MCP"). */
+  badges?: string[];
+  /** Rendered in a muted grey style — a source that sits outside the system
+   *  but feeds into it. */
+  external?: boolean;
 }
 
 export const PIPELINE_NODES: PipelineNode[] = [
-  /* ── Collection: scrapers + browser extensions ── */
+  /* ── Row 1: scrapers ── */
   {
     id: "court-downloader",
-    layer: "source",
+    layer: "scrapers",
     order: 1,
     name: "Court Downloader",
     tagline: "סורק בתי המשפט",
@@ -50,9 +61,23 @@ export const PIPELINE_NODES: PipelineNode[] = [
     icon: "DownloadCloud",
   },
   {
-    id: "cwext",
-    layer: "source",
+    id: "govil-scraper",
+    layer: "scrapers",
     order: 2,
+    name: "govil-scraper",
+    tagline: "סורק אתרי ממשלה",
+    description:
+      "פלטפורמת גריפה רב-רכיבית: האתר האחוד של הממשלה (gov.il), נדל״ן (עסקאות מרשות המסים, גם בהיקף ארצי מבוזר), שכבות GIS מ-GovMap, מאגרי data.gov.il ואתר צה״ל (idf.il). כל מה שנאסף מוזן כעדכון גרסה אל OVER.",
+    tags: ["gov.il", "נדל״ן", "GovMap", "data.gov.il"],
+    href: "https://github.com/zomer-g/govil-scraper",
+    icon: "DownloadCloud",
+  },
+
+  /* ── Row 2: browser extensions (סדרת לץ) ── */
+  {
+    id: "cwext",
+    layer: "extensions",
+    order: 1,
     name: "לץ המשפט",
     tagline: "תוסף דפדפן — נט המשפט",
     description:
@@ -62,21 +87,9 @@ export const PIPELINE_NODES: PipelineNode[] = [
     icon: "Puzzle",
   },
   {
-    id: "govil-scraper",
-    layer: "source",
-    order: 3,
-    name: "govil-scraper",
-    tagline: "סורק אתרי ממשלה",
-    description:
-      "פלטפורמת גריפה רב-רכיבית: האתר האחוד של הממשלה (gov.il), נדל״ן (עסקאות מרשות המסים, גם בהיקף ארצי מבוזר), שכבות GIS מ-GovMap, מאגרי data.gov.il ואתר צה״ל (idf.il). כל מה שנאסף מוזן כעדכון גרסה אל OVER.",
-    tags: ["gov.il", "נדל״ן", "GovMap", "data.gov.il"],
-    href: "https://github.com/zomer-g/govil-scraper",
-    icon: "DownloadCloud",
-  },
-  {
     id: "govext",
-    layer: "source",
-    order: 4,
+    layer: "extensions",
+    order: 2,
     name: "לץ הממשל",
     tagline: "תוסף דפדפן — אתרי ממשלה",
     description:
@@ -87,8 +100,8 @@ export const PIPELINE_NODES: PipelineNode[] = [
   },
   {
     id: "cbsext",
-    layer: "source",
-    order: 5,
+    layer: "extensions",
+    order: 3,
     name: "לץ הלמ\"ס",
     tagline: "תוסף דפדפן — למ\"ס",
     description:
@@ -97,59 +110,78 @@ export const PIPELINE_NODES: PipelineNode[] = [
     icon: "Puzzle",
   },
 
-  /* ── Storage, databases & APIs ── */
+  /* ── Row 3: external upstream source (outside the system) ── */
+  {
+    id: "meidalaam",
+    layer: "seed",
+    order: 1,
+    name: "מידע לעם",
+    tagline: "פורטל המידע הפתוח",
+    description:
+      "פורטל המידע הפתוח הישראלי (odata.org.il) — מרכז אלפי מאגרי מידע מגופים ציבוריים ומנגיש אותם לחיפוש והורדה. הוא נמצא מחוץ לתהליך הישיר של המערכת, אך מזין את יומן לעם (OCAL) ואת ניגוד עניינים לעם (OCOI) בנתוני הבסיס שלהם.",
+    tags: ["מידע פתוח", "odata.org.il"],
+    href: "https://www.odata.org.il",
+    icon: "Database",
+    external: true,
+  },
+
+  /* ── Row 4: storage / databases / APIs (all expose API + MCP) ── */
   {
     id: "tag-it",
-    layer: "storage",
+    layer: "platforms",
     order: 1,
     name: "TAG-IT",
     codeName: "smart-dms",
-    tagline: "ניהול מסמכים",
+    tagline: "ניהול ועיבוד מסמכים",
     description:
-      "מערכת ניהול מסמכים: מאפשרת העלאה, קטלוג, חיפוש והורדה של מסמכים — בעיקר פסקי דין והחלטות. חלק מהמסמכים מגיעים ישירות מ-Court Downloader, וחלק מועברים אליה מ-OVER. חושפת API שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
-    tags: ["ניהול מסמכים", "API"],
+      "מערכת ניהול מסמכים המקבלת מסמכים מ-Court Downloader וחלקם מ-OVER. הליבה שלה היא עיבוד המסמכים באמצעות מודל שפה (LLM) — חילוץ שדות, סיווג ותקצור — ושמירת הקטלוג המובנה שנוצר במסד נתונים SQL. חושפת API (ו-MCP) שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
+    tags: ["ניהול מסמכים", "עיבוד LLM", "קטלוג SQL", "API", "MCP"],
     href: "https://github.com/zomer-g/smart-dms",
     icon: "FolderKanban",
+    badges: ["API", "MCP"],
   },
   {
     id: "over",
-    layer: "storage",
+    layer: "platforms",
     order: 2,
     name: "OVER — גרסאות לעם",
     codeName: "ckan-version-tracker",
-    tagline: "ניהול מאגרים",
+    tagline: "ניהול מאגרים וגרסאות",
     description:
-      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. הגרסאות נשמרות ב\"מידע לעם\" (odata.org.il) וניתנות לשאילתת API. ניזון מ-govil-scraper. התוסף לץ הלמ\"ס מתחבר לשרת שלו כדי לגשת לאינדקס ולהריץ שאילתות. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
-    tags: ["מאגרי מידע", "היסטוריית גרסאות", "API ציבורי"],
+      "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. בנוי משני רכיבי אחסון: באקאנד לאחסון הקבצים עצמם, ושרת SQL לאחסון הטבלאות. ניזון מ-govil-scraper; התוסף לץ הלמ\"ס ניגש לאינדקס שלו ומריץ שאילתות. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי (ו-MCP) שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
+    tags: ["מאגרי מידע", "אחסון קבצים", "שרת SQL", "API", "MCP"],
     href: "https://github.com/zomer-g/ckan-version-tracker",
     icon: "History",
+    badges: ["API", "MCP"],
   },
   {
     id: "ocal",
-    layer: "storage",
+    layer: "platforms",
     order: 3,
     name: "יומן לעם (OCAL)",
     tagline: "יומני נבחרי ציבור",
     description:
-      "פלטפורמה אזרחית (ocal.org.il) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
-    tags: ["נבחרי ציבור", "יומנים", "API"],
+      "פלטפורמה אזרחית (ocal.org.il) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. ניזונה מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
+    tags: ["נבחרי ציבור", "יומנים", "API", "MCP"],
     href: "https://ocal.org.il",
     icon: "Calendar",
+    badges: ["API", "MCP"],
   },
   {
     id: "ocoi",
-    layer: "storage",
+    layer: "platforms",
     order: 4,
     name: "ניגוד עניינים לעם (OCOI)",
     tagline: "גרף ניגוד עניינים",
     description:
-      "מאגר וגרף (ocoi.org.il) של הסדרי ניגוד עניינים של נושאי משרה ציבורית, שחולצו ממסמכים ממשלתיים. דשבורד העיתונאים מקשר ישויות מהכתבות לצמתים בגרף ומציג את הזיקות הכלכליות והעסקיות שלהן.",
-    tags: ["ניגוד עניינים", "גרף קשרים", "API"],
+      "מאגר וגרף (ocoi.org.il) של הסדרי ניגוד עניינים של נושאי משרה ציבורית, שחולצו ממסמכים ממשלתיים. ניזון מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מקשר ישויות מהכתבות לצמתים בגרף ומציג את הזיקות הכלכליות והעסקיות שלהן.",
+    tags: ["ניגוד עניינים", "גרף קשרים", "API", "MCP"],
     href: "https://www.ocoi.org.il",
     icon: "Network",
+    badges: ["API", "MCP"],
   },
 
-  /* ── Consumers ── */
+  /* ── Row 5: consumers ── */
   {
     id: "z-g",
     layer: "consumer",
@@ -190,6 +222,8 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   // they share code with their sibling scraper but are intentionally edgeless.
   // לץ הלמ"ס is the only extension wired to a server: it queries OVER's index.
   { from: "cbsext", to: "over", bidirectional: true },
+  { from: "meidalaam", to: "ocal" },
+  { from: "meidalaam", to: "ocoi" },
   { from: "over", to: "tag-it", label: "חלק מהמאגרים הם מסמכים" },
   { from: "tag-it", to: "z-g" },
   { from: "tag-it", to: "journalist-dashboard" },
@@ -200,9 +234,11 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
 ];
 
 export const LAYER_LABELS: Record<PipelineLayer, string> = {
-  source: "איסוף — סקרייפרים ותוספים",
-  storage: "אחסון, מאגרים ו-API",
-  consumer: "צריכה — API",
+  scrapers: "איסוף — סקרייפרים",
+  extensions: "איסוף — תוספי דפדפן",
+  seed: "מקור חיצוני",
+  platforms: "אחסון, API ו-MCP",
+  consumer: "צריכה",
 };
 
 // ── Project series (branded families) ─────────────────────────────────
