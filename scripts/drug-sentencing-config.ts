@@ -52,6 +52,9 @@ const QUERY = {
     // defendant block (between convictions and punishment) — no display field
     // needed for it (read straight from the flattened fields).
     "sql.נאשמים",
+    // Per-drug SUMMARY (TAG-IT meta.drug_totals: one summed row per canonical
+    // drug × unit) — shown ABOVE the detailed per-offense breakdown below.
+    "meta.drug_totals",
     "sql.פירוט_עבירות_סמים",
   ],
   filterFields: PROBE

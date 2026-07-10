@@ -552,6 +552,54 @@ export function DrugOffensesTable({
   );
 }
 
+// Per-drug SUMMARY (scope 1): meta.drug_totals — one row per (canonical drug ×
+// unit) with the TAG-IT-computed SUMMED quantity (normalized: cannabis aliases
+// merged, grams-family collapsed, non-mass units kept separate). כמות_כוללת is
+// null for non-numeric marker rows (unit "כמות לא מספרית") — shown as "—".
+export function DrugTotalsTable({
+  label,
+  items,
+}: {
+  label: string;
+  items: Record<string, unknown>[];
+}) {
+  return (
+    <div className="block mt-3 pt-3 border-t border-gray-200">
+      <FieldSectionHead label={label} count={items.length} />
+      <dd>
+        <MiniTable
+          cols={[
+            { label: "סוג הסם", w: "34%" },
+            { label: "כמות כוללת", w: "26%", center: true },
+            { label: "יחידה", w: "24%", center: true },
+            { label: "רכיבים", w: "16%", center: true },
+          ]}
+          rows={items.map((it) => {
+            const drug = pickByKeyHint(it, ["סוג_הסם"]);
+            const total = pickByKeyHint(it, ["כמות_כוללת"]);
+            const unit = pickByKeyHint(it, ["יחידה"]);
+            const parts = pickByKeyHint(it, ["מספר_רכיבים"]);
+            return [
+              drug != null && drug !== "" ? (
+                <span className="font-semibold text-gray-800">{formatFieldValue(drug)}</span>
+              ) : (
+                "—"
+              ),
+              total != null && total !== "" ? (
+                <span className="font-semibold">{formatFieldValue(total)}</span>
+              ) : (
+                "—"
+              ),
+              unit != null && unit !== "" ? formatFieldValue(unit) : "—",
+              parts != null && parts !== "" ? formatFieldValue(parts) : "—",
+            ];
+          })}
+        />
+      </dd>
+    </div>
+  );
+}
+
 // Per-defendant list (scope-1 "נאשמים"): name + plea/outcome flags, then nested
 // convictions (הרשעות) and punishment (פירוט_ענישה) sub-tables.
 // Renders a text_query snippet, turning TAG-IT's «…» match markers into
@@ -971,6 +1019,15 @@ function RulingCard({
               }
               // Drug-sentencing (scope 1): per-drug + per-defendant lists get
               // dedicated nested-table renderers.
+              if (tail === "drug_totals") {
+                return (
+                  <DrugTotalsTable
+                    key={key}
+                    label="סיכום כמויות סמים (סה״כ לכל סם)"
+                    items={value}
+                  />
+                );
+              }
               if (tail === "פירוט_עבירות_סמים") {
                 return (
                   <DrugOffensesTable

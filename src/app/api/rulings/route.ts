@@ -128,14 +128,18 @@ function parseLawSectionSelection(
   return { law: law || undefined, sections, mode };
 }
 
-/* ── Correlated drug + quantity match (scope 1) ──
-   meta.drug_types (which drugs appear) and meta.drug_max_grams (max grams of
-   ANY drug) are independent columns, so filtering on both is UNCORRELATED — a
-   case with 1g cocaine + 30g hashish wrongly matches "cocaine ≥ 30g". The
-   quantity is only tied to its drug INSIDE each sql.פירוט_עבירות_סמים[] element
-   ({ סוג_הסם, מספר_כמות, יחידת_מידה }). So when the user picks drug(s) AND a
-   quantity range we match in memory against those elements: an element must
-   satisfy BOTH the drug and the quantity. Mirrors the law/section approach. */
+/* ── Drug + quantity match (scope 1) ──
+   The quantity refers to the per-drug TOTAL across the whole judgment. TAG-IT
+   exposes meta.drug_totals = [{ סוג_הסם (canonical), יחידה, כמות_כוללת,
+   מספר_רכיבים }] — grouped + summed per (canonical drug × unit) — so
+   "cocaine ≥ 30g" means the SUM of cocaine grams ≥ 30, and cannabis aliases
+   (גראס/קנבוס/מריחואנה) are already merged into קנאביס. We match those summed
+   GRAMS rows in memory.
+   FALLBACK: a doc whose mirror copy predates the field (meta.drug_totals
+   absent — stale mirror) falls back to the legacy per-offense-element match
+   over the raw sql.פירוט_עבירות_סמים[] — uncorrelated across aliases and
+   per-element (not summed), but keeps the filter working until the mirror
+   re-syncs the field. */
 interface DrugOffenseElem {
   drug: string;
   qty: number | null;
@@ -157,21 +161,48 @@ function drugOffenseElems(doc: UpstreamRulingItem): DrugOffenseElem[] {
   }
   return out;
 }
+// canonical drug → summed GRAMS total, from meta.drug_totals grams rows only
+// (non-mass units and non-numeric marker rows are ignored for a grams filter).
+function drugTotalsGrams(metaTotals: unknown): Map<string, number> {
+  const m = new Map<string, number>();
+  if (!Array.isArray(metaTotals)) return m;
+  for (const row of metaTotals) {
+    if (!row || typeof row !== "object") continue;
+    const o = row as Record<string, unknown>;
+    const drug = o["סוג_הסם"];
+    const total = o["כמות_כוללת"];
+    if (typeof drug === "string" && o["יחידה"] === "גרם" && typeof total === "number") {
+      m.set(drug, (m.get(drug) ?? 0) + total);
+    }
+  }
+  return m;
+}
 function matchesDrugQuantity(
   doc: UpstreamRulingItem,
   drugs: string[],
   mode: "or" | "and",
   range: { min?: number; max?: number },
 ): boolean {
-  const elems = drugOffenseElems(doc);
-  const inRange = (qty: number | null): boolean => {
+  const inRange = (qty: number | null | undefined): boolean => {
     if (qty == null) return false;
     if (range.min != null && qty < range.min) return false;
     if (range.max != null && qty > range.max) return false;
     return true;
   };
-  // AND: every selected drug must itself appear in an in-range element.
-  // OR : some in-range element is one of the selected drugs.
+  const meta =
+    ((doc as Record<string, unknown>).meta as Record<string, unknown>) || {};
+  // Preferred path — normalized per-drug SUM. Presence of meta.drug_totals
+  // (even []) means TAG-IT computed it for this doc.
+  //   AND: every selected drug's grams-total is in range.
+  //   OR : some selected drug's grams-total is in range.
+  if (Array.isArray(meta["drug_totals"])) {
+    const totals = drugTotalsGrams(meta["drug_totals"]);
+    return mode === "and"
+      ? drugs.every((d) => inRange(totals.get(d)))
+      : drugs.some((d) => inRange(totals.get(d)));
+  }
+  // Fallback — legacy per-offense-element match (stale mirror, field absent).
+  const elems = drugOffenseElems(doc);
   return mode === "and"
     ? drugs.every((d) => elems.some((e) => e.drug === d && inRange(e.qty)))
     : elems.some((e) => drugs.includes(e.drug) && inRange(e.qty));
