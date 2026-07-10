@@ -59,6 +59,7 @@ const PAGE_LABELS: Record<string, string> = {
   "drug-sentencing": "גזרי דין בעבירות סמים",
   "comptroller-reports": "דוחות מבקר המדינה",
   leam: "לעם — אתרים אזרחיים",
+  letz: "לץ — תוספי דפדפן",
   "data-pipeline": "זרימת המידע",
 };
 
@@ -85,6 +86,7 @@ const PAGE_URLS: Record<string, string> = {
   "drug-sentencing": "/drug-sentencing",
   "comptroller-reports": "/comptroller-reports",
   leam: "/o",
+  letz: "/letz",
   "data-pipeline": "/data-pipeline",
 };
 
@@ -684,6 +686,12 @@ export default function SiteEditorPageEditor({
             />
           )}
           {slug === "leam" && (
+            <LeamEditors
+              content={content as LeamPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "letz" && (
             <LeamEditors
               content={content as LeamPageContent}
               onChange={setContent}

@@ -15,6 +15,7 @@ import {
   Trash2,
   History,
   Workflow,
+  Puzzle,
   type LucideIcon,
 } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
@@ -57,6 +58,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Trash2,
   History,
   Workflow,
+  Puzzle,
   ExternalLink,
 };
 

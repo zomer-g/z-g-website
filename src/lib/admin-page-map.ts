@@ -44,6 +44,7 @@ import {
   FileSearch,
   Globe,
   Workflow,
+  Puzzle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -113,6 +114,7 @@ export const PAGE_GROUPS: PageGroup[] = [
     title: "דשבורדים ומאגרי תוכן",
     items: [
       { slug: "leam", label: "לעם — אתרים אזרחיים", icon: Globe, publicPath: "/o" },
+      { slug: "letz", label: "לץ — תוספי דפדפן", icon: Puzzle, publicPath: "/letz" },
       { slug: "sanegoria", label: "דשבורד סניגוריה", icon: BarChart3, publicPath: "/sanegoria" },
       { slug: "class-actions", label: "דשבורד תובענות ייצוגיות", icon: Scale, publicPath: "/class-actions" },
       { slug: "conditional-arrangements", label: "דשבורד הסדרים מותנים", icon: Scale, publicPath: "/conditional-arrangements" },

@@ -472,6 +472,12 @@ export interface LeamPageContent {
   };
 }
 
+// ── Letz (לץ) Browser-Extensions Page Content ──
+// Structurally identical to the לעם page — a branded umbrella landing page —
+// only the copy differs. Aliased so the same page shell + admin editor
+// (LeamEditors) can drive it.
+export type LetzPageContent = LeamPageContent;
+
 // ── Defamation Rulings Dashboard Page Content ──
 
 // A relevant-legislation link shown on a rulings page (primary law or a piece
@@ -617,6 +623,7 @@ export type PageContentMap = {
   "drug-sentencing": DrugSentencingPageContent;
   "conditional-arrangements": ConditionalArrangementsPageContent;
   leam: LeamPageContent;
+  letz: LetzPageContent;
   "data-pipeline": DataPipelinePageContent;
 };
 

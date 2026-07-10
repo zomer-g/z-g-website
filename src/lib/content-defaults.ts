@@ -24,6 +24,7 @@ import type {
   ConditionalArrangementsPageContent,
   DataPipelinePageContent,
   LeamPageContent,
+  LetzPageContent,
 } from "@/types/content";
 import { PIPELINE_NODES } from "@/app/data-pipeline/pipeline-data";
 
@@ -341,6 +342,14 @@ export const DEFAULT_PROJECTS_CONTENT: ProjectsPageContent = {
       url: "/o",
       icon: "Globe",
       tags: ["מידע פתוח", "שקיפות ממשלתית", "אחריותיות", "נבחרי ציבור"],
+    },
+    {
+      title: "לץ — תוספי דפדפן",
+      subtitle: "סדרת תוספי Chrome להורדת מידע ציבורי בלחיצה",
+      description: "סדרת תוספי דפדפן שהופכים מאגרי מידע ומסמכים ציבוריים לקבצים מסודרים, מקומית בדפדפן וללא שרת ביניים: לץ המשפט (מסמכים מנט המשפט), לץ הממשל (מאגרי נתונים מאתרי ממשלה) ולץ הלמ״ס (נתוני הלשכה המרכזית לסטטיסטיקה).",
+      url: "/letz",
+      icon: "Puzzle",
+      tags: ["תוספי דפדפן", "מידע פתוח", "הורדה מקומית"],
     },
     {
       title: "פח המשפט",
@@ -899,6 +908,77 @@ export const DEFAULT_LEAM_CONTENT: LeamPageContent = {
   },
 };
 
+/* ─── Letz (לץ) Browser-Extensions Page ─── */
+
+export const DEFAULT_LETZ_CONTENT: LetzPageContent = {
+  metaStrip: "תוספי דפדפן · שקיפות בלחיצה",
+  hero: {
+    title: "לץ",
+    subtitle:
+      "סדרת תוספי דפדפן שהופכים מאגרי מידע ומסמכים ציבוריים לקבצים מסודרים — בלחיצה אחת, מקומית בדפדפן וללא שרת ביניים.",
+  },
+  stats: [
+    { k: "03", v: "תוספים" },
+    { k: "∞", v: "קבצים להורדה", srK: "ללא הגבלה" },
+    { k: "100%", v: "מקומי בדפדפן" },
+    { k: "0", v: "שרתי ביניים" },
+  ],
+  manifesto: {
+    title: "המידע הציבורי הוא שלכם — קחו אותו",
+    body:
+      "שלושת התוספים שלהלן נבנו מתוך תפיסה אחת: שכל אחד צריך להיות מסוגל להוריד מידע ומסמכים ציבוריים בכוחות עצמו, בלי לדעת לתכנת ובלי שרת ביניים שמתווך בין המשתמש לבין הנתונים. כל תוסף מזהה את המידע הפתוח שמסתתר מאחורי ממשק מסורבל, ומגיש אותו בלחיצה כקובץ מסודר שאפשר לעבוד איתו.",
+  },
+  sitesSection: {
+    eyebrow: "התוספים",
+    title: "שלושה תוספים, מטרה אחת",
+  },
+  sites: [
+    {
+      index: "01",
+      name: "לץ המשפט",
+      tagline: "מוריד מסמכים מנט המשפט",
+      description:
+        "תוסף Chrome לעורכי דין, מתמחים ובעלי דין: מזהה תיק בנט המשפט ומוריד את כל מסמכיו כ-ZIP עם אינדקס CSV, וכן רשימות דיונים. הכול מקומי בדפדפן — הקבצים נשמרים אצל המשתמש, ללא שרת ביניים.",
+      domain: "z-g.co.il/court-downloader",
+      url: "/court-downloader",
+      icon: "Scale",
+      tags: ["נט המשפט", "מסמכים", "הורדה מקומית"],
+    },
+    {
+      index: "02",
+      name: "לץ הממשל",
+      tagline: "מוריד מאגרי נתונים מאתרי ממשלה",
+      description:
+        "תוסף Chrome שמזהה מאגרי נתונים פתוחים באתרי ממשלה ישראליים (gov.il, נדל״ן, GovMap, מנהל התכנון ועוד) ומאפשר להוריד אותם בלחיצה כ-CSV/GeoJSON/ZIP. חלק ממיזם השקיפות של גרסאות לעם (OVER).",
+      domain: "z-g.co.il/govscraper",
+      url: "/govscraper",
+      icon: "Globe",
+      tags: ["מאגרי ממשלה", "GovMap", "מידע פתוח"],
+    },
+    {
+      index: "03",
+      name: "לץ הלמ״ס",
+      tagline: "מוריד נתונים מהלשכה המרכזית לסטטיסטיקה",
+      description:
+        "תוסף לאיסוף וניתוח נתונים מאתר הלשכה המרכזית לסטטיסטיקה (הלמ״ס). מחובר לשרת של גרסאות לעם (OVER) — ניגש דרכו לאינדקס המאגרים ומריץ מולו שאילתות.",
+      domain: "z-g.co.il/data-pipeline",
+      url: "/data-pipeline?series=letz",
+      icon: "BarChart3",
+      tags: ["למ״ס", "סטטיסטיקה", "שאילתות"],
+    },
+  ],
+  ctaSiteLabel: "לתוסף",
+  cta: {
+    title: "רוצים תוסף לאתר שחשוב לכם?",
+    description:
+      "סדרת לץ נבנית בקוד פתוח ומתרחבת. אם יש אתר ממשלתי או ציבורי שממנו אתם צריכים להוריד מידע — כתבו לי ואבדוק אם אפשר להוסיף לו תוסף.",
+    primaryCtaText: "צרו קשר",
+    primaryCtaLink: "/contact",
+    secondaryCtaText: "כל המיזמים",
+    secondaryCtaLink: "/projects",
+  },
+};
+
 /* ─── Data Pipeline Map Page (זרימת המידע) ─── */
 
 // Per-node text defaults are derived from the structural node list so there's
@@ -945,5 +1025,6 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "drug-sentencing": DEFAULT_DRUG_SENTENCING_CONTENT,
   "conditional-arrangements": DEFAULT_CONDITIONAL_ARRANGEMENTS_CONTENT,
   leam: DEFAULT_LEAM_CONTENT,
+  letz: DEFAULT_LETZ_CONTENT,
   "data-pipeline": DEFAULT_DATA_PIPELINE_CONTENT,
 };
