@@ -98,6 +98,8 @@ model PlilistPost {
   updatedAt   DateTime   @updatedAt
   seoTitle    String?
   seoDesc     String?
+  // PDF attachments shown at the bottom of the post: [{ name, url }]
+  attachments Json?
 }
 
 model Page {

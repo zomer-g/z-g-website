@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Editor } from "@/components/admin/editor";
+import {
+  PdfAttachmentsEditor,
+  type PdfAttachment,
+} from "@/components/admin/pdf-attachments-editor";
 import { slugify } from "@/lib/utils";
 
 /* ─── Page Component ─── */
@@ -21,6 +25,7 @@ export default function NewPlilistPostPage() {
   const [seoDesc, setSeoDesc] = useState("");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [content, setContent] = useState<Record<string, unknown> | null>(null);
+  const [attachments, setAttachments] = useState<PdfAttachment[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +59,7 @@ export default function NewPlilistPostPage() {
         excerpt: excerpt || undefined,
         seoTitle: seoTitle || undefined,
         seoDesc: seoDesc || undefined,
+        attachments,
         status,
       };
 
@@ -146,6 +152,12 @@ export default function NewPlilistPostPage() {
           </label>
           <Editor onChange={(json) => setContent(json)} />
         </div>
+
+        {/* PDF Attachments */}
+        <PdfAttachmentsEditor
+          attachments={attachments}
+          onChange={setAttachments}
+        />
 
         {/* SEO Section */}
         <div className="space-y-4 rounded-lg border border-border bg-gray-50/50 p-4">

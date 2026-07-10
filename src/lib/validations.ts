@@ -31,6 +31,16 @@ export const plilistPostSchema = z.object({
   tags: z.array(z.string()).default([]),
   seoTitle: z.string().optional(),
   seoDesc: z.string().optional(),
+  // PDF attachments: [{ name, url }]
+  attachments: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        url: z.string().min(1),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const serviceSchema = z.object({

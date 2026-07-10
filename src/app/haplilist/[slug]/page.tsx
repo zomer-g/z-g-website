@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Calendar, User, ArrowLeft } from "lucide-react";
+import { ChevronLeft, Calendar, User, ArrowLeft, FileText } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import {
@@ -11,9 +11,27 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
+import { formatDate, safeHref } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
+
+/* ─── PDF attachments ─── */
+
+interface PostAttachment {
+  name: string;
+  url: string;
+}
+
+function getAttachments(raw: unknown): PostAttachment[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (a): a is PostAttachment =>
+      !!a &&
+      typeof a === "object" &&
+      typeof (a as PostAttachment).name === "string" &&
+      typeof (a as PostAttachment).url === "string",
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +107,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
 
   const relatedPosts = await getRelatedPosts(slug);
   const authorName = post.author?.name ?? 'עו"ד גיא זומר';
+  const attachments = getAttachments(post.attachments);
 
   return (
     <PublicLayout>
@@ -173,6 +192,52 @@ export default async function PlilistPostPage({ params }: PageProps) {
                   content={post.content as Record<string, unknown>}
                 />
               </div>
+
+              {/* PDF Attachments */}
+              {attachments.length > 0 && (
+                <section
+                  aria-labelledby="post-attachments-heading"
+                  className="mt-12 border-t border-border pt-8"
+                >
+                  <h2
+                    id="post-attachments-heading"
+                    className="mb-4 text-lg font-bold text-primary-dark"
+                  >
+                    מסמכים מצורפים
+                  </h2>
+                  <ul role="list" className="space-y-3">
+                    {attachments.map((att, i) => (
+                      <li key={`${att.url}-${i}`}>
+                        <a
+                          href={safeHref(att.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-sm focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                        >
+                          <span
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                            aria-hidden="true"
+                          >
+                            <FileText className="h-5 w-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold text-foreground group-hover:text-accent transition-colors duration-200">
+                              {att.name}
+                            </span>
+                            <span className="text-xs text-muted">
+                              PDF · פתיחה בכרטיסייה חדשה
+                            </span>
+                          </span>
+                          <ArrowLeft
+                            className="h-4 w-4 shrink-0 text-muted transition-transform duration-200 group-hover:-translate-x-1"
+                            aria-hidden="true"
+                          />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
             </article>
 
             {/* Sidebar */}

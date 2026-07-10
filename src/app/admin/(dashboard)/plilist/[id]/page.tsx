@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Editor } from "@/components/admin/editor";
+import {
+  PdfAttachmentsEditor,
+  type PdfAttachment,
+} from "@/components/admin/pdf-attachments-editor";
 import SitePreview from "@/components/admin/site-preview";
 import { slugify } from "@/lib/utils";
 import { Loader2, Trash2, Save } from "lucide-react";
@@ -22,6 +26,7 @@ interface PlilistPost {
   tags: string[];
   seoTitle: string | null;
   seoDesc: string | null;
+  attachments: PdfAttachment[] | null;
 }
 
 /* ─── Page Component ─── */
@@ -50,6 +55,7 @@ export default function EditPlilistPostPage({
     "DRAFT",
   );
   const [content, setContent] = useState<Record<string, unknown> | null>(null);
+  const [attachments, setAttachments] = useState<PdfAttachment[]>([]);
   const [initialContent, setInitialContent] = useState<Record<
     string,
     unknown
@@ -76,6 +82,9 @@ export default function EditPlilistPostPage({
         setStatus(post.status);
         setContent(post.content);
         setInitialContent(post.content);
+        setAttachments(
+          Array.isArray(post.attachments) ? post.attachments : [],
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
       } finally {
@@ -115,6 +124,7 @@ export default function EditPlilistPostPage({
         excerpt: excerpt || undefined,
         seoTitle: seoTitle || undefined,
         seoDesc: seoDesc || undefined,
+        attachments,
         status,
       };
 
@@ -275,6 +285,12 @@ export default function EditPlilistPostPage({
                 />
               )}
             </div>
+
+            {/* PDF Attachments */}
+            <PdfAttachmentsEditor
+              attachments={attachments}
+              onChange={setAttachments}
+            />
 
             {/* SEO Section */}
             <div className="space-y-4 rounded-lg border border-border bg-gray-50/50 p-4">
