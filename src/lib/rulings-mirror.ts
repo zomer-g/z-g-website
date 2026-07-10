@@ -56,7 +56,14 @@ export function mirrorScopes(): number[] {
   return [4, 6, 1];
 }
 
-const PAGE_SIZE = 100; // TAG-IT max page size
+// Sync page size (TAG-IT max is 100). The read-time meta.drug_totals
+// aggregation made 100-doc pages slow enough to 504 the full walk; lower this
+// via TAGIT_MIRROR_PAGE_SIZE (env, no deploy) to shrink per-request load when
+// TAG-IT is timing out. Coverage still fits HARD_PAGE_CAP at sizes ≥ ~45.
+const PAGE_SIZE = Math.min(
+  100,
+  Math.max(10, parseInt(process.env.TAGIT_MIRROR_PAGE_SIZE ?? "100", 10) || 100),
+);
 
 function parseDocDate(item: UpstreamRulingItem): Date | null {
   const meta = (item as Record<string, unknown>).meta as
@@ -244,13 +251,43 @@ export async function syncScope(
       }
     }
 
+    // A full walk that hits a chronically-slow page must not stall forever:
+    // resume would return to the same page every run. We SKIP such a page
+    // (never delete anything), flag a gap so we neither prune nor claim a clean
+    // full sync, and continue — the next clean-start walk retries it. We bail
+    // only when many pages fail in a row (TAG-IT is down, not one slow page).
+    let hadGap = false;
+    let consecutiveFails = 0;
+    const MAX_CONSECUTIVE_FAILS = 5;
+
     while (page <= maxPages && (page - 1) * PAGE_SIZE < total) {
-      const res = await fetchPagePatiently(scopeId, page);
+      let res: { items: UpstreamRulingItem[]; total: number } | null;
+      try {
+        res = await fetchPagePatiently(scopeId, page);
+      } catch (err) {
+        if (mode !== "full") throw err; // short incremental — just retry next run
+        consecutiveFails += 1;
+        if (consecutiveFails >= MAX_CONSECUTIVE_FAILS) throw err;
+        hadGap = true;
+        const gmsg = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `rulings-mirror: scope ${scopeId} skipping page ${page} after retries (${gmsg})`,
+        );
+        // Advance the resume cursor past the bad page so a mid-run interruption
+        // still makes forward progress on the next resume.
+        await prisma.tagitSyncState
+          .updateMany({ where: { scopeId }, data: { lastFullPage: page } })
+          .catch(() => {});
+        page += 1;
+        await new Promise((r) => setTimeout(r, 1_000));
+        continue;
+      }
       if (!res) {
         throw new Error(
           "RULINGS_API_KEY / CLASS_ACTION_API_KEY not configured",
         );
       }
+      consecutiveFails = 0;
       total = res.total || 0;
       result.upstreamTotal = total;
       await upsertBatch(scopeId, res.items);
@@ -274,7 +311,7 @@ export async function syncScope(
       () => null,
     );
 
-    if (mode === "full") {
+    if (mode === "full" && !hadGap) {
       // The walk completed → anything untouched since walkStart no longer
       // exists upstream (deleted / marked duplicate / scope hidden). Guarded:
       // if the candidate count is implausibly large (a resume edge case or a
@@ -305,6 +342,23 @@ export async function syncScope(
         upstreamTotal: result.upstreamTotal,
         lastFullSyncAt: new Date(),
         lastError: null,
+        ...(schemaFields ? { fieldSchema: schemaFields } : {}),
+      });
+    } else if (mode === "full") {
+      // Incomplete walk — some pages were skipped after exhausting retries. Do
+      // NOT prune (skipped pages' docs are still live) and do NOT claim a clean
+      // full sync. Reset the resume cursor so the next run restarts from page 1
+      // and retries the gaps.
+      await prisma.tagitSyncState
+        .updateMany({
+          where: { scopeId },
+          data: { lastFullPage: 0, fullSyncStartedAt: null },
+        })
+        .catch(() => {});
+      await updateSyncState(scopeId, {
+        upstreamTotal: result.upstreamTotal,
+        lastError:
+          "full walk completed with skipped pages (TAG-IT timeouts) — retried next run",
         ...(schemaFields ? { fieldSchema: schemaFields } : {}),
       });
     } else {
