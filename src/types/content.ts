@@ -570,6 +570,26 @@ export interface DataPipelinePageContent {
   nodes: Record<string, DataPipelineNodeText>;
 }
 
+/* ─── Haplilist (personal blog listing page) ─── */
+
+export interface HaplilistHeroBanner {
+  title: string;
+  subtitle: string;
+}
+
+export interface HaplilistGridSection {
+  title: string;
+  subtitle: string;
+  emptyStateTitle: string;
+  emptyStateSubtitle: string;
+  readMoreText: string;
+}
+
+export interface HaplilistPageContent {
+  hero: HaplilistHeroBanner;
+  grid: HaplilistGridSection;
+}
+
 // ── Union type for all page content ──
 
 export type PageContentMap = {
@@ -580,6 +600,7 @@ export type PageContentMap = {
   footer: FooterContent;
   services: ServicesPageContent;
   articles: ArticlesPageContent;
+  haplilist: HaplilistPageContent;
   media: MediaPageContent;
   "article-detail": ArticleDetailContent;
   "service-detail": ServiceDetailContent;

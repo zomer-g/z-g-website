@@ -14,6 +14,7 @@ import { HeaderEditor } from "@/components/admin/section-editors/header-editor";
 import { FooterEditor } from "@/components/admin/section-editors/footer-editor";
 import { ServicesEditors } from "@/components/admin/section-editors/services-editors";
 import { ArticlesEditors } from "@/components/admin/section-editors/articles-editors";
+import { HaplilistEditors } from "@/components/admin/section-editors/haplilist-editors";
 import { MediaEditors } from "@/components/admin/section-editors/media-editors";
 import { ArticleDetailEditors } from "@/components/admin/section-editors/article-detail-editors";
 import { ServiceDetailEditors } from "@/components/admin/section-editors/service-detail-editors";
@@ -31,7 +32,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent, DataPipelinePageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, HaplilistPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent, DataPipelinePageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -43,6 +44,7 @@ const PAGE_LABELS: Record<string, string> = {
   footer: "כותרת תחתונה",
   services: "תחומי עיסוק",
   articles: "מאמרים",
+  haplilist: "הפליליסט (בלוג)",
   media: "מדיה",
   "article-detail": "עמוד מאמר (תבנית)",
   "service-detail": "עמוד שירות (תבנית)",
@@ -68,6 +70,7 @@ const PAGE_URLS: Record<string, string> = {
   footer: "/",
   services: "/services",
   articles: "/articles",
+  haplilist: "/haplilist",
   media: "/media",
   "article-detail": "/articles",
   "service-detail": "/services",
@@ -350,6 +353,12 @@ export default function SiteEditorPageEditor({
           {slug === "articles" && (
             <ArticlesEditors
               content={content as ArticlesPageContent}
+              onChange={setContent}
+            />
+          )}
+          {slug === "haplilist" && (
+            <HaplilistEditors
+              content={content as HaplilistPageContent}
               onChange={setContent}
             />
           )}

@@ -14,8 +14,13 @@ import {
 } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getPageContent } from "@/lib/content";
+import { EditableSection } from "@/components/admin/editable-section";
+import type { HaplilistPageContent } from "@/types/content";
 
 export const dynamic = "force-dynamic";
+
+const EDIT_HREF = "/admin/site-editor/haplilist";
 
 /* ─── Metadata ─── */
 // robots: noindex — the blog is "soft-launched": reachable by URL but kept out
@@ -62,32 +67,36 @@ async function getPosts() {
 /* ─── Page Component ─── */
 
 export default async function HaplilistPage() {
-  const posts = await getPosts();
+  const [posts, content] = await Promise.all([
+    getPosts(),
+    getPageContent<HaplilistPageContent>("haplilist"),
+  ]);
 
   return (
     <PublicLayout>
       {/* Hero Section */}
-      <section
-        className="bg-primary py-20 sm:py-28"
-        aria-labelledby="haplilist-hero-heading"
-      >
-        <Container className="text-center">
-          <div
-            className="mx-auto mb-4 h-1 w-16 rounded-full bg-accent"
-            aria-hidden="true"
-          />
-          <h1
-            id="haplilist-hero-heading"
-            className="text-4xl font-bold leading-snug tracking-tight text-white sm:text-5xl"
-          >
-            הפליליסט
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
-            הבלוג האישי שלי — פרספקטיבה אישית על המשפט הפלילי, מערכת המשפט
-            והאנשים שמאחורי התיקים.
-          </p>
-        </Container>
-      </section>
+      <EditableSection editHref={EDIT_HREF} editLabel="עריכת כותרת הבלוג">
+        <section
+          className="bg-primary py-20 sm:py-28"
+          aria-labelledby="haplilist-hero-heading"
+        >
+          <Container className="text-center">
+            <div
+              className="mx-auto mb-4 h-1 w-16 rounded-full bg-accent"
+              aria-hidden="true"
+            />
+            <h1
+              id="haplilist-hero-heading"
+              className="text-4xl font-bold leading-snug tracking-tight text-white sm:text-5xl"
+            >
+              {content.hero.title}
+            </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-white/80">
+              {content.hero.subtitle}
+            </p>
+          </Container>
+        </section>
+      </EditableSection>
 
       {/* Posts Grid */}
       <section
@@ -95,17 +104,21 @@ export default async function HaplilistPage() {
         aria-labelledby="haplilist-grid-heading"
       >
         <Container>
-          <SectionHeading
-            title="הפוסטים האחרונים"
-            subtitle="מחשבות, דעות ותובנות מהשטח"
-            id="haplilist-grid-heading"
-          />
+          <EditableSection editHref={EDIT_HREF} editLabel="עריכת כותרת הרשימה">
+            <SectionHeading
+              title={content.grid.title}
+              subtitle={content.grid.subtitle}
+              id="haplilist-grid-heading"
+            />
+          </EditableSection>
 
           {posts.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-lg text-muted">עדיין אין פוסטים</p>
+              <p className="text-lg text-muted">
+                {content.grid.emptyStateTitle}
+              </p>
               <p className="mt-2 text-sm text-muted">
-                הפוסט הראשון בדרך — חזרו בקרוב.
+                {content.grid.emptyStateSubtitle}
               </p>
             </div>
           ) : (
@@ -168,7 +181,7 @@ export default async function HaplilistPage() {
 
                       <CardFooter>
                         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
-                          קראו עוד
+                          {content.grid.readMoreText}
                           <ArrowLeft
                             className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
                             aria-hidden="true"

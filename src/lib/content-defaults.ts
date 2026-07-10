@@ -6,6 +6,7 @@ import type {
   FooterContent,
   ServicesPageContent,
   ArticlesPageContent,
+  HaplilistPageContent,
   MediaPageContent,
   ArticleDetailContent,
   ServiceDetailContent,
@@ -218,6 +219,23 @@ export const DEFAULT_ARTICLES_CONTENT: ArticlesPageContent = {
     description: "רוצים לקבל עדכונים על מאמרים חדשים ושינויי חקיקה? צרו קשר ואוסיף אתכם לרשימת התפוצה.",
     ctaText: "צרו קשר",
     ctaLink: "/contact",
+  },
+};
+
+/* ─── Haplilist (personal blog listing page) ─── */
+
+export const DEFAULT_HAPLILIST_CONTENT: HaplilistPageContent = {
+  hero: {
+    title: "הפליליסט",
+    subtitle:
+      "הבלוג האישי שלי — פרספקטיבה אישית על המשפט הפלילי, מערכת המשפט והאנשים שמאחורי התיקים.",
+  },
+  grid: {
+    title: "הפוסטים האחרונים",
+    subtitle: "מחשבות, דעות ותובנות מהשטח",
+    emptyStateTitle: "עדיין אין פוסטים",
+    emptyStateSubtitle: "הפוסט הראשון בדרך — חזרו בקרוב.",
+    readMoreText: "קראו עוד",
   },
 };
 
@@ -910,6 +928,7 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   footer: DEFAULT_FOOTER_CONTENT,
   services: DEFAULT_SERVICES_CONTENT,
   articles: DEFAULT_ARTICLES_CONTENT,
+  haplilist: DEFAULT_HAPLILIST_CONTENT,
   media: DEFAULT_MEDIA_CONTENT,
   "article-detail": DEFAULT_ARTICLE_DETAIL_CONTENT,
   "service-detail": DEFAULT_SERVICE_DETAIL_CONTENT,
