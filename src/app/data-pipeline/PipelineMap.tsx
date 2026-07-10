@@ -15,6 +15,7 @@ import {
   Network,
   Puzzle,
   ExternalLink,
+  Github,
   ChevronLeft,
   ArrowUpLeft,
   Database,
@@ -591,7 +592,16 @@ export function PipelineMap({
               ) : (
                 <div className="mb-4" />
               )}
-              <div className="flex flex-wrap justify-center gap-y-6 gap-x-10 sm:gap-x-16 lg:gap-x-20">
+              <div
+                className={cn(
+                  "flex flex-wrap gap-y-6 gap-x-10 sm:gap-x-16 lg:gap-x-20",
+                  // The lone external "seed" node (מידע לעם) is pushed to the
+                  // end side (left in RTL), above the OCAL/OCOI cluster it
+                  // feeds, so the scraper→platform arrows running down the
+                  // centre/right don't cross over it.
+                  layer === "seed" ? "justify-center sm:justify-end" : "justify-center",
+                )}
+              >
                 {nodesByLayer(layer).map((node) => {
                   const Icon = ICON_MAP[node.icon];
                   const state = nodeState(node.id);
@@ -814,23 +824,36 @@ export function PipelineMap({
               ))}
             </div>
 
-            {activeNode.href ? (
-              <div className="mt-6">
-                <Link
-                  href={activeNode.href}
-                  target={activeNode.href.startsWith("http") ? "_blank" : undefined}
-                  rel={activeNode.href.startsWith("http") ? "noopener noreferrer" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-5 py-2.5",
-                    "text-sm font-bold text-primary-dark transition-all duration-200",
-                    "hover:border-accent hover:bg-accent",
-                  )}
-                >
-                  <span>
-                    {activeNode.href.startsWith("http") ? "לקישור החיצוני" : "לעמוד הפרויקט"}
-                  </span>
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                </Link>
+            {activeNode.links?.length ? (
+              <div className="mt-6 flex flex-wrap gap-2">
+                {activeNode.links.map((lnk) => {
+                  const isGithub = lnk.kind === "github";
+                  const LinkIcon = isGithub ? Github : ExternalLink;
+                  const label =
+                    lnk.label ??
+                    (isGithub
+                      ? "GitHub"
+                      : lnk.kind === "page"
+                        ? "לעמוד באתר"
+                        : "לאתר הפרויקט");
+                  return (
+                    <Link
+                      key={lnk.url}
+                      href={lnk.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold transition-all duration-200",
+                        isGithub
+                          ? "border-primary/20 bg-primary/5 text-primary-dark hover:border-primary hover:bg-primary hover:text-white"
+                          : "border-accent/30 bg-accent/5 text-primary-dark hover:border-accent hover:bg-accent",
+                      )}
+                    >
+                      <LinkIcon className="h-4 w-4" aria-hidden="true" />
+                      <span>{label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             ) : null}
           </div>

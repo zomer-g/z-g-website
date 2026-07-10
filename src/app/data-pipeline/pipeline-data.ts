@@ -26,6 +26,14 @@ export type PipelineIcon =
   | "Puzzle"
   | "Database";
 
+export interface PipelineLink {
+  url: string;
+  /** "site" = external project website, "page" = internal Z-G page,
+   *  "github" = source repo. Drives the icon/label. */
+  kind: "site" | "page" | "github";
+  label?: string;
+}
+
 export interface PipelineNode {
   id: string;
   layer: PipelineLayer;
@@ -37,7 +45,7 @@ export interface PipelineNode {
   tagline: string;
   description: string;
   tags: string[];
-  href?: string;
+  links?: PipelineLink[];
   icon: PipelineIcon;
   /** Small capability chips shown on the card (e.g. "API", "MCP"). */
   badges?: string[];
@@ -57,7 +65,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "גורד פסקי דין והחלטות מאתר בתי המשפט (court.gov.il) ומאתר בית המשפט העליון: חיפוש לפי מספר תיק, הורדת החלטות (PDF/HTML), יומני דיונים, ופנקס התובענות הייצוגיות (מטא-דאטה + כל ה-PDF-ים). פועל בארכיטקטורת שרת (Render) מול worker מקומי עם דפדפן אמיתי, עם API ציבורי ולוח מעקב משימות. כל המסמכים שנאספים מוזנים אל TAG-IT.",
     tags: ["בתי משפט", "פסקי דין", "תובענות ייצוגיות"],
-    href: "https://github.com/zomer-g/court_downloader",
+    links: [{ kind: "github", url: "https://github.com/zomer-g/court_downloader" }],
     icon: "DownloadCloud",
   },
   {
@@ -69,7 +77,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "פלטפורמת גריפה רב-רכיבית: האתר האחוד של הממשלה (gov.il), נדל״ן (עסקאות מרשות המסים, גם בהיקף ארצי מבוזר), שכבות GIS מ-GovMap, מאגרי data.gov.il ואתר צה״ל (idf.il). כל מה שנאסף מוזן כעדכון גרסה אל OVER.",
     tags: ["gov.il", "נדל״ן", "GovMap", "data.gov.il"],
-    href: "https://github.com/zomer-g/govil-scraper",
+    links: [{ kind: "github", url: "https://github.com/zomer-g/govil-scraper" }],
     icon: "DownloadCloud",
   },
 
@@ -83,7 +91,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "תוסף Chrome לעורכי דין, מתמחים ובעלי דין: מזהה תיק בנט המשפט ומוריד את כל מסמכיו כ-ZIP עם אינדקס, וכן רשימות דיונים. חולק את תשתית הקוד עם Court Downloader, אך רץ לוקאלית בלבד בדפדפן המשתמש — הקבצים נשמרים אצלו, והוא אינו מזין אף מערכת אחרת בתהליך.",
     tags: ["תוסף Chrome", "נט המשפט", "מקומי"],
-    href: "/court-downloader",
+    links: [
+      { kind: "page", url: "/court-downloader", label: "עמוד התוסף" },
+      { kind: "github", url: "https://github.com/zomer-g/letz-hamishpat-extension" },
+    ],
     icon: "Puzzle",
   },
   {
@@ -95,7 +106,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "תוסף Chrome שמזהה מאגרי נתונים פתוחים באתרי ממשלה ישראליים (gov.il, נדל״ן, GovMap, מנהל התכנון ועוד) ומאפשר להוריד אותם בלחיצה כ-CSV/GeoJSON/ZIP. חולק את תשתית הקוד עם govil-scraper, אך רץ לוקאלית ועצמאית בדפדפן המשתמש ואינו מזין אף מערכת אחרת בתהליך.",
     tags: ["תוסף Chrome", "מאגרי ממשלה", "מקומי"],
-    href: "/govscraper",
+    links: [
+      { kind: "page", url: "/govscraper", label: "עמוד התוסף" },
+      { kind: "github", url: "https://github.com/zomer-g/letz-hamimshal-extension" },
+    ],
     icon: "Puzzle",
   },
   {
@@ -120,7 +134,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "פורטל המידע הפתוח הישראלי (odata.org.il) — מרכז אלפי מאגרי מידע מגופים ציבוריים ומנגיש אותם לחיפוש והורדה. הוא נמצא מחוץ לתהליך הישיר של המערכת, אך מזין את יומן לעם (OCAL) ואת ניגוד עניינים לעם (OCOI) בנתוני הבסיס שלהם.",
     tags: ["מידע פתוח", "odata.org.il"],
-    href: "https://www.odata.org.il",
+    links: [{ kind: "site", url: "https://www.odata.org.il", label: "לאתר מידע לעם" }],
     icon: "Database",
     external: true,
   },
@@ -136,7 +150,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "מערכת ניהול מסמכים המקבלת מסמכים מ-Court Downloader וחלקם מ-OVER. הליבה שלה היא עיבוד המסמכים באמצעות מודל שפה (LLM) — חילוץ שדות, סיווג ותקצור — ושמירת הקטלוג המובנה שנוצר במסד נתונים SQL. חושפת API (ו-MCP) שמזין את סדרת דשבורדי הפסיקה באתר Z-G ואת דשבורד העיתונאים.",
     tags: ["ניהול מסמכים", "עיבוד LLM", "קטלוג SQL", "API", "MCP"],
-    href: "https://github.com/zomer-g/smart-dms",
+    links: [{ kind: "github", url: "https://github.com/zomer-g/smart-dms" }],
     icon: "FolderKanban",
     badges: ["API", "MCP"],
   },
@@ -150,7 +164,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "עוקב אחרי מאגרי המידע הפתוחים ב-data.gov.il, שבהם מידע חדש בדרך כלל דורס את הישן, ושומר עותק של כל גרסה. בנוי משני רכיבי אחסון: באקאנד לאחסון הקבצים עצמם, ושרת SQL לאחסון הטבלאות. ניזון מ-govil-scraper; התוסף לץ הלמ\"ס ניגש לאינדקס שלו ומריץ שאילתות. חלק מהמאגרים (כאלה שהם בעצם מסמכים) מועברים גם אל TAG-IT. חושף API ציבורי (ו-MCP) שמזין דשבורדים ב-Z-G ואת דשבורד העיתונאים.",
     tags: ["מאגרי מידע", "אחסון קבצים", "שרת SQL", "API", "MCP"],
-    href: "https://github.com/zomer-g/ckan-version-tracker",
+    links: [
+      { kind: "site", url: "https://www.over.org.il", label: "לאתר OVER" },
+      { kind: "github", url: "https://github.com/zomer-g/ckan-version-tracker" },
+    ],
     icon: "History",
     badges: ["API", "MCP"],
   },
@@ -163,7 +180,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "פלטפורמה אזרחית (ocal.org.il) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. ניזונה מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
     tags: ["נבחרי ציבור", "יומנים", "API", "MCP"],
-    href: "https://ocal.org.il",
+    links: [
+      { kind: "site", url: "https://ocal.org.il", label: "לאתר יומן לעם" },
+      { kind: "github", url: "https://github.com/zomer-g/ocal" },
+    ],
     icon: "Calendar",
     badges: ["API", "MCP"],
   },
@@ -176,7 +196,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "מאגר וגרף (ocoi.org.il) של הסדרי ניגוד עניינים של נושאי משרה ציבורית, שחולצו ממסמכים ממשלתיים. ניזון מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מקשר ישויות מהכתבות לצמתים בגרף ומציג את הזיקות הכלכליות והעסקיות שלהן.",
     tags: ["ניגוד עניינים", "גרף קשרים", "API", "MCP"],
-    href: "https://www.ocoi.org.il",
+    links: [
+      { kind: "site", url: "https://www.ocoi.org.il", label: "לאתר ניגוד עניינים לעם" },
+      { kind: "github", url: "https://github.com/zomer-g/ocoi" },
+    ],
     icon: "Network",
     badges: ["API", "MCP"],
   },
@@ -191,7 +214,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     description:
       "האתר הזה עצמו — מארח סדרה של דשבורדים ציבוריים (מאגר הנחיות, גזרי דין בעבירות סמים, סניגוריה ציבורית, תובענות ייצוגיות, דוחות מבקר המדינה, חופש מידע ועוד), שכולם נשענים על ה-API של TAG-IT ו-OVER כמקור הנתונים.",
     tags: ["דשבורדים", "שקיפות"],
-    href: "/projects",
+    links: [
+      { kind: "page", url: "/projects", label: "לעמוד המיזמים" },
+      { kind: "github", url: "https://github.com/zomer-g/z-g-website" },
+    ],
     icon: "Globe",
   },
   {
