@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ScrollText,
@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Github,
   ChevronLeft,
+  ChevronDown,
   ArrowUpLeft,
   Database,
   Layers,
@@ -474,9 +475,10 @@ export function PipelineMap({
       </div>
 
       <div ref={containerRef} className="relative">
-        {/* Connector overlay */}
+        {/* Connector overlay — desktop only; on mobile the flow is shown as a
+            stacked, chevron-linked column instead of absolute-positioned arrows. */}
         <svg
-          className="pointer-events-none absolute inset-0 -z-0"
+          className="pointer-events-none absolute inset-0 -z-0 hidden sm:block"
           width={box.width || undefined}
           height={box.height || undefined}
           viewBox={`0 0 ${box.width || 1} ${box.height || 1}`}
@@ -547,7 +549,7 @@ export function PipelineMap({
             <div
               key={`packet-${p.key}`}
               aria-hidden="true"
-              className="pipeline-packet pointer-events-none absolute start-0 top-0 z-10 rounded-full"
+              className="pipeline-packet pointer-events-none absolute start-0 top-0 z-10 hidden rounded-full sm:block"
               style={{
                 offsetPath: `path("${p.d}")`,
                 width: active ? 7 : 4,
@@ -568,7 +570,7 @@ export function PipelineMap({
             <div
               key={`label-${p.key}`}
               className={cn(
-                "pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2",
+                "pointer-events-none absolute z-10 hidden -translate-x-1/2 -translate-y-1/2 sm:block",
                 "rounded-full border border-accent/40 bg-white px-2.5 py-0.5",
                 "font-mono text-[11px] font-medium text-accent-text shadow-sm",
               )}
@@ -579,28 +581,37 @@ export function PipelineMap({
           ))}
 
         {/* Layers */}
-        <div className="relative z-10 flex flex-col gap-16 sm:gap-20">
-          {LAYERS.map((layer) => (
-            <div key={layer}>
-              <p className="text-center font-mono text-xs font-semibold tracking-[0.2em] text-accent-text">
-                {LAYER_LABELS[layer]}
-              </p>
-              {sameLayerNotes[layer] ? (
-                <p className="mx-auto mb-4 mt-1 max-w-md text-center text-xs text-muted">
-                  {sameLayerNotes[layer]}
+        <div className="relative z-10 flex flex-col gap-4 sm:gap-20">
+          {LAYERS.map((layer, i) => (
+            <Fragment key={layer}>
+              {/* Mobile-only flow chevron between layers (desktop uses arrows). */}
+              {i > 0 ? (
+                <div className="flex justify-center sm:hidden" aria-hidden="true">
+                  <ChevronDown className="h-6 w-6 text-accent/50" />
+                </div>
+              ) : null}
+              <div>
+                <p className="text-center font-mono text-xs font-semibold tracking-[0.2em] text-accent-text">
+                  {LAYER_LABELS[layer]}
                 </p>
-              ) : (
-                <div className="mb-4" />
-              )}
-              <div
-                className={cn(
-                  "flex flex-wrap gap-y-6 gap-x-10 sm:gap-x-16 lg:gap-x-20",
-                  // The lone external "seed" node (מידע לעם) is pushed to the
-                  // end side (left in RTL), above the OCAL/OCOI cluster it
-                  // feeds, so the scraper→platform arrows running down the
-                  // centre/right don't cross over it.
-                  layer === "seed" ? "justify-center sm:justify-end" : "justify-center",
+                {sameLayerNotes[layer] ? (
+                  <p className="mx-auto mb-4 mt-1 max-w-md text-center text-xs text-muted">
+                    {sameLayerNotes[layer]}
+                  </p>
+                ) : (
+                  <div className="mb-4" />
                 )}
+                <div
+                  className={cn(
+                    // Mobile: single full-width column (no absolute arrows).
+                    // Desktop (sm+): the original flex-wrap map.
+                    "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-y-6 sm:gap-x-16 lg:gap-x-20",
+                    // The lone external "seed" node (מידע לעם) is pushed to the
+                    // end side (left in RTL), above the OCAL/OCOI cluster it
+                    // feeds, so the scraper→platform arrows running down the
+                    // centre/right don't cross over it.
+                    layer === "seed" ? "sm:justify-end" : "sm:justify-center",
+                  )}
               >
                 {nodesByLayer(layer).map((node) => {
                   const Icon = ICON_MAP[node.icon];
@@ -733,8 +744,9 @@ export function PipelineMap({
                     </button>
                   );
                 })}
+                </div>
               </div>
-            </div>
+            </Fragment>
           ))}
         </div>
       </div>
