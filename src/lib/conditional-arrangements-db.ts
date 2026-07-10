@@ -32,7 +32,9 @@ import {
   PROSECUTOR_FIELDS,
   LABOR_FIELDS,
   fetchCKANPage,
-  getLatestResourceId,
+  getLatestResource,
+  streamR2CsvRows,
+  type LatestResource,
   type CKANRow,
 } from "@/lib/conditional-arrangements-upstream";
 import type {
@@ -332,11 +334,14 @@ async function _doSync(force: boolean): Promise<void> {
   const t0 = Date.now();
   console.log(`ca-sync: starting (force=${force})`);
 
-  // Resolve latest resource IDs from ODATA for all three sources
-  const [policeId, prosecutorId, laborId] = await Promise.all([
-    getLatestResourceId(POLICE_DATASET_ID),
-    getLatestResourceId(PROSECUTOR_DATASET_ID),
-    getLatestResourceId(LABOR_DATASET_ID),
+  // Resolve the latest resource for all three sources. Since over.org.il
+  // switched its storage backend to Cloudflare R2 (June 2026), new versions
+  // are R2 CSV files (kind: "r2") rather than DataStore resources — both kinds
+  // are synced; the stored id (UUID or "r2:<key>") drives change detection.
+  const [policeRes, prosecutorRes, laborRes] = await Promise.all([
+    getLatestResource(POLICE_DATASET_ID),
+    getLatestResource(PROSECUTOR_DATASET_ID),
+    getLatestResource(LABOR_DATASET_ID),
   ]).catch((err) => {
     console.error("ca-sync: failed to resolve resource IDs:", err);
     return [null, null, null] as [null, null, null];
@@ -344,9 +349,9 @@ async function _doSync(force: boolean): Promise<void> {
 
   const meta = await prisma.caSync.findUnique({ where: { id: "singleton" } });
 
-  const policeChanged = force || (policeId !== null && policeId !== meta?.policeResourceId);
-  const prosecutorChanged = force || (prosecutorId !== null && prosecutorId !== meta?.prosecutorResourceId);
-  const laborChanged = force || (laborId !== null && laborId !== meta?.laborResourceId);
+  const policeChanged = force || (policeRes !== null && policeRes.id !== meta?.policeResourceId);
+  const prosecutorChanged = force || (prosecutorRes !== null && prosecutorRes.id !== meta?.prosecutorResourceId);
+  const laborChanged = force || (laborRes !== null && laborRes.id !== meta?.laborResourceId);
 
   if (!policeChanged && !prosecutorChanged && !laborChanged) {
     console.log("ca-sync: versions unchanged, updating timestamp only");
@@ -373,28 +378,28 @@ async function _doSync(force: boolean): Promise<void> {
   //     delete+insert to correctly drop stale records.
   const tableEmpty = !(await prisma.caRecord.findFirst({ select: { id: true } }));
   const resumable = !meta || tableEmpty;
-  if (policeChanged && policeId) {
-    await _syncSource("police", policeId, resumable);
+  if (policeChanged && policeRes) {
+    await _syncSource("police", policeRes, resumable);
   }
-  if (prosecutorChanged && prosecutorId) {
-    await _syncSource("prosecutor", prosecutorId, resumable);
+  if (prosecutorChanged && prosecutorRes) {
+    await _syncSource("prosecutor", prosecutorRes, resumable);
   }
-  if (laborChanged && laborId) {
-    await _syncSource("labor", laborId, resumable);
+  if (laborChanged && laborRes) {
+    await _syncSource("labor", laborRes, resumable);
   }
 
   await prisma.caSync.upsert({
     where: { id: "singleton" },
     create: {
       id: "singleton",
-      policeResourceId: policeId ?? undefined,
-      prosecutorResourceId: prosecutorId ?? undefined,
-      laborResourceId: laborId ?? undefined,
+      policeResourceId: policeRes?.id ?? undefined,
+      prosecutorResourceId: prosecutorRes?.id ?? undefined,
+      laborResourceId: laborRes?.id ?? undefined,
     },
     update: {
-      ...(policeId ? { policeResourceId: policeId } : {}),
-      ...(prosecutorId ? { prosecutorResourceId: prosecutorId } : {}),
-      ...(laborId ? { laborResourceId: laborId } : {}),
+      ...(policeRes ? { policeResourceId: policeRes.id } : {}),
+      ...(prosecutorRes ? { prosecutorResourceId: prosecutorRes.id } : {}),
+      ...(laborRes ? { laborResourceId: laborRes.id } : {}),
       syncedAt: new Date(),
     },
   });
@@ -410,7 +415,7 @@ async function _doSync(force: boolean): Promise<void> {
 
 async function _syncSource(
   source: ArrangementSource,
-  resourceId: string,
+  resource: LatestResource,
   resumable: boolean,
 ): Promise<void> {
   const fields = source === "police" ? POLICE_FIELDS : source === "prosecutor" ? PROSECUTOR_FIELDS : LABOR_FIELDS;
@@ -427,6 +432,22 @@ async function _syncSource(
     const already = await prisma.caRecord.count({ where: { source } });
     console.log(`ca-sync: resumable ${source} sync — ${already} records already in DB`);
   }
+
+  if (resource.kind === "r2") {
+    // R2-stored version: stream the CSV (police is ~250 MB — never buffered)
+    // and insert rows in batches as they parse. The CSV has no _id column, so
+    // ids are 1-based row indexes — stable within a version; re-syncs replace
+    // the whole source anyway (delete+insert above), and the detail API
+    // rejects id 0, hence 1-based.
+    let rowIdx = 0;
+    const delivered = await streamR2CsvRows(resource.versionId, async (rows) => {
+      await _insertBatch(rows.map((row) => mapper(row, ++rowIdx)));
+    });
+    console.log(`ca-sync: ${source} done — ${delivered} rows processed (R2 CSV)`);
+    return;
+  }
+
+  const resourceId = resource.id;
 
   // Fetch page 0 first to learn the total row count, then insert it.
   // Block scope ensures firstPage is GC-eligible before subsequent pages arrive.

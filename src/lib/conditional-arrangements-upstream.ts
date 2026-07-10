@@ -197,7 +197,37 @@ function normaliseProsecutor(row: CKANRow, rowIdx: number): ConditionalArrangeme
   };
 }
 
-/* ─── over.org.il — get latest CKAN resource ID ─────────────────────── */
+/* ─── over.org.il — get latest resource (DataStore or R2 CSV) ────────── */
+
+/**
+ * The newest queryable copy of a dataset. over.org.il stores scraped versions
+ * either in the ODATA CKAN DataStore (legacy, value = resource UUID) or on
+ * Cloudflare R2 (current default, value = "r2:<object key>"). R2 versions
+ * have no DataStore — they must be downloaded as CSV via the OVER download
+ * endpoint (which redirects to R2) and parsed with streamR2CsvRows().
+ */
+export type LatestResource =
+  | { kind: "datastore"; id: string }
+  | { kind: "r2"; id: string; versionId: string };
+
+export async function getLatestResource(datasetId: string): Promise<LatestResource | null> {
+  const url = `${OVER_BASE}/datasets/${datasetId}/versions?limit=20&ordering=-version_number`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return null;
+  const json = (await res.json()) as OverVersionObject[] | { results: OverVersionObject[] };
+  const versions = Array.isArray(json) ? json : (json.results ?? []);
+  if (!versions.length) return null;
+  const sorted = [...versions].sort(
+    (a, b) => b.version_number - a.version_number,
+  );
+  for (const v of sorted) {
+    const rid = v.resource_mappings?.[RESOURCE_KEY];
+    if (!rid) continue;
+    if (rid.startsWith("r2:")) return { kind: "r2", id: rid, versionId: v.id };
+    return { kind: "datastore", id: rid };
+  }
+  return null;
+}
 
 export async function getLatestResourceId(datasetId: string): Promise<string | null> {
   const url = `${OVER_BASE}/datasets/${datasetId}/versions?limit=20&ordering=-version_number`;
@@ -250,6 +280,177 @@ export async function fetchCKANPage(
     records: json.result.records,
     total: json.result.total,
   };
+}
+
+/* ─── R2 CSV streaming ───────────────────────────────────────────────── */
+
+/**
+ * Incremental RFC-4180 CSV parser fed with string chunks.
+ *
+ * Exists because R2-stored versions are raw CSV files with no queryable API —
+ * and the police file is ~250 MB (it embeds per-row HTML), far too large to
+ * buffer on Render Starter (512 MB). Chunks are parsed as they stream in and
+ * complete rows are emitted immediately, so peak memory stays at one network
+ * chunk + one batch of rows regardless of file size.
+ *
+ * Handles quoted fields containing commas, newlines, and "" escapes, with all
+ * quote state carried across chunk boundaries.
+ */
+class CsvStreamParser {
+  private field = "";
+  private row: string[] = [];
+  private inQuotes = false;
+  // Saw a '"' inside a quoted field; the NEXT char decides whether it was an
+  // escaped quote ("") or the closing quote. Carried across chunk boundaries.
+  private quotePending = false;
+  private fieldHadContent = false;
+
+  write(chunk: string, emitRow: (row: string[]) => void): void {
+    const n = chunk.length;
+    // Native regex scan for the next special char — vastly faster than a
+    // per-char JS loop over a 250 MB file.
+    const special = /[",\r\n]/g;
+    let i = 0;
+    while (i < n) {
+      if (this.quotePending) {
+        this.quotePending = false;
+        if (chunk[i] === '"') {
+          this.field += '"';
+          i++;
+        } else {
+          this.inQuotes = false; // closing quote; reprocess chunk[i] unquoted
+        }
+        continue;
+      }
+      if (this.inQuotes) {
+        const q = chunk.indexOf('"', i);
+        if (q === -1) {
+          this.field += chunk.slice(i);
+          return;
+        }
+        this.field += chunk.slice(i, q);
+        i = q + 1;
+        this.quotePending = true;
+        continue;
+      }
+      const ch = chunk[i];
+      if (ch === '"' && !this.fieldHadContent && this.field === "") {
+        this.inQuotes = true;
+        this.fieldHadContent = true;
+        i++;
+        continue;
+      }
+      if (ch === ",") {
+        this.endField();
+        i++;
+        continue;
+      }
+      if (ch === "\n") {
+        this.endField();
+        this.endRow(emitRow);
+        i++;
+        continue;
+      }
+      if (ch === "\r") {
+        i++;
+        continue;
+      }
+      if (ch === '"') {
+        // Stray quote inside an unquoted field (invalid CSV) — keep literally.
+        this.field += '"';
+        this.fieldHadContent = true;
+        i++;
+        continue;
+      }
+      special.lastIndex = i;
+      const m = special.exec(chunk);
+      const j = m ? m.index : n;
+      this.field += chunk.slice(i, j);
+      this.fieldHadContent = true;
+      i = j;
+    }
+  }
+
+  /** Emit any trailing row that isn't newline-terminated. */
+  flush(emitRow: (row: string[]) => void): void {
+    this.quotePending = false;
+    this.inQuotes = false;
+    if (this.field !== "" || this.row.length > 0) {
+      this.endField();
+      this.endRow(emitRow);
+    }
+  }
+
+  private endField(): void {
+    this.row.push(this.field);
+    this.field = "";
+    this.fieldHadContent = false;
+  }
+
+  private endRow(emitRow: (row: string[]) => void): void {
+    const row = this.row;
+    this.row = [];
+    // Skip blank lines (a lone empty field).
+    if (row.length === 1 && row[0] === "") return;
+    emitRow(row);
+  }
+}
+
+/**
+ * Stream an R2-stored scraped CSV via the OVER download endpoint (302 → R2)
+ * and deliver rows as CKANRow-shaped objects (keyed by the CSV header, which
+ * uses the same dotted field names as the DataStore) in batches of ~batchSize.
+ * Returns the number of data rows delivered. Batches are awaited before more
+ * of the response is read, so DB insert speed backpressures the download.
+ */
+export async function streamR2CsvRows(
+  versionId: string,
+  onBatch: (rows: CKANRow[]) => Promise<void>,
+  batchSize = 500,
+): Promise<number> {
+  const url = `${OVER_BASE}/versions/${versionId}/download/${encodeURIComponent(RESOURCE_KEY)}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok || !res.body) {
+    throw new Error(`streamR2CsvRows: HTTP ${res.status} for version ${versionId}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder("utf-8"); // streaming decode; strips the BOM
+  const parser = new CsvStreamParser();
+
+  let header: string[] | null = null;
+  let pending: CKANRow[] = [];
+  let delivered = 0;
+
+  const emitRow = (row: string[]): void => {
+    if (!header) {
+      header = row;
+      return;
+    }
+    const obj: CKANRow = {};
+    for (let c = 0; c < header.length; c++) obj[header[c]] = row[c] ?? "";
+    pending.push(obj);
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parser.write(decoder.decode(value, { stream: true }), emitRow);
+    if (pending.length >= batchSize) {
+      const batch = pending;
+      pending = [];
+      delivered += batch.length;
+      await onBatch(batch);
+    }
+  }
+  const tail = decoder.decode();
+  if (tail) parser.write(tail, emitRow);
+  parser.flush(emitRow);
+  if (pending.length > 0) {
+    delivered += pending.length;
+    await onBatch(pending);
+  }
+  return delivered;
 }
 
 /* ─── Public API ─────────────────────────────────────────────────────── */
