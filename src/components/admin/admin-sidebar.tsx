@@ -29,6 +29,7 @@ import {
   Scale,
   Feather,
   BookMarked,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -98,6 +99,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
       { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
+      { label: "עלויות ותקציב", href: "/admin/billing", icon: Wallet },
       { label: "הגדרות", href: "/admin/settings", icon: Settings },
     ],
   },
