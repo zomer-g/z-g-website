@@ -94,9 +94,9 @@ export async function fetchRender(asOf: string): Promise<ProviderCost> {
       breakdown,
       asOf,
       detail:
-        `${services.length} שירותים · הערכה לפי מחירון תוכניות` +
+        `צפי חודשי (הערכה) — סכום תוכניות ה-instance של ${services.length} שירותים` +
         (unknownPlans ? " (חלק מהתוכניות לא מוכרות — לא נכללות)" : "") +
-        " · אין API לעלות אמיתית ב-Render",
+        ". לא כולל תוספות לפי שימוש (bandwidth/דיסק). ל-Render אין API לעלות אמיתית.",
       dashboardUrl: DASHBOARD,
       // Estimate, not real spend — kept out of the unified "real cost" total.
       countsTowardTotal: false,

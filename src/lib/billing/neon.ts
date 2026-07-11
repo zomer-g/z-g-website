@@ -1,13 +1,15 @@
 /**
- * Neon — per-project usage for the current billing cycle.
+ * Neon — ESTIMATED monthly cost (plan base) + per-project usage.
  *
- * The Neon API returns usage *quantities* (compute-seconds, storage bytes,
- * active time) but not a dollar figure — converting to $ requires applying the
- * plan's per-unit rates, which the API doesn't expose. So this card reports
- * USAGE, not spend, and is excluded from the unified $ total. The `/projects`
- * list already carries the current-cycle counters (`cpu_used_sec`,
- * `synthetic_storage_size`, `quota_reset_at`), so we sum those across projects
- * without any date-range wrangling.
+ * Neon does NOT expose a $ figure on the Launch plan: the consumption/cost API
+ * is gated to "Scale plans and above" (the endpoint returns
+ * "This endpoint is not available. It is included with Scale plans and above.")
+ * and the billing/invoice endpoints 404. So the only readable data on Launch is
+ * the raw usage counters on `/projects` (`cpu_used_sec`, `synthetic_storage_size`,
+ * `quota_reset_at`). We therefore show an ESTIMATE = the plan's flat monthly
+ * base, and surface the usage underneath. This is an approximation: it ignores
+ * any usage overages beyond the plan's included allowances. Upgrading to Scale
+ * would unlock the real cost API and turn this into "ok" (verified spend).
  *
  * Credential: a Neon API key (org/personal). Neon keys are full-access — no
  * read-only scope — but this fetcher only GETs. Env: NEON_API_KEY, and
@@ -17,6 +19,14 @@
 import { getJson, providerError, notConfigured, type ProviderCost } from "./types";
 
 const DASHBOARD = "https://console.neon.tech/app/billing";
+
+// Neon plan flat monthly base prices (USD), for the estimate. Launch = $19.
+// https://neon.com/pricing — only the base; usage overages aren't in the API.
+const PLAN_BASE_USD: Record<string, number> = {
+  free: 0,
+  launch: 19,
+  scale: 69,
+};
 
 interface NeonProject {
   id: string;
@@ -29,6 +39,10 @@ interface NeonProject {
 
 interface NeonProjectsResponse {
   projects?: NeonProject[];
+}
+
+interface NeonOrg {
+  plan?: string;
 }
 
 function fmtBytes(bytes: number): string {
@@ -58,6 +72,22 @@ export async function fetchNeon(asOf: string): Promise<ProviderCost> {
     const data = await getJson<NeonProjectsResponse>(url.toString(), { bearer: key });
     const projects = data.projects ?? [];
 
+    // Read the org's plan to pick the flat monthly base for the estimate.
+    // Best-effort: if it fails or the plan is unknown, fall back to usage-only.
+    let plan: string | undefined;
+    if (orgId) {
+      try {
+        const org = await getJson<NeonOrg>(
+          `https://console.neon.tech/api/v2/organizations/${orgId}`,
+          { bearer: key },
+        );
+        plan = org.plan?.toLowerCase();
+      } catch {
+        /* leave plan undefined → usage-only card */
+      }
+    }
+    const base = plan != null ? PLAN_BASE_USD[plan] : undefined;
+
     const totalStorage = projects.reduce(
       (s, p) => s + (p.synthetic_storage_size ?? 0),
       0,
@@ -68,29 +98,47 @@ export async function fetchNeon(asOf: string): Promise<ProviderCost> {
       .filter(Boolean)
       .sort()[0];
 
+    const usageLine =
+      `${projects.length} פרויקטים · אחסון ${fmtBytes(totalStorage)} · ` +
+      `מחשוב ${Math.round(totalComputeSec / 3600)} שעות` +
+      (resetAt
+        ? ` · איפוס מכסה ${new Date(resetAt).toLocaleDateString("he-IL")}`
+        : "");
+
+    const breakdown = [
+      { name: "אחסון (סה״כ)", value: totalStorage, unit: "storage" },
+      { name: "זמן מחשוב (CPU-sec)", value: totalComputeSec, unit: "compute" },
+    ];
+
+    // With a known plan → ESTIMATE (base price). Otherwise fall back to a
+    // usage-only card. Either way this is never verified spend (Neon's cost API
+    // is Scale+ only), so it stays out of the unified total.
+    if (base != null) {
+      return {
+        id: "neon",
+        label: "Neon",
+        status: "estimated",
+        currency: "USD",
+        currentMonthCost: base,
+        breakdown,
+        asOf,
+        detail:
+          `הערכה: בסיס תוכנית ${plan} ($${base}/חודש) — Neon לא חושף $ ב-API ` +
+          `בתוכנית זו (הצריכה בלבד ב-Scale+). לא כולל חריגות שימוש מעבר למכסה. · ${usageLine}`,
+        dashboardUrl: DASHBOARD,
+        countsTowardTotal: false,
+      };
+    }
+
     return {
       id: "neon",
       label: "Neon",
       status: "usage",
       currency: null,
       currentMonthCost: null,
-      breakdown: [
-        { name: "אחסון (סה״כ)", value: totalStorage, unit: "storage" },
-        { name: "זמן מחשוב (CPU-sec)", value: totalComputeSec, unit: "compute" },
-        ...projects.map((p) => ({
-          name: p.name,
-          value: p.synthetic_storage_size ?? 0,
-          unit: "storage",
-        })),
-      ],
+      breakdown,
       asOf,
-      detail:
-        `${projects.length} פרויקטים · אחסון ${fmtBytes(totalStorage)} · ` +
-        `מחשוב ${Math.round(totalComputeSec / 3600)} שעות` +
-        (resetAt
-          ? ` · איפוס מכסה ${new Date(resetAt).toLocaleDateString("he-IL")}`
-          : "") +
-        " — צריכה בלבד (Neon לא מחזיר $ ב-API)",
+      detail: `${usageLine} — צריכה בלבד (Neon לא מחזיר $ ב-API)`,
       dashboardUrl: DASHBOARD,
       countsTowardTotal: false,
     };

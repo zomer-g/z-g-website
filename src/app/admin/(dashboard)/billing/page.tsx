@@ -88,13 +88,15 @@ const STATUS_META: Record<
 
 function ProviderCard({ p }: { p: ProviderCost }) {
   const meta = STATUS_META[p.status];
+  const isEstimate = p.status === "estimated";
 
-  // Headline figure depends on what the provider actually reports.
+  // Headline figure depends on what the provider actually reports. Estimates
+  // are prefixed with "≈" so the number itself signals it isn't verified.
   let headline: string;
   if (p.status === "balance" && p.balance != null) {
     headline = money(p.balance, p.currency);
   } else if (p.currentMonthCost != null) {
-    headline = money(p.currentMonthCost, p.currency);
+    headline = `${isEstimate ? "≈ " : ""}${money(p.currentMonthCost, p.currency)}`;
   } else if (p.status === "usage") {
     headline = "צריכה";
   } else {
@@ -102,7 +104,21 @@ function ProviderCard({ p }: { p: ProviderCost }) {
   }
 
   return (
-    <Card className={cn(p.status === "error" && "border-error/40")}>
+    <Card
+      className={cn(
+        "overflow-hidden",
+        p.status === "error" && "border-error/40",
+        // Clear frame around anything that is an ESTIMATE, not verified data.
+        isEstimate && "border-2 border-dashed border-accent",
+      )}
+    >
+      {/* Estimate ribbon — unmistakable "not verified" marker. */}
+      {isEstimate && (
+        <div className="flex items-center gap-1.5 bg-accent/15 px-5 py-1.5 text-[11px] font-bold text-primary-dark">
+          <AlertCircle size={13} className="shrink-0" />
+          הערכה — לא נתון מאומת
+        </div>
+      )}
       <CardContent className="flex flex-col gap-3 p-5">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -253,9 +269,9 @@ export default function BillingPage() {
             </div>
             <p className="max-w-sm text-xs leading-relaxed text-white/60">
               {includedLabels.length > 0
-                ? `כולל: ${includedLabels.join(", ")}. `
-                : "אין עדיין ספק עם עלות בפועל ב-USD. "}
-              יתרות (DeepSeek), צריכה (Neon) והערכות (Render) מוצגות בנפרד בכרטיסים ואינן נכללות בסכום.
+                ? `כולל נתוני עלות מאומתים בלבד: ${includedLabels.join(", ")}. `
+                : "אין עדיין ספק עם עלות בפועל מאומתת ב-USD. "}
+              יתרות (DeepSeek) והערכות (Render, Neon) מסומנות במסגרת ומוצגות בנפרד — אינן נכללות בסכום.
             </p>
           </CardContent>
         </Card>
