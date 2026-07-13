@@ -110,6 +110,13 @@ const CHECKS: Check[] = [
     count: (j) => j.total,
   },
   {
+    name: "מסמכי מרכז המחקר והמידע — מ.מ.מ (mmm · scope 14)",
+    page: "/mmm",
+    upstream: "TAG-IT · rulings scope 14",
+    path: "/api/mmm/documents?limit=12&skip=0",
+    count: (j) => j.total,
+  },
+  {
     name: "הסדרים מותנים (conditional-arrangements · CKAN)",
     page: "/conditional-arrangements",
     upstream: "over.org.il / odata.org.il (CKAN)",

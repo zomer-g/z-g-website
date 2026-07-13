@@ -330,6 +330,15 @@ export const DATA_PACKAGES: DataPackage[] = [
     ],
   },
   {
+    id: "mmm",
+    title: "מסמכי מרכז המחקר והמידע (מ.מ.מ)",
+    subtitle: "מסמכי מרכז המחקר והמידע של הכנסת, מתועדים ב-TAG-IT",
+    hops: [
+      ["tag-it", "z-g"],
+      ["tag-it", "journalist-dashboard"],
+    ],
+  },
+  {
     id: "drug-sentencing",
     title: "גזרי דין בעבירות סמים",
     subtitle: "פסקי דין מבתי המשפט",

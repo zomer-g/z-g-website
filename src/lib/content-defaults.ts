@@ -16,6 +16,7 @@ import type {
   ClassActionsPageContent,
   GuidelinesPageContent,
   ComptrollerReportsPageContent,
+  MmmPageContent,
   DefamationRulingsPageContent,
   FoiRulingsPageContent,
   FoiJudgmentsPageContent,
@@ -610,6 +611,26 @@ export const DEFAULT_COMPTROLLER_REPORTS_CONTENT: ComptrollerReportsPageContent 
   },
 };
 
+/* ─── Knesset Research Center (מ.מ.מ) Page (TAG-IT scope 14) ─── */
+
+export const DEFAULT_MMM_CONTENT: MmmPageContent = {
+  // Kept private until TAG-IT exposes scope 14 on the public API; flip to true
+  // (or set isPublic in the DB Page row) once data flows. Admins can preview it
+  // regardless via the auth gate in the page.
+  isPublic: false,
+  hero: {
+    title: "מסמכי מרכז המחקר והמידע של הכנסת",
+    subtitle: "מאגר מסמכי המ.מ.מ — חיפוש חופשי בתוך תוכן המסמכים",
+  },
+  cacheTtlMinutes: 60,
+  query: {
+    customQuery: null,
+    displayFields: [],
+    filterFields: [],
+    sortFields: [],
+  },
+};
+
 /* ─── Defamation Rulings Dashboard Page ─── */
 
 export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = {
@@ -1018,6 +1039,7 @@ export const CONTENT_DEFAULTS: Record<string, unknown> = {
   "class-actions": DEFAULT_CLASS_ACTIONS_CONTENT,
   guidelines: DEFAULT_GUIDELINES_CONTENT,
   "comptroller-reports": DEFAULT_COMPTROLLER_REPORTS_CONTENT,
+  mmm: DEFAULT_MMM_CONTENT,
   "defamation-rulings": DEFAULT_DEFAMATION_RULINGS_CONTENT,
   "foi-rulings": DEFAULT_FOI_RULINGS_CONTENT,
   "foi-judgments": DEFAULT_FOI_JUDGMENTS_CONTENT,

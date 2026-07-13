@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import PublicLayout from "@/components/layout/public-layout";
+import { Container } from "@/components/ui/container";
+import { MmmDashboard } from "./mmm-dashboard";
+import { getPageContent } from "@/lib/content";
+import { auth } from "@/lib/auth";
+import type { MmmPageContent } from "@/types/content";
+import { EditableSection } from "@/components/admin/editable-section";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) — חיפוש בתוכן",
+  description:
+    "מאגר מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) של עו\"ד גיא זומר — חיפוש חופשי בתוך תוכן המסמכים, סינון לפי סוג ותאריך, וגישה ישירה לקבצים המקוריים. שירות חינמי לציבור.",
+  keywords: [
+    "מרכז המחקר והמידע של הכנסת",
+    "מסמכי מ.מ.מ",
+    "ממ\"מ הכנסת",
+    "מחקרי הכנסת",
+    "חיפוש במסמכי מרכז המחקר",
+    "עו\"ד גיא זומר",
+  ],
+  alternates: {
+    canonical: "/mmm",
+  },
+  openGraph: {
+    type: "website",
+    locale: "he_IL",
+    url: "https://z-g.co.il/mmm",
+    siteName: "עו\"ד גיא זומר",
+    title: "מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) — חיפוש בתוכן | עו\"ד גיא זומר",
+    description:
+      "חיפוש חופשי בתוך תוכן מסמכי מרכז המחקר והמידע של הכנסת, עם סינון וגישה ישירה לקבצים המקוריים.",
+    images: ["/images/guy-zomer.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) | עו\"ד גיא זומר",
+    description: "חיפוש חופשי בתוך תוכן מסמכי מרכז המחקר והמידע של הכנסת.",
+    images: ["/images/guy-zomer.jpg"],
+  },
+};
+
+export default async function MmmPage() {
+  const [content, session] = await Promise.all([
+    getPageContent<MmmPageContent>("mmm"),
+    auth(),
+  ]);
+
+  const isAdmin = session?.user?.role === "ADMIN";
+  if (!content.isPublic && !isAdmin) {
+    notFound();
+  }
+
+  return (
+    <PublicLayout>
+      <EditableSection editHref="/admin/site-editor/mmm" editLabel="באנר">
+        <section className="bg-gradient-to-br from-primary to-primary-dark py-12 sm:py-16">
+          <Container>
+            <div className="text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+                {content.hero.title}
+              </h1>
+              <p className="text-white text-lg">{content.hero.subtitle}</p>
+            </div>
+          </Container>
+        </section>
+      </EditableSection>
+      <Container className="py-8">
+        <MmmDashboard />
+      </Container>
+    </PublicLayout>
+  );
+}

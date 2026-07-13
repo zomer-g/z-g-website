@@ -426,6 +426,16 @@ export interface ComptrollerReportsPageContent {
   query?: import("./ruling-filter").RulingsPageQuery;
 }
 
+// ── Knesset Research Center (מ.מ.מ) Page Content (TAG-IT scope 14) ──
+// Same config shape as comptroller-reports: a hero + a RulingsPageQuery driving
+// the TAG-IT scope-14 fetch, full-text search and the card/filter rendering.
+export interface MmmPageContent {
+  isPublic: boolean;
+  hero: { title: string; subtitle: string };
+  cacheTtlMinutes: number;
+  query?: import("./ruling-filter").RulingsPageQuery;
+}
+
 // ── Leam (לעם) Civic Sites Page Content ──
 
 export interface LeamSiteItem {
@@ -616,6 +626,7 @@ export type PageContentMap = {
   "class-actions": ClassActionsPageContent;
   guidelines: GuidelinesPageContent;
   "comptroller-reports": ComptrollerReportsPageContent;
+  mmm: MmmPageContent;
   "defamation-rulings": DefamationRulingsPageContent;
   "foi-rulings": FoiRulingsPageContent;
   "foi-judgments": FoiJudgmentsPageContent;

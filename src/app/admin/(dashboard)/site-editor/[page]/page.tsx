@@ -32,7 +32,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, HaplilistPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent, DataPipelinePageContent } from "@/types/content";
+import type { HomePageContent, AboutPageContent, ContactPageContent, HeaderContent, FooterContent, ServicesPageContent, ArticlesPageContent, HaplilistPageContent, MediaPageContent, ArticleDetailContent, ServiceDetailContent, ProjectsPageContent, DigitalServicesPageContent, SanegoriaPageContent, ClassActionsPageContent, GuidelinesPageContent, ComptrollerReportsPageContent, MmmPageContent, DefamationRulingsPageContent, FoiJudgmentsPageContent, FoiCostsPageContent, DrugSentencingPageContent, LeamPageContent, ConditionalArrangementsPageContent, DataPipelinePageContent } from "@/types/content";
 
 /* ─── Page Labels ─── */
 
@@ -58,6 +58,7 @@ const PAGE_LABELS: Record<string, string> = {
   "foi-costs": "הוצאות חופש מידע",
   "drug-sentencing": "גזרי דין בעבירות סמים",
   "comptroller-reports": "דוחות מבקר המדינה",
+  mmm: "מסמכי מרכז המחקר והמידע (מ.מ.מ)",
   leam: "לעם — אתרים אזרחיים",
   letz: "לץ — תוספי דפדפן",
   "data-pipeline": "זרימת המידע",
@@ -85,6 +86,7 @@ const PAGE_URLS: Record<string, string> = {
   "foi-costs": "/foi-costs",
   "drug-sentencing": "/drug-sentencing",
   "comptroller-reports": "/comptroller-reports",
+  mmm: "/mmm",
   leam: "/o",
   letz: "/letz",
   "data-pipeline": "/data-pipeline",
@@ -660,6 +662,40 @@ export default function SiteEditorPageEditor({
                         clauses: [
                           { field: "meta.document_date", op: "ge", value: "2018-01-01" },
                           { field: "meta.document_date", op: "le", value: "2018-12-31" },
+                        ],
+                      },
+                      null,
+                      2,
+                    ),
+                  },
+                ],
+              }}
+            />
+          )}
+          {slug === "mmm" && (
+            <DashboardPageEditor<MmmPageContent>
+              content={content as MmmPageContent}
+              onChange={setContent}
+              advancedQuery={{
+                field: "query",
+                showApiParams: false,
+                examples: [
+                  {
+                    label: "סינון לפי תחום/סוג מסמך (ai.תחום)",
+                    json: JSON.stringify(
+                      { field: "ai.תחום", op: "eq", value: "סקירה כלכלית" },
+                      null,
+                      2,
+                    ),
+                  },
+                  {
+                    label: "טווח תאריכים",
+                    json: JSON.stringify(
+                      {
+                        op: "and",
+                        clauses: [
+                          { field: "meta.document_date", op: "ge", value: "2023-01-01" },
+                          { field: "meta.document_date", op: "le", value: "2023-12-31" },
                         ],
                       },
                       null,
