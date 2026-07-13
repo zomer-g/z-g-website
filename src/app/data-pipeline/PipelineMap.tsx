@@ -178,10 +178,11 @@ export function PipelineMap({
         const tx = goingRight ? toRect.left : toRect.right;
         const sy = fromRect.centerY;
         const ty = toRect.centerY;
-        const midY = (sy + ty) / 2 - 26;
+        // A return edge bows downward so it doesn't overlap the forward arc.
+        const midY = (sy + ty) / 2 + (edge.returnArc ? 26 : -26);
         d = `M ${sx} ${sy} C ${(sx + tx) / 2} ${midY}, ${(sx + tx) / 2} ${midY}, ${tx} ${ty}`;
         labelX = (sx + tx) / 2;
-        labelY = midY - 8;
+        labelY = midY + (edge.returnArc ? 8 : -8);
       } else {
         // Cross-layer — connect bottom of the upper node to top of the lower.
         const upper = fromRect.centerY <= toRect.centerY ? fromRect : toRect;

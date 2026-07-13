@@ -239,6 +239,10 @@ export interface PipelineEdge {
   label?: string;
   /** Arrowheads on both ends (data flows both directions). */
   bidirectional?: boolean;
+  /** Same-layer arc that bows the opposite way (downward), so a return flow
+   *  between two adjacent nodes reads as a distinct second arc rather than
+   *  overlapping the forward one. */
+  returnArc?: boolean;
 }
 
 export const PIPELINE_EDGES: PipelineEdge[] = [
@@ -251,6 +255,10 @@ export const PIPELINE_EDGES: PipelineEdge[] = [
   { from: "meidalaam", to: "ocal" },
   { from: "meidalaam", to: "ocoi" },
   { from: "over", to: "tag-it", label: "חלק מהמאגרים הם מסמכים" },
+  // For some datasets (e.g. מ.מ.מ) TAG-IT extracts the text with an LLM and
+  // pushes the extracted text back to OVER — a return flow drawn as a second,
+  // downward arc between the two.
+  { from: "tag-it", to: "over", returnArc: true },
   { from: "tag-it", to: "z-g" },
   { from: "tag-it", to: "journalist-dashboard" },
   { from: "over", to: "z-g" },
@@ -332,8 +340,11 @@ export const DATA_PACKAGES: DataPackage[] = [
   {
     id: "mmm",
     title: "מסמכי מרכז המחקר והמידע (מ.מ.מ)",
-    subtitle: "מסמכי מרכז המחקר והמידע של הכנסת, מתועדים ב-TAG-IT",
+    subtitle: "מסמכי מ.מ.מ של הכנסת — הטקסט שמחלץ TAG-IT חוזר גם ל-OVER",
     hops: [
+      ["govil-scraper", "over"],
+      ["over", "tag-it"],
+      ["tag-it", "over"],
       ["tag-it", "z-g"],
       ["tag-it", "journalist-dashboard"],
     ],
