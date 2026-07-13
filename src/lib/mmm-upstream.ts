@@ -150,22 +150,23 @@ export interface CategoryFacet {
 // (`in` is NOT confirmed on raw ai fields, so the route ORs eq clauses instead).
 const CATEGORY_FIELD = "ai.תחום";
 
-// Curated head of the ai.תחום distribution (value → approx corpus count, for
-// ordering only). Counts are just the initial ranking; live facet counts come
-// from fetchDocTypeFacets against the current query.
-const DOC_TYPE_SERIES: string[] = [
-  "סקירה כלכלית",
-  "פיקוח תקציבי",
-  "סקירה משווה",
-  "מבט על",
-  "סקירה משפטית משווה",
-  "נתונים",
-  "אומדן עלות",
-  "רקע לדיון",
-  'אחר [מסמך ממ"מ]',
-  "מכתב",
-  "מבט משווה",
-];
+// ⚠️ FACET DISABLED (empty list → fetchDocTypeFacets returns [] with zero
+// upstream cost). The type dimension lives ONLY on the raw, unindexed `ai.תחום`
+// field, which has TWO hard blockers proven against the live scope-14 API
+// (2026-07-13):
+//   1. Sorting a set filtered on ai.תחום times out (~50s → 504).
+//   2. TAG-IT rejects any ai.* filter combined with text_query
+//      ("text_query_filter_unsupported": with a text search, filters may use
+//      only exact meta.* leaves). So the facet can't coexist with the page's
+//      primary full-text search at all.
+// Both blockers disappear once `תחום` is projected TAG-IT-side to an indexed
+// meta.* column (e.g. meta.mmm_domain, array). WHEN THAT LANDS: set CATEGORY_FIELD
+// + CATEGORY_PATHS to the new meta field, restore the curated list below, and
+// revert the "drop sort when a source is selected" guard in the route. The
+// curated head of the ai.תחום distribution (most-common-first), for reuse:
+//   "סקירה כלכלית", "פיקוח תקציבי", "סקירה משווה", "מבט על",
+//   "סקירה משפטית משווה", "נתונים", "אומדן עלות", "רקע לדיון", "מכתב", "מבט משווה"
+const DOC_TYPE_SERIES: string[] = [];
 
 const facetCache = new Map<string, { ts: number; facets: CategoryFacet[] }>();
 const FACET_TTL_MS = 10 * 60_000;
