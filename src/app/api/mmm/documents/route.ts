@@ -179,7 +179,10 @@ export async function GET(req: NextRequest) {
   let sortKey: string | undefined;
   if (sortParam && config.sortFields.some((s) => s.key === sortParam)) {
     sortKey = `${dir}${sortParam}`;
-  } else if (!q) {
+  } else if (!q && sources.length === 0) {
+    // Default listing → newest-first. But NOT when a type (ai.תחום) is selected:
+    // sorting a set filtered on that raw, unindexed field times out (~50s), so a
+    // type-filtered listing falls back to TAG-IT's default order instead.
     sortKey = "-meta.document_date";
   }
   const page = Math.floor(skip / limit) + 1;

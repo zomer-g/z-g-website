@@ -198,7 +198,10 @@ export async function fetchDocTypeFacets(opts: {
         size: 1,
         textQuery: opts.textQuery,
         filterJson: JSON.stringify(filter),
-        sortKey: opts.textQuery ? undefined : "-meta.document_date",
+        // A count query needs no sort — and sorting a set filtered on the raw,
+        // unindexed ai.תחום field is what makes it time out (~50s). Omitting the
+        // sort keeps the eq count fast (the filter itself is cheap upstream).
+        sortKey: undefined,
       }).catch(() => null);
       return { label: type, count: res?.total ?? 0 };
     }),
