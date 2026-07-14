@@ -1000,6 +1000,16 @@ function RulingCard({
         <dl className="text-sm text-gray-700 mb-3 space-y-1.5">
           {rest.map((key) => {
             const value = ruling.fields?.[key];
+            // Nothing to show → render nothing (no empty labeled row). Covers a
+            // field that's absent (e.g. meta.drug_totals before the mirror has
+            // synced it) or an empty array (a case with no summary rows).
+            if (
+              value == null ||
+              value === "" ||
+              (Array.isArray(value) && value.length === 0)
+            ) {
+              return null;
+            }
             // Array-of-objects (a table inside the case, e.g. defenses claimed)
             // gets its own elegant status-row renderer instead of being
             // flattened to "[object Object]" text.
