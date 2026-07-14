@@ -273,11 +273,10 @@ export async function syncScope(
         console.warn(
           `rulings-mirror: scope ${scopeId} skipping page ${page} after retries (${gmsg})`,
         );
-        // Advance the resume cursor past the bad page so a mid-run interruption
-        // still makes forward progress on the next resume.
-        await prisma.tagitSyncState
-          .updateMany({ where: { scopeId }, data: { lastFullPage: page } })
-          .catch(() => {});
+        // Do NOT advance lastFullPage on a skip: leave the resume cursor at the
+        // last SUCCESSFULLY-upserted page, so a resume retries this gap — and, on
+        // a full outage (every page failing), restarts from the newest pages
+        // rather than skipping past them.
         page += 1;
         await new Promise((r) => setTimeout(r, 1_000));
         continue;
