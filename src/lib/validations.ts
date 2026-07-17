@@ -1,11 +1,17 @@
 import { z } from "zod";
 
 export const submissionSchema = z.object({
-  name: z.string().min(2, "שם חייב להכיל לפחות 2 תווים"),
-  email: z.string().email("כתובת אימייל לא תקינה"),
-  phone: z.string().optional(),
-  subject: z.string().optional(),
-  message: z.string().min(10, "הודעה חייבת להכיל לפחות 10 תווים"),
+  name: z
+    .string()
+    .min(2, "שם חייב להכיל לפחות 2 תווים")
+    .max(100, "שם ארוך מדי"),
+  email: z.string().email("כתובת אימייל לא תקינה").max(254, "כתובת אימייל ארוכה מדי"),
+  phone: z.string().max(40, "מספר טלפון ארוך מדי").optional(),
+  subject: z.string().max(200, "נושא ארוך מדי").optional(),
+  message: z
+    .string()
+    .min(10, "הודעה חייבת להכיל לפחות 10 תווים")
+    .max(5000, "הודעה ארוכה מדי"),
 });
 
 export const postSchema = z.object({

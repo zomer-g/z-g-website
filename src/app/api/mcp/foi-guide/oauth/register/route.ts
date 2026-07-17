@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { randomToken } from "@/lib/mcp-oauth";
+import {
+  isAllowedRedirectUri,
+  randomToken,
+  redirectUriRejection,
+} from "@/lib/mcp-oauth";
 
 // RFC 7591 — Dynamic Client Registration.
 // MCP requires it for browser-driven clients (Claude.ai, ChatGPT) that
@@ -31,6 +35,18 @@ export async function POST(req: NextRequest) {
   if (redirectUris.length === 0) {
     return NextResponse.json(
       { error: "invalid_redirect_uri", error_description: "redirect_uris is required" },
+      { status: 400 },
+    );
+  }
+  // Registration is open to anyone, so this is the only point where we get to
+  // constrain where auth codes may be delivered. Reject the whole request
+  // rather than silently dropping bad entries — a client that got back fewer
+  // redirect_uris than it sent would fail later at /authorize with a much more
+  // confusing error.
+  const bad = redirectUris.find((u) => !isAllowedRedirectUri(u));
+  if (bad !== undefined) {
+    return NextResponse.json(
+      { error: "invalid_redirect_uri", error_description: redirectUriRejection(bad) },
       { status: 400 },
     );
   }

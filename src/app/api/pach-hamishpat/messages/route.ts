@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { readJsonBody } from "@/lib/request-body";
 
 /** Ported from pach-hamishpat/server/routes/system-messages.js. */
 
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
     col === "created_date" ? "createdDate" : col === "id" ? "id" : "orderIndex";
   const orderBy = { [sortKey]: desc ? "desc" : "asc" } as const;
 
-  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 100)) : 500;
+  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 100)) : 50;
 
   try {
     const rows = await prisma.pachSystemMessage.findMany({ where, orderBy, take: limit });
@@ -59,7 +60,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsedBody = await readJsonBody<Record<string, any>>(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.data;
     // Optional explicit backdating — lets the admin enter historical
     // messages with their original publication date.
     let createdDate: Date | undefined;

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { readJsonBody } from "@/lib/request-body";
+
+// A status report's free-text description; a paragraph at most.
+const MAX_DESCRIPTION_LENGTH = 2000;
 
 /**
  * Ported from pach-hamishpat/server/routes/status-reports.js.
@@ -48,8 +52,13 @@ export async function GET(req: NextRequest) {
   const limitRaw = sp.get("limit");
   const sortRaw = sp.get("sort") || "-created_date";
 
+  // Only admins may read moderated (hidden) reports. Anonymous/guest callers
+  // are always constrained to visible rows regardless of the is_hidden param.
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const where: Record<string, unknown> = {};
-  if (isHiddenRaw !== null) {
+  if (!isAdmin) {
+    where.isHidden = false;
+  } else if (isHiddenRaw !== null) {
     where.isHidden = isHiddenRaw === "true" || isHiddenRaw === "1";
   }
   if (status) where.status = status;
@@ -63,7 +72,7 @@ export async function GET(req: NextRequest) {
   };
   const orderBy = { [sortMap[col] ?? "createdDate"]: desc ? "desc" : "asc" } as const;
 
-  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 50)) : 500;
+  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 50)) : 50;
 
   try {
     const rows = await prisma.pachReport.findMany({
@@ -80,7 +89,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Public, unauthenticated endpoint — throttle per IP to prevent flooding.
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`pach-reports:${getClientIp(req)}`, {
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (limited) return limited;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsedBody = await readJsonBody<Record<string, any>>(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.data;
     const session = await auth();
     const isAdmin = session?.user?.role === "ADMIN";
 
@@ -89,10 +109,16 @@ export async function POST(req: NextRequest) {
         ? body.status
         : "green";
 
+    const description =
+      typeof body.description === "string" ? body.description : null;
+    if (description !== null && description.length > MAX_DESCRIPTION_LENGTH) {
+      return NextResponse.json({ error: "התיאור ארוך מדי" }, { status: 400 });
+    }
+
     const created = await prisma.pachReport.create({
       data: {
         status,
-        description: typeof body.description === "string" ? body.description : null,
+        description,
         // Trust admin status from the session, not from the client payload.
         reporterType: isAdmin ? "admin" : "user",
         expiresAt: body.expires_at ? new Date(body.expires_at) : null,

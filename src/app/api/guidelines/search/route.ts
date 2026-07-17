@@ -107,6 +107,15 @@ function buildSnippet(text: string, queryTerms: string[], maxLen = 280): string 
 }
 
 export async function GET(req: NextRequest) {
+  // Each unique query triggers a corpus scan + an OpenAI embedding call, so
+  // throttle per IP before any of that work (and before the q check).
+  const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+  const limited = rateLimit(`guidelines-search:${getClientIp(req)}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const params = req.nextUrl.searchParams;
   const q = params.get("q")?.trim() ?? "";
   if (!q) {
@@ -167,8 +176,30 @@ export async function GET(req: NextRequest) {
     bareSingle ||
     (multiTerm && substringHits.length > 0);
 
-  let semanticHits: Awaited<ReturnType<typeof semanticChunkSearch>> = [];
+  // Global spend ceiling on the OpenAI embedding call, on top of the per-IP
+  // limit at the top of this handler. Each embed is a paid API call; the per-IP
+  // limit doesn't bound the aggregate across many IPs/instances. When the
+  // shared budget is exhausted we degrade to substring-only (still a useful
+  // result) rather than paying for another embedding. Reserve the unit only
+  // when we're actually about to embed, so skipped-semantic queries don't
+  // consume budget.
+  const EMBED_BUDGET_PER_MIN = Number(process.env.GUIDELINES_EMBED_BUDGET_PER_MIN) || 120;
+  let budgetExceeded = false;
   if (!skipSemantic) {
+    const { tryConsumeBudget } = await import("@/lib/rate-limit");
+    budgetExceeded = !tryConsumeBudget("guidelines-embed", {
+      limit: EMBED_BUDGET_PER_MIN,
+      windowMs: 60_000,
+    });
+    if (budgetExceeded) {
+      console.warn(
+        `[guidelines-search] embedding budget exhausted (${EMBED_BUDGET_PER_MIN}/min) — serving substring-only`,
+      );
+    }
+  }
+
+  let semanticHits: Awaited<ReturnType<typeof semanticChunkSearch>> = [];
+  if (!skipSemantic && !budgetExceeded) {
     try {
       const queryVec = await embedQuery(flatForEmbed);
       semanticHits = await semanticChunkSearch(queryVec, TOPK_PER_METHOD);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  isAllowedRedirectUri,
   originFromRequest,
   signState,
   MCP_OAUTH_BASE_PATH,
@@ -51,6 +52,12 @@ export async function GET(req: NextRequest) {
   if (!client) return badRequest("Unknown client_id");
   if (!client.redirectUris.includes(redirectUri)) {
     return badRequest("redirect_uri not registered for this client");
+  }
+  // Re-check the scheme even though /register enforces it: clients registered
+  // before that check existed are still in the table, and being registered is
+  // not the same as being acceptable.
+  if (!isAllowedRedirectUri(redirectUri)) {
+    return badRequest("redirect_uri must be https:// or http:// on a loopback host");
   }
 
   const state: AuthorizeState = {

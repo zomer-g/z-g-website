@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { readJsonBody } from "@/lib/request-body";
 
 /** Ported from pach-hamishpat/server/routes/comments.js. */
+
+// A comment is a short public note; anything longer than this is abuse, not a
+// comment. Kept well under the 64KB body cap so the field limit bites first.
+const MAX_COMMENT_LENGTH = 2000;
 
 function serialize(c: {
   id: number;
@@ -28,8 +33,14 @@ export async function GET(req: NextRequest) {
   const limitRaw = sp.get("limit");
   const sortRaw = sp.get("sort") || "-created_date";
 
+  // Only admins may read moderated (hidden) comments. Anonymous/guest
+  // callers are always constrained to visible rows, regardless of the
+  // is_hidden query param — otherwise ?is_hidden=true leaks moderated content.
+  const isAdmin = (await auth())?.user?.role === "ADMIN";
   const where: Record<string, unknown> = {};
-  if (isHiddenRaw !== null) {
+  if (!isAdmin) {
+    where.isHidden = false;
+  } else if (isHiddenRaw !== null) {
     where.isHidden = isHiddenRaw === "true" || isHiddenRaw === "1";
   }
 
@@ -38,7 +49,7 @@ export async function GET(req: NextRequest) {
   const sortKey = col === "id" ? "id" : "createdDate";
   const orderBy = { [sortKey]: desc ? "desc" : "asc" } as const;
 
-  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 50)) : 500;
+  const limit = limitRaw ? Math.min(500, Math.max(1, Number(limitRaw) || 50)) : 50;
 
   try {
     const rows = await prisma.pachComment.findMany({ where, orderBy, take: limit });
@@ -51,10 +62,23 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // Public, unauthenticated endpoint — throttle per IP to prevent flooding.
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`pach-comments:${getClientIp(req)}`, {
+      limit: 10,
+      windowMs: 60_000,
+    });
+    if (limited) return limited;
+
+    const parsedBody = await readJsonBody<Record<string, unknown>>(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const body = parsedBody.data;
     const content = typeof body.content === "string" ? body.content.trim() : "";
     if (!content) {
       return NextResponse.json({ error: "Content required" }, { status: 400 });
+    }
+    if (content.length > MAX_COMMENT_LENGTH) {
+      return NextResponse.json({ error: "התגובה ארוכה מדי" }, { status: 400 });
     }
     const session = await auth();
     const isAdmin = session?.user?.role === "ADMIN";

@@ -396,6 +396,236 @@ test("#7 safeHref neutralizes javascript:/data:/vbscript: schemes", async () => 
 });
 
 // ============================================================================
+// #T5 — MCP OAuth: redirect_uri allow-list + interactive consent
+// ============================================================================
+test("#T5a isAllowedRedirectUri: only https + loopback http pass", async () => {
+  const mod: any = await import("@/lib/mcp-oauth");
+  const ok = [
+    "https://claude.ai/api/mcp/auth/callback",
+    "https://example.com/cb",
+    "http://localhost:6274/oauth/callback",
+    "http://127.0.0.1:8080/cb",
+    "http://[::1]/cb",
+  ];
+  const bad = [
+    "http://evil.com/cb", // remote http — the phishing case
+    "ftp://x/cb",
+    "javascript:alert(1)",
+    "data:text/html,x",
+    "https://good.example/cb#frag", // fragment illegal in redirect_uri
+    "https://evil@good.example/cb", // userinfo display-spoof
+    "not a url",
+  ];
+  for (const u of ok) assert.equal(mod.isAllowedRedirectUri(u), true, `should allow: ${u}`);
+  for (const u of bad) assert.equal(mod.isAllowedRedirectUri(u), false, `should reject: ${u}`);
+});
+
+test("#T5b register: rejects a non-loopback http redirect_uri (400, no client created)", async () => {
+  state.impl = { mcpOauthClient: { create: () => ({ clientId: "x", clientName: null, redirectUris: [] }) } };
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/register/route");
+  const res = await POST(
+    jsonReq("https://z-g.co.il/api/mcp/foi-guide/oauth/register", {
+      method: "POST",
+      body: JSON.stringify({ client_name: "phish", redirect_uris: ["http://evil.com/cb"] }),
+    }),
+  );
+  assert.equal(res.status, 400, "unconstrained redirect_uri must be rejected at registration");
+  assert.equal(called("mcpOauthClient", "create"), false, "no client row for a bad redirect_uri");
+});
+
+test("#T5c register: accepts https + loopback (client created)", async () => {
+  state.impl = {
+    mcpOauthClient: {
+      create: (a: any) => ({
+        clientId: "mcp_test",
+        clientName: a.data.clientName,
+        redirectUris: a.data.redirectUris,
+      }),
+    },
+  };
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/register/route");
+  const res = await POST(
+    jsonReq("https://z-g.co.il/api/mcp/foi-guide/oauth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        client_name: "Claude",
+        redirect_uris: ["https://claude.ai/api/mcp/auth/callback", "http://localhost:6274/cb"],
+      }),
+    }),
+  );
+  assert.equal(res.status, 201, "standard MCP clients must still register");
+  assert.equal(called("mcpOauthClient", "create"), true);
+});
+
+test("#T5d consent domain separation: a signed state cannot pose as a consent ticket", async () => {
+  const mod: any = await import("@/lib/mcp-oauth");
+  const stateTok = mod.signState({
+    clientId: "c",
+    redirectUri: "https://claude.ai/cb",
+    codeChallenge: "x",
+    codeChallengeMethod: "S256",
+    nonce: "n",
+    exp: Math.floor(Date.now() / 1000) + 600,
+  });
+  // The client fully controls `state`; it must NOT verify as a consent ticket,
+  // or the consent screen could be skipped by replaying it into /consent.
+  assert.equal(mod.verifyConsent(stateTok), null, "state token must not validate as consent");
+  // And a real consent ticket must not validate as state.
+  const consentTok = mod.signConsent({
+    clientId: "c",
+    redirectUri: "https://claude.ai/cb",
+    codeChallenge: "x",
+    codeChallengeMethod: "S256",
+    email: "u@example.com",
+    clientName: "Claude",
+    nonce: "n",
+    exp: Math.floor(Date.now() / 1000) + 600,
+  });
+  assert.equal(mod.verifyState(consentTok), null, "consent ticket must not validate as state");
+});
+
+function formReq(url: string, fields: Record<string, string>) {
+  return new NextRequest(url, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fields).toString(),
+  });
+}
+
+test("#T5e consent: 'deny' redirects with access_denied and mints no auth code", async () => {
+  const mod: any = await import("@/lib/mcp-oauth");
+  state.impl = { mcpOauthAuthCode: { create: () => ({}) } };
+  const ticket = mod.signConsent({
+    clientId: "c",
+    redirectUri: "https://claude.ai/cb",
+    codeChallenge: "x",
+    codeChallengeMethod: "S256",
+    email: "u@example.com",
+    clientName: "Claude",
+    nonce: "n",
+    exp: Math.floor(Date.now() / 1000) + 600,
+    state: "abc",
+  });
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/consent/route");
+  const res = await POST(
+    formReq("https://z-g.co.il/api/mcp/foi-guide/oauth/consent", { ticket, decision: "deny" }),
+  );
+  assert.equal(res.status, 303);
+  const loc = res.headers.get("location") ?? "";
+  assert.ok(loc.includes("error=access_denied"), "denial must report access_denied to the client");
+  assert.ok(!loc.includes("code="), "no auth code on denial");
+  assert.equal(called("mcpOauthAuthCode", "create"), false, "denial must not create an auth code");
+});
+
+test("#T5f consent: 'approve' by an invited user mints exactly one auth code", async () => {
+  const mod: any = await import("@/lib/mcp-oauth");
+  state.impl = {
+    mcpInvite: { findUnique: () => ({ email: "u@example.com" }) },
+    mcpOauthAuthCode: { create: (a: any) => ({ ...a.data }) },
+  };
+  const ticket = mod.signConsent({
+    clientId: "c",
+    redirectUri: "https://claude.ai/cb",
+    codeChallenge: "x",
+    codeChallengeMethod: "S256",
+    email: "u@example.com",
+    clientName: "Claude",
+    nonce: "n",
+    exp: Math.floor(Date.now() / 1000) + 600,
+  });
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/consent/route");
+  const res = await POST(
+    formReq("https://z-g.co.il/api/mcp/foi-guide/oauth/consent", { ticket, decision: "approve" }),
+  );
+  assert.equal(res.status, 303);
+  const loc = res.headers.get("location") ?? "";
+  assert.ok(/[?&]code=/.test(loc), "approval must return an auth code to the client");
+  assert.equal(called("mcpOauthAuthCode", "create"), true, "approval creates the auth code");
+});
+
+// ============================================================================
+// #T6 — public POSTs: body-size ceiling + field length caps + smaller default limit
+// ============================================================================
+test("#T6a comments POST: an oversized body is rejected (413) before any DB write", async () => {
+  state.session = null;
+  state.impl = { pachComment: { create: () => cannedComment() } };
+  const { POST } = await import("@/app/api/pach-hamishpat/comments/route");
+  const huge = "x".repeat(70 * 1024); // > 64KB cap
+  const res = await POST(
+    jsonReq("https://z-g.co.il/api/pach-hamishpat/comments", {
+      method: "POST",
+      headers: { "x-forwarded-for": "203.0.113.10" },
+      body: JSON.stringify({ content: huge }),
+    }),
+  );
+  assert.equal(res.status, 413, "body over the size cap must be rejected");
+  assert.equal(called("pachComment", "create"), false, "no DB write for an oversized body");
+});
+
+test("#T6b comments POST: content over the field cap is rejected (400)", async () => {
+  state.session = null;
+  state.impl = { pachComment: { create: () => cannedComment() } };
+  const { POST } = await import("@/app/api/pach-hamishpat/comments/route");
+  const long = "a".repeat(3000); // under 64KB body, over the 2000-char field cap
+  const res = await POST(
+    jsonReq("https://z-g.co.il/api/pach-hamishpat/comments", {
+      method: "POST",
+      headers: { "x-forwarded-for": "203.0.113.11" },
+      body: JSON.stringify({ content: long }),
+    }),
+  );
+  assert.equal(res.status, 400, "over-long comment content must be rejected");
+  assert.equal(called("pachComment", "create"), false);
+});
+
+test("#T6c submissionSchema enforces .max() on stored fields", async () => {
+  const { submissionSchema } = await import("@/lib/validations");
+  const base = { name: "Test", email: "a@b.com", message: "hello world!" };
+  assert.equal(submissionSchema.safeParse(base).success, true, "a normal submission is valid");
+  assert.equal(
+    submissionSchema.safeParse({ ...base, message: "z".repeat(6000) }).success,
+    false,
+    "an over-long message must fail validation",
+  );
+  assert.equal(
+    submissionSchema.safeParse({ ...base, name: "n".repeat(200) }).success,
+    false,
+    "an over-long name must fail validation",
+  );
+});
+
+test("#T6d comments GET: default page size is 50 (was 500)", async () => {
+  state.session = null;
+  state.impl = { pachComment: { findMany: () => [] } };
+  const { GET } = await import("@/app/api/pach-hamishpat/comments/route");
+  await GET(jsonReq("https://z-g.co.il/api/pach-hamishpat/comments"));
+  const call = lastCall("pachComment", "findMany");
+  assert.equal(call!.args[0]?.take, 50, "unbounded default limit must drop to 50");
+});
+
+// ============================================================================
+// #T7 — a shared, rolling-window cost budget caps embedding calls fleet-wide
+// ============================================================================
+test("#T7 tryConsumeBudget: allows up to the limit, then denies within the window", async () => {
+  const { tryConsumeBudget } = await import("@/lib/rate-limit");
+  const key = `test-budget-${Math.floor(Date.now())}`;
+  let allowed = 0;
+  for (let i = 0; i < 8; i++) {
+    if (tryConsumeBudget(key, { limit: 5, windowMs: 60_000 })) allowed++;
+  }
+  assert.equal(allowed, 5, "exactly `limit` units may be consumed inside the window");
+  assert.equal(
+    tryConsumeBudget(key, { limit: 5, windowMs: 60_000 }),
+    false,
+    "further calls are denied until the window rolls",
+  );
+  // A very short window rolls immediately, freeing the budget again.
+  const key2 = `test-budget2-${Math.floor(Date.now())}`;
+  assert.equal(tryConsumeBudget(key2, { limit: 1, windowMs: 0 }), true);
+  assert.equal(tryConsumeBudget(key2, { limit: 1, windowMs: 0 }), true, "zero window never blocks");
+});
+
+// ============================================================================
 // #8 — MCP OAuth must not silently fall back to a hardcoded signing secret
 // ============================================================================
 test("#8 getSigningSecret refuses the dev fallback in production", async () => {

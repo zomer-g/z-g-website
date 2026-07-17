@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { submissionSchema } from "@/lib/validations";
+import { readJsonBody } from "@/lib/request-body";
 
 /* ---- GET /api/submissions ---- */
 
@@ -63,8 +64,9 @@ export async function POST(req: NextRequest) {
     const limited = rateLimit(`submissions:${getClientIp(req)}`, { limit: 5, windowMs: 60_000 });
     if (limited) return limited;
 
-    const body = await req.json();
-    const parsed = submissionSchema.safeParse(body);
+    const parsedBody = await readJsonBody(req);
+    if (!parsedBody.ok) return parsedBody.response;
+    const parsed = submissionSchema.safeParse(parsedBody.data);
 
     if (!parsed.success) {
       return NextResponse.json(
