@@ -798,7 +798,9 @@ model McpOauthClient {
 }
 
 model McpOauthAuthCode {
-  code                String   @id
+  // sha256 of the auth code we handed the client, never the code itself —
+  // see hashToken() in src/lib/mcp-oauth.ts.
+  codeHash            String   @id @map("code_hash")
   clientId            String   @map("client_id")
   redirectUri         String   @map("redirect_uri")
   // PKCE — required by MCP spec. We only support S256 (plain rejected).
@@ -833,7 +835,9 @@ model MilonEntry {
 }
 
 model McpOauthAccessToken {
-  token     String   @id
+  // sha256 of the bearer token, never the token itself — see hashToken()
+  // in src/lib/mcp-oauth.ts.
+  tokenHash String   @id @map("token_hash")
   clientId  String   @map("client_id")
   email     String
   expiresAt DateTime @map("expires_at")

@@ -61,6 +61,17 @@ export function randomToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
 }
 
+// Auth codes and access tokens are stored only as sha256 digests, so a read of
+// the database (dump, log, backup, SQL injection) yields nothing replayable.
+// The raw value exists only in the HTTP response body that issued it and in the
+// client's own storage; every lookup re-hashes the incoming value and matches
+// on the digest. A plain sha256 (no salt/stretching) is right here: these are
+// 256-bit random tokens, not user-chosen passwords, so there is no dictionary
+// to attack and the lookup must stay a single indexed point-read.
+export function hashToken(raw: string): string {
+  return createHash("sha256").update(raw).digest("hex");
+}
+
 // HMAC-signed opaque state token. We use it to round-trip the original MCP
 // authorize request through the upstream Google OAuth flow without putting
 // the whole payload in a query string the user might tamper with.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { originFromRequest } from "@/lib/mcp-oauth";
+import { hashToken, originFromRequest } from "@/lib/mcp-oauth";
 import { searchFoiGuide } from "@/lib/foi-guide-search";
 import {
   listLawSections,
@@ -87,12 +87,15 @@ async function authenticate(req: NextRequest): Promise<{ email: string } | null>
     return null;
   }
 
+  // The DB holds only sha256 digests, so match on the hash of what we were
+  // handed rather than the value itself.
+  const tokenHash = hashToken(token);
   const record = await prisma.mcpOauthAccessToken.findUnique({
-    where: { token },
+    where: { tokenHash },
   });
   if (!record) {
     console.error(
-      `[mcp/foi-guide] auth: token not found in DB (prefix=${token.slice(0, 8)}…)`,
+      `[mcp/foi-guide] auth: token not found in DB (sha=${tokenHash.slice(0, 8)}…)`,
     );
     return null;
   }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  hashToken,
   randomToken,
   verifyPkce,
 } from "@/lib/mcp-oauth";
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
   console.error(
     `[mcp/token] received ct=${req.headers.get("content-type") ?? "<none>"} ` +
       `keys=${Object.keys(body).join(",")} ` +
-      `code=${body.code ? body.code.slice(0, 8) + "…" : "<none>"} ` +
+      `code_sha=${body.code ? hashToken(body.code).slice(0, 8) + "…" : "<none>"} ` +
       `client_id=${body.client_id ?? "<none>"} ` +
       `redirect_uri=${body.redirect_uri ?? "<none>"} ` +
       `grant=${body.grant_type ?? "<none>"} ` +
@@ -119,8 +120,9 @@ export async function POST(req: NextRequest) {
     return jsonError("invalid_request", `missing: ${missing.join(", ")}`);
   }
 
+  const codeHash = hashToken(code);
   const record = await prisma.mcpOauthAuthCode.findUnique({
-    where: { code },
+    where: { codeHash },
   });
   if (!record) return jsonError("invalid_grant", "code not found");
   if (record.used) return jsonError("invalid_grant", "code already used");
@@ -161,12 +163,12 @@ export async function POST(req: NextRequest) {
 
   await prisma.$transaction([
     prisma.mcpOauthAuthCode.update({
-      where: { code },
+      where: { codeHash },
       data: { used: true },
     }),
     prisma.mcpOauthAccessToken.create({
       data: {
-        token,
+        tokenHash: hashToken(token),
         clientId,
         email: record.email,
         expiresAt,
@@ -174,8 +176,10 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
+  // Identify the token in logs by its hash prefix, never the token itself —
+  // the raw value appears only in the response body below.
   console.error(
-    `[mcp/token] success email=${record.email} client=${clientId} token=${token.slice(0, 8)}…`,
+    `[mcp/token] success email=${record.email} client=${clientId} token_sha=${hashToken(token).slice(0, 8)}…`,
   );
 
   return NextResponse.json(
