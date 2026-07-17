@@ -35,6 +35,14 @@ yarn-error.log*
 .env.local
 .env.production
 .env.development
+.env.*
+!.env.example
+
+# Ad-hoc one-off scripts. These are run locally against prod and have
+# historically been written with credentials pasted inline. Tracked
+# scripts are .ts and load config via `dotenv/config`; keep it that way.
+# To track a .js script here, scrub it first, then force-add it.
+/scripts/*.js
 
 # vercel
 .vercel
