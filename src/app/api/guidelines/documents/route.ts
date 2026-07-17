@@ -151,6 +151,15 @@ function computeSourceFacets(items: Guideline[]): SourceFacet[] {
 }
 
 export async function GET(req: NextRequest) {
+  // Every distinct filter combination is a fresh cache key, so varying the
+  // params forces unbounded upstream query storms. Throttle per IP first.
+  const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+  const limited = rateLimit(`guidelines-documents:${getClientIp(req)}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const apiKey = getGuidelinesApiKey();
   if (!apiKey) {
     return NextResponse.json({ error: "API not configured" }, { status: 503 });
