@@ -1,0 +1,48 @@
+name: ca-sync
+
+# Weekly refresh of the conditional-arrangements data (הסדרים מותנים).
+#
+# This used to run inside the Render web service, but streaming the police
+# R2 CSV (~255 MB) OOM-crashed the 512 MB Starter instance (2026-07-17) —
+# twice, each time after deleting the records it was about to replace.
+# The web app now only detects staleness; this workflow does the sync with
+# a runner-sized heap, writing to the same production database.
+#
+# The default run is a version-check: it downloads and re-syncs only sources
+# whose OVER resource id changed since the last sync (usually none or one).
+
+on:
+  schedule:
+    # Weekly, Thursday 04:30 UTC (07:30 Israel) — matches the old in-app
+    # weekly cadence; the exact day is arbitrary.
+    - cron: "30 4 * * 4"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Full re-download of ALL sources (ignore version check)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ca-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # postinstall runs `prisma generate` — the sync needs the client.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync
+        run: npx tsx scripts/ca-sync-local.ts ${{ inputs.force && '--force' || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

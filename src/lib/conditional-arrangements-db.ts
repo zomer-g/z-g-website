@@ -235,6 +235,34 @@ function mapLaborRow(row: CKANRow, rowIdx: number): DbRow {
 let inflightSync: Promise<void> | null = null;
 
 /**
+ * Whether this process may run the sync itself.
+ *
+ * DEFAULT OFF for the web service: streaming the police R2 CSV (~255 MB)
+ * needs ~200 MB RSS / ~140 MB of V8 heap churn on its own, which the Render
+ * Starter box (512 MB, --max-old-space-size=350) cannot absorb on top of the
+ * Next.js baseline — on 2026-07-17 the weekly in-process re-sync OOM-crashed
+ * the service twice in a row, each time AFTER deleting the police records it
+ * was about to replace. The sync now runs out-of-process (the ca-sync GitHub
+ * Action calls scripts/ca-sync-local.ts, which sets this flag for itself).
+ */
+function syncAllowedInProcess(): boolean {
+  return process.env.CA_SYNC_IN_PROCESS === "1";
+}
+
+// Log the "data is stale but I won't sync" situation at most once an hour so
+// a broken external scheduler is visible in the logs without spamming them.
+let lastStaleLogAt = 0;
+
+function assertSyncAllowed(): void {
+  if (!syncAllowedInProcess()) {
+    throw new Error(
+      "in-process CA sync is disabled (it OOM-crashes the 512MB web instance) — " +
+        "run the ca-sync GitHub Action, or `npx tsx scripts/ca-sync-local.ts` locally",
+    );
+  }
+}
+
+/**
  * Thrown by ensureData() when the DB is empty and a background sync has been
  * kicked off. The route handler should return 503 + Retry-After immediately
  * so Render's 60s proxy timeout is never hit (the sync itself takes ~65s).
@@ -260,9 +288,13 @@ export async function ensureData(): Promise<void> {
   if (!meta) {
     // DB empty: kick off the sync in the background and return 503 immediately.
     // This avoids hitting Render's 60-second proxy timeout while the sync runs.
-    if (!inflightSync) {
+    if (!inflightSync && syncAllowedInProcess()) {
       console.log("ca-sync: DB empty, starting background initial sync");
       inflightSync = _doSync(true).finally(() => { inflightSync = null; });
+    } else if (!inflightSync) {
+      console.error(
+        "ca-sync: DB empty but in-process sync is disabled — run the ca-sync GitHub Action (scripts/ca-sync-local.ts) to populate it",
+      );
     }
     throw new SyncInProgressError();
   }
@@ -277,9 +309,13 @@ export async function ensureData(): Promise<void> {
   // no-delete) recovery sync. findFirst is an indexed lookup, not a COUNT.
   const anyRow = await prisma.caRecord.findFirst({ select: { id: true } });
   if (!anyRow) {
-    if (!inflightSync) {
+    if (!inflightSync && syncAllowedInProcess()) {
       console.log("ca-sync: meta present but 0 records — starting recovery sync");
       inflightSync = _doSync(true).finally(() => { inflightSync = null; });
+    } else if (!inflightSync) {
+      console.error(
+        "ca-sync: table empty but in-process sync is disabled — run the ca-sync GitHub Action to repopulate",
+      );
     }
     throw new SyncInProgressError();
   }
@@ -292,6 +328,18 @@ function _triggerBackgroundVersionCheck(syncedAt: Date): void {
   if (inflightSync) return; // already running
   if (Date.now() - syncedAt.getTime() < SYNC_INTERVAL_MS) return; // still fresh
 
+  if (!syncAllowedInProcess()) {
+    // Stale, but syncing here would OOM the web process — the ca-sync GitHub
+    // Action owns refreshes. Surface it in the logs (hourly at most).
+    if (Date.now() - lastStaleLogAt > 3600_000) {
+      lastStaleLogAt = Date.now();
+      console.warn(
+        `ca-sync: data is stale (synced ${syncedAt.toISOString()}) — waiting for the external ca-sync workflow`,
+      );
+    }
+    return;
+  }
+
   inflightSync = _doSync(false).finally(() => { inflightSync = null; });
   // Don't await — purely background
 }
@@ -303,6 +351,7 @@ function _triggerBackgroundVersionCheck(syncedAt: Date): void {
  * Much faster than forceSync() since it skips sources already up-to-date.
  */
 export async function syncVersionCheck(): Promise<{ police: number; prosecutor: number; labor: number }> {
+  assertSyncAllowed();
   if (inflightSync) await inflightSync;
   inflightSync = _doSync(false).finally(() => { inflightSync = null; });
   await inflightSync;
@@ -319,6 +368,7 @@ export async function syncVersionCheck(): Promise<{ police: number; prosecutor: 
  * Called by the admin /sync endpoint.
  */
 export async function forceSync(): Promise<{ police: number; prosecutor: number; labor: number }> {
+  assertSyncAllowed();
   if (inflightSync) await inflightSync; // wait for any in-progress sync first
   inflightSync = _doSync(true).finally(() => { inflightSync = null; });
   await inflightSync;
@@ -408,8 +458,15 @@ async function _doSync(force: boolean): Promise<void> {
   // return fresh data on the next request after the sync completes.
   // Next.js 16 requires a second argument (profile) to avoid a deprecation
   // warning; {} is a valid CacheLifeConfig meaning "no specific profile".
-  revalidateTag("ca-facets", {});
-  revalidateTag("ca-data", {});
+  // Throws when the sync runs outside a Next server (scripts/ca-sync-local.ts
+  // via the ca-sync workflow) — there's no cache to bust there; the web
+  // process picks up the new data via the caches' time-based revalidate.
+  try {
+    revalidateTag("ca-facets", {});
+    revalidateTag("ca-data", {});
+  } catch {
+    console.log("ca-sync: revalidateTag skipped (running outside Next server)");
+  }
   console.log(`ca-sync: done in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
@@ -536,7 +593,10 @@ export const getFacets = unstable_cache(
     };
   },
   ["ca-facets"],
-  { tags: ["ca-facets"] },
+  // revalidate: the tag is only busted when the sync runs INSIDE this
+  // process; the external ca-sync workflow can't reach this cache, so a
+  // time-based fallback keeps dropdowns fresh within a day of a data update.
+  { tags: ["ca-facets"], revalidate: 86_400 },
 );
 
 /**
