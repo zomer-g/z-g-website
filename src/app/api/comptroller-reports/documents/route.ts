@@ -126,6 +126,15 @@ function normalizeRanks(ranks: (number | undefined)[]): (number | undefined)[] {
 }
 
 export async function GET(req: NextRequest) {
+  // Every distinct filter combination is a fresh cache key, so varying the
+  // params forces unbounded TAG-IT query storms. Throttle per IP first.
+  const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+  const limited = rateLimit(`comptroller-documents:${getClientIp(req)}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const params = req.nextUrl.searchParams;
   const skip = clampInt(params.get("skip"), 0, 0);
   // Cap at 12: scope-13's sorted "new shape" projection on TAG-IT scales

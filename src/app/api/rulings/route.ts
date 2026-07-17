@@ -664,6 +664,15 @@ function pageCacheSet(key: string, items: UpstreamRulingItem[], total: number, t
 
 export async function GET(req: NextRequest) {
   try {
+    // Every distinct filter combination is a fresh cache key, so varying the
+    // params forces unbounded TAG-IT/DB query storms. Throttle per IP first.
+    const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+    const limited = rateLimit(`rulings:${getClientIp(req)}`, {
+      limit: 30,
+      windowMs: 60_000,
+    });
+    if (limited) return limited;
+
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category") || "defamation";
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
