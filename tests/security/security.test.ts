@@ -55,8 +55,12 @@ const GUEST: Session = { user: { id: "g1", email: "guest@example.com", role: "GU
 const ADMIN: Session = { user: { id: "a1", email: "admin@example.com", role: "ADMIN" } };
 
 function jsonReq(url: string, init: RequestInit = {}) {
+  // Drop `signal` from the spread: RequestInit types it as AbortSignal | null,
+  // but NextRequest's constructor wants AbortSignal | undefined. No test needs
+  // an abort signal, so omitting it keeps the tree type-clean.
+  const { signal: _signal, ...rest } = init;
   return new NextRequest(url, {
-    ...init,
+    ...rest,
     headers: { "content-type": "application/json", ...(init.headers || {}) },
   });
 }
