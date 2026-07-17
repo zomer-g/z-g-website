@@ -69,6 +69,16 @@ function buildWhere(params: URLSearchParams): { sql: string; vals: any[] } {
 }
 
 export async function GET(req: NextRequest) {
+  // Each cache-miss fans out to ~13 heavy aggregate/percentile queries, and
+  // every distinct filter combination is a fresh cache key — so vary the
+  // params and you force unbounded query storms. Throttle per IP first.
+  const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+  const limited = rateLimit(`sanegoria:${getClientIp(req)}`, {
+    limit: 30,
+    windowMs: 60_000,
+  });
+  if (limited) return limited;
+
   const params = req.nextUrl.searchParams;
 
   // If requesting filter options only
@@ -290,6 +300,8 @@ export async function GET(req: NextRequest) {
     rejectInflight!(error);
     inflightQueries.delete(cacheKey);
     console.error("Sanegoria API error:", error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    // Don't leak raw DB/driver error text (table/column names, SQL) to
+    // anonymous callers — log it server-side, return a generic message.
+    return NextResponse.json({ error: "internal error" }, { status: 500 });
   }
 }

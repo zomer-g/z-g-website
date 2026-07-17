@@ -46,7 +46,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
-  if (!session?.user) {
+  if (session?.user?.role !== "ADMIN") {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
