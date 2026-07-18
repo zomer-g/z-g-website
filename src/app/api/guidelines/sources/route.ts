@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { Guideline } from "@/types/guideline";
 import {
   getCached,
+  getStale,
   setCached,
   findUnfilteredKey,
   UNFILTERED_KEY,
@@ -48,17 +49,29 @@ export async function GET() {
         readTtlMs(),
       ]);
       if (rawItems === null) {
-        return NextResponse.json(
-          { error: "Upstream fetch failed" },
-          { status: 502 },
-        );
+        // Refresh failed — fall back to the last-known-good corpus if we have
+        // one, so facets keep rendering instead of 502-ing.
+        const stale = getStale(UNFILTERED_KEY);
+        if (!stale) {
+          return NextResponse.json(
+            { error: "Upstream fetch failed" },
+            { status: 502 },
+          );
+        }
+        console.warn("[guidelines-sources] upstream refresh failed — serving stale corpus");
+        items = stale;
+      } else {
+        const cleaned = stripUrls(rawItems);
+        setCached(UNFILTERED_KEY, cleaned, ttlMs);
+        items = cleaned;
       }
-      const cleaned = stripUrls(rawItems);
-      setCached(UNFILTERED_KEY, cleaned, ttlMs);
-      items = cleaned;
     } catch (err) {
       console.error("guidelines sources error:", err);
-      return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+      const stale = getStale(UNFILTERED_KEY);
+      if (!stale) {
+        return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+      }
+      items = stale;
     }
   }
 

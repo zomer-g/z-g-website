@@ -18,10 +18,25 @@ export function getCached(key: string): Guideline[] | null {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts >= entry.ttl) {
-    cache.delete(key);
+    // Expired. Keep the entry resident (don't delete) so it can still be
+    // served as a stale fallback via getStale() when a live upstream refresh
+    // fails. Return null so callers try to refresh first. LRU eviction still
+    // bounds memory. clearCache()/setCached() replace it on a successful load.
     return null;
   }
   // Touch: move to most-recently-used position.
+  cache.delete(key);
+  cache.set(key, entry);
+  return entry.items;
+}
+
+// Last-known-good items regardless of TTL. Used ONLY as a fallback when a live
+// upstream refresh fails, so the corpus keeps serving (slightly stale) instead
+// of 502-ing. Returns null only if the entry was never populated. Touches LRU
+// so a served-stale entry isn't the next eviction victim.
+export function getStale(key: string): Guideline[] | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
   cache.delete(key);
   cache.set(key, entry);
   return entry.items;

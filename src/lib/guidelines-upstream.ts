@@ -5,6 +5,13 @@ const PAGE_SIZE = 500; // upstream max
 // Low concurrency to cap peak memory during the once-per-TTL bulk fetch
 // (see class-actions-upstream for rationale).
 const PARALLEL = 2;
+// Per-page hard timeout + retries. TAG-IT's authenticated list query on this
+// collection is occasionally very slow / drops a single page; without a bound
+// one hung page stalls the whole corpus load for ~2 min and one flaky page
+// fails the entire fetch. A tight-ish timeout with a couple of retries turns
+// that transient into a success instead of a 502.
+const PAGE_TIMEOUT_MS = 30_000;
+const MAX_ATTEMPTS = 3;
 
 export function getGuidelinesApiKey(): string | undefined {
   return process.env.GUIDELINES_API_KEY || process.env.CLASS_ACTION_API_KEY;
@@ -39,13 +46,38 @@ export async function fetchAllUpstreamGuidelines(
   };
 
   const fetchOne = async (skip: number): Promise<UpstreamGuidelinesListResponse | null> => {
-    const res = await fetch(buildUrl(skip), {
-      headers: { "X-API-Key": apiKey, Accept: "application/json" },
-      cache: "no-store",
-      signal: opts.signal,
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as UpstreamGuidelinesListResponse;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      // Per-attempt timeout so a hung page fails fast and gets retried, rather
+      // than stalling the whole load. Combine with any caller-supplied signal.
+      const timeout = AbortSignal.timeout(PAGE_TIMEOUT_MS);
+      const signal =
+        opts.signal && typeof AbortSignal.any === "function"
+          ? AbortSignal.any([opts.signal, timeout])
+          : (opts.signal ?? timeout);
+      try {
+        const res = await fetch(buildUrl(skip), {
+          headers: { "X-API-Key": apiKey, Accept: "application/json" },
+          cache: "no-store",
+          signal,
+        });
+        if (res.ok) {
+          return (await res.json()) as UpstreamGuidelinesListResponse;
+        }
+        // Client errors (except 408/429) won't fix themselves on retry.
+        if (res.status < 500 && res.status !== 408 && res.status !== 429) {
+          return null;
+        }
+      } catch (err) {
+        // The caller aborted (not our per-page timeout) → propagate, don't retry.
+        if (opts.signal?.aborted) throw err;
+        // Otherwise: our timeout or a transient network error → fall through
+        // and retry.
+      }
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 500 * attempt));
+      }
+    }
+    return null;
   };
 
   // First page tells us the total.

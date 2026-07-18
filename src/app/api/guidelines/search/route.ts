@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Guideline } from "@/types/guideline";
 import {
   getCached,
+  getStale,
   setCached,
   findUnfilteredKey,
   UNFILTERED_KEY,
@@ -66,7 +67,19 @@ async function ensureItemsCache(): Promise<Guideline[] | null> {
     fetchAllUpstreamGuidelines(),
     readTtlMs(),
   ]);
-  if (rawItems === null) return null;
+  if (rawItems === null) {
+    // Upstream refresh failed (TAG-IT slow/down). Serve the last-known-good
+    // corpus if we ever loaded it, so search degrades to slightly-stale rather
+    // than 502. Null only when we've never had a successful load.
+    const stale = getStale(UNFILTERED_KEY);
+    if (stale) {
+      console.warn(
+        "[guidelines-search] upstream refresh failed — serving stale corpus",
+      );
+      return stale;
+    }
+    return null;
+  }
   const cleaned = stripUrls(rawItems);
   setCached(UNFILTERED_KEY, cleaned, ttlMs);
   return cleaned;
