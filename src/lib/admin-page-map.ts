@@ -88,7 +88,7 @@ export const PAGE_GROUPS: PageGroup[] = [
       { slug: "contact", label: "צור קשר", icon: Phone, publicPath: "/contact" },
       { slug: "services", label: "תחומי עיסוק", icon: Briefcase, publicPath: "/services" },
       { slug: "articles", label: "מאמרים", icon: Newspaper, publicPath: "/articles" },
-      { slug: "haplilist", label: "הפליליסט (בלוג)", icon: Feather, publicPath: "/haplilist" },
+      { slug: "haplilist", label: "הפליליסט הדיגיטלי (בלוג)", icon: Feather, publicPath: "/haplilist" },
       { slug: "media", label: "מדיה", icon: Tv, publicPath: "/media" },
       { slug: "projects", label: "מיזמים", icon: Code2, publicPath: "/projects" },
     ],

@@ -85,11 +85,11 @@ export async function generateMetadata({
   const post = await getPost(slug);
 
   if (!post) {
-    return { title: 'פוסט לא נמצא | הפליליסט', robots: { index: false } };
+    return { title: 'פוסט לא נמצא | הפליליסט הדיגיטלי', robots: { index: false } };
   }
 
   return {
-    title: `${post.title} | הפליליסט`,
+    title: `${post.title} | הפליליסט הדיגיטלי`,
     description: post.excerpt || post.seoDesc || undefined,
     robots: { index: false, follow: false },
   };
@@ -131,7 +131,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
                 href="/haplilist"
                 className="text-muted transition-colors duration-200 hover:text-primary"
               >
-                הפליליסט
+                הפליליסט הדיגיטלי
               </Link>
             </li>
             <li aria-hidden="true">
@@ -241,7 +241,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
             </article>
 
             {/* Sidebar */}
-            <aside aria-label="עוד מהפליליסט" className="space-y-8">
+            <aside aria-label="עוד מהפליליסט הדיגיטלי" className="space-y-8">
               {/* Author Card */}
               <Card>
                 <CardContent className="p-6">
@@ -264,7 +264,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
               {relatedPosts.length > 0 && (
                 <div>
                   <h2 className="mb-4 text-lg font-bold text-primary-dark">
-                    עוד מהפליליסט
+                    עוד מהפליליסט הדיגיטלי
                   </h2>
                   <ul role="list" className="space-y-4">
                     {relatedPosts.map((related) => (

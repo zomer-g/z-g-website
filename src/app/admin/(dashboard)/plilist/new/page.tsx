@@ -86,7 +86,7 @@ export default function NewPlilistPostPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <h1 className="text-2xl font-bold text-foreground">פוסט חדש — הפליליסט</h1>
+      <h1 className="text-2xl font-bold text-foreground">פוסט חדש — הפליליסט הדיגיטלי</h1>
 
       {error && (
         <div

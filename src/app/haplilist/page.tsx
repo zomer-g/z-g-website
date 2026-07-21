@@ -27,7 +27,7 @@ const EDIT_HREF = "/admin/site-editor/haplilist";
 // of search engines (and the site nav) until it's made public.
 
 export const metadata: Metadata = {
-  title: 'הפליליסט | עו"ד גיא זומר',
+  title: 'הפליליסט הדיגיטלי | עו"ד גיא זומר',
   description:
     "הבלוג האישי של עו\"ד גיא זומר — פרספקטיבה אישית על המשפט הפלילי, מערכת המשפט והחיים שסביבם.",
   robots: { index: false, follow: false },

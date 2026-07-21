@@ -112,7 +112,7 @@ export default function AdminPlilistPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">הפליליסט</h1>
+          <h1 className="text-2xl font-bold text-foreground">הפליליסט הדיגיטלי</h1>
           <p className="mt-1 text-sm text-muted">
             הבלוג האישי שלי. מוסתר מתפריט האתר — נגיש בכתובת{" "}
             <code className="rounded bg-gray-100 px-1.5 py-0.5 text-xs" dir="ltr">
@@ -129,7 +129,7 @@ export default function AdminPlilistPage() {
       {/* Empty State */}
       {posts.length === 0 ? (
         <div className="rounded-lg border border-border bg-background p-12 text-center">
-          <p className="text-muted">עדיין אין פוסטים בהפליליסט</p>
+          <p className="text-muted">עדיין אין פוסטים בהפליליסט הדיגיטלי</p>
           <Button
             size="sm"
             className="mt-4"

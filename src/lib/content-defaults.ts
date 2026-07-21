@@ -148,7 +148,7 @@ export const DEFAULT_HEADER_CONTENT: HeaderContent = {
     { label: "מיזמים", href: "/projects", children: [] },
     { label: "תחומי עיסוק", href: "/services", children: [] },
     { label: "מאמרים", href: "/articles" },
-    { label: "הפליליסט", href: "/haplilist" },
+    { label: "הפליליסט הדיגיטלי", href: "/haplilist" },
     { label: "פרסומים", href: "/media" },
     // "מילון" moved out of the top-level menu — it now lives under the
     // "מיזמים" dropdown (populated from the projects content).
@@ -228,7 +228,7 @@ export const DEFAULT_ARTICLES_CONTENT: ArticlesPageContent = {
 
 export const DEFAULT_HAPLILIST_CONTENT: HaplilistPageContent = {
   hero: {
-    title: "הפליליסט",
+    title: "הפליליסט הדיגיטלי",
     subtitle:
       "הבלוג האישי שלי — פרספקטיבה אישית על המשפט הפלילי, מערכת המשפט והאנשים שמאחורי התיקים.",
   },

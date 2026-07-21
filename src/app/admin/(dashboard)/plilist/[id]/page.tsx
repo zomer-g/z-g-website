@@ -192,7 +192,7 @@ export default function EditPlilistPostPage({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">עריכת פוסט — הפליליסט</h1>
+        <h1 className="text-2xl font-bold text-foreground">עריכת פוסט — הפליליסט הדיגיטלי</h1>
         <Button
           variant="ghost"
           size="sm"

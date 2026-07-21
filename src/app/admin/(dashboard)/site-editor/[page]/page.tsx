@@ -44,7 +44,7 @@ const PAGE_LABELS: Record<string, string> = {
   footer: "כותרת תחתונה",
   services: "תחומי עיסוק",
   articles: "מאמרים",
-  haplilist: "הפליליסט (בלוג)",
+  haplilist: "הפליליסט הדיגיטלי (בלוג)",
   media: "מדיה",
   "article-detail": "עמוד מאמר (תבנית)",
   "service-detail": "עמוד שירות (תבנית)",
