@@ -6,6 +6,15 @@ services:
     region: frankfurt
     buildCommand: npm install --include=dev && npx prisma generate && npx prisma db push && npm run build
     startCommand: npm start
+    # Persistent disk for runtime user uploads (post PDFs, media images).
+    # Without this, files written to public/uploads live on the ephemeral
+    # container filesystem and are wiped on every deploy/restart. The disk is
+    # mounted over public/uploads; scripts/restore-seed-uploads.mjs repopulates
+    # the git-committed seed thumbnails onto a fresh disk at startup.
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/public/uploads
+      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         fromDatabase:
