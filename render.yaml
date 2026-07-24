@@ -23,7 +23,7 @@ services:
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
-        value: https://z-g-website.onrender.com
+        value: https://www.z-g.co.il
       - key: SITE_URL
         value: https://z-g-website.onrender.com
       - key: GOOGLE_CLIENT_ID
