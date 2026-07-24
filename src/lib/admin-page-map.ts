@@ -153,6 +153,15 @@ export const PAGE_GROUPS: PageGroup[] = [
         ],
       },
       {
+        title: "גרסאות לעם — מחבר Looker Studio",
+        items: [
+          { slug: "over-looker", label: "ראשי", icon: BarChart3, editHref: "/admin/pages/over-looker", publicPath: "/over-looker" },
+          { slug: "over-looker-privacy", label: "מדיניות פרטיות", icon: Shield, editHref: "/admin/pages/over-looker-privacy", publicPath: "/over-looker-privacy" },
+          { slug: "over-looker-terms", label: "תנאי שימוש", icon: ScrollText, editHref: "/admin/pages/over-looker-terms", publicPath: "/over-looker-terms" },
+          { slug: "over-looker-support", label: "תמיכה", icon: Phone, editHref: "/admin/pages/over-looker-support", publicPath: "/over-looker-support" },
+        ],
+      },
+      {
         title: "OCOI — תוסף ניגוד עניינים",
         items: [
           { slug: "ocoi-extension", label: "ראשי", icon: Code2, editHref: "/admin/pages/ocoi-extension", publicPath: "/ocoi-extension" },
