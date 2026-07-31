@@ -12,7 +12,10 @@ const cache = new Map<string, CacheEntry>();
 // number of entries low and evict the LEAST-recently-used (not FIFO) — that
 // keeps the hot full-corpus entry resident while rare filter combos rotate
 // out, bounding worst-case memory without hurting typical browsing.
-const MAX_ENTRIES = 16;
+// NOTE: expired entries are deliberately kept resident (see getCached) as a
+// stale fallback, so this cap is the ONLY thing bounding this cache — 16
+// full corpora (4188 docs each) was a large share of the 512 MB container.
+const MAX_ENTRIES = 6;
 
 export function getCached(key: string): Guideline[] | null {
   const entry = cache.get(key);

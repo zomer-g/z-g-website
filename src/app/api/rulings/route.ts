@@ -216,7 +216,13 @@ interface BulkEntry {
   ttl: number;
 }
 const bulkCache = new Map<string, BulkEntry>();
-const BULK_CACHE_MAX = 24;
+// The single most expensive cache in the process: one entry is up to 3000
+// TAG-IT documents (scope 1 averages 5.5 KB of JSON per doc → ~16 MB raw,
+// several times that once parsed into JS objects). At 24 entries the
+// worst-case working set alone exceeded the 512 MB container, which is what
+// kept OOM-killing the box. 6 still covers a user toggling through laws and
+// sections on one page without re-querying the mirror.
+const BULK_CACHE_MAX = 6;
 function bulkGet(key: string): UpstreamRulingItem[] | null {
   const e = bulkCache.get(key);
   if (!e) return null;

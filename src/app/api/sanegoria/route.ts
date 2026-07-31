@@ -16,10 +16,13 @@ function getCached(key: string) {
 }
 function setCache(key: string, data: any) {
   cache.set(key, { data, ts: Date.now() });
-  // Limit cache size
-  if (cache.size > 200) {
+  // Limit cache size. Entries are aggregate result sets held for a full day,
+  // so 200 of them was a standing chunk of the 512 MB container; 50 keeps the
+  // dashboard's common filter combinations warm at a fraction of the cost.
+  while (cache.size > 50) {
     const oldest = cache.keys().next().value;
-    if (oldest) cache.delete(oldest);
+    if (!oldest) break;
+    cache.delete(oldest);
   }
 }
 

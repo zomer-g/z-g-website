@@ -11,7 +11,7 @@ const cache = new Map<string, CacheEntry>();
 // Bounded LRU — see guidelines-cache for rationale. Low entry cap + LRU
 // eviction keeps the hot full-corpus entry resident and bounds worst-case
 // memory (each entry can hold a large document array).
-const MAX_ENTRIES = 16;
+const MAX_ENTRIES = 6;
 
 export function getCached(key: string): ClassActionDocument[] | null {
   const entry = cache.get(key);

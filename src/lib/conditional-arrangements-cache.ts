@@ -24,9 +24,13 @@ export function setCachedArrangements(
   ttlMs: number,
 ) {
   cache.set(key, { items, ts: Date.now(), ttl: ttlMs });
-  if (cache.size > 200) {
+  // Entries hold arrangement arrays, so cap on count until we budget by bytes.
+  // 200 was far more than the 512 MB container could hold; 40 still covers the
+  // facet/filter combinations a browsing session actually revisits.
+  while (cache.size > 40) {
     const oldest = cache.keys().next().value;
-    if (oldest) cache.delete(oldest);
+    if (!oldest) break;
+    cache.delete(oldest);
   }
 }
 

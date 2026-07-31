@@ -1,0 +1,68 @@
+name: rulings-mirror-sync
+
+# Keeps the TAG-IT mirror (tagit_docs) fresh.
+#
+# This used to run on a 15-minute setInterval inside the Render web service
+# (src/instrumentation.ts). The 512 MB Starter instance runs at ~95% of its
+# limit under normal traffic, so the sync's allocations were the thing that
+# tipped it into an OOM kill — every failure between 2026-07-23 and 2026-07-31
+# landed inside a sync window, four of them within 62 seconds of a tick. The
+# walk now happens on a runner with a normal-sized heap, writing to the same
+# production database. Same reasoning (and same shape) as ca-sync.yml.
+#
+#   incremental — newest-uploaded pages per scope (the 15-minute cadence).
+#   full        — whole-scope walk + prune of upstream deletions (nightly).
+
+on:
+  schedule:
+    # Incremental, every 15 minutes — matches the old in-app cadence. GitHub
+    # delays or coalesces scheduled runs under load; that is fine for mirror
+    # freshness, and the concurrency group below stops runs from piling up.
+    - cron: "*/15 * * * *"
+    # Full resync nightly at 00:10 UTC (03:10 Israel) — same slot the in-app
+    # scheduler used. Picks up re-analyzed docs and prunes deleted ones.
+    - cron: "10 0 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Sync mode"
+        type: choice
+        options: [auto, full, incremental]
+        default: auto
+
+concurrency:
+  # A full walk can run for a long time against a slow TAG-IT. Never start a
+  # second run on top of one already in flight, and never cancel one midway
+  # (an interrupted full walk resumes from its cursor on the next run).
+  group: rulings-mirror-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # postinstall runs `prisma generate` — the sync needs the client.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync
+        # The nightly cron asks for a full walk; every other trigger uses the
+        # mode it was given (default "auto" = incremental for bootstrapped
+        # scopes, full-with-resume for any that never completed a first walk).
+        run: |
+          MODE="${{ inputs.mode || 'auto' }}"
+          if [ "${{ github.event.schedule }}" = "10 0 * * *" ]; then MODE=full; fi
+          echo "mode=$MODE"
+          npx tsx scripts/rulings-mirror-sync.ts --mode "$MODE"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RULINGS_API_KEY: ${{ secrets.RULINGS_API_KEY }}
+          CLASS_ACTION_API_KEY: ${{ secrets.CLASS_ACTION_API_KEY }}
+          TAGIT_API_URL: ${{ secrets.TAGIT_API_URL }}

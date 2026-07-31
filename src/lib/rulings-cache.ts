@@ -10,7 +10,7 @@ const cache = new Map<string, CacheEntry>();
 
 // Bounded LRU — low entry cap + least-recently-used eviction keeps hot
 // per-scope snapshots resident and bounds worst-case memory.
-const MAX_ENTRIES = 16;
+const MAX_ENTRIES = 6;
 
 export function getCached(key: string): UpstreamRulingItem[] | null {
   const entry = cache.get(key);
