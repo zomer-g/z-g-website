@@ -194,6 +194,55 @@ export function intentDrugs(doc: CorpusDoc): Set<string> {
   return s;
 }
 
+/* ── count units ─────────────────────────────────────────────────────────
+   Most LSD and much MDMA is never weighed, so the quantity range has a second
+   measure: each drug totalled in ITS OWN countable unit. Mirrors TAG-IT's
+   topics.DRUG_COUNT_UNIT — "יחידות" is the generic word for a pill or a
+   blotter and folds into those, but a cannabis "unit" is not a seedling. */
+const DRUG_COUNT_UNIT: Record<string, string> = {
+  LSD: "בולים", MDMA: "כדורים", "בופרנורפין": "כדורים", "מתאמפטמין": "כדורים",
+  "קנאביס": "שתילים", "קוקאין": "יחידות", "חשיש": "יחידות",
+  "הרואין": "יחידות", "קטמין": "יחידות", "פסילוצין": "יחידות",
+};
+const COUNT_UNIT_ALIASES: Record<string, string[]> = {
+  "בולים": ["בולים", "בול", "מדבקות", "מדבקה", "ריבועי נייר", "יחידות", "יחידה"],
+  "כדורים": ["כדורים", "כדור", "טבליות", "טבליה", "יחידות", "יחידה"],
+  "שתילים": ["שתילים", "שתיל", "צמחים", "צמח", "עציצים", "עציץ"],
+  "יחידות": ["יחידות", "יחידה"],
+};
+const DRUG_TO_G_SLUG: Record<string, string> = {
+  "קנאביס": "cannabis", "קוקאין": "cocaine", "חשיש": "hashish",
+  "הרואין": "heroin", MDMA: "mdma", "קטמין": "ketamine", LSD: "lsd",
+  "מתאמפטמין": "meth", "בופרנורפין": "buprenorphine", "פסילוצין": "psilocybin",
+};
+
+/** IMPL: canonical drug → stored count total (meta.drug_total_n_*). */
+export function implCounts(doc: CorpusDoc): Map<string, number> {
+  const m = new Map<string, number>();
+  const cols = doc.per_drug_g ?? {};
+  for (const [drug, slug] of Object.entries(DRUG_TO_G_SLUG)) {
+    const v = num(cols[`drug_total_n_${slug}`]);
+    if (v != null) m.set(drug, v);
+  }
+  return m;
+}
+
+/** INTENT: canonical drug → count recomputed from the raw offence rows. */
+export function intentCounts(doc: CorpusDoc): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const e of arr(doc.detail)) {
+    const q = num(e["מספר_כמות"]);
+    if (q == null) continue;
+    const d = canonDrug(e["סוג_הסם"]);      // single drug only, as for grams
+    if (!d) continue;
+    const unit = String(e["יחידת_מידה"] ?? "").trim();
+    const want = DRUG_COUNT_UNIT[d];
+    if (!want || !(COUNT_UNIT_ALIASES[want] ?? []).includes(unit)) continue;
+    m.set(d, (m.get(d) ?? 0) + q);
+  }
+  return m;
+}
+
 /* ── the query model ─────────────────────────────────────────────────────── */
 
 export interface Query {
@@ -201,6 +250,8 @@ export interface Query {
   mode?: "or" | "and";
   min?: number;
   max?: number;
+  /** Which measure the range refers to: grams (default) or countable items. */
+  unit?: "g" | "n";
   /** extra predicate for scenarios that add a non-drug filter */
   extra?: (d: CorpusDoc) => boolean;
 }
@@ -212,7 +263,7 @@ const inRange = (v: number | null | undefined, q: Query): boolean => {
   return true;
 };
 
-/** Route-faithful expectation (meta.drug_types + meta.drug_totals). */
+/** Route-faithful expectation (meta.drug_types + the indexed per-drug total). */
 export function matchImpl(doc: CorpusDoc, q: Query): boolean {
   if (q.extra && !q.extra(doc)) return false;
   const drugs = q.drugs ?? [];
@@ -225,10 +276,10 @@ export function matchImpl(doc: CorpusDoc, q: Query): boolean {
   }
   if (!hasQty) return true;
   if (!drugs.length) return inRange(num(doc.max_grams), q); // case-max fallback
-  const g = implGrams(doc);
+  const totals = q.unit === "n" ? implCounts(doc) : implGrams(doc);
   return q.mode === "and"
-    ? drugs.every((d) => inRange(g.get(d), q))
-    : drugs.some((d) => inRange(g.get(d), q));
+    ? drugs.every((d) => inRange(totals.get(d), q))
+    : drugs.some((d) => inRange(totals.get(d), q));
 }
 
 /** User-intent expectation (aliases merged + units converted from raw rows). */
@@ -244,11 +295,11 @@ export function matchIntent(doc: CorpusDoc, q: Query): boolean {
     if (!presence) return false;
   }
   if (!hasQty) return true;
-  const g = intentGrams(doc);
-  if (!drugs.length) return inRange(Math.max(0, ...g.values()) || null, q);
+  const totals = q.unit === "n" ? intentCounts(doc) : intentGrams(doc);
+  if (!drugs.length) return inRange(Math.max(0, ...totals.values()) || null, q);
   return q.mode === "and"
-    ? drugs.every((d) => inRange(g.get(d), q))
-    : drugs.some((d) => inRange(g.get(d), q));
+    ? drugs.every((d) => inRange(totals.get(d), q))
+    : drugs.some((d) => inRange(totals.get(d), q));
 }
 
 export function countImpl(corpus: CorpusDoc[], q: Query): number {

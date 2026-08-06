@@ -30,7 +30,7 @@ export interface CorpusDoc {
   detail: unknown;        // sql.פירוט_עבירות_סמים
   drug_types: unknown;    // meta.drug_types
   max_grams: unknown;     // meta.drug_max_grams
-  per_drug_g: Record<string, unknown>; // meta.drug_total_g_*
+  per_drug_g: Record<string, unknown>; // meta.drug_total_g_* + meta.drug_total_n_*
 }
 
 async function main() {
@@ -48,7 +48,7 @@ async function main() {
             data->'meta'->'drug_max_grams'    AS max_grams,
             (SELECT jsonb_object_agg(k, v)
                FROM jsonb_each(data->'meta') AS kv(k, v)
-              WHERE k LIKE 'drug_total_g_%')  AS per_drug_g,
+              WHERE k LIKE 'drug_total_%')    AS per_drug_g,
             CASE WHEN jsonb_typeof(data->'sql'->'נאשמים') = 'array'
                  THEN jsonb_array_length(data->'sql'->'נאשמים') END AS defendants,
             (data->'meta'->>'confessed')::text AS confessed

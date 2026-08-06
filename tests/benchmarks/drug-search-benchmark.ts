@@ -118,6 +118,7 @@ function userFilters(q: Query & { text?: string; raw?: Record<string, unknown> }
     if (q.min != null) r.min = q.min;
     if (q.max != null) r.max = q.max;
     uf["meta.drug_max_grams"] = r;
+    if (q.unit === "n") uf["meta.drug_max_grams::unit"] = "n";
   }
   return JSON.stringify(uf);
 }
@@ -161,6 +162,17 @@ const SCENARIOS: Scenario[] = [
   { name: "קוקאין או חשיש ≥ 30 (OR)", q: { drugs: ["קוקאין", "חשיש"], mode: "or", min: 30 } },
   { name: "קוקאין וגם חשיש ≥ 30 (AND)", q: { drugs: ["קוקאין", "חשיש"], mode: "and", min: 30 } },
   { name: "כל 10 הסמים (OR) ≥ 1 — בדיקת תקרת 3000", q: { drugs: DRUGS, mode: "or", min: 1 } },
+  // ── quantity in COUNTABLE units (the half of the corpus never weighed) ──
+  { name: "LSD ≥ 1 בולים", q: { drugs: ["LSD"], min: 1, unit: "n" } },
+  { name: "LSD ≥ 100 בולים", q: { drugs: ["LSD"], min: 100, unit: "n" } },
+  { name: "MDMA ≥ 1 כדורים", q: { drugs: ["MDMA"], min: 1, unit: "n" } },
+  { name: "MDMA ≥ 500 כדורים", q: { drugs: ["MDMA"], min: 500, unit: "n" } },
+  { name: "קנאביס ≥ 50 שתילים", q: { drugs: ["קנאביס"], min: 50, unit: "n" } },
+  { name: "בופרנורפין ≥ 1 כדורים", q: { drugs: ["בופרנורפין"], min: 1, unit: "n" } },
+  {
+    name: "LSD או MDMA ≥ 50 יחידות (OR)",
+    q: { drugs: ["LSD", "MDMA"], mode: "or", min: 50, unit: "n" },
+  },
   // ── quantity without a drug ──
   { name: "כמות ≥ 30 ללא סם", q: { min: 30 } },
   { name: "כמות ≥ 1000 ללא סם", q: { min: 1000 } },
