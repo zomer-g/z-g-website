@@ -100,7 +100,14 @@ export function canonDrug(raw: unknown): string | null {
   // wrong, so return null and let the caller count it as ambiguous.
   return null;
 }
-/** All canonical drugs mentioned by a raw name (handles compound labels). */
+/**
+ * All canonical drugs a raw label MENTIONS — for PRESENCE only.
+ *
+ * A compound label ("MDMA, KETAMINE") names two drugs but carries a single
+ * quantity, so it may widen "which drugs does this case involve" and must
+ * never widen a sum. Use `canonDrug` (single, or null) for anything that
+ * adds up grams; see `intentGrams`.
+ */
 export function canonDrugsAll(raw: unknown): string[] {
   const one = canonDrug(raw);
   if (one) return [one];
@@ -157,16 +164,25 @@ export function implGrams(doc: CorpusDoc): Map<string, number> {
   return m;
 }
 
-/** INTENT: canonical drug → summed grams, recomputed from the raw offence rows. */
+/**
+ * INTENT: canonical drug → summed grams, recomputed from the raw offence rows.
+ *
+ * A component whose label names more than one drug ("MDMA, KETAMINE") is
+ * SKIPPED, not credited to each. It carries one quantity for one seizure the
+ * extraction couldn't separate; adding it to both drugs would invent the
+ * amount twice over, which is exactly the class of error this benchmark
+ * exists to catch. Those components are reported separately by the audit
+ * ("כינויים שלא אוחדו"), not silently folded into a total.
+ */
 export function intentGrams(doc: CorpusDoc): Map<string, number> {
   const m = new Map<string, number>();
   for (const e of arr(doc.detail)) {
     const q = num(e["מספר_כמות"]);
     const f = gramFactor(e["יחידת_מידה"]);
     if (q == null || f == null) continue;
-    for (const d of canonDrugsAll(e["סוג_הסם"])) {
-      m.set(d, (m.get(d) ?? 0) + q * f);
-    }
+    const d = canonDrug(e["סוג_הסם"]);   // single drug only — never a compound
+    if (!d) continue;
+    m.set(d, (m.get(d) ?? 0) + q * f);
   }
   return m;
 }
