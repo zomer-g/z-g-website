@@ -160,7 +160,23 @@ const QUERY = {
         // (drug + quantity together) in memory, so "קוקאין + ≥30" means cocaine
         // at ≥30g (not "has cocaine" AND "some drug ≥30g"). With no drug picked
         // it falls back to the case-max (meta.drug_max_grams).
-        { key: "meta.drug_max_grams", label: "כמות הסם שנבחר (גרם)", control: "number", group: "סמים" },
+        // The range is expressed EITHER in grams or in the countable unit each
+        // drug is actually seized in — blotters for LSD, pills for MDMA,
+        // seedlings for cannabis. Without the second option most of the LSD
+        // and MDMA corpus is unreachable: 115 of 161 LSD judgments and 185 of
+        // 590 MDMA judgments are never weighed at all. The choice rides in the
+        // `::unit` sidecar; the server maps it to meta.drug_total_g_* or
+        // meta.drug_total_n_*.
+        {
+          key: "meta.drug_max_grams",
+          label: "כמות הסם שנבחר",
+          control: "number",
+          group: "סמים",
+          units: [
+            { value: "g", label: "גרם" },
+            { value: "n", label: "יחידות ספירה" },
+          ],
+        },
         // ── Group "גזירת העונש" — any-defendant boolean flags ──
         // TAG-IT-indexed meta.* booleans (eq pushed to index); the raw nested
         // sql.נאשמים[] booleans time out and must NOT be used. All 10 binary

@@ -30,12 +30,25 @@ interface FilterField {
   // Display-only labels per option value (select / multiselect). The stored/sent
   // value stays the raw option; missing keys fall back to the raw value.
   optionLabels?: Record<string, string>;
+  // Measures a "number" range can be expressed in (drug quantity: grams or
+  // countable items). Renders a unit selector beside the range.
+  units?: { value: string; label: string }[];
 }
 
 // Sidecar draft key carrying a multiselect's AND/OR mode (e.g.
 // "meta.drug_ordinance_sections::mode" → "and"). Kept separate so the option
 // array value stays a plain string[].
 const MS_MODE_SUFFIX = "::mode";
+
+// Sidecar draft key carrying a number range's unit (e.g.
+// "meta.drug_max_grams::unit" → "n"). Same mechanism as MS_MODE_SUFFIX: the
+// range value itself stays {min,max}.
+const UNIT_SUFFIX = "::unit";
+
+// The one range whose unit is switchable (scope-1 drug quantity). Named here
+// so the "wrong unit" hint can flip it without threading the key through the
+// component tree.
+const QUANTITY_FIELD_KEY = "meta.drug_max_grams";
 
 // Reserved userFilters key carrying the cascading law/section selection.
 const LAW_SECTION_KEY = "__lawSection";
@@ -75,6 +88,10 @@ function isLawSectionSel(v: unknown): v is LawSectionSel {
 
 interface RulingsResponse {
   total: number;
+  // Present when the OTHER measure of the drug-quantity range would reach
+  // more judgments than the one in use (grams vs countable items). Drives the
+  // "you're measuring in the wrong unit" hint.
+  quantityAlt?: { unit: string; unitLabel: string; total: number } | null;
   page: number;
   size: number;
   rulings: Ruling[];
@@ -1449,11 +1466,33 @@ function FilterBar({
         min?: number;
         max?: number;
       };
+      // Unit selector (drug quantity: grams vs countable items). The choice
+      // lives in a sidecar key so the range stays a plain {min,max}.
+      const unitKey = f.key + UNIT_SUFFIX;
+      const units = f.units ?? [];
+      const curUnit =
+        units.find((u) => u.value === draft[unitKey])?.value ?? units[0]?.value;
       return (
         <div key={f.key}>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            {f.label}
-          </label>
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-xs font-semibold text-gray-600">
+              {f.label}
+            </label>
+            {units.length > 1 && (
+              <select
+                value={curUnit}
+                onChange={(e) => setField(unitKey, e.target.value)}
+                aria-label="יחידת מדידה"
+                className="border border-gray-300 rounded px-1.5 py-0.5 text-xs text-gray-700 bg-white"
+              >
+                {units.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div className="flex items-center gap-1.5">
             <input
               type="number"
@@ -1822,11 +1861,14 @@ export function RulingsList({
           page: String(p),
         });
         const activeEntries = Object.entries(filters).filter(([k, v]) => {
-          // A multiselect mode sidecar (`<field>::mode`) rides along only when
-          // its base field is actually active — so a stale mode never counts as
-          // a filter on its own (would wrongly flip initialPageSize → pageSize).
-          if (k.endsWith(MS_MODE_SUFFIX)) {
-            return isFilterActive(filters[k.slice(0, -MS_MODE_SUFFIX.length)]);
+          // A sidecar (`<field>::mode`, `<field>::unit`) rides along only when
+          // its base field is actually active — so a stale sidecar never counts
+          // as a filter on its own (would wrongly flip initialPageSize →
+          // pageSize).
+          for (const suffix of [MS_MODE_SUFFIX, UNIT_SUFFIX]) {
+            if (k.endsWith(suffix)) {
+              return isFilterActive(filters[k.slice(0, -suffix.length)]);
+            }
           }
           return isFilterActive(v);
         });
@@ -1879,10 +1921,12 @@ export function RulingsList({
     if (typeof window === "undefined") return;
     const sp = new URLSearchParams();
     const active = Object.entries(appliedFilters).filter(([k, v]) => {
-      // Keep a multiselect mode sidecar only when its base field is active
-      // (mirrors the fetch serialization), so shared URLs stay clean.
-      if (k.endsWith(MS_MODE_SUFFIX)) {
-        return isFilterActive(appliedFilters[k.slice(0, -MS_MODE_SUFFIX.length)]);
+      // Keep a sidecar only when its base field is active (mirrors the fetch
+      // serialization), so shared URLs stay clean.
+      for (const suffix of [MS_MODE_SUFFIX, UNIT_SUFFIX]) {
+        if (k.endsWith(suffix)) {
+          return isFilterActive(appliedFilters[k.slice(0, -suffix.length)]);
+        }
       }
       return isFilterActive(v);
     });
@@ -1911,6 +1955,15 @@ export function RulingsList({
     setDraftFilters({});
     setPage(1);
     setAppliedFilters({});
+  };
+  // Re-run the current search against the other measure of the quantity range
+  // (grams ↔ countable items). Moves the draft too, so the filter bar shows
+  // what's actually being asked.
+  const switchQuantityUnit = (unit: string) => {
+    const key = QUANTITY_FIELD_KEY + UNIT_SUFFIX;
+    setDraftFilters((d) => ({ ...d, [key]: unit }));
+    setAppliedFilters((a) => ({ ...a, [key]: unit }));
+    setPage(1);
   };
   const applyText = () => {
     setPage(1);
@@ -1953,6 +2006,7 @@ export function RulingsList({
     : sortFields[0]?.defaultDir ?? "desc";
 
   const total = data?.total ?? 0;
+  const quantityAlt = data?.quantityAlt ?? null;
   // The server is authoritative on page size (admin-configurable). Fall back
   // to the built-in default before the first response arrives.
   const size = data?.size && data.size > 0 ? data.size : PAGE_SIZE;
@@ -2032,6 +2086,24 @@ export function RulingsList({
               {total.toLocaleString("he-IL")}
             </span>
           )}
+          {/* Most LSD and much MDMA is never weighed, so a grams range answers
+              with a near-zero that reads like "no such cases". Say what the
+              other measure would find, and switch to it in one click. */}
+          {!loading && !error && quantityAlt ? (
+            <div className="mt-1 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1 inline-flex items-center gap-2 flex-wrap">
+              <span>
+                עוד {quantityAlt.total.toLocaleString("he-IL")} פסקי דין נמדדו ב
+                {quantityAlt.unitLabel}
+              </span>
+              <button
+                type="button"
+                onClick={() => switchQuantityUnit(quantityAlt.unit)}
+                className="underline font-semibold hover:text-amber-900"
+              >
+                הצג אותם
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

@@ -153,6 +153,28 @@ const DRUG_TOTAL_G_FIELD: Record<string, string> = {
   "פסילוצין":   "meta.drug_total_g_psilocybin",
 };
 
+/* Not every drug is weighed. TAG-IT also totals each drug in ITS OWN count
+   unit — blotters for LSD, pills for MDMA, seedlings for cannabis — because
+   115 of 161 LSD judgments and 185 of 590 MDMA judgments quantify only
+   countable items and a grams filter cannot see them at all. Same shape as
+   the grams columns, selected by the `::unit` sidecar. */
+const DRUG_TOTAL_N_FIELD: Record<string, string> = Object.fromEntries(
+  Object.entries(DRUG_TOTAL_G_FIELD).map(([drug, field]) => [
+    drug,
+    field.replace("drug_total_g_", "drug_total_n_"),
+  ]),
+);
+export type QtyUnit = "g" | "n";
+/** The count unit each drug is actually measured in — for labels/hints. */
+const DRUG_COUNT_UNIT_LABEL: Record<string, string> = {
+  "LSD": "בולים", "MDMA": "כדורים", "בופרנורפין": "כדורים",
+  "מתאמפטמין": "כדורים", "קנאביס": "שתילים",
+};
+const countUnitLabel = (drugs: string[]): string => {
+  const labels = new Set(drugs.map((d) => DRUG_COUNT_UNIT_LABEL[d] ?? "יחידות"));
+  return labels.size === 1 ? [...labels][0] : "יחידות ספירה";
+};
+
 /**
  * Clauses for "these drugs, in this gram range".
  *   OR  → some selected drug's total is in range.
@@ -164,10 +186,12 @@ function drugQuantityClauses(
   drugs: string[],
   mode: "or" | "and",
   range: { min?: number; max?: number },
+  unit: QtyUnit = "g",
 ): FilterExpression[] | null {
+  const map = unit === "n" ? DRUG_TOTAL_N_FIELD : DRUG_TOTAL_G_FIELD;
   const perDrug: FilterExpression[] = [];
   for (const d of drugs) {
-    const field = DRUG_TOTAL_G_FIELD[d];
+    const field = map[d];
     if (!field) return null;
     const bounds: FilterExpression[] = [];
     if (range.min != null) bounds.push({ field, op: "ge", value: range.min });
@@ -831,9 +855,13 @@ export async function GET(req: NextRequest) {
     const hasQty = qtyRange.min != null || qtyRange.max != null;
     const drugMode: "or" | "and" =
       userFilters["meta.drug_types::mode"] === "and" ? "and" : "or";
+    // Which measure the range refers to. Default grams — the unit most drugs
+    // are seized in — with "n" selecting each drug's own count unit.
+    const qtyUnit: QtyUnit =
+      userFilters["meta.drug_max_grams::unit"] === "n" ? "n" : "g";
     const indexedDrugQty =
       drugSel.length > 0 && hasQty
-        ? drugQuantityClauses(drugSel, drugMode, qtyRange)
+        ? drugQuantityClauses(drugSel, drugMode, qtyRange, qtyUnit)
         : null;
     // The generic `meta.drug_max_grams` range (the case-max of ANY drug) is
     // superseded by the per-drug totals whenever the indexed path applies.
@@ -1174,6 +1202,39 @@ export async function GET(req: NextRequest) {
 
     const rulings = entry.items.map(normalize);
 
+    // ── "you're measuring in the wrong unit" hint ──
+    // A grams range over LSD matches the 5 weighed judgments and says nothing
+    // about the 115 counted in blotters — a silent near-zero that reads like
+    // "there are no such cases". So when the OTHER measure would reach more
+    // documents, say so and let the client switch with one click. One extra
+    // indexed count, first page only, mirror only.
+    let quantityAlt: { unit: QtyUnit; unitLabel: string; total: number } | null = null;
+    if (indexedDrugQty && page === 1 && !textQuery) {
+      const altUnit: QtyUnit = qtyUnit === "g" ? "n" : "g";
+      const altClauses = drugQuantityClauses(drugSel, drugMode, qtyRange, altUnit);
+      if (altClauses && (await mirrorReady(scopeId))) {
+        try {
+          const altFilter = combineFilters(baseFilter, [
+            ...userFilterClauses(activeFilterFields, userFilters),
+            ...altClauses,
+          ]);
+          const altRes = await queryMirrorPage({
+            scopeId, page: 1, size: 1, filter: altFilter,
+            sortKey: sortField, sortDesc,
+          });
+          if (altRes.total > entry.total) {
+            quantityAlt = {
+              unit: altUnit,
+              unitLabel: altUnit === "n" ? countUnitLabel(drugSel) : "גרם",
+              total: altRes.total,
+            };
+          }
+        } catch (err) {
+          console.error("rulings alt-unit count failed (hint suppressed):", err);
+        }
+      }
+    }
+
     // Select dropdown values come from the scope schema (enum samples), not a
     // corpus scan — cheap and cached.
     const schemaFields = needsSchemaOptions
@@ -1184,6 +1245,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         total: entry.total,
+        quantityAlt,
         page,
         size,
         rulings,

@@ -98,6 +98,12 @@ export interface RulingsFilterField {
   // inside an accordion section (collapsed by default) so a long filter set
   // isn't all on screen at once. Ungrouped filters stay always-visible.
   group?: string;
+  // For "number": the measures this range can be expressed in. When present a
+  // unit selector renders beside the range and the choice travels in the
+  // sidecar key `<field>::unit`. Needed where one "quantity" question has more
+  // than one honest answer — a drug seizure is weighed in grams OR counted in
+  // pills/blotters/seedlings, and 539 judgments record both.
+  units?: { value: string; label: string }[];
 }
 
 /**
