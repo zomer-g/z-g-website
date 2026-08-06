@@ -15,7 +15,6 @@ import "dotenv/config";
 import { PrismaClient } from "../../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { writeFileSync, mkdirSync } from "fs";
-import { dirname } from "path";
 import { PAGES, type FilterField, type SlimDoc } from "./rulings-pages-model";
 
 export const CORPUS_DIR =
