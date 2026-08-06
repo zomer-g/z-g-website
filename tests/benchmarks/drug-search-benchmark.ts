@@ -249,7 +249,15 @@ async function runApiPhase(corpus: CorpusDoc[]): Promise<Row[]> {
         detail: f["sql.פירוט_עבירות_סמים"],
         drug_types: f["meta.drug_types"],
         max_grams: f["meta.drug_max_grams"],
-        per_drug_g: null,
+        // The per-drug totals the route actually filters on, unprefixed to
+        // match the corpus shape. Leaving these out made the count-unit
+        // scenarios report every returned card as a violation, because
+        // implCounts had nothing to read.
+        per_drug_g: Object.fromEntries(
+          Object.entries(f)
+            .filter(([k]) => k.startsWith("meta.drug_total_"))
+            .map(([k, val]) => [k.slice("meta.".length), val]),
+        ),
       };
       if (!matchImpl(doc, s.q)) {
         violations++;
