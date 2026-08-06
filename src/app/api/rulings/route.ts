@@ -128,6 +128,59 @@ function parseLawSectionSelection(
   return { law: law || undefined, sections, mode };
 }
 
+/* ── Drug + quantity, as an INDEXED filter (scope 1) ──
+   Canonical drug → TAG-IT's indexed per-drug grams-total column. Every value
+   the "סוג הסם" filter offers has one, so "cocaine ≥ 30 g" compiles to a
+   plain indexed comparison on the SUM for cocaine.
+
+   This replaced an in-memory correlated pass that pulled up to 3,000 whole
+   documents per query. That pass had to go: it silently truncated results at
+   the 3,000-document cap, it dropped the caller's text_query (the bulk
+   fetchers take no text), and the resident snapshots repeatedly exhausted the
+   web instance's heap — a cold "cannabis ≥ 1 g" was measured killing the
+   process outright. As an ordinary clause the query is indexed, pages
+   correctly, composes with full-text search, and holds one page in memory. */
+const DRUG_TOTAL_G_FIELD: Record<string, string> = {
+  "קנאביס":     "meta.drug_total_g_cannabis",
+  "קוקאין":     "meta.drug_total_g_cocaine",
+  "חשיש":       "meta.drug_total_g_hashish",
+  "הרואין":     "meta.drug_total_g_heroin",
+  "MDMA":       "meta.drug_total_g_mdma",
+  "קטמין":      "meta.drug_total_g_ketamine",
+  "LSD":        "meta.drug_total_g_lsd",
+  "מתאמפטמין":  "meta.drug_total_g_meth",
+  "בופרנורפין": "meta.drug_total_g_buprenorphine",
+  "פסילוצין":   "meta.drug_total_g_psilocybin",
+};
+
+/**
+ * Clauses for "these drugs, in this gram range".
+ *   OR  → some selected drug's total is in range.
+ *   AND → every selected drug's total is in range.
+ * Returns null when any selected drug has no indexed total column, so the
+ * caller can fall back to the in-memory pairing rather than filter wrongly.
+ */
+function drugQuantityClauses(
+  drugs: string[],
+  mode: "or" | "and",
+  range: { min?: number; max?: number },
+): FilterExpression[] | null {
+  const perDrug: FilterExpression[] = [];
+  for (const d of drugs) {
+    const field = DRUG_TOTAL_G_FIELD[d];
+    if (!field) return null;
+    const bounds: FilterExpression[] = [];
+    if (range.min != null) bounds.push({ field, op: "ge", value: range.min });
+    if (range.max != null) bounds.push({ field, op: "le", value: range.max });
+    if (bounds.length === 0) return null;
+    perDrug.push(bounds.length === 1 ? bounds[0] : { op: "and", clauses: bounds });
+  }
+  if (perDrug.length === 0) return null;
+  if (perDrug.length === 1) return [perDrug[0]];
+  // AND-mode clauses are ANDed by the caller anyway; OR needs the wrapper.
+  return mode === "and" ? perDrug : [{ op: "or", clauses: perDrug }];
+}
+
 /* ── Drug + quantity match (scope 1) ──
    The quantity refers to the per-drug TOTAL across the whole judgment. TAG-IT
    exposes meta.drug_totals = [{ סוג_הסם (canonical), יחידה, כמות_כוללת,
@@ -223,6 +276,12 @@ const bulkCache = new Map<string, BulkEntry>();
 // kept OOM-killing the box. 6 still covers a user toggling through laws and
 // sections on one page without re-querying the mirror.
 const BULK_CACHE_MAX = 6;
+// Ceiling on one bulk snapshot — the mirror's own default. A narrowing that
+// matches more documents than this gets CUT, and the in-memory filter then
+// reports a total computed from a partial corpus. Silent truncation reads as
+// a real answer, so a path that hits the cap says so (`truncated` in the
+// response + a server log) instead of quietly under-reporting.
+const BULK_DOC_LIMIT = 3000;
 function bulkGet(key: string): UpstreamRulingItem[] | null {
   const e = bulkCache.get(key);
   if (!e) return null;
@@ -753,10 +812,38 @@ export async function GET(req: NextRequest) {
           }
         : null;
     const userFilters = parseUserFilters(searchParams.get("userFilters"));
-    const combined = combineFilters(
-      baseFilter,
-      userFilterClauses(config.filterFields, userFilters),
-    );
+
+    // ── Drug + quantity (scope 1) ──
+    // "cocaine ≥ 30 g" must mean the SAME drug for both halves. TAG-IT
+    // publishes an indexed per-drug grams TOTAL column for every drug the
+    // filter offers, so the pairing is expressible as an ordinary indexed
+    // clause — no corpus snapshot, no in-memory pass. See
+    // `drugQuantityClauses`.
+    const drugSelRaw = userFilters["meta.drug_types"];
+    const drugSel = Array.isArray(drugSelRaw)
+      ? drugSelRaw.map((x) => String(x).trim()).filter(Boolean)
+      : [];
+    const qtyRaw = userFilters["meta.drug_max_grams"];
+    const qtyRange =
+      qtyRaw && typeof qtyRaw === "object" && !Array.isArray(qtyRaw)
+        ? (qtyRaw as { min?: number; max?: number })
+        : {};
+    const hasQty = qtyRange.min != null || qtyRange.max != null;
+    const drugMode: "or" | "and" =
+      userFilters["meta.drug_types::mode"] === "and" ? "and" : "or";
+    const indexedDrugQty =
+      drugSel.length > 0 && hasQty
+        ? drugQuantityClauses(drugSel, drugMode, qtyRange)
+        : null;
+    // The generic `meta.drug_max_grams` range (the case-max of ANY drug) is
+    // superseded by the per-drug totals whenever the indexed path applies.
+    const activeFilterFields = indexedDrugQty
+      ? config.filterFields.filter((f) => f.key !== "meta.drug_max_grams")
+      : config.filterFields;
+    const combined = combineFilters(baseFilter, [
+      ...userFilterClauses(activeFilterFields, userFilters),
+      ...(indexedDrugQty ?? []),
+    ]);
     const filterJson = combined ? JSON.stringify(combined) : "";
 
     // ── Free-text search over the document content (TAG-IT text_query) ──
@@ -876,6 +963,12 @@ export async function GET(req: NextRequest) {
         bulkSet(bulkKey, docs, config.ttlMs);
       }
       const matched = docs.filter((d) => matchesLawSection(d, lsSel, cfg));
+      const truncated = docs.length >= BULK_DOC_LIMIT;
+      if (truncated) {
+        console.warn(
+          `rulings law/section bulk hit the ${BULK_DOC_LIMIT}-doc cap (scope ${scopeId}) — total is computed from a partial corpus`,
+        );
+      }
       const start = (page - 1) * size;
       const pageItems = matched.slice(start, start + size);
       const schemaFieldsLs = needsSchemaOptions
@@ -884,6 +977,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           total: matched.length,
+          truncated,
           page,
           size,
           rulings: pageItems.map(normalize),
@@ -904,25 +998,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ── Correlated drug + quantity path ──
-    // When the user picks drug type(s) AND a quantity range, the two must refer
-    // to the SAME drug (see matchesDrugQuantity). We narrow upstream by
-    // everything EXCEPT the (uncorrelated) quantity clause — keeping the drug
-    // presence filter, which is indexed — then match the drug↔quantity pairing
-    // in memory over the (mirror-backed) bulk snapshot and paginate.
-    const drugSelRaw = userFilters["meta.drug_types"];
-    const drugSel = Array.isArray(drugSelRaw)
-      ? drugSelRaw.map((x) => String(x).trim()).filter(Boolean)
-      : [];
-    const qtyRaw = userFilters["meta.drug_max_grams"];
-    const qtyRange =
-      qtyRaw && typeof qtyRaw === "object" && !Array.isArray(qtyRaw)
-        ? (qtyRaw as { min?: number; max?: number })
-        : {};
-    const hasQty = qtyRange.min != null || qtyRange.max != null;
-    const drugMode: "or" | "and" =
-      userFilters["meta.drug_types::mode"] === "and" ? "and" : "or";
-    if (drugSel.length > 0 && hasQty) {
+    // ── Correlated drug + quantity — in-memory FALLBACK ──
+    // Only for a drug with no indexed grams-total column; everything the
+    // filter currently offers takes the indexed path built into `combined`
+    // above (see drugQuantityClauses). Narrows upstream by every clause
+    // except the uncorrelated quantity, then pairs drug↔quantity in memory
+    // over the (mirror-backed) bulk snapshot and paginates.
+    if (drugSel.length > 0 && hasQty && !indexedDrugQty) {
       // Narrow filter = base + all user clauses EXCEPT the quantity field.
       const narrowFilter = combineFilters(
         baseFilter,
@@ -987,12 +1069,19 @@ export async function GET(req: NextRequest) {
       const matched = docs.filter((d) =>
         matchesDrugQuantity(d, drugSel, drugMode, qtyRange),
       );
+      const truncated = docs.length >= BULK_DOC_LIMIT;
+      if (truncated) {
+        console.warn(
+          `rulings drug/quantity fallback hit the ${BULK_DOC_LIMIT}-doc cap (scope ${scopeId}) — total is computed from a partial corpus`,
+        );
+      }
       const start = (page - 1) * size;
       const pageItems = matched.slice(start, start + size);
       const schemaFieldsDq = needsSchemaOptions ? await getScopeSchema(scopeId) : [];
       return NextResponse.json(
         {
           total: matched.length,
+          truncated,
           page,
           size,
           rulings: pageItems.map(normalize),
