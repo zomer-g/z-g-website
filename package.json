@@ -16,6 +16,7 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "test:monitor": "node --import tsx --test tests/monitoring/*.test.ts",
+    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

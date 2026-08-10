@@ -4,7 +4,12 @@ import type {
   ClassActionCase,
   CasesListResponse,
 } from "@/types/class-action";
-import { getCached, setCached } from "@/lib/class-actions-cache";
+import {
+  getCached,
+  getStale,
+  runSingleFlight,
+  setCached,
+} from "@/lib/class-actions-cache";
 import { getPageContent } from "@/lib/content";
 import type { ClassActionsPageContent } from "@/types/content";
 import type {
@@ -305,25 +310,40 @@ export async function GET(req: NextRequest) {
   const config = await readConfig();
 
   if (!allItems) {
+    // One crawl per key, shared by every concurrent caller. A miss pulls the
+    // whole corpus, and without this each visitor started their own — the
+    // 2026-08-10 logs show the same pages fetched twice within seconds,
+    // against a TAG-IT box already at 96% of its memory ceiling.
+    let rawItems: Awaited<ReturnType<typeof fetchAllUpstreamClassActions>> = null;
+    let failed = false;
     try {
-      const rawItems = await fetchAllUpstreamClassActions({
-        filters: buildUpstreamFilters(params),
-      });
+      rawItems = await runSingleFlight(cacheKey, () =>
+        fetchAllUpstreamClassActions({ filters: buildUpstreamFilters(params) }),
+      );
+    } catch (err) {
+      console.error("class-actions proxy error:", err);
+      failed = true;
+    }
 
-      if (rawItems === null) {
-        return NextResponse.json(
-          { error: "Upstream fetch failed" },
-          { status: 502 },
-        );
-      }
-
+    if (!failed && rawItems !== null) {
       const cleanedItems = stripClassActionUrls(rawItems);
       setCached(cacheKey, cleanedItems, config.ttlMs);
       allItems = cleanedItems;
       cacheStatus = "MISS";
-    } catch (err) {
-      console.error("class-actions proxy error:", err);
-      return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+    } else {
+      // Upstream is unavailable. Rather than an error page, serve the last
+      // copy we hold — this page has no local mirror to fall back on, and
+      // filings do not change minute to minute. TAG-IT restarts itself for
+      // ~1 minute whenever its OCR queue hits its memory ceiling.
+      const stale = getStale(cacheKey);
+      if (!stale) {
+        return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+      }
+      console.warn(
+        `class-actions: upstream unavailable — serving cache ${Math.round(stale.ageMs / 1000)}s old`,
+      );
+      allItems = stale.items;
+      cacheStatus = `STALE-${Math.round(stale.ageMs / 1000)}s`;
     }
   }
 
