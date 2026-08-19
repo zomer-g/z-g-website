@@ -11,7 +11,7 @@ import { RulingsList } from "../rulings/rulings-list";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "גזרי דין בעבירות סמים | זומר עורך דין",
+  title: "גזרי דין בעבירות סמים",
   description:
     "רשימת גזרי דין אחרונים בעבירות סמים מבתי המשפט בישראל — נאשמים, הרשעות, ענישה וסוגי הסמים, מהחדש לישן.",
 };

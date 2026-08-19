@@ -7,7 +7,7 @@ import { WhatsappShell } from "@/components/conversation/conversation-shell";
 import { MOCK_WORKSPACE, MOCK_ITEMS } from "@/components/whatsapp/mock-data";
 
 export const metadata: Metadata = {
-  title: "תצוגת ווטסאפ — הדגמת ממשק | זומר עורך דין",
+  title: "תצוגת ווטסאפ — הדגמת ממשק",
   description:
     "הדגמה אינטראקטיבית של ממשק WhatsApp Web/Mobile ששימוש בו לבחינת חומרי ראייה ולהצגת התכתבויות.",
   openGraph: {

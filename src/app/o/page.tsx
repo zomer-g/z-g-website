@@ -24,7 +24,7 @@ import { EditableSection } from "@/components/admin/editable-section";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "לעם — מקבץ אתרים אזרחיים | זומר עורך דין",
+  title: "לעם — מקבץ אתרים אזרחיים",
   description:
     "ארבעה אתרים אזרחיים שמנגישים מידע ציבורי: מידע לעם, גרסאות לעם, יומן לעם וניגוד עניינים לעם. שקיפות, אחריותיות ונגישות מידע.",
   openGraph: {

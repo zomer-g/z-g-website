@@ -42,14 +42,14 @@ export async function generateMetadata({
   const id = Number(idStr);
   if (!Number.isInteger(id) || id <= 0) {
     return {
-      title: "הנחיה | זומר עורך דין",
+      title: "הנחיה",
       description: "הנחיה ממאגר ההנחיות הציבוריות.",
     };
   }
   const doc = await getGuideline(id);
   if (!doc) {
     return {
-      title: `הנחיה ${id} | זומר עורך דין`,
+      title: `הנחיה ${id}`,
       description: "הנחיה ממאגר ההנחיות הציבוריות.",
     };
   }

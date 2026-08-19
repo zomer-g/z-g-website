@@ -12,7 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: 'מילון | עו"ד גיא זומר',
+  title: 'מילון',
   description:
     "מילון ז'רגון אישי — ביטויים ומונחים שהמצאתי סביב הפעילות בתחומי משפט, טכנולוגיה ושקיפות ממשלתית.",
 };

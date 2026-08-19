@@ -27,7 +27,7 @@ import { EditableSection } from "@/components/admin/editable-section";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "לץ — סדרת תוספי הדפדפן | זומר עורך דין",
+  title: "לץ — סדרת תוספי הדפדפן",
   description:
     "סדרת תוספי דפדפן שמורידים מידע ומסמכים ציבוריים בלחיצה: לץ המשפט (נט המשפט), לץ הממשל (אתרי ממשלה) ולץ הלמ״ס. הכול מקומי בדפדפן, ללא שרת ביניים.",
   openGraph: {

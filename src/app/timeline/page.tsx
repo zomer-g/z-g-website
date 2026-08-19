@@ -14,7 +14,7 @@ import {
 } from "@/components/whatsapp/timeline-mock";
 
 export const metadata: Metadata = {
-  title: "ציר זמן — הדגמת ממשק | זומר עורך דין",
+  title: "ציר זמן — הדגמת ממשק",
   description:
     "הדגמה אינטראקטיבית של ממשק ציר הזמן לאיסוף וניתוח פעולות חקירה, תכתובות, פגישות והערות סביב תיק יחיד.",
   openGraph: {

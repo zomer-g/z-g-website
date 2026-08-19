@@ -11,7 +11,7 @@ import { EditableSection } from "@/components/admin/editable-section";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "תובענות ייצוגיות — תובענות אחרונות שהוגשו | זומר עורך דין",
+  title: "תובענות ייצוגיות — תובענות אחרונות שהוגשו",
   description:
     "רשימת תובענות ייצוגיות אחרונות שהוגשו בבתי המשפט בישראל, עם קישור לכתבי הטענות.",
 };

@@ -30,13 +30,13 @@ export const metadata: Metadata = {
     locale: "he_IL",
     url: "https://z-g.co.il/comptroller-reports",
     siteName: "עו\"ד גיא זומר",
-    title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו\"ד גיא זומר",
+    title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן",
     description:
       "חיפוש חופשי בתוך תוכן דוחות מבקר המדינה, עם סינון וגישה ישירה לקבצים המקוריים.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו\"ד גיא זומר",
+    title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן",
     description: "חיפוש חופשי בתוך תוכן דוחות מבקר המדינה.",
   },
 };

@@ -125,13 +125,13 @@ export async function generateMetadata({
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isInteger(id) || id <= 0) {
-    return { title: "פסק דין | זומר עורך דין" };
+    return { title: "פסק דין" };
   }
   const ruling = await getRuling(id);
-  if (!ruling) return { title: `פסק דין ${id} | זומר עורך דין` };
+  if (!ruling) return { title: `פסק דין ${id}` };
   const desc = (ruling.summary || "").replace(/\s+/g, " ").trim().slice(0, 160);
   return {
-    title: `${ruling.caseName} | זומר עורך דין`,
+    title: `${ruling.caseName}`,
     description: desc || "פסק דין ממאגר הפסיקה.",
   };
 }

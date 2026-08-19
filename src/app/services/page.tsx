@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 /* ─── Metadata ─── */
 
 export const metadata: Metadata = {
-  title: "תחומי עיסוק | עו\"ד זומר",
+  title: "תחומי עיסוק",
   description:
     "עו\"ד זומר - התמחות בדין פלילי, ליווי חשודים ונאשמים, ייעוץ לפני חקירה ועוד. ליווי משפטי מקצועי ומסור.",
 };

@@ -52,20 +52,18 @@ export const metadata: Metadata = {
       "he-IL": "/",
     },
   },
+  // No title/description/url here on purpose: whatever this block sets is
+  // inherited verbatim by every page that doesn't define its own openGraph,
+  // which is how each URL ended up sharing as the generic site blurb. Left
+  // unset, Next fills og:/twitter: title and description from the page's own
+  // `title` + `description`.
   openGraph: {
     type: "website",
     locale: "he_IL",
-    url: "https://z-g.co.il",
     siteName: "עו\"ד גיא זומר",
-    title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-    description:
-      "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי הגדול בישראל, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
-    description:
-      "ייצוג בפלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
   },
   robots: {
     index: true,

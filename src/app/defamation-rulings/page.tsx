@@ -11,7 +11,7 @@ import { RulingsList } from "../rulings/rulings-list";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "פסקי דין בלשון הרע | זומר עורך דין",
+  title: "פסקי דין בלשון הרע",
   description:
     "רשימת פסקי דין אחרונים בעניין לשון הרע מבתי המשפט בישראל.",
 };

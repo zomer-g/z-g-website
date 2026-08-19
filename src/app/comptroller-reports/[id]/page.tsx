@@ -16,7 +16,7 @@ export async function generateMetadata({
   const id = Number(idStr);
   if (!Number.isInteger(id) || id <= 0) {
     return {
-      title: "דוח מבקר המדינה | עו\"ד גיא זומר",
+      title: "דוח מבקר המדינה",
       description: "דוח ממאגר דוחות מבקר המדינה.",
     };
   }

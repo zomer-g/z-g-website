@@ -11,7 +11,7 @@ import { PipelineMap } from "./PipelineMap";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: 'זרימת המידע | עו"ד גיא זומר',
+  title: 'זרימת המידע',
   description:
     "מפה אינטראקטיבית של זרימת המידע בין הפרויקטים: סקרייפרים שאוספים מבתי המשפט ומאתרי ממשלה, מערכות ניהול המסמכים והמאגרים, ושורת האתרים והדשבורדים שניזונים מהם.",
 };

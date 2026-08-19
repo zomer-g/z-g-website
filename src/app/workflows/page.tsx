@@ -6,7 +6,7 @@ import { Container } from "@/components/ui/container";
 import { WorkflowsShell } from "@/components/workflows/workflows-shell";
 
 export const metadata: Metadata = {
-  title: "ניהול תהליכי עבודה — הדגמת ממשק | זומר עורך דין",
+  title: "ניהול תהליכי עבודה — הדגמת ממשק",
   description:
     "הדגמה אינטראקטיבית של ממשק לניהול תהליכי עבודה משפטיים: רשימת ישויות (לקוחות, משטרה, פרקליטות) לצד רשימת תהליכים (עיון, הוכחות, הסדר). כל אירוע מתויג בכמה ממדים, וניתן להוסיף אירועים חדשים לסשן.",
   openGraph: {

@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   description:
     "הצהרת הנגישות של אתר עו\"ד זומר. מידע על עמידה בתקני WCAG 2.1 AAA ואמצעי נגישות באתר.",
   openGraph: {
-    title: "הצהרת נגישות | עו\"ד זומר",
+    title: "הצהרת נגישות",
     description:
       "הצהרת הנגישות של אתר עו\"ד זומר.",
   },

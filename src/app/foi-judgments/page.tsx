@@ -11,7 +11,7 @@ import { RulingsList } from "../rulings/rulings-list";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "פסיקות חופש מידע | זומר עורך דין",
+  title: "פסיקות חופש מידע",
   description:
     "רשימת פסקי דין בעתירות לפי חוק חופש המידע מבתי המשפט בישראל, מהחדש לישן.",
 };

@@ -88,7 +88,7 @@ export async function generateMetadata({
 
   if (!caseItem) {
     return {
-      title: `תובענה ייצוגית ${caseNumber} | זומר עורך דין`,
+      title: `תובענה ייצוגית ${caseNumber}`,
       description: "תובענה ייצוגית מפנקס התובענות הייצוגיות.",
     };
   }

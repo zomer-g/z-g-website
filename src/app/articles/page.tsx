@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
 /* ─── Metadata ─── */
 
 export const metadata: Metadata = {
-  title: "מאמרים | עו\"ד זומר",
+  title: "מאמרים",
   description:
     "מאמרים מקצועיים בתחומי המשפט הפלילי. תובנות משפטיות מעו\"ד זומר.",
 };
