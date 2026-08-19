@@ -33,13 +33,11 @@ export const metadata: Metadata = {
     title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו\"ד גיא זומר",
     description:
       "חיפוש חופשי בתוך תוכן דוחות מבקר המדינה, עם סינון וגישה ישירה לקבצים המקוריים.",
-    images: ["/images/guy-zomer.jpg"],
   },
   twitter: {
     card: "summary_large_image",
     title: "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו\"ד גיא זומר",
     description: "חיפוש חופשי בתוך תוכן דוחות מבקר המדינה.",
-    images: ["/images/guy-zomer.jpg"],
   },
 };
 

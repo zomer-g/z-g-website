@@ -60,21 +60,12 @@ export const metadata: Metadata = {
     title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
     description:
       "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי הגדול בישראל, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
-    images: [
-      {
-        url: "/images/guy-zomer.jpg",
-        width: 1200,
-        height: 1600,
-        alt: "עו\"ד גיא זומר",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
     description:
       "ייצוג בפלילי וחופש מידע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
-    images: ["/images/guy-zomer.jpg"],
   },
   robots: {
     index: true,

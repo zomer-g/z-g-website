@@ -33,13 +33,11 @@ export const metadata: Metadata = {
     title: "מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) — חיפוש בתוכן | עו\"ד גיא זומר",
     description:
       "חיפוש חופשי בתוך תוכן מסמכי מרכז המחקר והמידע של הכנסת, עם סינון וגישה ישירה לקבצים המקוריים.",
-    images: ["/images/guy-zomer.jpg"],
   },
   twitter: {
     card: "summary_large_image",
     title: "מסמכי מרכז המחקר והמידע של הכנסת (מ.מ.מ) | עו\"ד גיא זומר",
     description: "חיפוש חופשי בתוך תוכן מסמכי מרכז המחקר והמידע של הכנסת.",
-    images: ["/images/guy-zomer.jpg"],
   },
 };
 
