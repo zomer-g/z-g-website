@@ -192,6 +192,7 @@ export default function AdminFoiGuidePage() {
             className="text-primary underline"
           >
             foiguide.org.il
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>{" "}
           וניהול גישת MCP. הפרקים נטענים, מחולקים ל-chunks, ומוטמעים ל-vector
           embeddings ל-search סמנטי דרך ה-MCP.
@@ -292,13 +293,13 @@ export default function AdminFoiGuidePage() {
             <table className="w-full text-right">
               <thead>
                 <tr className="border-b border-border bg-gray-50 text-sm">
-                  <th className="px-4 py-3 font-semibold">סדר</th>
-                  <th className="px-4 py-3 font-semibold">כותרת</th>
-                  <th className="px-4 py-3 font-semibold">chunks</th>
-                  <th className="px-4 py-3 font-semibold">פסיקה</th>
-                  <th className="px-4 py-3 font-semibold">סעיפים/דוגמאות</th>
-                  <th className="px-4 py-3 font-semibold">סונכרן</th>
-                  <th className="px-4 py-3 font-semibold">פעולות</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">סדר</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">כותרת</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">chunks</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">פסיקה</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">סעיפים/דוגמאות</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">סונכרן</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">פעולות</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,6 +340,7 @@ export default function AdminFoiGuidePage() {
                       >
                         <ExternalLink size={14} />
                         פתח
+                      <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                       </a>
                     </td>
                   </tr>
@@ -368,6 +370,7 @@ export default function AdminFoiGuidePage() {
               className="text-primary underline"
             >
               modelcontextprotocol.io
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
             </a>
             .
           </p>
@@ -451,10 +454,10 @@ export default function AdminFoiGuidePage() {
             <table className="w-full text-right">
               <thead>
                 <tr className="border-b border-border bg-gray-50 text-sm">
-                  <th className="px-4 py-3 font-semibold">זמן</th>
-                  <th className="px-4 py-3 font-semibold">משתמש</th>
-                  <th className="px-4 py-3 font-semibold">שאילתה</th>
-                  <th className="px-4 py-3 font-semibold">תוצאות</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">זמן</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">משתמש</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">שאילתה</th>
+                  <th scope="col" className="px-4 py-3 font-semibold">תוצאות</th>
                 </tr>
               </thead>
               <tbody>

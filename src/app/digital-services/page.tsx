@@ -304,7 +304,7 @@ export default async function DigitalServicesPage() {
                               ? "bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100"
                               : isRelationships
                                 ? "bg-violet-50 text-violet-700 group-hover:bg-violet-100"
-                                : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent",
+                                : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent-text",
                           )}
                         >
                           <Icon className="h-7 w-7" aria-hidden="true" />
@@ -345,7 +345,7 @@ export default async function DigitalServicesPage() {
                                 "group/btn inline-flex items-center gap-1.5 rounded-full px-4 py-2",
                                 "border border-emerald-300 bg-emerald-50 text-sm font-semibold text-emerald-800",
                                 "transition-colors hover:bg-emerald-100",
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
+                                "focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
                               )}
                             >
                               <MessageSquare className="h-4 w-4" aria-hidden="true" />
@@ -358,7 +358,7 @@ export default async function DigitalServicesPage() {
                                 "group/btn inline-flex items-center gap-1.5 rounded-full px-4 py-2",
                                 "border border-amber-300 bg-amber-50 text-sm font-semibold text-amber-800",
                                 "transition-colors hover:bg-amber-100",
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1",
+                                "focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1",
                               )}
                             >
                               <Activity className="h-4 w-4" aria-hidden="true" />
@@ -375,7 +375,7 @@ export default async function DigitalServicesPage() {
                                 "group/btn inline-flex items-center gap-1.5 rounded-full px-4 py-2",
                                 "border border-violet-300 bg-violet-50 text-sm font-semibold text-violet-800",
                                 "transition-colors hover:bg-violet-100",
-                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-1",
+                                "focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-1",
                               )}
                             >
                               <Workflow className="h-4 w-4" aria-hidden="true" />
@@ -530,9 +530,8 @@ export default async function DigitalServicesPage() {
                 href={content.cta.ctaLink}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-lg bg-accent px-7 py-3",
-                  "text-base font-bold text-primary-dark transition-colors duration-200",
+                  "text-base font-bold text-accent-ink transition-colors duration-200",
                   "hover:bg-accent-light",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary",
                 )}
               >
                 <span>{content.cta.ctaText}</span>

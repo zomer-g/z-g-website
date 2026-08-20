@@ -65,6 +65,13 @@ type UserFilterValue =
   | { min?: number; max?: number }
   | { from?: string; to?: string };
 
+// Filter keys are dotted paths ("meta.report_year"); flatten them into
+// something usable as a DOM id so every control can point at its label
+// (WCAG 1.3.1 / 3.3.2).
+function fieldDomId(key: string): string {
+  return `flt-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 function isUserFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
@@ -297,6 +304,7 @@ function DocSlot({
               {docs.length > 1 ? (
                 <span className="opacity-80">({dateLabel})</span>
               ) : null}
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
             </a>
           );
         })}
@@ -346,7 +354,7 @@ function CaseCard({
         <Link
           href={detailHref}
           aria-label={`פרטי תיק: ${caseItem.case_name || caseItem.case_number}`}
-          className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2"
           style={{ outlineColor: C_PRIMARY }}
         />
       ) : null}
@@ -620,10 +628,10 @@ export function ClassActionsDashboard({
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         {/* Free-text search row */}
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="ca-1" className="block text-xs font-semibold text-gray-600 mb-1">
             חיפוש חופשי
           </label>
-          <input
+          <input id="ca-1"
             type="text"
             placeholder="חיפוש בשם תיק, הגדרת קבוצה, שאלה משפטית, סעד מבוקש..."
             value={draft.q}
@@ -631,7 +639,7 @@ export function ClassActionsDashboard({
             onKeyDown={(e) => {
               if (e.key === "Enter") applyFilters();
             }}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-3 py-2 text-sm"
           />
         </div>
 
@@ -645,7 +653,7 @@ export function ClassActionsDashboard({
               id="ca-date-from"
               value={draft.date_from}
               onChange={(iso) => setDraft((d) => ({ ...d, date_from: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
@@ -656,31 +664,31 @@ export function ClassActionsDashboard({
               id="ca-date-to"
               value={draft.date_to}
               onChange={(iso) => setDraft((d) => ({ ...d, date_to: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-2" className="block text-xs font-semibold text-gray-600 mb-1">
               בית משפט
             </label>
-            <input
+            <input id="ca-2"
               type="text"
               placeholder="לדוגמה: מרכז"
               value={draft.court}
               onChange={(e) => setDraft((d) => ({ ...d, court: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-3" className="block text-xs font-semibold text-gray-600 mb-1">
               מספר תיק
             </label>
-            <input
+            <input id="ca-3"
               type="text"
               placeholder="לדוגמה: 52308-04-26"
               value={draft.case_number}
               onChange={(e) => setDraft((d) => ({ ...d, case_number: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
               dir="ltr"
             />
           </div>
@@ -689,15 +697,15 @@ export function ClassActionsDashboard({
         {/* Secondary filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-4" className="block text-xs font-semibold text-gray-600 mb-1">
               סוג הליך
             </label>
-            <select
+            <select id="ca-4"
               value={draft.is_appeal}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, is_appeal: e.target.value as Filters["is_appeal"] }))
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm bg-white"
             >
               <option value="">הכל</option>
               <option value="false">ראשונה</option>
@@ -705,10 +713,10 @@ export function ClassActionsDashboard({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-5" className="block text-xs font-semibold text-gray-600 mb-1">
               סוג מסמך
             </label>
-            <select
+            <select id="ca-5"
               value={draft.is_attachment}
               onChange={(e) =>
                 setDraft((d) => ({
@@ -716,7 +724,7 @@ export function ClassActionsDashboard({
                   is_attachment: e.target.value as Filters["is_attachment"],
                 }))
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm bg-white"
             >
               <option value="">הכל</option>
               <option value="false">מסמך עיקרי</option>
@@ -724,30 +732,30 @@ export function ClassActionsDashboard({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-6" className="block text-xs font-semibold text-gray-600 mb-1">
               סכום תביעה (₪) — מ
             </label>
-            <input
+            <input id="ca-6"
               type="number"
               min={0}
               placeholder="0"
               value={draft.claim_min}
               onChange={(e) => setDraft((d) => ({ ...d, claim_min: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
               dir="ltr"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+            <label htmlFor="ca-7" className="block text-xs font-semibold text-gray-600 mb-1">
               סכום תביעה (₪) — עד
             </label>
-            <input
+            <input id="ca-7"
               type="number"
               min={0}
               placeholder="ללא תקרה"
               value={draft.claim_max}
               onChange={(e) => setDraft((d) => ({ ...d, claim_max: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
               dir="ltr"
             />
           </div>
@@ -759,14 +767,14 @@ export function ClassActionsDashboard({
             <button
               type="button"
               onClick={clearFilters}
-              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="tap-44 text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               ניקוי
             </button>
             <button
               type="button"
               onClick={applyFilters}
-              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+              className="tap-44 text-sm font-semibold rounded-md px-4 py-1.5 text-white"
               style={{ background: C_PRIMARY }}
             >
               סינון
@@ -781,16 +789,18 @@ export function ClassActionsDashboard({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {extraFilterFields.map((f) => {
               const v = userFiltersDraft[f.key];
+              const fid = fieldDomId(f.key);
               if (f.control === "text") {
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <label htmlFor={fid} className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
                     <input
+                      id={fid}
                       type="text"
                       value={typeof v === "string" ? v : ""}
                       onChange={(e) => setUf(f.key, e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") applyUserFilters(); }}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      className="w-full border border-border-control rounded-md px-3 py-2 text-sm"
                     />
                   </div>
                 );
@@ -798,11 +808,12 @@ export function ClassActionsDashboard({
               if (f.control === "select") {
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <label htmlFor={fid} className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
                     <select
+                      id={fid}
                       value={typeof v === "string" ? v : ""}
                       onChange={(e) => setUf(f.key, e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white"
                     >
                       <option value="">הכל</option>
                       {(filterOptions[f.key] || []).map((o) => (
@@ -816,15 +827,15 @@ export function ClassActionsDashboard({
                 const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</span>
                     <div className="flex items-center gap-1.5">
-                      <input type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
+                      <input id={`${fid}-min`} aria-label={`${f.label} — מ-`} type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
                         onChange={(e) => setUf(f.key, { ...r, min: e.target.value === "" ? undefined : Number(e.target.value) })}
-                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                      <span className="text-gray-400">–</span>
-                      <input type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
+                        className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
+                      <span className="text-gray-600" aria-hidden="true">–</span>
+                      <input id={`${fid}-max`} aria-label={`${f.label} — עד`} type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
                         onChange={(e) => setUf(f.key, { ...r, max: e.target.value === "" ? undefined : Number(e.target.value) })}
-                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                        className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
                     </div>
                   </div>
                 );
@@ -832,15 +843,15 @@ export function ClassActionsDashboard({
               const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
               return (
                 <div key={f.key}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</span>
                   <div className="flex items-center gap-1.5">
-                    <input type="date" value={r.from ?? ""} dir="ltr"
+                    <input id={`${fid}-from`} aria-label={`${f.label} — מתאריך`} type="date" value={r.from ?? ""} dir="ltr"
                       onChange={(e) => setUf(f.key, { ...r, from: e.target.value || undefined })}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                    <span className="text-gray-400">–</span>
-                    <input type="date" value={r.to ?? ""} dir="ltr"
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
+                    <span className="text-gray-600" aria-hidden="true">–</span>
+                    <input id={`${fid}-to`} aria-label={`${f.label} — עד תאריך`} type="date" value={r.to ?? ""} dir="ltr"
                       onChange={(e) => setUf(f.key, { ...r, to: e.target.value || undefined })}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
                   </div>
                 </div>
               );
@@ -848,11 +859,11 @@ export function ClassActionsDashboard({
           </div>
           <div className="flex items-center justify-end gap-2 mt-4">
             <button type="button" onClick={clearUserFilters}
-              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">
+              className="tap-44 text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">
               ניקוי
             </button>
             <button type="button" onClick={applyUserFilters}
-              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>
+              className="tap-44 text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>
               סינון
             </button>
           </div>
@@ -861,11 +872,13 @@ export function ClassActionsDashboard({
 
       {/* Results header */}
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
-        <div>
+        {/* Filtering swaps the list without moving focus, so the count is
+            the only signal anything happened — announce it (WCAG 4.1.3). */}
+        <div role="status" aria-atomic="true">
           {loading ? (
             <span>בטעינה…</span>
           ) : error ? (
-            <span className="text-red-600">{error}</span>
+            <span className="text-red-800">{error}</span>
           ) : (
             <span>
               {total === 0
@@ -891,7 +904,7 @@ export function ClassActionsDashboard({
                 navigate(filters, 0, val as SortOrder);
               }
             }}
-            className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+            className="border border-border-control rounded-md px-2 py-1 text-xs bg-white"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -910,7 +923,7 @@ export function ClassActionsDashboard({
               onClick={() => {
                 setConfigSort((c) => (c ? { ...c, dir: c.dir === "desc" ? "asc" : "desc" } : c));
               }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+              className="border border-border-control rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
               title={configSort.dir === "desc" ? "יורד" : "עולה"}
             >
               {configSort.dir === "desc" ? "יורד ↓" : "עולה ↑"}

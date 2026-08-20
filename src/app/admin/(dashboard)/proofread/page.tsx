@@ -182,6 +182,8 @@ function IssueRow({
               <ExternalLink size={14} />
               {state.editLabel ?? "פתח לעריכה"}
             </Button>
+          
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </Link>
         ) : null}
         {state.applicable === false ? (

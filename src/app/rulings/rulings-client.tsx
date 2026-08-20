@@ -135,7 +135,7 @@ export function RulingsClient() {
               <h2 className="text-2xl font-bold text-primary-dark">{activeCat.label}</h2>
               <p className="mt-1 text-sm text-muted">{activeCat.description}</p>
               {total > 0 && (
-                <p className="mt-1 text-xs text-muted/60">{total.toLocaleString()} מסמכים במאגר</p>
+                <p className="mt-1 text-xs text-muted">{total.toLocaleString()} מסמכים במאגר</p>
               )}
             </div>
           )}
@@ -213,6 +213,7 @@ export function RulingsClient() {
                           <FileText className="h-3.5 w-3.5" aria-hidden="true" />
                           צפייה במסמך
                           <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                         </a>
                       </div>
                     </div>

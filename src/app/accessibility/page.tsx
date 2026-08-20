@@ -301,7 +301,7 @@ export default async function AccessibilityPage() {
                               className={cn(
                                 "flex items-center gap-3 text-sm text-foreground",
                                 "transition-colors duration-200",
-                                "hover:text-accent",
+                                "hover:text-accent-text",
                               )}
                               aria-label="שלחו אימייל לרכז הנגישות: accessibility@zomer-law.co.il"
                             >
@@ -318,7 +318,7 @@ export default async function AccessibilityPage() {
                               className={cn(
                                 "flex items-center gap-3 text-sm text-foreground",
                                 "transition-colors duration-200",
-                                "hover:text-accent",
+                                "hover:text-accent-text",
                               )}
                               aria-label="התקשרו לרכז הנגישות: 03-000-0000"
                             >

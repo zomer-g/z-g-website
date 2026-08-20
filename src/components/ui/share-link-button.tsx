@@ -96,10 +96,23 @@ export function ShareLinkButton({
   const canNativeShare =
     typeof navigator !== "undefined" && "share" in navigator;
 
+  // A changed aria-label on an element that isn't focused is not announced,
+  // so the copy result needs its own live region (WCAG 4.1.3).
+  const liveStatus = (
+    <span role="status" aria-atomic="true" className="sr-only">
+      {status === "copied"
+        ? "הקישור הועתק ללוח"
+        : status === "failed"
+          ? "ההעתקה נכשלה"
+          : ""}
+    </span>
+  );
+
   // Compact (in-card) variant: just an icon-sized copy button. Saves space on
   // dense list views where every pixel matters.
   if (compact) {
     return (
+      <>
       <button
         type="button"
         onClick={onCopy}
@@ -117,7 +130,7 @@ export function ShareLinkButton({
               ? "ההעתקה נכשלה"
               : "להעתקת קישור לפריט"
         }
-        className={`relative z-10 inline-flex items-center justify-center w-8 h-8 rounded-md border text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition ${className ?? ""}`}
+        className={`relative z-10 tap-44 inline-flex items-center justify-center w-11 h-11 rounded-md border text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition ${className ?? ""}`}
         style={{ borderColor: "#d1d5db" }}
       >
         {status === "copied" ? (
@@ -152,6 +165,8 @@ export function ShareLinkButton({
           </svg>
         )}
       </button>
+      {liveStatus}
+      </>
     );
   }
 
@@ -214,6 +229,7 @@ export function ShareLinkButton({
           <span>שיתוף</span>
         </button>
       ) : null}
+      {liveStatus}
     </div>
   );
 }

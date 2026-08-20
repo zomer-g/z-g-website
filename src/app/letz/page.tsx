@@ -178,13 +178,14 @@ function ExtensionCard({
               "inline-flex items-center gap-2 rounded-lg",
               "border border-accent/60 bg-accent/15 px-4 py-2",
               "text-sm font-semibold text-accent-light transition-all duration-200",
-              "hover:border-accent hover:bg-accent hover:text-primary-dark",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
+              "hover:border-accent hover:bg-accent hover:text-accent-ink",
             )}
             aria-label={`${ctaLabel} ${site.name}${external ? " — נפתח בכרטיסייה חדשה" : ""}`}
           >
             <span>{ctaLabel}</span>
             <ExternalLink className="h-4 w-4" aria-hidden="true" />
+          
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </Link>
         </div>
       </div>
@@ -415,7 +416,7 @@ export default async function LetzPage() {
                     "inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3",
                     "text-base font-bold text-primary-dark transition-colors duration-200",
                     "hover:bg-accent-light",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
+                    "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                   )}
                 >
                   <span>{content.cta.primaryCtaText}</span>
@@ -429,7 +430,6 @@ export default async function LetzPage() {
                       "border border-white/30 bg-white/[0.08] px-6 py-3",
                       "text-base font-semibold text-white transition-all duration-200",
                       "hover:bg-white/[0.15] hover:border-white/50",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                     )}
                   >
                     <span>{content.cta.secondaryCtaText}</span>

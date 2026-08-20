@@ -42,8 +42,8 @@ const VARIANT_STYLES: Record<
   },
   success: {
     card: "border-green-200 bg-green-50",
-    icon: "bg-green-100 text-green-600",
-    titleIcon: "text-green-600",
+    icon: "bg-green-100 text-green-800",
+    titleIcon: "text-green-800",
   },
   error: {
     card: "border-red-200 bg-red-50",
@@ -93,12 +93,16 @@ function renderMarks(text: string, marks?: TipTapMark[]): React.ReactNode {
         return (
           <Link
             href={href}
-            className="font-semibold text-primary underline underline-offset-2 hover:text-accent transition-colors duration-200"
+            className="font-semibold text-primary underline underline-offset-2 hover:text-accent-text transition-colors duration-200"
             {...(openInNewTab
               ? { target: "_blank", rel: "noopener noreferrer" }
               : {})}
           >
             {acc}
+            {/* A link that hijacks the tab has to say so (WCAG 3.2.5). */}
+            {openInNewTab && (
+              <span className="sr-only"> (נפתח בלשונית חדשה)</span>
+            )}
           </Link>
         );
       }
@@ -261,11 +265,16 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
     case "image": {
       const src = (node.attrs?.src as string) ?? "";
       const alt = (node.attrs?.alt as string) ?? "";
+      // alt and the caption come from the same stored field, so putting the
+      // text in both makes a screen reader read the same sentence twice.
+      // The visible <figcaption> carries it; the image is marked decorative.
+      // Images stored before the editor started asking have no text at all —
+      // alt="" is the honest answer there too, and never a missing attribute.
       return (
         <figure key={index} className="my-6">
           <img
             src={src}
-            alt={alt}
+            alt=""
             className="max-w-full rounded-lg"
             loading="lazy"
           />
@@ -382,6 +391,7 @@ function renderNode(node: TipTapNode, index: number): React.ReactNode {
                       className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 underline underline-offset-2 hover:text-indigo-800 transition-colors"
                     >
                       צפייה בחוק המקורי ←
+                    <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                     </a>
                   )}
                 </div>

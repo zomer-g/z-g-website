@@ -189,7 +189,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                   </p>
                   <Link
                     href={cta.ctaLink}
-                    className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
+                    className="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-accent-ink transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
                   >
                     {cta.ctaText}
                   </Link>
@@ -209,7 +209,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                         <li key={related.slug}>
                           <Link
                             href={`/services/${related.slug}`}
-                            className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                            className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
                           >
                             <div
                               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent/15"
@@ -217,7 +217,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
                             >
                               <RelatedIcon className="h-5 w-5 text-accent" />
                             </div>
-                            <span className="text-sm font-semibold text-primary-dark group-hover:text-accent transition-colors duration-200">
+                            <span className="text-sm font-semibold text-primary-dark group-hover:text-accent-text transition-colors duration-200">
                               {related.title}
                             </span>
                           </Link>

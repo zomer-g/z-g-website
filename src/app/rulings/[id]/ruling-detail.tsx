@@ -175,6 +175,7 @@ export function RulingDetail({ ruling }: { ruling: DetailRuling }) {
             style={{ background: C_PRIMARY }}
           >
             צפייה במסמך (PDF)
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
       </div>

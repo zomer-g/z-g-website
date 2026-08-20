@@ -160,6 +160,8 @@ export default function AdminDashboardPage() {
           >
             <ExternalLink size={16} />
             <span>צפייה באתר</span>
+          
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </Link>
         </div>
       </div>

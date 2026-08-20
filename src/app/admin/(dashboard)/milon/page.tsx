@@ -120,12 +120,12 @@ export default function AdminMilonPage() {
             <table className="w-full text-right">
               <thead>
                 <tr className="border-b border-border bg-gray-50">
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">#</th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">ערך</th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">חלק דיבר</th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">תחומים</th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">סטטוס</th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">פעולות</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">#</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">ערך</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">חלק דיבר</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">תחומים</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">סטטוס</th>
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">פעולות</th>
                 </tr>
               </thead>
               <tbody>

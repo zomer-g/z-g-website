@@ -214,6 +214,7 @@ export function GuidelineDetail({ doc }: { doc: Guideline }) {
             style={{ color: C_PRIMARY, borderColor: C_PRIMARY }}
           >
             לפתיחה בלשונית נפרדת
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
       </section>

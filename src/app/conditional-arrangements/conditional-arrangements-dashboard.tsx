@@ -290,7 +290,7 @@ function ArrangementCard({ item }: { item: ConditionalArrangement }) {
       {isOpen ? (
         <div className="border-t border-gray-100 mt-3 pt-3">
           {detail.status === "loading" ? (
-            <div className="text-xs text-gray-400 animate-pulse">טוען פרטים מלאים…</div>
+            <div className="text-xs text-gray-600 animate-pulse">טוען פרטים מלאים…</div>
           ) : detail.status === "error" ? (
             <div className="text-xs text-red-500">שגיאה בטעינת הפרטים. נסו שוב.</div>
           ) : detail.status === "done" ? (
@@ -561,10 +561,10 @@ export function ConditionalArrangementsDashboard({
 
         {/* Free-text search */}
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label htmlFor="cond-1" className="block text-xs font-semibold text-gray-600 mb-1">
             חיפוש חופשי
           </label>
-          <input
+          <input id="cond-1"
             type="text"
             placeholder="חיפוש בכל שדות ההסדר — מספר מילים = AND (כל המילים חייבות להופיע)..."
             value={draft.q}
@@ -572,7 +572,7 @@ export function ConditionalArrangementsDashboard({
             onKeyDown={(e) => {
               if (e.key === "Enter") applyFilters();
             }}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-3 py-2 text-sm"
           />
         </div>
 
@@ -586,7 +586,7 @@ export function ConditionalArrangementsDashboard({
               id="ca-date-from"
               value={draft.date_from}
               onChange={(iso) => setDraft((d) => ({ ...d, date_from: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
@@ -597,15 +597,15 @@ export function ConditionalArrangementsDashboard({
               id="ca-date-to"
               value={draft.date_to}
               onChange={(iso) => setDraft((d) => ({ ...d, date_to: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">מחוז / שלוחה</label>
-            <select
+            <label htmlFor="cond-2" className="block text-xs font-semibold text-gray-600 mb-1">מחוז / שלוחה</label>
+            <select id="cond-2"
               value={draft.district}
               onChange={(e) => setDraft((d) => ({ ...d, district: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm bg-white"
             >
               <option value="">כל המחוזות</option>
               {districts.map((d) => (
@@ -614,11 +614,11 @@ export function ConditionalArrangementsDashboard({
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">עבירה</label>
-            <select
+            <label htmlFor="cond-3" className="block text-xs font-semibold text-gray-600 mb-1">עבירה</label>
+            <select id="cond-3"
               value={draft.offense}
               onChange={(e) => setDraft((d) => ({ ...d, offense: e.target.value }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm bg-white"
             >
               <option value="">כל העבירות</option>
               {offenses.map((o) => (
@@ -653,7 +653,7 @@ export function ConditionalArrangementsDashboard({
           {loading ? (
             <span>בטעינה…</span>
           ) : error ? (
-            <span className="text-red-600">{error}</span>
+            <span className="text-red-800">{error}</span>
           ) : (
             <span>
               {total === 0
@@ -670,7 +670,7 @@ export function ConditionalArrangementsDashboard({
             id="ca-sort"
             value={sort}
             onChange={(e) => applyState(filters, 0, e.target.value as SortOrder)}
-            className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+            className="border border-border-control rounded-md px-2 py-1 text-xs bg-white"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

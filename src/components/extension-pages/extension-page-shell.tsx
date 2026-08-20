@@ -70,8 +70,12 @@ export async function ExtensionPageShell({
                 {subtitle}
               </p>
             ) : null}
+            {/* An English strapline inside a lang="he" document is read
+                with Hebrew phonetics unless it says otherwise (WCAG 3.1.2). */}
             {englishLabel ? (
-              <p className="mt-2 text-sm text-white/50">{englishLabel}</p>
+              <p className="mt-2 text-sm text-white/80" lang="en" dir="ltr">
+                {englishLabel}
+              </p>
             ) : null}
             {isAdmin && page && page.status !== "PUBLISHED" ? (
               <p className="mt-6 inline-block rounded-full bg-amber-400/90 px-4 py-1.5 text-sm font-semibold text-amber-950">

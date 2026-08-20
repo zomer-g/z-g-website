@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { ConditionalArrangementsDashboard } from "./conditional-arrangements-dashboard";
 import { getPageContent } from "@/lib/content";
@@ -74,6 +75,15 @@ export default async function ConditionalArrangementsPage() {
           </Container>
         </section>
       </EditableSection>
+      <Container className="pt-6">
+        <Breadcrumbs
+          items={[
+            { label: "ראשי", href: "/" },
+            { label: "מיזמים", href: "/projects" },
+            { label: "הסדרים מותנים" },
+          ]}
+        />
+      </Container>
       <Container className="py-8">
         <ConditionalArrangementsDashboard
           initialData={initialData}

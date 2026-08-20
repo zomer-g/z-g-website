@@ -1,7 +1,10 @@
 @import "tailwindcss";
 
+/* WCAG 1.4.8 forbids justified text: the uneven word spacing it creates
+   ("rivers") is measurably harder to track for dyslexic readers, and
+   Hebrew — short words, no auto-hyphenation — shows the effect worst. */
 p {
-  text-align: justify;
+  text-align: start;
 }
 
 .text-center p {
@@ -32,22 +35,33 @@ p {
   margin-bottom: 0.5rem;
 }
 
+/* Contrast ratios below are against --background (#fff) unless noted, and
+   all text tokens clear WCAG AAA (7:1). --accent is the one exception: at
+   2.29:1 it is a SURFACE colour only — never text or a border on a light
+   background. Use --accent-text for gold text on light. */
 :root {
-  --primary: #1a365d;
-  --primary-light: #2a4a7f;
-  --primary-dark: #0f2440;
-  --accent: #c9a84c;
-  --accent-light: #d4b86a;
-  --accent-text: #6d581e;
+  --primary: #1a365d;        /* 12.14:1 */
+  --primary-light: #2a4a7f;  /*  8.81:1 */
+  --primary-dark: #0f2440;   /* 15.59:1 */
+  --accent: #c9a84c;         /*  2.29:1 — surfaces only */
+  --accent-light: #d4b86a;   /*  1.93:1 — surfaces only */
+  --accent-text: #635010;    /*  7.82:1 — gold text on light */
+  --accent-on-dark: #dcc484; /*  7.10:1 on --primary, 9.11:1 on --primary-dark */
+  --accent-ink: #0b1a2f;     /*  7.64:1 ON --accent — text/icons over gold */
   --background: #ffffff;
-  --foreground: #1a1a2e;
-  --muted: #4b5563;
+  --foreground: #1a1a2e;     /* 17.06:1 */
+  --muted: #414a57;          /*  8.97:1, and 8.15:1 on --muted-bg */
   --muted-bg: #f3f4f6;
-  --border: #e5e7eb;
+  --border: #e5e7eb;         /*  1.24:1 — decorative separators only */
+  --border-control: #767f8c; /*  4.05:1 — field/control edges (1.4.11) */
   --card: #ffffff;
   --card-foreground: #1a1a2e;
-  --success: #059669;
-  --error: #dc2626;
+  --success: #026343;        /*  7.32:1 */
+  --error: #a81a1a;          /*  7.43:1 */
+  /* Two-tone focus ring: a dark core with a light halo stays visible on
+     both the white page and the navy hero. Flipped on dark surfaces below. */
+  --focus-ring: #0f2440;
+  --focus-halo: #ffffff;
 }
 
 @theme inline {
@@ -57,11 +71,14 @@ p {
   --color-accent: var(--accent);
   --color-accent-light: var(--accent-light);
   --color-accent-text: var(--accent-text);
+  --color-accent-on-dark: var(--accent-on-dark);
+  --color-accent-ink: var(--accent-ink);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
   --color-border: var(--border);
+  --color-border-control: var(--border-control);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-success: var(--success);
@@ -78,12 +95,41 @@ body {
   line-height: 1.8;
 }
 
-/* ─── WCAG AAA Focus Indicators ─── */
+/* ─── Focus Indicators (WCAG 1.4.11 / 2.4.11) ───
+   No single hue clears 3:1 against both the white page and the navy
+   hero, so the ring is two-tone: a navy outline with a white halo filling
+   its offset. On dark surfaces the two roles swap, so one band always
+   contrasts with whatever sits behind it. */
 
 *:focus-visible {
-  outline: 3px solid var(--accent);
+  /* The visible band is the OUTLINE, not a box-shadow. Components across
+     this codebase set their own `ring-*` utilities, which are box-shadows
+     and would otherwise win on specificity and erase the indicator. An
+     outline cannot be overridden that way (short of `outline: none`, which
+     no longer appears anywhere in src/), and it is also the only part
+     Windows High Contrast mode repaints. */
+  /* Longhands, not the `outline` shorthand: Tailwind's preflight sets
+     `outline-color: currentColor` on every element, and the shorthand's
+     colour component loses to it in the cascade — which silently repaints
+     the ring in whatever the element's text colour happens to be. */
+  outline-width: 3px;
+  outline-style: solid;
+  outline-color: var(--focus-ring);
   outline-offset: 2px;
-  border-radius: 2px;
+  /* Halo fills the 2px offset so the ring still reads when the focused
+     element's own background is close to --focus-ring. */
+  box-shadow: 0 0 0 2px var(--focus-halo);
+}
+
+/* Dark surfaces: invert so the core reads against the navy. Matches the
+   background utilities the hero, footer and dashboards actually use. */
+.bg-primary,
+.bg-primary-dark,
+.bg-primary-light,
+.bg-gray-900,
+.bg-black {
+  --focus-ring: #ffffff;
+  --focus-halo: #0f2440;
 }
 
 /* ─── Skip Navigation ─── */
@@ -122,7 +168,7 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: var(--primary-dark);
+  color: var(--accent-ink);
 }
 
 /* ─── Scrollbar ─── */
@@ -146,9 +192,12 @@ body {
 
 /* ─── Prose Styles for Articles ─── */
 
+/* max-width caps the measure at ~72 characters — WCAG 1.4.8 allows 80.
+   `ch` tracks the font, so it holds when the reader zooms. */
 .prose-rtl {
   direction: rtl;
   text-align: right;
+  max-width: 72ch;
 }
 
 .prose-rtl h1,
@@ -165,8 +214,10 @@ body {
 .prose-rtl h2 { font-size: 1.75rem; }
 .prose-rtl h3 { font-size: 1.375rem; }
 
+/* 1.4.8 wants paragraph spacing at least 1.5x the line spacing:
+   1.9 line-height x 1.5 = 2.85em. */
 .prose-rtl p {
-  margin-bottom: 1.25em;
+  margin-bottom: 2.85em;
   line-height: 1.9;
 }
 
@@ -186,8 +237,10 @@ body {
   text-underline-offset: 3px;
 }
 
+/* --accent is 2.29:1 on white; the hover state must not be the moment the
+   link becomes unreadable. */
 .prose-rtl a:hover {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .prose-rtl blockquote {
@@ -286,4 +339,23 @@ html.view-clean body {
 .pipeline-packet {
   offset-rotate: 0deg;
   animation: pipeline-packet 2.6s linear infinite;
+}
+
+/* WCAG 2.2.2 — motion that starts on its own and runs past five seconds
+   needs an in-page stop, not just the OS-level reduced-motion setting
+   (which only helps readers who already knew to turn it on). The map's
+   toggle puts this class on the container. */
+.motion-paused .pipeline-edge,
+.motion-paused .pipeline-packet {
+  animation-play-state: paused;
+}
+
+/* ── Tap targets (WCAG 2.5.5) ──
+   Real minimum size rather than an invisible overlay: an overlay large
+   enough to matter also overlaps its neighbours and swallows their
+   clicks. Growing the control itself costs a few pixels of layout and
+   nothing else. */
+.tap-44 {
+  min-width: 44px;
+  min-height: 44px;
 }

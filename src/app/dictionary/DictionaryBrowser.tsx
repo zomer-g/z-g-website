@@ -79,7 +79,7 @@ export default function DictionaryBrowser({
       if (updateHash) {
         const slug = entries.find((e) => e.id === id)?.slug;
         if (slug) {
-          window.history.replaceState(null, "", `#${slug}`);
+          window.history.replaceState(null, `#${slug}`);
         }
       }
     },
@@ -148,7 +148,7 @@ export default function DictionaryBrowser({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="חיפוש בערכים…"
             aria-label="חיפוש בערכי המילון"
-            className="w-full rounded-lg border border-border bg-white py-2.5 pr-10 pl-9 text-sm text-foreground shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-lg border border-border-control bg-white py-2.5 pr-10 pl-9 text-sm text-foreground shadow-sm"
             dir="rtl"
           />
           {query && (
@@ -226,7 +226,7 @@ export default function DictionaryBrowser({
                 <button
                   type="button"
                   onClick={copyLink}
-                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-muted transition-colors hover:bg-accent/10 hover:text-accent-text focus-visible:outline-2 focus-visible:outline-accent"
+                  className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-muted transition-colors hover:bg-accent/10 hover:text-accent-text"
                   aria-label="העתקת קישור ישיר לערך זה"
                   title="העתקת קישור ישיר לערך"
                 >

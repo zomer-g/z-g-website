@@ -102,6 +102,7 @@ export default function NotFound() {
                   className="underline hover:text-foreground"
                 >
                   סעיף 8(3) לחוק חופש המידע
+                <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                 </a>
                 .
               </em>

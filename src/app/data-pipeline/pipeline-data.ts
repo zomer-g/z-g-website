@@ -300,14 +300,17 @@ export const PIPELINE_SERIES: PipelineSeries[] = [
     label: "סדרת לץ — התוספים",
     short: "לץ",
     nodeIds: ["cwext", "govext", "cbsext"],
-    color: "#7c3aed",
+    // Series colours double as small pill text on white, so they carry the
+    // 7:1 bar: violet-700 (7.10:1) and teal-800 (7.58:1). The lighter
+    // violet-600 / teal-600 they replaced sat at 5.70 and 3.74.
+    color: "#6d28d9",
   },
   {
     id: "leam",
     label: "סדרת לעם — אתרים אזרחיים",
     short: "לעם",
     nodeIds: ["over", "ocal", "ocoi"],
-    color: "#0d9488",
+    color: "#115e59",
     href: "/o",
   },
 ];

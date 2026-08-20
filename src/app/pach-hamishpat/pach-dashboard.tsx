@@ -16,6 +16,8 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { AutoRefreshToggle } from "@/components/ui/auto-refresh-toggle";
 
 /**
  * Public dashboard for /pach-hamishpat — community status reporting for
@@ -159,11 +161,7 @@ export function PachDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadAll();
-    const t = setInterval(() => void loadAll(), POLL_MS);
-    return () => clearInterval(t);
-  }, [loadAll]);
+  const autoRefresh = useAutoRefresh(loadAll, POLL_MS, "pach-autorefresh");
 
   const currentStatus = useMemo(() => computeCurrentStatus(reports), [reports]);
   const statusText = STATUS_TEXT[currentStatus];
@@ -255,6 +253,14 @@ export function PachDashboard() {
       <div className="lg:col-span-3 space-y-10">
         <StatusBanner status={currentStatus} text={statusText} />
 
+        <AutoRefreshToggle
+          enabled={autoRefresh.enabled}
+          onToggle={autoRefresh.toggle}
+          onRefreshNow={autoRefresh.refreshNow}
+          intervalSeconds={POLL_MS / 1000}
+          className="justify-center"
+        />
+
         <div className="flex flex-col items-center gap-4">
           <p className="text-lg font-medium text-gray-800">לדיווח על תקלה</p>
           <div className="flex items-end justify-center gap-12 md:gap-20 mt-2">
@@ -283,7 +289,7 @@ export function PachDashboard() {
               type="button"
               onClick={() => void submitReport("green")}
               disabled={submitting}
-              className="flex flex-col items-center gap-3 text-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+              className="flex flex-col items-center gap-3 text-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="לדיווח שהמערכת חזרה לפעול תקין"
             >
               <img
@@ -291,7 +297,7 @@ export function PachDashboard() {
                 alt="מטף — איפוס המערכת"
                 className="w-28 h-28 sm:w-32 sm:h-32 object-contain drop-shadow-lg hover:drop-shadow-xl"
               />
-              <span className="text-green-600 font-bold">
+              <span className="text-green-800 font-bold">
                 {submitting ? "מאפס..." : "הכל תקין"}
               </span>
             </button>
@@ -321,7 +327,7 @@ export function PachDashboard() {
       <div className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 flex flex-col items-stretch gap-3">
         <Link
           href="/pach-hamishpat/personal-area"
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-bold text-white shadow-2xl transition focus:outline-none focus:ring-4 focus:ring-red-300"
+          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-bold text-white shadow-2xl transition focus:ring-4 focus:ring-red-300"
           aria-label="לפתיחת האזור האישי החדש"
         >
           <UserIcon className="h-4 w-4" />
@@ -330,7 +336,7 @@ export function PachDashboard() {
         <button
           type="button"
           onClick={() => setShowWhatsApp(true)}
-          className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300 self-start"
+          className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:ring-4 focus:ring-green-300 self-start"
           aria-label="לפתיחת חלון הצ׳אט"
         >
           <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
@@ -345,6 +351,16 @@ export function PachDashboard() {
 /* ─── Fake WhatsApp Popup ─── */
 
 function WhatsAppPopup({ onClose }: { onClose: () => void }) {
+  // Non-modal popup, so no focus trap — but Escape still has to dismiss it,
+  // or a keyboard user has to Tab through it on every pass (WCAG 2.1.2).
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div
       className="fixed bottom-24 left-6 sm:left-8 z-50 w-[min(360px,calc(100vw-3rem))] rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden"
@@ -392,7 +408,7 @@ function WhatsAppPopup({ onClose }: { onClose: () => void }) {
               2. תמיכה טכנית
             </span>
           </div>
-          <p className="mt-2 text-[10px] text-gray-400 text-left">
+          <p className="mt-2 text-[10px] text-gray-600 text-left">
             10:42 ✓✓
           </p>
         </div>
@@ -610,7 +626,7 @@ function StatusBanner({ status, text }: { status: Status; text: string }) {
       `}</style>
       <h2 className="text-3xl sm:text-4xl font-bold text-primary mb-1">{text}</h2>
       {status === "red" ? (
-        <p className="text-lg text-red-600 mt-1 font-bold animate-pulse">
+        <p className="text-lg text-red-800 mt-1 font-bold animate-pulse">
           מת המשפט
         </p>
       ) : null}
@@ -672,7 +688,7 @@ function MushroomButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={`לדיווח על ${label}`}
-        className="group transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+        className="group transition-all duration-300 transform hover:-translate-y-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <div className="relative w-20 h-20 md:w-24 md:h-24">
           <img
@@ -726,7 +742,7 @@ function Timeline({
         <button
           type="button"
           onClick={onToggleForm}
-          className="inline-flex items-center gap-1.5 rounded-md bg-accent text-primary-dark hover:bg-accent/90 px-3 py-1.5 text-sm font-semibold transition"
+          className="inline-flex items-center gap-1.5 rounded-md bg-accent text-accent-ink hover:bg-accent/90 px-3 py-1.5 text-sm font-semibold transition"
         >
           <Plus className="w-4 h-4" />
           להוספת הערה
@@ -769,7 +785,7 @@ function Timeline({
                 type="button"
                 onClick={onSubmitComment}
                 disabled={submitting || !newComment.content.trim()}
-                className="rounded-md bg-accent text-primary-dark hover:bg-accent/90 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+                className="rounded-md bg-accent text-accent-ink hover:bg-accent/90 px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
               >
                 {submitting ? "בשליחה..." : "לשליחת הערה"}
               </button>

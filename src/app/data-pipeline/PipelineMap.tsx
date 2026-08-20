@@ -274,7 +274,7 @@ export function PipelineMap({
     if (selection?.kind === "package") url.searchParams.set("package", selection.id);
     else if (selection?.kind === "series") url.searchParams.set("series", selection.id);
     if (activeId) url.searchParams.set("node", activeId);
-    window.history.replaceState(null, "", url.toString());
+    window.history.replaceState(null, url.toString());
   }, [selection, activeId]);
 
   const activeNode = useMemo(
@@ -341,13 +341,18 @@ export function PipelineMap({
     })).filter((g) => g.nodes.length > 0);
   }, [hasSelection, routeNodeIds]);
 
+  // WCAG 2.2.2: the connector dashes and travelling packets loop forever and
+  // start on their own, so the page has to offer a stop. prefers-reduced-motion
+  // covers people who set it system-wide; this covers everyone else.
+  const [motionPaused, setMotionPaused] = useState(false);
+
   const togglePackage = (id: string) =>
     setSelection((s) => (s?.kind === "package" && s.id === id ? null : { kind: "package", id }));
   const toggleSeries = (id: string) =>
     setSelection((s) => (s?.kind === "series" && s.id === id ? null : { kind: "series", id }));
 
   return (
-    <div className="relative">
+    <div className={cn("relative", motionPaused && "motion-paused")}>
       {/* ── Selector panel ── */}
       <div
         className={cn(
@@ -356,11 +361,26 @@ export function PipelineMap({
         )}
       >
         {/* Data packages */}
-        <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-accent-light" aria-hidden="true" />
-          <p className="font-mono text-xs font-semibold tracking-[0.15em] text-accent-light">
-            חבילות נתונים — בחרו כדי לראות את המסלול
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-accent-light" aria-hidden="true" />
+            <p className="font-mono text-xs font-semibold tracking-[0.15em] text-accent-light">
+              חבילות נתונים — בחרו כדי לראות את המסלול
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMotionPaused((v) => !v)}
+            aria-pressed={motionPaused}
+            className={cn(
+              "rounded-full border px-3 py-1 font-mono text-[11px] font-medium transition-colors",
+              motionPaused
+                ? "border-accent bg-accent text-accent-ink"
+                : "border-white/25 bg-white/[0.04] text-white/80 hover:border-accent/60",
+            )}
+          >
+            {motionPaused ? "הפעלת האנימציה" : "עצירת האנימציה"}
+          </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="חבילות נתונים">
           {DATA_PACKAGES.map((pkg) => {
@@ -374,9 +394,8 @@ export function PipelineMap({
                 title={pkg.subtitle}
                 className={cn(
                   "rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium transition-all duration-200",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                   isActive
-                    ? "border-accent bg-accent text-primary-dark shadow-[0_0_16px_-2px_var(--accent)]"
+                    ? "border-accent bg-accent text-accent-ink shadow-[0_0_16px_-2px_var(--accent)]"
                     : "border-white/20 bg-white/[0.04] text-white/80 hover:border-accent/50 hover:bg-white/[0.08]",
                 )}
               >
@@ -410,7 +429,7 @@ export function PipelineMap({
                   }
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium transition-all duration-200",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
+                    "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                     !isActive && "bg-white/[0.04] text-white/85 hover:bg-white/[0.08]",
                   )}
                 >
@@ -435,7 +454,7 @@ export function PipelineMap({
               aria-label="נקה בחירה"
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
-                "border border-white/25 text-white/70 transition-colors hover:border-accent hover:text-accent",
+                "border border-white/25 text-white/70 transition-colors hover:border-accent hover:text-accent-on-dark",
               )}
             >
               <X className="h-3 w-3" aria-hidden="true" />
@@ -469,6 +488,8 @@ export function PipelineMap({
               >
                 <span>לאתר הסדרה</span>
                 <ArrowUpLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              
+                <span className="sr-only"> (נפתח בלשונית חדשה)</span>
               </Link>
             ) : null}
           </div>
@@ -638,7 +659,6 @@ export function PipelineMap({
                         "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 text-start sm:w-[184px] sm:p-5 lg:w-[200px]",
                         "shadow-sm shadow-primary/5 transition-all duration-300",
                         "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
                         external
                           ? "border border-dashed border-muted/50 bg-muted-bg/40"
                           : "bg-white",
@@ -675,7 +695,7 @@ export function PipelineMap({
                           "relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-200",
                           external
                             ? "bg-muted/10 text-muted"
-                            : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent",
+                            : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent-text",
                         )}
                       >
                         <Icon className="h-5 w-5" aria-hidden="true" />
@@ -728,7 +748,7 @@ export function PipelineMap({
                               {series.short}
                             </span>
                           ) : null}
-                          <span className="font-mono text-[10px] tracking-wide text-muted/70">
+                          <span className="font-mono text-[10px] tracking-wide text-muted">
                             {"// "}
                             {node.id}
                           </span>
@@ -771,7 +791,6 @@ export function PipelineMap({
               className={cn(
                 "absolute end-4 top-4 flex h-8 w-8 items-center justify-center rounded-full",
                 "text-muted transition-colors hover:bg-muted-bg hover:text-foreground",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
               )}
             >
               <X className="h-4 w-4" aria-hidden="true" />
@@ -859,11 +878,13 @@ export function PipelineMap({
                         "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold transition-all duration-200",
                         isGithub
                           ? "border-primary/20 bg-primary/5 text-primary-dark hover:border-primary hover:bg-primary hover:text-white"
-                          : "border-accent/30 bg-accent/5 text-primary-dark hover:border-accent hover:bg-accent",
+                          : "border-accent/30 bg-accent/5 text-accent-ink hover:border-accent hover:bg-accent",
                       )}
                     >
                       <LinkIcon className="h-4 w-4" aria-hidden="true" />
                       <span>{label}</span>
+                    
+                      <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                     </Link>
                   );
                 })}

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { AutoRefreshToggle } from "@/components/ui/auto-refresh-toggle";
 
 /**
  * "אזור אישי חדש" — ported from pah.org.il's PersonalArea.jsx.
@@ -76,11 +78,7 @@ export function PersonalArea() {
     }
   }, []);
 
-  useEffect(() => {
-    void load();
-    const t = setInterval(() => void load(), 10_000);
-    return () => clearInterval(t);
-  }, [load]);
+  const autoRefresh = useAutoRefresh(load, 10_000, "pach-personal-autorefresh");
 
   const current = useMemo(() => computeCurrent(reports), [reports]);
 
@@ -134,12 +132,25 @@ export function PersonalArea() {
         </Link>
       </div>
 
+      {/* This page had no h1 at all, so heading navigation had no anchor.
+          The visible headline is the live status, which changes — so the
+          page title is the h1 and the status stays an h2 below it. */}
+      <h1 className="sr-only">אזור אישי — פח המשפט</h1>
+
+      <AutoRefreshToggle
+        enabled={autoRefresh.enabled}
+        onToggle={autoRefresh.toggle}
+        onRefreshNow={autoRefresh.refreshNow}
+        intervalSeconds={10}
+        className="mb-4 justify-center"
+      />
+
       {/* Status headline */}
       <h2 className="text-3xl sm:text-4xl font-bold text-center text-primary mb-2">
         {STATUS_TEXT[current]}
       </h2>
       {current === "red" ? (
-        <p className="text-center text-red-600 font-bold animate-pulse mb-2">
+        <p className="text-center text-red-800 font-bold animate-pulse mb-2">
           מת המשפט
         </p>
       ) : null}
@@ -164,7 +175,7 @@ export function PersonalArea() {
             type="button"
             onClick={() => void submit("orange")}
             disabled={busy}
-            className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+            className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="לדיווח על תקלה חלקית"
           >
             <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center shadow-md hover:shadow-lg">
@@ -179,7 +190,7 @@ export function PersonalArea() {
             type="button"
             onClick={() => void submit("red")}
             disabled={busy}
-            className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+            className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="לדיווח שהמערכת קרסה"
           >
             <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center shadow-md hover:shadow-lg">
@@ -195,7 +206,7 @@ export function PersonalArea() {
               type="button"
               onClick={() => void submit("green")}
               disabled={busy}
-              className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none"
+              className="flex flex-col items-center gap-3 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="לדיווח שהמערכת תקינה"
             >
               <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center shadow-md hover:shadow-lg">

@@ -66,6 +66,7 @@ export function PagePublicUrlActions({ slug }: Props) {
       >
         <ExternalLink size={14} />
         פתח בלשונית חדשה
+      <span className="sr-only"> (נפתח בלשונית חדשה)</span>
       </a>
       <button
         type="button"

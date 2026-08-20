@@ -240,6 +240,8 @@ export default function AdminSidebar() {
           >
             <ExternalLink size={18} className="shrink-0" />
             <span>צפייה באתר</span>
+          
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </Link>
 
           {/* Sign Out */}

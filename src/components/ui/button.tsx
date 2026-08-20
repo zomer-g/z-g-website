@@ -12,7 +12,8 @@ const variantStyles = {
   secondary:
     "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-white active:bg-primary-dark active:text-white",
   accent:
-    "bg-accent text-primary-dark hover:bg-accent-light active:bg-accent",
+    // accent-ink, not primary-dark: 7.64:1 on the gold surface vs 6.82:1.
+    "bg-accent text-accent-ink hover:bg-accent-light active:bg-accent",
   ghost:
     "bg-transparent text-foreground hover:bg-muted-bg active:bg-border",
 } as const;
@@ -67,8 +68,8 @@ export const Button = forwardRef<
     // Base
     "inline-flex items-center justify-center font-semibold rounded-lg",
     "transition-colors duration-200",
-    // Focus - WCAG AAA visible indicator
-    "focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2",
+    // Focus: inherits the two-tone ring from globals.css, which clears
+    // 3:1 on light and dark surfaces alike. Do not override with a colour.
     // Disabled
     "disabled:opacity-50 disabled:pointer-events-none",
     "aria-disabled:opacity-50 aria-disabled:pointer-events-none",

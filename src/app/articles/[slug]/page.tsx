@@ -260,7 +260,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   {cms.disclaimer.text}{" "}
                   <Link
                     href={cms.disclaimer.linkHref}
-                    className="font-semibold text-primary underline underline-offset-2 hover:text-accent"
+                    className="font-semibold text-primary underline underline-offset-2 hover:text-accent-text"
                   >
                     {cms.disclaimer.linkText}
                   </Link>
@@ -302,14 +302,14 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                       <li key={related.slug}>
                         <Link
                           href={`/articles/${related.slug}`}
-                          className="group block rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                          className="group block rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
                         >
                           {related.category && (
                             <Badge variant="accent" className="mb-2 text-xs">
                               {CATEGORY_LABELS[related.category] ?? related.category}
                             </Badge>
                           )}
-                          <CardTitle className="text-base group-hover:text-accent transition-colors duration-200">
+                          <CardTitle className="text-base group-hover:text-accent-text transition-colors duration-200">
                             {related.title}
                           </CardTitle>
                           {related.publishedAt && (
@@ -341,7 +341,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                   </p>
                   <Link
                     href={cms.sidebarCta.ctaLink}
-                    className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-accent px-6 py-3 text-base font-bold text-accent-ink transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-white focus-visible:outline-offset-2"
                   >
                     {cms.sidebarCta.ctaText}
                   </Link>
@@ -371,7 +371,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                 <Link
                   key={related.slug}
                   href={`/articles/${related.slug}`}
-                  className="group block focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
+                  className="group block rounded-xl"
                   aria-label={`${related.title} — ${cms.strings.readMoreText}`}
                 >
                   <Card className="flex h-full flex-col hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
@@ -381,7 +381,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                           {CATEGORY_LABELS[related.category] ?? related.category}
                         </Badge>
                       )}
-                      <CardTitle className="mt-2 group-hover:text-accent transition-colors duration-200">
+                      <CardTitle className="mt-2 group-hover:text-accent-text transition-colors duration-200">
                         {related.title}
                       </CardTitle>
                     </CardHeader>
@@ -391,7 +391,7 @@ export default async function ArticleDetailPage({ params }: PageProps) {
                       </p>
                     </CardContent>
                     <CardFooter>
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent-text transition-colors duration-200">
                         {cms.strings.readMoreText}
                         <ArrowLeft
                           className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"

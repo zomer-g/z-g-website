@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const variantStyles = {
   default: "bg-primary/10 text-primary-dark",
   primary: "bg-primary text-white",
-  accent: "bg-accent/15 text-primary-dark",
+  accent: "bg-accent/15 text-accent-ink",
   success: "bg-success/10 text-success",
   error: "bg-error/10 text-error",
   muted: "bg-muted-bg text-muted",

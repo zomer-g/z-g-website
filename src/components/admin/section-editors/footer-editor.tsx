@@ -133,7 +133,7 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
             onClick={() => {
               onChange({ ...content, quickLinks: [...content.quickLinks, { label: "", href: "/" }] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף קישור
           </button>
@@ -257,7 +257,7 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
             onClick={() => {
               onChange({ ...content, legalLinks: [...content.legalLinks, { label: "", href: "/" }] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף קישור
           </button>

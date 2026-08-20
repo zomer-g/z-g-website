@@ -12,7 +12,7 @@
 // /api/whatsapp/media/<id> for a real workspace, which 401s/404s for
 // non-authorized users).
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Download,
   Eye,
@@ -25,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModalDialog } from "@/hooks/use-modal-dialog";
 import { AudioPlayer } from "./audio-player";
 import { TagChips } from "./tag-chips";
 import { TagPicker } from "./tag-picker";
@@ -109,6 +110,7 @@ function FileTile({
         <div className="text-xs text-gray-600">{formatBytes(size)}</div>
       </div>
       <Download className="h-4 w-4 text-gray-500 shrink-0" />
+    <span className="sr-only"> (נפתח בלשונית חדשה)</span>
     </a>
   );
 }
@@ -131,6 +133,8 @@ export function MessageBubble({
   onToggleStar,
 }: MessageBubbleProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+  const lightbox = useModalDialog(lightboxOpen, closeLightbox);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const tagButtonRef = useRef<HTMLButtonElement>(null);
   // Click-outside dismiss for the tag picker popover. The picker
@@ -342,6 +346,8 @@ export function MessageBubble({
                 </button>
                 {lightboxOpen ? (
                   <div
+                    {...lightbox.dialogProps}
+                    aria-label={`תמונה מוגדלת: ${message.media.filename}`}
                     className="fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4"
                     onClick={() => setLightboxOpen(false)}
                   >
@@ -366,7 +372,11 @@ export function MessageBubble({
                 ) : null}
               </>
             ) : isAudio ? (
-              <AudioPlayer src={message.media.url} outgoing={isOutgoing} />
+              <AudioPlayer
+                src={message.media.url}
+                outgoing={isOutgoing}
+                transcript={message.media.transcript}
+              />
             ) : (
               <FileTile
                 filename={message.media.filename}

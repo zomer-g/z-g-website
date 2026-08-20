@@ -102,7 +102,7 @@ export function HeaderEditor({ content, onChange }: HeaderEditorProps) {
             onClick={() => {
               onChange({ ...content, navItems: [...content.navItems, { label: "", href: "/" }] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף קישור
           </button>

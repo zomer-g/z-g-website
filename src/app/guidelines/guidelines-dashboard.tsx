@@ -74,6 +74,13 @@ type UserFilterValue =
   | { min?: number; max?: number }
   | { from?: string; to?: string };
 
+// Filter keys are dotted paths ("meta.report_year"); flatten them into
+// something usable as a DOM id so every control can point at its label
+// (WCAG 1.3.1 / 3.3.2).
+function fieldDomId(key: string): string {
+  return `flt-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 function isUserFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
@@ -282,7 +289,7 @@ function GuidelineCard({
       <Link
         href={detailHref}
         aria-label={`פרטי הנחיה: ${doc.document_title || doc.filename || "ללא כותרת"}`}
-        className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        className="absolute inset-0 z-0 rounded-xl focus-visible:ring-2 focus-visible:ring-offset-2"
         style={{ outlineColor: C_PRIMARY }}
       />
 
@@ -422,6 +429,7 @@ function GuidelineCard({
           style={{ background: C_PRIMARY }}
         >
           קובץ PDF
+        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </a>
         <button
           type="button"
@@ -595,7 +603,7 @@ export function GuidelinesDashboard() {
             onKeyDown={(e) => {
               if (e.key === "Enter") applyFilters();
             }}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-3 py-2 text-sm"
           />
         </div>
 
@@ -609,7 +617,7 @@ export function GuidelinesDashboard() {
               id="gd-date-from"
               value={draft.date_from}
               onChange={(iso) => setDraft((d) => ({ ...d, date_from: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
           <div>
@@ -620,7 +628,7 @@ export function GuidelinesDashboard() {
               id="gd-date-to"
               value={draft.date_to}
               onChange={(iso) => setDraft((d) => ({ ...d, date_to: iso }))}
-              className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-1.5 text-sm"
             />
           </div>
         </div>
@@ -629,9 +637,11 @@ export function GuidelinesDashboard() {
         {facetSources.length > 0 || filters.sources.length > 0 ? (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              <label className="block text-xs font-semibold text-gray-600">
+              {/* Pills are toggle buttons, not inputs — a group caption,
+                  not a label element. The pill list points back at it. */}
+              <span id="facet-sources-label" className="block text-xs font-semibold text-gray-600">
                 מקורות בתוצאות הנוכחיות (לחיצה מסננת מיד)
-              </label>
+              </span>
               {filters.sources.length > 0 ? (
                 <button
                   type="button"
@@ -642,7 +652,7 @@ export function GuidelinesDashboard() {
                 </button>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div role="group" aria-labelledby="facet-sources-label" className="flex flex-wrap gap-2">
               {facetSources.map((f) => {
                 const active = filters.sources.includes(f.label);
                 return (
@@ -715,14 +725,14 @@ export function GuidelinesDashboard() {
           <button
             type="button"
             onClick={clearFilters}
-            className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="tap-44 text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             ניקוי
           </button>
           <button
             type="button"
             onClick={applyFilters}
-            className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+            className="tap-44 text-sm font-semibold rounded-md px-4 py-1.5 text-white"
             style={{ background: C_PRIMARY }}
           >
             סינון
@@ -736,24 +746,25 @@ export function GuidelinesDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {extraFilterFields.map((f) => {
               const v = userFiltersDraft[f.key];
+              const fid = fieldDomId(f.key);
               if (f.control === "text") {
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
-                    <input type="text" value={typeof v === "string" ? v : ""}
+                    <label htmlFor={fid} className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <input id={fid} type="text" value={typeof v === "string" ? v : ""}
                       onChange={(e) => setUf(f.key, e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") applyUserFilters(); }}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+                      className="w-full border border-border-control rounded-md px-3 py-2 text-sm" />
                   </div>
                 );
               }
               if (f.control === "select") {
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
-                    <select value={typeof v === "string" ? v : ""}
+                    <label htmlFor={fid} className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <select id={fid} value={typeof v === "string" ? v : ""}
                       onChange={(e) => setUf(f.key, e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white">
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white">
                       <option value="">הכל</option>
                       {(gFilterOptions[f.key] || []).map((o) => (<option key={o} value={o}>{gOptionLabel(o)}</option>))}
                     </select>
@@ -764,15 +775,15 @@ export function GuidelinesDashboard() {
                 const r = (typeof v === "object" ? v : {}) as { min?: number; max?: number };
                 return (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                    <span className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</span>
                     <div className="flex items-center gap-1.5">
-                      <input type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
+                      <input id={`${fid}-min`} aria-label={`${f.label} — מ-`} type="number" placeholder="מ-" value={r.min ?? ""} dir="ltr"
                         onChange={(e) => setUf(f.key, { ...r, min: e.target.value === "" ? undefined : Number(e.target.value) })}
-                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                      <span className="text-gray-400">–</span>
-                      <input type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
+                        className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
+                      <span className="text-gray-600" aria-hidden="true">–</span>
+                      <input id={`${fid}-max`} aria-label={`${f.label} — עד`} type="number" placeholder="עד" value={r.max ?? ""} dir="ltr"
                         onChange={(e) => setUf(f.key, { ...r, max: e.target.value === "" ? undefined : Number(e.target.value) })}
-                        className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                        className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
                     </div>
                   </div>
                 );
@@ -780,15 +791,15 @@ export function GuidelinesDashboard() {
               const r = (typeof v === "object" ? v : {}) as { from?: string; to?: string };
               return (
                 <div key={f.key}>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                  <span className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</span>
                   <div className="flex items-center gap-1.5">
-                    <input type="date" value={r.from ?? ""} dir="ltr"
+                    <input id={`${fid}-from`} aria-label={`${f.label} — מתאריך`} type="date" value={r.from ?? ""} dir="ltr"
                       onChange={(e) => setUf(f.key, { ...r, from: e.target.value || undefined })}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
-                    <span className="text-gray-400">–</span>
-                    <input type="date" value={r.to ?? ""} dir="ltr"
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
+                    <span className="text-gray-600" aria-hidden="true">–</span>
+                    <input id={`${fid}-to`} aria-label={`${f.label} — עד תאריך`} type="date" value={r.to ?? ""} dir="ltr"
                       onChange={(e) => setUf(f.key, { ...r, to: e.target.value || undefined })}
-                      className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm" />
+                      className="w-full border border-border-control rounded-md px-2 py-2 text-sm" />
                   </div>
                 </div>
               );
@@ -796,20 +807,22 @@ export function GuidelinesDashboard() {
           </div>
           <div className="flex items-center justify-end gap-2 mt-4">
             <button type="button" onClick={clearUserFilters}
-              className="text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">ניקוי</button>
+              className="tap-44 text-sm font-semibold rounded-md px-3 py-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50">ניקוי</button>
             <button type="button" onClick={applyUserFilters}
-              className="text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>סינון</button>
+              className="tap-44 text-sm font-semibold rounded-md px-4 py-1.5 text-white" style={{ background: C_PRIMARY }}>סינון</button>
           </div>
         </div>
       ) : null}
 
       {/* Results header */}
       <div className="flex items-center justify-between mb-3 text-sm text-gray-600">
-        <div>
+        {/* Filtering swaps the list without moving focus, so the count is
+            the only signal anything happened — announce it (WCAG 4.1.3). */}
+        <div role="status" aria-atomic="true">
           {loading ? (
             <span>בטעינה…</span>
           ) : error ? (
-            <span className="text-red-600">{error}</span>
+            <span className="text-red-800">{error}</span>
           ) : (
             <span>
               {total === 0
@@ -820,15 +833,15 @@ export function GuidelinesDashboard() {
         </div>
         {extraSortFields.length > 0 ? (
           <div className="flex items-center gap-2 shrink-0">
-            <label className="text-xs text-gray-600">סדר:</label>
-            <select
+            <label htmlFor="gd-1" className="text-xs text-gray-600">סדר:</label>
+            <select id="gd-1"
               value={configSort ? configSort.key : ""}
               onChange={(e) => {
                 const val = e.target.value;
                 setConfigSort(val ? { key: val, dir: "desc" } : null);
                 navigate(filters, 0);
               }}
-              className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+              className="border border-border-control rounded-md px-2 py-1 text-xs bg-white"
             >
               <option value="">ברירת מחדל</option>
               {extraSortFields.map((s) => (
@@ -838,7 +851,7 @@ export function GuidelinesDashboard() {
             {configSort ? (
               <button type="button"
                 onClick={() => setConfigSort((c) => (c ? { ...c, dir: c.dir === "desc" ? "asc" : "desc" } : c))}
-                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50">
+                className="border border-border-control rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50">
                 {configSort.dir === "desc" ? "יורד ↓" : "עולה ↑"}
               </button>
             ) : null}

@@ -131,6 +131,7 @@ export function PdfAttachmentsEditor({
                 title="פתיחה בכרטיסייה חדשה"
               >
                 <ExternalLink size={16} />
+              <span className="sr-only"> (נפתח בלשונית חדשה)</span>
               </a>
               <button
                 type="button"

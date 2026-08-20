@@ -188,7 +188,7 @@ export function ComposeBar({
             className={cn(
               "w-full resize-none rounded-2xl bg-white border border-gray-300 px-3 py-2",
               "text-sm text-gray-900 placeholder:text-gray-600 leading-relaxed",
-              "focus:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200",
+              "focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200",
             )}
           />
         </div>
@@ -265,7 +265,7 @@ export function ComposeBar({
             title="שליחה (Ctrl/⌘+Enter)"
             className={cn(
               "inline-flex h-10 w-10 items-center justify-center rounded-full",
-              "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
+              "transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
               canSubmit
                 ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed",
@@ -315,7 +315,7 @@ function TagChip({
         type="button"
         onClick={onRemove}
         aria-label={`הסרת התיוג: ${label}`}
-        className="rounded-full hover:bg-black/5 p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+        className="rounded-full hover:bg-black/5 p-0.5 focus-visible:ring-2 focus-visible:ring-emerald-600"
       >
         <X className="h-3 w-3" aria-hidden="true" />
       </button>
@@ -374,7 +374,7 @@ function PickerButton({
         title={color === "red" ? "הגדרת התראה" : `תיוג ${label}`}
         className={cn(
           "inline-flex h-10 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+          "focus-visible:ring-2 focus-visible:ring-offset-1",
           COLOR_BTN[color],
         )}
       >
@@ -430,7 +430,7 @@ function ReminderPicker({
           type="button"
           onClick={onClose}
           aria-label="סגירה"
-          className="rounded-full p-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+          className="rounded-full p-1 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-red-600"
         >
           <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
@@ -448,7 +448,7 @@ function ReminderPicker({
           className={cn(
             "w-full rounded-md border border-gray-300 bg-white px-2 py-1.5",
             "text-sm text-gray-900",
-            "focus:outline-none focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200",
+            "focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-200",
           )}
         />
       </label>
@@ -460,7 +460,7 @@ function ReminderPicker({
               onChange(null);
               onClose();
             }}
-            className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500"
+            className="rounded-md px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-gray-500"
           >
             הסרת התראה
           </button>
@@ -474,7 +474,7 @@ function ReminderPicker({
           }}
           className={cn(
             "rounded-md px-3 py-1 text-xs font-semibold text-white",
-            "bg-red-600 hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-1",
+            "bg-red-600 hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-1",
           )}
         >
           {value !== null ? "עדכון" : "הגדרת התראה"}
@@ -516,7 +516,7 @@ function PickerList({
           type="button"
           onClick={onClose}
           aria-label="סגירה"
-          className="rounded-full p-1 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+          className="rounded-full p-1 hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           <X className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
@@ -532,7 +532,7 @@ function PickerList({
               className={cn(
                 "w-full flex items-start justify-between gap-2 rounded-md px-2 py-1.5 text-start",
                 "hover:bg-gray-50 transition-colors",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
+                "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
                 it.active && "bg-emerald-50",
               )}
             >

@@ -212,7 +212,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
                           href={safeHref(att.url)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-sm focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/40 hover:shadow-sm"
                         >
                           <span
                             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
@@ -221,7 +221,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
                             <FileText className="h-5 w-5" />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-semibold text-foreground group-hover:text-accent transition-colors duration-200">
+                            <span className="block truncate font-semibold text-foreground group-hover:text-accent-text transition-colors duration-200">
                               {att.name}
                             </span>
                             <span className="text-xs text-muted">
@@ -232,6 +232,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
                             className="h-4 w-4 shrink-0 text-muted transition-transform duration-200 group-hover:-translate-x-1"
                             aria-hidden="true"
                           />
+                        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                         </a>
                       </li>
                     ))}
@@ -271,9 +272,9 @@ export default async function PlilistPostPage({ params }: PageProps) {
                       <li key={related.slug}>
                         <Link
                           href={`/haplilist/${related.slug}`}
-                          className="group block rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+                          className="group block rounded-lg border border-border bg-card p-4 transition-all duration-200 hover:border-accent/30 hover:shadow-sm"
                         >
-                          <CardTitle className="text-base group-hover:text-accent transition-colors duration-200">
+                          <CardTitle className="text-base group-hover:text-accent-text transition-colors duration-200">
                             {related.title}
                           </CardTitle>
                           {related.publishedAt && (
@@ -318,12 +319,12 @@ export default async function PlilistPostPage({ params }: PageProps) {
                 <Link
                   key={related.slug}
                   href={`/haplilist/${related.slug}`}
-                  className="group block focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
+                  className="group block rounded-xl"
                   aria-label={`${related.title} — קראו עוד`}
                 >
                   <Card className="flex h-full flex-col hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
                     <CardHeader>
-                      <CardTitle className="mt-2 group-hover:text-accent transition-colors duration-200">
+                      <CardTitle className="mt-2 group-hover:text-accent-text transition-colors duration-200">
                         {related.title}
                       </CardTitle>
                     </CardHeader>
@@ -333,7 +334,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
                       </p>
                     </CardContent>
                     <CardFooter>
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent-text transition-colors duration-200">
                         קראו עוד
                         <ArrowLeft
                           className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"

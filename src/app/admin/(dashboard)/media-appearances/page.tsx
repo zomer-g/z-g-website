@@ -664,7 +664,7 @@ function ItemGroup({
                   <p className="truncate text-sm text-muted mt-0.5">
                     {item.source} | {item.date}
                     {item.url && (
-                      <> | <a href={item.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">{item.url.replace(/^https?:\/\//, "").substring(0, 40)}</a></>
+                      <> | <a href={item.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">{item.url.replace(/^https?:\/\//, "").substring(0, 40)}<span className="sr-only"> (נפתח בלשונית חדשה)</span></a></>
                     )}
                   </p>
                 </div>

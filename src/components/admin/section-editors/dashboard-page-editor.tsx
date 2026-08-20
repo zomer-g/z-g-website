@@ -1206,8 +1206,8 @@ function FieldSelect({
         onClick={() => setOpen((v) => !v)}
         dir="ltr"
         className={cn(
-          "w-full text-right border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white font-mono truncate",
-          "hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary",
+          "w-full text-right border border-border-control rounded-md px-2 py-1.5 text-xs bg-white font-mono truncate",
+          "hover:bg-gray-50 focus:ring-1 focus:ring-primary",
           !value && "text-gray-400",
         )}
         title={value || placeholder}
@@ -1348,7 +1348,7 @@ function LegislationSection({
                 onChange={(e) =>
                   update(i, { kind: e.target.value as "law" | "regulation" })
                 }
-                className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                className="border border-border-control rounded-md px-2 py-1.5 text-xs bg-white"
                 dir="rtl"
               >
                 <option value="law">חוק</option>
@@ -1835,7 +1835,7 @@ function AdvancedQuerySection({
                         control: e.target.value as FilterControl,
                       })
                     }
-                    className="w-full border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                    className="w-full border border-border-control rounded-md px-2 py-1.5 text-xs bg-white"
                     dir="rtl"
                   >
                     {VALID_FILTER_CONTROLS.map((c) => (
@@ -1872,7 +1872,7 @@ function AdvancedQuerySection({
                             matchOp: e.target.value as "eq" | "contains",
                           })
                         }
-                        className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                        className="border border-border-control rounded-md px-2 py-1.5 text-xs bg-white"
                         dir="rtl"
                       >
                         <option value="eq">התאמה מדויקת (eq)</option>
@@ -1896,7 +1896,7 @@ function AdvancedQuerySection({
                           matchOp: e.target.value as "eq" | "contains",
                         })
                       }
-                      className="border border-gray-300 rounded-md px-2 py-1.5 text-xs bg-white"
+                      className="border border-border-control rounded-md px-2 py-1.5 text-xs bg-white"
                       dir="rtl"
                     >
                       <option value="contains">מכיל את הערך (contains)</option>

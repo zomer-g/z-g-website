@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { SanegoriaDashboard } from "./sanegoria-dashboard";
 import { getPageContent } from "@/lib/content";
@@ -41,6 +42,15 @@ export default async function SanegoriaPage() {
           </Container>
         </section>
       </EditableSection>
+      <Container className="pt-6">
+        <Breadcrumbs
+          items={[
+            { label: "ראשי", href: "/" },
+            { label: "מיזמים", href: "/projects" },
+            { label: "סניגוריה ציבורית" },
+          ]}
+        />
+      </Container>
       <Container className="py-8">
         <SanegoriaDashboard disclaimerParagraphs={content.disclaimer.paragraphs} />
       </Container>

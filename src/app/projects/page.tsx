@@ -152,7 +152,7 @@ export default async function ProjectsPage() {
                           className={cn(
                             "flex h-14 w-14 items-center justify-center rounded-xl",
                             "bg-primary/5 text-primary transition-colors duration-300",
-                            "group-hover:bg-accent/10 group-hover:text-accent",
+                            "group-hover:bg-accent/10 group-hover:text-accent-text",
                           )}
                         >
                           <Icon className="h-7 w-7" aria-hidden="true" />
@@ -198,8 +198,7 @@ export default async function ProjectsPage() {
                             className={cn(
                               "inline-flex items-center gap-2 rounded-lg border border-accent/30 bg-accent/5 px-5 py-2.5",
                               "text-sm font-bold text-primary-dark transition-all duration-200",
-                              "hover:border-accent hover:bg-accent hover:text-primary-dark",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
+                              "hover:border-accent hover:bg-accent hover:text-accent-ink",
                             )}
                           >
                             <span>לאתר הפרויקט</span>
@@ -243,9 +242,8 @@ export default async function ProjectsPage() {
                 href={content.cta.ctaLink}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-lg bg-accent px-7 py-3",
-                  "text-base font-bold text-primary-dark transition-colors duration-200",
+                  "text-base font-bold text-accent-ink transition-colors duration-200",
                   "hover:bg-accent-light",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary",
                 )}
               >
                 <span>{content.cta.ctaText}</span>

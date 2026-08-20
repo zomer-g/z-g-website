@@ -6,11 +6,13 @@ import { cn } from "@/lib/utils";
 /* ─── Shared Styles ─── */
 
 const fieldStyles = cn(
-  "w-full rounded-lg border border-border bg-background px-4 py-2.5",
+  // border-control, not border: a field's edge is what tells you where the
+  // field is, so 1.4.11 wants it at 3:1. --border is 1.24:1.
+  "w-full rounded-lg border border-border-control bg-background px-4 py-2.5",
   "text-foreground placeholder:text-muted",
   "transition-colors duration-200",
-  "hover:border-primary/40",
-  "focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2",
+  "hover:border-primary",
+  // Focus ring comes from the global two-tone rule in globals.css.
   "focus-visible:border-primary",
   "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted-bg",
 );

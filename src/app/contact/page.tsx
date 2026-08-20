@@ -128,7 +128,7 @@ export default async function ContactPage() {
                       {item.href ? (
                         <a
                           href={item.href}
-                          className={cn("block transition-colors duration-200 hover:text-accent")}
+                          className={cn("block transition-colors duration-200 hover:text-accent-text")}
                           aria-label={item.ariaLabel}
                         >
                           {itemContent}

@@ -114,7 +114,7 @@ function ProviderCard({ p }: { p: ProviderCost }) {
     >
       {/* Estimate ribbon — unmistakable "not verified" marker. */}
       {isEstimate && (
-        <div className="flex items-center gap-1.5 bg-accent/15 px-5 py-1.5 text-[11px] font-bold text-primary-dark">
+        <div className="flex items-center gap-1.5 bg-accent/15 px-5 py-1.5 text-[11px] font-bold text-accent-ink">
           <AlertCircle size={13} className="shrink-0" />
           הערכה — לא נתון מאומת
         </div>
@@ -165,6 +165,7 @@ function ProviderCard({ p }: { p: ProviderCost }) {
         >
           <ExternalLink size={12} />
           לדשבורד הרשמי
+        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </a>
       </CardContent>
     </Card>

@@ -33,6 +33,10 @@ export interface MediaRef {
   // /api/timeline/media/<id>). For mock data this is a data: or
   // /public/ URL.
   url: string;
+  // Text alternative for audio-only media (WCAG 1.2.1). Adapters that
+  // have a transcription fill this in; the player renders it under the
+  // controls and tells the reader plainly when it is absent.
+  transcript?: string;
 }
 
 export interface TagRef {

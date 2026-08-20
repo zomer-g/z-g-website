@@ -156,7 +156,7 @@ export default function MilonEntryForm({ initialValues, mode }: MilonEntryFormPr
   }
 
   const inputCls =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/40";
+    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-primary/40";
   const labelCls = "block text-sm font-medium text-foreground mb-1";
 
   return (

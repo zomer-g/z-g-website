@@ -130,7 +130,7 @@ export default async function HaplilistPage() {
                 <li key={post.slug}>
                   <Link
                     href={`/haplilist/${post.slug}`}
-                    className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
+                    className="group block h-full rounded-xl"
                     aria-label={`${post.title} — קראו עוד`}
                   >
                     <Card className="flex h-full flex-col overflow-hidden hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
@@ -168,7 +168,7 @@ export default async function HaplilistPage() {
                             </time>
                           </span>
                         )}
-                        <CardTitle className="mt-2 group-hover:text-accent transition-colors duration-200">
+                        <CardTitle className="mt-2 group-hover:text-accent-text transition-colors duration-200">
                           {post.title}
                         </CardTitle>
                       </CardHeader>
@@ -180,7 +180,7 @@ export default async function HaplilistPage() {
                       </CardContent>
 
                       <CardFooter>
-                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent-text transition-colors duration-200">
                           {content.grid.readMoreText}
                           <ArrowLeft
                             className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"

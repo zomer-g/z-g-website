@@ -18,6 +18,10 @@ interface AudioPlayerProps {
   // the track color and the play button background so the player feels
   // native to the bubble it's embedded in.
   outgoing?: boolean;
+  // Text alternative for the recording (WCAG 1.2.1). Rendered as a
+  // collapsible transcript; when missing, the player says so rather than
+  // leaving a non-visual user to wonder whether they missed something.
+  transcript?: string;
 }
 
 function formatSeconds(s: number): string {
@@ -27,7 +31,7 @@ function formatSeconds(s: number): string {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
-export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
+export function AudioPlayer({ src, outgoing = false, transcript }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -138,6 +142,42 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
     setCurrent(a.currentTime);
   };
 
+  // A role="slider" that only responds to a mouse is worse than no role at
+  // all: it promises an interaction the keyboard can't reach (WCAG 2.1.1).
+  // Arrows scrub 5s, Shift+arrow 10s, Home/End jump to the ends.
+  const onTrackKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const a = audioRef.current;
+    if (!a || !duration) return;
+    const step = e.shiftKey ? 10 : 5;
+    let next: number | null = null;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowUp":
+        next = Math.min(duration, a.currentTime + step);
+        break;
+      case "ArrowLeft":
+      case "ArrowDown":
+        next = Math.max(0, a.currentTime - step);
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = duration;
+        break;
+      case " ":
+      case "Enter":
+        e.preventDefault();
+        toggle();
+        return;
+      default:
+        return;
+    }
+    e.preventDefault();
+    a.currentTime = next;
+    setCurrent(next);
+  };
+
   const pct = duration ? (current / duration) * 100 : 0;
   const trackBg = outgoing ? "bg-emerald-200/70" : "bg-gray-200";
   const trackFill = outgoing ? "bg-emerald-600" : "bg-emerald-500";
@@ -155,7 +195,7 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
       <button
         type="button"
         onClick={toggle}
-        aria-label={isPlaying ? "Pause" : "Play"}
+        aria-label={isPlaying ? "השהיית ההקלטה" : "הפעלת ההקלטה"}
         className={cn(
           "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
           btnBg,
@@ -171,11 +211,15 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
       <div className="flex-1 min-w-0">
         <div
           onClick={onTrackClick}
+          onKeyDown={onTrackKeyDown}
           role="slider"
+          tabIndex={0}
           aria-valuemin={0}
           aria-valuemax={Math.floor(duration ?? 0)}
           aria-valuenow={Math.floor(current)}
-          aria-label="Audio progress"
+          // Screen readers would otherwise announce a bare second count.
+          aria-valuetext={`${formatSeconds(current)} מתוך ${formatSeconds(duration ?? 0)}`}
+          aria-label="מיקום בהקלטה"
           className={cn("relative h-1.5 cursor-pointer rounded-full", trackBg)}
         >
           <div
@@ -192,15 +236,29 @@ export function AudioPlayer({ src, outgoing = false }: AudioPlayerProps) {
             style={{ left: `calc(${pct}% - 6px)` }}
           />
         </div>
-        <div className="mt-1 flex items-center justify-between text-[10px] text-gray-500 font-mono">
+        <div className="mt-1 flex items-center justify-between text-[10px] text-gray-600 font-mono">
           <span>{formatSeconds(current)}</span>
           <span>{duration ? formatSeconds(duration) : "—:—"}</span>
         </div>
         {hasError ? (
-          <div className="mt-1 text-[10px] text-red-600">
+          <div className="mt-1 text-[10px] text-red-800">
             לא ניתן להפעיל את ההקלטה.
           </div>
         ) : null}
+        {transcript ? (
+          <details className="mt-1" dir="rtl">
+            <summary className="cursor-pointer text-[11px] font-medium text-gray-700">
+              תמליל ההקלטה
+            </summary>
+            <p className="mt-1 whitespace-pre-wrap text-[11px] leading-relaxed text-gray-800">
+              {transcript}
+            </p>
+          </details>
+        ) : (
+          <p className="mt-1 text-[10px] text-gray-600" dir="rtl">
+            אין תמליל להקלטה זו.
+          </p>
+        )}
       </div>
     </div>
   );

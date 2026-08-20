@@ -40,11 +40,13 @@ export function AdminBar() {
           <Link
             href={editUrl}
             target="_blank"
-            className="inline-flex items-center gap-1.5 rounded bg-accent/90 px-2.5 py-1 text-xs font-bold text-primary-dark transition-colors hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded bg-accent/90 px-2.5 py-1 text-xs font-bold text-accent-ink transition-colors hover:bg-accent"
           >
             <Pencil className="h-3 w-3" />
             <span className="hidden sm:inline">ערוך {pageLabel}</span>
             <span className="sm:hidden">ערוך</span>
+          
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </Link>
         ) : (
           <span className="rounded bg-white/10 px-2.5 py-1 text-xs text-white/60" title="עמוד זה אינו רשום ברישום עמודי האדמין">
@@ -59,6 +61,8 @@ export function AdminBar() {
         >
           <PanelTop className="h-3 w-3" />
           <span>כותרת</span>
+        
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </Link>
 
         <Link
@@ -68,6 +72,8 @@ export function AdminBar() {
         >
           <PanelBottom className="h-3 w-3" />
           <span>תחתית</span>
+        
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </Link>
       </div>
 

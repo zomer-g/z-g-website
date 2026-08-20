@@ -50,6 +50,7 @@ export function LegislationMenu({
         className="block rounded-md px-2 py-1.5 text-sm text-primary hover:bg-gray-50 leading-snug"
       >
         {l.label} <span aria-hidden="true">↗</span>
+      <span className="sr-only"> (נפתח בלשונית חדשה)</span>
       </a>
     ));
 
@@ -61,7 +62,7 @@ export function LegislationMenu({
         aria-expanded={open}
         aria-haspopup="true"
         title="חקיקה וחקיקת משנה רלוונטית"
-        className="inline-flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50 whitespace-nowrap"
+        className="inline-flex items-center gap-1 border border-border-control rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50 whitespace-nowrap"
       >
         חקיקה
         <span aria-hidden="true" className={open ? "rotate-180 inline-block" : "inline-block"}>
@@ -76,11 +77,11 @@ export function LegislationMenu({
         >
           {grouped ? (
             <>
-              <div className="text-[11px] font-semibold text-gray-400 px-2 pt-1 pb-0.5">
+              <div className="text-[11px] font-semibold text-gray-600 px-2 pt-1 pb-0.5">
                 חקיקה ראשית
               </div>
               {renderLinks(laws)}
-              <div className="text-[11px] font-semibold text-gray-400 px-2 pt-2 pb-0.5">
+              <div className="text-[11px] font-semibold text-gray-600 px-2 pt-2 pb-0.5">
                 חקיקת משנה (תקנות)
               </div>
               {renderLinks(regs)}

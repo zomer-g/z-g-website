@@ -27,8 +27,8 @@ export function EditableSection({ children, editHref, editLabel, className }: Ed
           "absolute start-3 top-3 z-[55] inline-flex items-center gap-1.5",
           "rounded-full bg-gray-900/80 px-3 py-1.5 text-xs font-medium text-white shadow-lg",
           "opacity-0 transition-all duration-200 group-hover/edit:opacity-100",
-          "hover:bg-accent hover:text-primary-dark",
-          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          "hover:bg-accent hover:text-accent-ink",
+          "focus-visible:opacity-100",
           // Always visible on touch devices
           "touch-action-manipulation max-sm:opacity-70",
         )}
@@ -36,6 +36,8 @@ export function EditableSection({ children, editHref, editLabel, className }: Ed
       >
         <Pencil className="h-3 w-3" />
         <span>{editLabel}</span>
+      
+        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
       </Link>
     </div>
   );
@@ -63,13 +65,15 @@ export function EditableItem({ children, editHref, editLabel, className }: Edita
           "absolute start-2 top-2 z-[55] inline-flex items-center justify-center",
           "h-7 w-7 rounded-full bg-gray-900/80 text-white shadow-md",
           "opacity-0 transition-all duration-200 group-hover/item:opacity-100",
-          "hover:bg-accent hover:text-primary-dark",
-          "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+          "hover:bg-accent hover:text-accent-ink",
+          "focus-visible:opacity-100",
           "max-sm:opacity-70",
         )}
         aria-label={`ערוך: ${editLabel}`}
       >
         <Pencil className="h-3 w-3" />
+      
+        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
       </Link>
     </div>
   );

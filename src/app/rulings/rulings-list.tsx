@@ -53,6 +53,13 @@ const QUANTITY_FIELD_KEY = "meta.drug_max_grams";
 // Reserved userFilters key carrying the cascading law/section selection.
 const LAW_SECTION_KEY = "__lawSection";
 
+// Filter keys are dotted paths ("meta.drug_max_grams"); dots and colons are
+// legal in an id but awkward in a selector, so flatten them. Used to tie
+// every filter control to its visible label (WCAG 1.3.1 / 3.3.2).
+function fieldDomId(key: string): string {
+  return `flt-${key.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 interface LawSectionSel {
   law?: string;
   sections?: string[];
@@ -343,7 +350,7 @@ const ROW_STATUS_STYLE: Record<
 // the law-claims table so the reader sees at a glance whether a legal ground
 // was upheld or rejected.
 function StatusPill({ status }: { status: RowStatus | null }) {
-  if (!status) return <span className="text-gray-400">—</span>;
+  if (!status) return <span className="text-gray-600">—</span>;
   const style = ROW_STATUS_STYLE[status.kind];
   const glyph =
     status.kind === "accepted" ? "✓" : status.kind === "rejected" ? "✗" : "•";
@@ -385,6 +392,10 @@ export function LawClaimsTable({
       <dd>
         <div className="rounded-lg border border-gray-200 overflow-hidden">
           <table className="w-full table-fixed text-xs border-collapse">
+            {/* Without a caption and scope, a screen reader reads the cells
+                as a bare run of values with nothing tying them to a column
+                heading (WCAG 1.3.1). */}
+            <caption className="sr-only">{`${label} — פירוט לפי חוק וסעיף`}</caption>
             <colgroup>
               <col className="w-[22%]" />
               <col className="w-[22%]" />
@@ -393,12 +404,12 @@ export function LawClaimsTable({
             </colgroup>
             <thead>
               <tr className="bg-gray-50 text-gray-500">
-                <th className="text-right font-semibold py-1.5 px-2">שם החוק</th>
-                <th className="text-right font-semibold py-1.5 px-2">סעיף</th>
-                <th className="text-right font-semibold py-1.5 px-2">
+                <th scope="col" className="text-right font-semibold py-1.5 px-2">שם החוק</th>
+                <th scope="col" className="text-right font-semibold py-1.5 px-2">סעיף</th>
+                <th scope="col" className="text-right font-semibold py-1.5 px-2">
                   תיאור הסעיף
                 </th>
-                <th className="text-center font-semibold py-1.5 px-2">
+                <th scope="col" className="text-center font-semibold py-1.5 px-2">
                   התקבלה?
                 </th>
               </tr>
@@ -501,6 +512,7 @@ function MiniTable({
             {cols.map((c, i) => (
               <th
                 key={i}
+                scope="col"
                 className={`${c.center ? "text-center" : "text-right"} font-semibold py-1.5 px-2`}
               >
                 {c.label}
@@ -1102,7 +1114,7 @@ function RulingCard({
                 <dt className="font-semibold whitespace-nowrap">
                   {fieldKeyToLabel(key)}:
                 </dt>
-                <dd className={isEmpty ? "text-gray-400" : "text-gray-700"}>
+                <dd className={isEmpty ? "text-gray-600" : "text-gray-700"}>
                   {isEmpty ? "—" : formatted}
                 </dd>
               </div>
@@ -1120,6 +1132,7 @@ function RulingCard({
             style={{ background: C_PRIMARY }}
           >
             צפייה במסמך
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
       </article>
@@ -1197,6 +1210,7 @@ function RulingCard({
             style={{ background: C_PRIMARY }}
           >
             צפייה במסמך
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
       </div>
@@ -1320,20 +1334,25 @@ function FilterBar({
 
   const renderField = (f: FilterField) => {
     const v = draft[f.key];
+    const fid = fieldDomId(f.key);
     if (f.control === "text") {
       return (
         <div key={f.key}>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label
+            htmlFor={fid}
+            className="block text-xs font-semibold text-gray-600 mb-1"
+          >
             {f.label}
           </label>
           <input
+            id={fid}
             type="text"
             value={typeof v === "string" ? v : ""}
             onChange={(e) => setField(f.key, e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") onApply();
             }}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-3 py-2 text-sm"
           />
         </div>
       );
@@ -1361,10 +1380,13 @@ function FilterBar({
         // Full-width within the filter grid so the chip list gets its own row.
         <div key={f.key} className="sm:col-span-2 lg:col-span-3">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <label className="text-xs font-semibold text-gray-600">
+            {/* Options are toggle buttons, not inputs, so this is a group
+                caption rather than a label element. The chip list below
+                points back at it with aria-labelledby. */}
+            <span id={`${fid}-label`} className="text-xs font-semibold text-gray-600">
               {f.label}
               {sel.length > 0 ? ` (${sel.length})` : ""}
-            </label>
+            </span>
             {/* AND/OR toggle — only meaningful once 2+ options are picked. */}
             {sel.length > 1 ? (
               <div className="inline-flex rounded-md border border-gray-300 overflow-hidden text-[11px]">
@@ -1397,9 +1419,13 @@ function FilterBar({
               </div>
             ) : null}
           </div>
-          <div className="flex flex-wrap gap-1.5 p-1 border border-gray-300 rounded-md">
+          <div
+            role="group"
+            aria-labelledby={`${fid}-label`}
+            className="flex flex-wrap gap-1.5 p-1 border border-gray-300 rounded-md"
+          >
             {opts.length === 0 ? (
-              <span className="text-xs text-gray-400 px-1">—</span>
+              <span className="text-xs text-gray-600 px-1">—</span>
             ) : (
               <>
                 {shown.map((o) => {
@@ -1409,6 +1435,7 @@ function FilterBar({
                       key={o}
                       type="button"
                       onClick={() => toggle(o)}
+                      aria-pressed={on}
                       className="text-xs rounded-md px-2 py-1 border transition"
                       style={
                         on
@@ -1443,13 +1470,17 @@ function FilterBar({
         f.control === "boolean" ? ["true", "false"] : options[f.key] || [];
       return (
         <div key={f.key}>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <label
+            htmlFor={fid}
+            className="block text-xs font-semibold text-gray-600 mb-1"
+          >
             {f.label}
           </label>
           <select
+            id={fid}
             value={typeof v === "string" ? v : ""}
             onChange={(e) => setField(f.key, e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+            className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white"
           >
             <option value="">הכל</option>
             {opts.map((o) => (
@@ -1474,15 +1505,17 @@ function FilterBar({
         units.find((u) => u.value === draft[unitKey])?.value ?? units[0]?.value;
       return (
         <div key={f.key}>
+          {/* A range is two controls under one caption, so the caption is a
+              span and each input carries its own composed label. */}
           <div className="flex items-center gap-2 mb-1">
-            <label className="text-xs font-semibold text-gray-600">
+            <span className="text-xs font-semibold text-gray-600">
               {f.label}
-            </label>
+            </span>
             {units.length > 1 && (
               <select
                 value={curUnit}
                 onChange={(e) => setField(unitKey, e.target.value)}
-                aria-label="יחידת מדידה"
+                aria-label={`${f.label} — יחידת מדידה`}
                 className="border border-gray-300 rounded px-1.5 py-0.5 text-xs text-gray-700 bg-white"
               >
                 {units.map((u) => (
@@ -1495,8 +1528,10 @@ function FilterBar({
           </div>
           <div className="flex items-center gap-1.5">
             <input
+              id={`${fid}-min`}
               type="number"
               placeholder="מ-"
+              aria-label={`${f.label} — מ-`}
               value={range.min ?? ""}
               onChange={(e) =>
                 setField(f.key, {
@@ -1504,13 +1539,15 @@ function FilterBar({
                   min: e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-2 text-sm"
               dir="ltr"
             />
-            <span className="text-gray-400">–</span>
+            <span className="text-gray-600" aria-hidden="true">–</span>
             <input
+              id={`${fid}-max`}
               type="number"
               placeholder="עד"
+              aria-label={`${f.label} — עד`}
               value={range.max ?? ""}
               onChange={(e) =>
                 setField(f.key, {
@@ -1518,7 +1555,7 @@ function FilterBar({
                   max: e.target.value === "" ? undefined : Number(e.target.value),
                 })
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+              className="w-full border border-border-control rounded-md px-2 py-2 text-sm"
               dir="ltr"
             />
           </div>
@@ -1534,11 +1571,13 @@ function FilterBar({
       for (let y = nowY; y >= 2000; y--) years.push(y);
       return (
         <div key={f.key}>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <span className="block text-xs font-semibold text-gray-600 mb-1">
             {f.label}
-          </label>
+          </span>
           <div className="flex items-center gap-1.5">
             <select
+              id={`${fid}-from`}
+              aria-label={`${f.label} — משנת`}
               value={fromYear}
               onChange={(e) =>
                 setField(f.key, {
@@ -1546,7 +1585,7 @@ function FilterBar({
                   from: e.target.value ? `${e.target.value}-01-01` : undefined,
                 })
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white"
               dir="ltr"
             >
               <option value="">משנת</option>
@@ -1556,8 +1595,10 @@ function FilterBar({
                 </option>
               ))}
             </select>
-            <span className="text-gray-400">–</span>
+            <span className="text-gray-600" aria-hidden="true">–</span>
             <select
+              id={`${fid}-to`}
+              aria-label={`${f.label} — עד שנת`}
               value={toYear}
               onChange={(e) =>
                 setField(f.key, {
@@ -1565,7 +1606,7 @@ function FilterBar({
                   to: e.target.value ? `${e.target.value}-12-31` : undefined,
                 })
               }
-              className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+              className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white"
               dir="ltr"
             >
               <option value="">עד שנת</option>
@@ -1586,27 +1627,31 @@ function FilterBar({
     };
     return (
       <div key={f.key}>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">
+        <span className="block text-xs font-semibold text-gray-600 mb-1">
           {f.label}
-        </label>
+        </span>
         <div className="flex items-center gap-1.5">
           <input
+            id={`${fid}-from`}
             type="date"
+            aria-label={`${f.label} — מתאריך`}
             value={range.from ?? ""}
             onChange={(e) =>
               setField(f.key, { ...range, from: e.target.value || undefined })
             }
-            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-2 py-2 text-sm"
             dir="ltr"
           />
-          <span className="text-gray-400">–</span>
+          <span className="text-gray-600" aria-hidden="true">–</span>
           <input
+            id={`${fid}-to`}
             type="date"
+            aria-label={`${f.label} — עד תאריך`}
             value={range.to ?? ""}
             onChange={(e) =>
               setField(f.key, { ...range, to: e.target.value || undefined })
             }
-            className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+            className="w-full border border-border-control rounded-md px-2 py-2 text-sm"
             dir="ltr"
           />
         </div>
@@ -1616,6 +1661,34 @@ function FilterBar({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      {/* WCAG 3.3.5 — these filters combine in ways that aren't obvious from
+          the controls alone (any-of vs all-of, the switchable quantity unit,
+          the law→section cascade). The explanation lives next to them
+          instead of nowhere. */}
+      <details className="mb-4 text-xs">
+        <summary className="tap-44 inline-flex cursor-pointer items-center font-semibold text-gray-700 hover:underline">
+          איך עובד הסינון?
+        </summary>
+        <div className="mt-2 space-y-1.5 rounded-lg bg-gray-50 p-3 leading-relaxed text-gray-700">
+          <p>
+            כל סינון מצמצם את התוצאות. שדות שנשארים ריקים אינם מסננים כלל.
+          </p>
+          <p>
+            ברשימות שבהן אפשר לבחור כמה ערכים, המתג <strong>&quot;או&quot;</strong>{" "}
+            מחזיר פסקי דין שמתאימים לפחות לערך אחד, והמתג{" "}
+            <strong>&quot;גם&quot;</strong> מחזיר רק פסקי דין שמתאימים לכולם יחד.
+          </p>
+          <p>
+            בטווחי מספרים ותאריכים אפשר למלא רק את הקצה האחד — &quot;מ-&quot;
+            בלבד או &quot;עד&quot; בלבד.
+          </p>
+          <p>
+            לאחר שינוי הסינון יש ללחוץ <strong>&quot;סינון&quot;</strong>; מספר
+            התוצאות המעודכן מוצג מעל הרשימה.
+          </p>
+        </div>
+      </details>
+
       {lawSectionFilter ? (
         <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
           <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -1655,15 +1728,19 @@ function FilterBar({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1">
+              <label
+                htmlFor="flt-law-name"
+                className="block text-[11px] font-semibold text-gray-500 mb-1"
+              >
                 שם החוק
               </label>
               <select
+                id="flt-law-name"
                 value={ls.law ?? ""}
                 onChange={(e) =>
                   setLs({ law: e.target.value, sections: [], mode: lsMode })
                 }
-                className="w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+                className="w-full border border-border-control rounded-md px-2 py-2 text-sm bg-white"
               >
                 <option value="">בחר/י חוק…</option>
                 {lawList.map((law) => (
@@ -1676,10 +1753,17 @@ function FilterBar({
           </div>
           {ls.law && sectionList.length > 0 ? (
             <div className="mt-2">
-              <label className="block text-[11px] font-semibold text-gray-500 mb-1">
+              <span
+                id="flt-law-sections-label"
+                className="block text-[11px] font-semibold text-gray-500 mb-1"
+              >
                 סעיפים{lsSections.length > 0 ? ` (${lsSections.length} נבחרו)` : ""}
-              </label>
-              <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-0.5">
+              </span>
+              <div
+                role="group"
+                aria-labelledby="flt-law-sections-label"
+                className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-0.5"
+              >
                 {sectionList.map((sec) => {
                   const on = lsSections.includes(sec);
                   return (
@@ -1687,6 +1771,7 @@ function FilterBar({
                       key={sec}
                       type="button"
                       onClick={() => toggleSection(sec)}
+                      aria-pressed={on}
                       className="font-mono text-xs rounded-md px-2 py-1 border transition"
                       style={
                         on
@@ -1720,7 +1805,7 @@ function FilterBar({
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
               aria-expanded={open}
             >
-              <span className="text-gray-400 text-[11px] w-3 inline-block">
+              <span className="text-gray-600 text-[11px] w-3 inline-block">
                 {open ? "▾" : "◂"}
               </span>
               <span>{g}</span>
@@ -1756,7 +1841,7 @@ function FilterBar({
           <button
             type="button"
             onClick={onApply}
-            className="text-sm font-semibold rounded-md px-4 py-1.5 text-white"
+            className="tap-44 text-sm font-semibold rounded-md px-4 py-1.5 text-white"
             style={{ background: C_PRIMARY }}
           >
             סינון
@@ -2036,12 +2121,12 @@ export function RulingsList({
                 if (e.key === "Enter") applyText();
               }}
               placeholder='חיפוש מילים בתוך גזרי הדין (תומך "ביטוי מדויק")'
-              className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+              className="flex-1 border border-border-control rounded-md px-3 py-2 text-sm"
             />
             <button
               type="button"
               onClick={applyText}
-              className="text-sm font-semibold rounded-md px-4 py-2 text-white shrink-0"
+              className="tap-44 text-sm font-semibold rounded-md px-4 py-2 text-white shrink-0"
               style={{ background: C_PRIMARY }}
             >
               חיפוש
@@ -2073,11 +2158,13 @@ export function RulingsList({
 
       {/* Results header + sort control */}
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
-        <div>
+        {/* Filtering swaps the list without moving focus, so the count is
+            the only signal anything happened — announce it (WCAG 4.1.3). */}
+        <div role="status" aria-atomic="true">
           {loading ? (
             <span>בטעינה…</span>
           ) : error ? (
-            <span className="text-red-600">{error}</span>
+            <span className="text-red-800">{error}</span>
           ) : total === 0 ? (
             <span>לא נמצאו פסקי דין</span>
           ) : (
@@ -2114,7 +2201,7 @@ export function RulingsList({
             type="button"
             onClick={copyShareLink}
             title="העתק קישור לתצוגה הנוכחית (כולל החיפוש)"
-            className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+            className="border border-border-control rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
           >
             {copied ? "הועתק ✓" : "העתק קישור"}
           </button>
@@ -2130,7 +2217,7 @@ export function RulingsList({
                   setSortKey(e.target.value);
                   setPage(1);
                 }}
-                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white"
+                className="border border-border-control rounded-md px-2 py-1 text-xs bg-white"
               >
                 {sortFields.map((s) => (
                   <option key={s.key} value={s.key}>
@@ -2152,7 +2239,7 @@ export function RulingsList({
                   setPage(1);
                 }}
                 title={activeSortDir === "desc" ? "מהגבוה לנמוך / מהחדש לישן" : "מהנמוך לגבוה / מהישן לחדש"}
-                className="border border-gray-300 rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
+                className="border border-border-control rounded-md px-2 py-1 text-xs bg-white hover:bg-gray-50"
               >
                 {activeSortDir === "desc" ? "יורד ↓" : "עולה ↑"}
               </button>

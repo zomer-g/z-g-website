@@ -29,7 +29,7 @@ interface Props {
 /* ─── Icon Config ─── */
 
 const MEDIA_TYPE_ICONS: Record<MediaType, { icon: React.ElementType; color: string }> = {
-  video:    { icon: Play,        color: "bg-red-500/10 text-red-600" },
+  video:    { icon: Play,        color: "bg-red-500/10 text-red-800" },
   article:  { icon: Newspaper,   color: "bg-blue-500/10 text-blue-600" },
   podcast:  { icon: Mic,         color: "bg-purple-500/10 text-purple-600" },
   academic: { icon: BookOpen,    color: "bg-emerald-500/10 text-emerald-700" },
@@ -200,7 +200,6 @@ export function MediaTabs({ pressItems, academicItems, typeLabels }: Props) {
             onClick={() => setActive(tab.id)}
             className={cn(
               "relative -mb-px px-5 py-3 text-sm font-semibold transition-colors duration-150",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
               active === tab.id
                 ? "border-b-2 border-accent text-primary-dark"
                 : "text-muted hover:text-primary-dark",

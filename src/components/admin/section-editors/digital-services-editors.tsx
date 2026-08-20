@@ -430,7 +430,7 @@ export function DigitalServicesEditors({ content, onChange }: DigitalServicesEdi
               dir="rtl"
               className={cn(
                 "w-full rounded-md border border-border bg-white px-3 py-2 text-sm",
-                "focus:outline-none focus:ring-2 focus:ring-primary/30",
+                " focus:ring-2 focus:ring-primary/30",
               )}
             >
               <option value="0">בראש סקציית השירותים</option>

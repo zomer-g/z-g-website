@@ -8,9 +8,10 @@
 // just collects the chosen chat ids and hands them back to the shell
 // which does the merging.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X, CheckSquare, Square, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useModalDialog } from "@/hooks/use-modal-dialog";
 import type { WhatsappChatSummary } from "./types";
 
 interface MergedPickerProps {
@@ -28,14 +29,8 @@ export function MergedPicker({
 }: MergedPickerProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected));
 
-  // Esc closes the picker — standard expectation for modal overlays.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onCancel]);
+  // Esc to close, focus trapped inside, focus restored to the trigger.
+  const dialog = useModalDialog(true, onCancel);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -53,11 +48,13 @@ export function MergedPicker({
     <div
       className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
       onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="merged-picker-title"
     >
+      {/* The dialog role belongs on the panel, not the backdrop: a screen
+          reader confined to the dialog should not have the overlay's click
+          target as its only child. */}
       <div
+        {...dialog.dialogProps}
+        aria-labelledby="merged-picker-title"
         className="w-full max-w-md rounded-2xl bg-white shadow-2xl flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
@@ -126,9 +123,9 @@ export function MergedPicker({
                   )}
                 >
                   {isOn ? (
-                    <CheckSquare className="h-5 w-5 text-emerald-600 shrink-0" />
+                    <CheckSquare className="h-5 w-5 text-emerald-800 shrink-0" />
                   ) : (
-                    <Square className="h-5 w-5 text-gray-400 shrink-0" />
+                    <Square className="h-5 w-5 text-gray-600 shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-gray-900 truncate">

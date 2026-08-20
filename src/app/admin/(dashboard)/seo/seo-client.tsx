@@ -456,13 +456,13 @@ function OpportunitiesCard({ rows }: { rows: OpportunityRow[] }) {
             <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border text-right text-xs uppercase text-muted">
-                  <th className="py-2 font-medium">חיפוש</th>
-                  <th className="py-2 font-medium">עמוד</th>
-                  <th className="py-2 font-medium">מיקום</th>
-                  <th className="py-2 font-medium">חשיפות</th>
-                  <th className="py-2 font-medium">קליקים</th>
-                  <th className="py-2 font-medium">CTR</th>
-                  <th className="py-2 font-medium">פוטנציאל</th>
+                  <th scope="col" className="py-2 font-medium">חיפוש</th>
+                  <th scope="col" className="py-2 font-medium">עמוד</th>
+                  <th scope="col" className="py-2 font-medium">מיקום</th>
+                  <th scope="col" className="py-2 font-medium">חשיפות</th>
+                  <th scope="col" className="py-2 font-medium">קליקים</th>
+                  <th scope="col" className="py-2 font-medium">CTR</th>
+                  <th scope="col" className="py-2 font-medium">פוטנציאל</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -481,6 +481,7 @@ function OpportunitiesCard({ rows }: { rows: OpportunityRow[] }) {
                           >
                             {pagePath}
                             <ExternalLink size={11} />
+                          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                           </a>
                         ) : (
                           "—"
@@ -528,11 +529,11 @@ function LowCtrCard({ rows }: { rows: LowCtrRow[] }) {
             <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border text-right text-xs uppercase text-muted">
-                  <th className="py-2 font-medium">חיפוש</th>
-                  <th className="py-2 font-medium">מיקום</th>
-                  <th className="py-2 font-medium">חשיפות</th>
-                  <th className="py-2 font-medium">קליקים</th>
-                  <th className="py-2 font-medium">CTR</th>
+                  <th scope="col" className="py-2 font-medium">חיפוש</th>
+                  <th scope="col" className="py-2 font-medium">מיקום</th>
+                  <th scope="col" className="py-2 font-medium">חשיפות</th>
+                  <th scope="col" className="py-2 font-medium">קליקים</th>
+                  <th scope="col" className="py-2 font-medium">CTR</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -572,11 +573,11 @@ function TopPagesCard({ rows }: { rows: TopPageRow[] }) {
             <table className="w-full text-sm" dir="rtl">
               <thead>
                 <tr className="border-b border-border text-right text-xs uppercase text-muted">
-                  <th className="py-2 font-medium">עמוד</th>
-                  <th className="py-2 font-medium">חשיפות</th>
-                  <th className="py-2 font-medium">קליקים</th>
-                  <th className="py-2 font-medium">CTR</th>
-                  <th className="py-2 font-medium">מיקום ממוצע</th>
+                  <th scope="col" className="py-2 font-medium">עמוד</th>
+                  <th scope="col" className="py-2 font-medium">חשיפות</th>
+                  <th scope="col" className="py-2 font-medium">קליקים</th>
+                  <th scope="col" className="py-2 font-medium">CTR</th>
+                  <th scope="col" className="py-2 font-medium">מיקום ממוצע</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -593,6 +594,7 @@ function TopPagesCard({ rows }: { rows: TopPageRow[] }) {
                         >
                           {pagePath}
                           <ExternalLink size={11} />
+                        <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                         </a>
                       </td>
                       <td className="py-2 tabular-nums">{r.impressions.toLocaleString("he-IL")}</td>
@@ -723,6 +725,7 @@ function IdeaCard({ idea }: { idea: KeywordIdea }) {
           >
             {idea.targetPage}
             <ExternalLink size={11} />
+          <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
           {idea.contentGap && (
             <p className="mt-2 text-xs text-error">

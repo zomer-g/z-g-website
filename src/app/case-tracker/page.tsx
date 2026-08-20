@@ -30,7 +30,7 @@ export default async function CaseTrackerPage() {
         <Container>
           <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">איתור אסמכתאות משפטיות</h1>
           <p className="mt-4 text-lg text-white/80 max-w-2xl mx-auto">תוסף חינמי לדפדפן Chrome לעורכי דין, חוקרים ואנשי מקצוע משפטיים</p>
-          <p className="mt-2 text-sm text-white/50">Israeli Legal Case Finder — Chrome Extension</p>
+          <p className="mt-2 text-sm text-white/80" lang="en" dir="ltr">Israeli Legal Case Finder — Chrome Extension</p>
         </Container>
       </section>
 

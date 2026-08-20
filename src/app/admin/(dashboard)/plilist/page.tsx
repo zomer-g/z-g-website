@@ -146,16 +146,16 @@ export default function AdminPlilistPage() {
             <table className="w-full text-right">
               <thead>
                 <tr className="border-b border-border bg-gray-50">
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">
                     כותרת
                   </th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">
                     סטטוס
                   </th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">
                     תאריך
                   </th>
-                  <th className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <th scope="col" className="px-4 py-3 text-sm font-semibold text-foreground">
                     פעולות
                   </th>
                 </tr>

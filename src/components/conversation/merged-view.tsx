@@ -147,7 +147,7 @@ export function MergedView({
           type="button"
           onClick={selectionMode ? onExitSelection : onExit}
           aria-label={selectionMode ? "יציאה ממצב סימון" : "חזרה לרשימת השיחות"}
-          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
         >
           <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -176,7 +176,7 @@ export function MergedView({
                 title={starFilterActive ? "הצגת כל ההודעות" : "הצגת מועדפות בלבד"}
                 aria-label={starFilterActive ? "הצגת כל ההודעות" : "הצגת הודעות מועדפות בלבד"}
                 className={cn(
-                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
                   starFilterActive
                     ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
                     : "hover:bg-black/5 text-gray-600",
@@ -197,7 +197,7 @@ export function MergedView({
                 onClick={onPrintAll}
                 title="הדפסת כל ההודעות המוצגות"
                 aria-label="הדפסת כל ההודעות המוצגות"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <Printer className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -206,7 +206,7 @@ export function MergedView({
                 onClick={onEnterSelection}
                 title="בחירת הודעות"
                 aria-label="כניסה למצב בחירת הודעות"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <CheckSquare className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -219,7 +219,7 @@ export function MergedView({
                 disabled={(selectedIds?.size ?? 0) === 0}
                 title="סימון הנבחרות כמועדפות"
                 aria-label="סימון ההודעות הנבחרות כמועדפות"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
               >
                 <Star className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -229,7 +229,7 @@ export function MergedView({
                 disabled={(selectedIds?.size ?? 0) === 0}
                 title="הדפסת הנבחרות"
                 aria-label="הדפסת ההודעות הנבחרות"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <Printer className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -240,7 +240,7 @@ export function MergedView({
                   disabled={(selectedIds?.size ?? 0) === 0}
                   title="הסתרת הנבחרות"
                   aria-label="הסתרת ההודעות הנבחרות ממציגים אחרים"
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
                 >
                   <EyeOff className="h-5 w-5" aria-hidden="true" />
                 </button>
@@ -250,7 +250,7 @@ export function MergedView({
                 onClick={onExitSelection}
                 title="יציאה ממצב בחירה"
                 aria-label="יציאה ממצב בחירת הודעות"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>

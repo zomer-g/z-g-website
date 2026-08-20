@@ -64,6 +64,7 @@ export default async function FoiGuidePage() {
               className="text-primary underline"
             >
               מדריך חופש המידע
+            <span className="sr-only"> (נפתח בלשונית חדשה)</span>
             </a>
             . הפרקים מועלים לאינדקס סמנטי של z-g.co.il לצורך חיפוש בעתיד והנגשה
             דרך MCP לכלי AI חיצוניים.
@@ -112,6 +113,7 @@ export default async function FoiGuidePage() {
                       aria-label="פתח את הפרק במדריך"
                     >
                       <ExternalLink size={16} />
+                    <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                     </a>
                   </div>
                 </li>

@@ -59,7 +59,7 @@ export default async function TimelineLandingPage({
           <div>
             <Link
               href="/digital-services"
-              className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary-dark transition-colors mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 rounded"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary-dark transition-colors mb-4 focus-visible:ring-2 focus-visible:ring-emerald-600 rounded"
             >
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
               <span>חזרה לשירותים דיגיטליים</span>

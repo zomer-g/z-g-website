@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { GuidelinesDashboard } from "./guidelines-dashboard";
 import { getPageContent } from "@/lib/content";
@@ -69,6 +70,15 @@ export default async function GuidelinesPage() {
           </Container>
         </section>
       </EditableSection>
+      <Container className="pt-6">
+        <Breadcrumbs
+          items={[
+            { label: "ראשי", href: "/" },
+            { label: "מיזמים", href: "/projects" },
+            { label: "מאגר הנחיות" },
+          ]}
+        />
+      </Container>
       <Container className="py-8">
         <GuidelinesDashboard />
       </Container>

@@ -113,12 +113,12 @@ export default async function HomePage() {
                           className={cn(
                             "mb-4 inline-flex h-12 w-12 items-center justify-center",
                             "rounded-lg bg-primary/5 text-primary",
-                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
+                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent-text"
                           )}
                         >
                           <Icon className="h-6 w-6" aria-hidden="true" />
                         </div>
-                        <CardTitle className="transition-colors duration-200 group-hover:text-accent">
+                        <CardTitle className="transition-colors duration-200 group-hover:text-accent-text">
                           {project.title}
                         </CardTitle>
                         <CardDescription>{project.subtitle}</CardDescription>
@@ -127,7 +127,7 @@ export default async function HomePage() {
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                            "transition-colors duration-200 group-hover:text-accent"
+                            "transition-colors duration-200 group-hover:text-accent-text"
                           )}
                         >
                           לאתר הפרויקט
@@ -178,7 +178,7 @@ export default async function HomePage() {
                           className={cn(
                             "mb-3 inline-flex h-10 w-10 items-center justify-center",
                             "rounded-lg bg-primary/5 text-primary",
-                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent"
+                            "transition-colors duration-300 group-hover:bg-accent/10 group-hover:text-accent-text"
                           )}
                         >
                           <Icon className="h-5 w-5" aria-hidden="true" />
@@ -190,7 +190,7 @@ export default async function HomePage() {
                         <span
                           className={cn(
                             "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                            "transition-colors duration-200 group-hover:text-accent"
+                            "transition-colors duration-200 group-hover:text-accent-text"
                           )}
                         >
                           למידע נוסף
@@ -291,7 +291,7 @@ export default async function HomePage() {
                         <Calendar className="h-4 w-4" aria-hidden="true" />
                         <time>{article.date}</time>
                       </div>
-                      <CardTitle className={cn("transition-colors duration-200 group-hover:text-accent")}>
+                      <CardTitle className={cn("transition-colors duration-200 group-hover:text-accent-text")}>
                         {article.title}
                       </CardTitle>
                       <CardDescription>{article.excerpt}</CardDescription>
@@ -300,7 +300,7 @@ export default async function HomePage() {
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5 text-sm font-semibold text-primary",
-                          "transition-colors duration-200 group-hover:text-accent"
+                          "transition-colors duration-200 group-hover:text-accent-text"
                         )}
                       >
                         קראו עוד

@@ -141,7 +141,7 @@ export function WorkflowsSidebar({
             className={cn(
               "w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5",
               "text-sm text-gray-900 placeholder:text-gray-600",
-              "focus:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200",
+              "focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200",
             )}
           />
         </label>
@@ -225,7 +225,7 @@ function TabButton({
       onClick={onClick}
       className={cn(
         "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold",
-        "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
+        "transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
         active
           ? "text-emerald-800 border-b-2 border-emerald-600 bg-emerald-50/50"
           : "text-gray-700 border-b-2 border-transparent hover:bg-gray-50",
@@ -302,7 +302,7 @@ function List({
               onClick={() => onSelect(it.kind, it.id)}
               className={cn(
                 "w-full flex items-start gap-3 px-3 py-3 text-start hover:bg-black/[0.04] transition-colors",
-                "focus:outline-none focus-visible:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
+                "focus-visible:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
                 isActive &&
                   "bg-emerald-50 border-s-4 border-emerald-600 ps-2",
               )}

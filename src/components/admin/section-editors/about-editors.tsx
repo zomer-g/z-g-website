@@ -110,7 +110,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onClick={() => {
               update("firmStory", { paragraphs: [...content.firmStory.paragraphs, ""] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף פסקה
           </button>
@@ -178,7 +178,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onClick={() => {
               update("attorney", { bio: [...content.attorney.bio, ""] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף פסקה
           </button>
@@ -225,7 +225,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onClick={() => {
               update("attorney", { credentials: [...content.attorney.credentials, { icon: "Award", text: "" }] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף הסמכה
           </button>
@@ -315,7 +315,7 @@ export function AboutEditors({ content, onChange }: AboutEditorsProps) {
             onClick={() => {
               update("values", { items: [...content.values.items, { icon: "Star", title: "", description: "" }] });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף ערך
           </button>

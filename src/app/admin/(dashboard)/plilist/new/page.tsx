@@ -192,7 +192,7 @@ export default function NewPlilistPostPage() {
               onChange={(e) =>
                 setStatus(e.target.value as "DRAFT" | "PUBLISHED")
               }
-              className="rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors hover:border-primary/40 focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+              className="rounded-lg border border-border bg-background px-4 py-2.5 text-foreground transition-colors hover:border-primary/40"
             >
               <option value="DRAFT">טיוטה</option>
               <option value="PUBLISHED">פורסם</option>

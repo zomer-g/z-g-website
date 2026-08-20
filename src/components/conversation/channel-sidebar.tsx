@@ -88,7 +88,7 @@ export function ChatSidebar({
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1",
               "border border-emerald-300 bg-white text-emerald-800",
               "text-xs font-semibold hover:bg-emerald-50 transition-colors",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
+              "focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1",
               "shrink-0",
             )}
             title="הצגת כמה שיחות יחד בציר זמן רציף"
@@ -114,7 +114,7 @@ export function ChatSidebar({
             placeholder="סינון לפי שם השכבה/השיחה"
             title="לחיפוש בתוך התוכן השתמשו בשורת החיפוש העליונה"
             aria-label="סינון רשימת השכבות/השיחות לפי שם"
-            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-600 focus:outline-none focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200"
+            className="w-full rounded-full bg-[#f0f2f5] border border-transparent ps-8 pe-3 py-1.5 text-sm text-gray-900 placeholder:text-gray-600 focus-visible:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-200"
           />
         </label>
       </div>
@@ -145,7 +145,7 @@ export function ChatSidebar({
                     aria-current={isActive ? "true" : undefined}
                     className={cn(
                       "w-full flex items-start gap-3 px-3 py-3 text-start hover:bg-black/[0.04] transition-colors",
-                      "focus:outline-none focus-visible:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
+                      "focus-visible:bg-emerald-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-600",
                       isActive &&
                         "bg-emerald-50 border-s-4 border-emerald-600 ps-2",
                     )}

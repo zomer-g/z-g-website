@@ -318,18 +318,24 @@ function MultiDropdown({ label, options, selected, onChange, searchable = false 
 
   return (
     <div ref={ref} className="relative">
+      {/* The trigger is the only focusable thing here, so it carries the
+          field's name — the caption beside it is a plain span. */}
       <button onClick={() => setOpen(!open)} type="button"
+              aria-expanded={open}
+              aria-haspopup="listbox"
+              aria-label={`${label}: ${selected.length > 0 ? `${selected.length} נבחרו` : "הכל"}`}
               className="w-full border rounded-lg p-2 text-sm text-right bg-white flex justify-between items-center gap-2 hover:border-gray-400">
         <span className="truncate text-gray-700">
           {selected.length > 0 ? `${selected.length} נבחרו` : "הכל"}
         </span>
-        <span className="text-xs text-gray-700">{open ? "▲" : "▼"}</span>
+        <span className="text-xs text-gray-700" aria-hidden="true">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto" dir="rtl">
           {searchable && (
             <input type="text" placeholder="חיפוש..." value={search} onChange={e => setSearch(e.target.value)}
-                   className="w-full border-b p-2 text-sm outline-none sticky top-0 bg-white" />
+                   aria-label={`חיפוש ברשימת ${label}`}
+                   className="w-full border-b p-2 text-sm sticky top-0 bg-white" />
           )}
           {filtered.slice(0, 100).map(o => (
             <label key={o.value} className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer text-sm">
@@ -356,18 +362,19 @@ function FilterPanel({ options, filters, onChange, onClear }: {
     <div className="bg-white rounded-xl shadow-sm p-4 mb-4 flex flex-wrap gap-4 items-end"
          style={{ borderTopColor: C_PRIMARY, borderTopWidth: 3 }}>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>בית משפט</label>
+        <span className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>בית משפט</span>
         <MultiDropdown label="בית משפט"
           options={options.courts.map(c => ({ label: c, value: c }))}
           selected={filters.courts || []}
           onChange={vals => onChange("courts", vals)} searchable />
       </div>
       <div className="flex-[2] min-w-[160px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>
+        <span className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>
           שנים: {filters.yearMin || options.yearRange[0]}–{filters.yearMax || options.yearRange[1]}
-        </label>
+        </span>
         <div className="flex gap-1 items-center">
           <select className="border rounded-lg p-2 text-sm bg-white w-20"
+                  aria-label="משנת"
                   value={filters.yearMin || options.yearRange[0]}
                   onChange={e => onChange("yearMin", Number(e.target.value))}>
             {Array.from({ length: options.yearRange[1] - options.yearRange[0] + 1 }, (_, i) => options.yearRange[0] + i)
@@ -375,6 +382,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
           </select>
           <span className="text-gray-700 text-xs">עד</span>
           <select className="border rounded-lg p-2 text-sm bg-white w-20"
+                  aria-label="עד שנת"
                   value={filters.yearMax || options.yearRange[1]}
                   onChange={e => onChange("yearMax", Number(e.target.value))}>
             {Array.from({ length: options.yearRange[1] - options.yearRange[0] + 1 }, (_, i) => options.yearRange[0] + i)
@@ -383,15 +391,15 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         </div>
       </div>
       <div className="flex-[2] min-w-[160px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>תוצאת גזר דין</label>
+        <span className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>תוצאת גזר דין</span>
         <MultiDropdown label="תוצאה"
           options={options.verdicts.map(v => ({ label: v, value: v }))}
           selected={filters.verdicts || []}
           onChange={vals => onChange("verdicts", vals)} />
       </div>
       <div className="flex-[1] min-w-[130px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>נאשמים</label>
-        <select className="w-full border rounded-lg p-2 text-sm bg-white" value={filters.sole || "all"}
+        <label htmlFor="san-1" className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>נאשמים</label>
+        <select id="san-1" className="w-full border rounded-lg p-2 text-sm bg-white" value={filters.sole || "all"}
                 onChange={e => onChange("sole", e.target.value)}>
           <option value="all">כולם</option>
           <option value="sole">נאשם יחיד</option>
@@ -399,7 +407,7 @@ function FilterPanel({ options, filters, onChange, onClear }: {
         </select>
       </div>
       <div className="flex-[2] min-w-[180px]">
-        <label className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>עבירה</label>
+        <span className="text-xs font-semibold block mb-1" style={{ color: C_PRIMARY }}>עבירה</span>
         <MultiDropdown label="עבירה"
           options={options.offenses}
           selected={filters.offenses || []}

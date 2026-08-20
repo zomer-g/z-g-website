@@ -54,7 +54,7 @@ export default function HeaderSettingsPanel() {
   }
 
   const inputCls =
-    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40";
+    "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary/40";
 
   return (
     <div className="rounded-lg border border-border bg-background">

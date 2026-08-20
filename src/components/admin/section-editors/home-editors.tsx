@@ -170,7 +170,7 @@ export function HomeEditors({ content, onChange }: HomeEditorsProps) {
               const paragraphs = [...content.aboutPreview.paragraphs, ""];
               update("aboutPreview", { paragraphs });
             }}
-            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent transition-colors"
+            className="flex items-center gap-1.5 text-sm text-primary hover:text-accent-text transition-colors"
           >
             <Plus size={14} /> הוסף פסקה
           </button>

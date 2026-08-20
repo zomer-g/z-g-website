@@ -112,7 +112,7 @@ export default async function ServicesPage() {
                   <li key={service.slug}>
                     <Link
                       href={`/services/${service.slug}`}
-                      className="group block h-full focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2 rounded-xl"
+                      className="group block h-full rounded-xl"
                       aria-label={`${service.title} — ${pageContent.grid.readMoreText}`}
                     >
                       <Card className="flex h-full flex-col hover:shadow-md hover:shadow-primary/10 transition-shadow duration-200">
@@ -123,7 +123,7 @@ export default async function ServicesPage() {
                           >
                             <Icon className="h-6 w-6 text-accent" />
                           </div>
-                          <CardTitle className="group-hover:text-accent transition-colors duration-200">
+                          <CardTitle className="group-hover:text-accent-text transition-colors duration-200">
                             {service.title}
                           </CardTitle>
                         </CardHeader>
@@ -131,7 +131,7 @@ export default async function ServicesPage() {
                           <CardDescription>{service.description}</CardDescription>
                         </CardContent>
                         <CardFooter>
-                          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent transition-colors duration-200">
+                          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary group-hover:text-accent-text transition-colors duration-200">
                             {pageContent.grid.readMoreText}
                             <ArrowLeft
                               className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
@@ -168,7 +168,7 @@ export default async function ServicesPage() {
           <div className="mt-8">
             <Link
               href={cta.ctaLink}
-              className="inline-flex items-center rounded-lg bg-accent px-8 py-3.5 text-lg font-bold text-primary-dark transition-colors duration-200 hover:bg-accent-light focus-visible:outline-3 focus-visible:outline-accent focus-visible:outline-offset-2"
+              className="inline-flex items-center rounded-lg bg-accent px-8 py-3.5 text-lg font-bold text-accent-ink transition-colors duration-200 hover:bg-accent-light"
             >
               {cta.ctaText}
             </Link>

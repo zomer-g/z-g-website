@@ -915,7 +915,7 @@ export function Editor({ initialContent, onChange }: EditorProps) {
     editorProps: {
       attributes: {
         class:
-          "prose prose-lg max-w-none min-h-[300px] px-4 py-3 focus:outline-none",
+          "prose prose-lg max-w-none min-h-[300px] px-4 py-3",
         dir: "rtl",
       },
     },
@@ -974,7 +974,16 @@ export function Editor({ initialContent, onChange }: EditorProps) {
       }
 
       const data = await res.json();
-      editor.chain().focus().setImage({ src: data.url }).run();
+      // Ask at insert time or the alt never gets written: every image the
+      // CMS has published so far went out with an empty one (WCAG 1.1.1).
+      // An empty answer is a legitimate result — it marks the image as
+      // decorative, which is different from never having been asked.
+      const alt =
+        window.prompt(
+          "תיאור התמונה לקוראי מסך.\nהשאירו ריק אם התמונה דקורטיבית בלבד ואינה נושאת מידע.",
+          "",
+        ) ?? "";
+      editor.chain().focus().setImage({ src: data.url, alt }).run();
     } catch (err) {
       alert(err instanceof Error ? err.message : "שגיאה בהעלאת התמונה");
     } finally {

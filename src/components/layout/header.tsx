@@ -165,8 +165,8 @@ export default function Header({ content }: HeaderProps) {
               href={data.ctaLink}
               className={cn(
                 "inline-flex items-center rounded-md px-5 py-2.5",
-                "bg-accent text-primary-dark text-sm font-bold",
-                "transition-all duration-200 hover:bg-accent-light focus-visible:outline-accent"
+                "bg-accent text-accent-ink text-sm font-bold",
+                "transition-all duration-200 hover:bg-accent-light"
               )}
             >
               {data.ctaText}
@@ -178,8 +178,8 @@ export default function Header({ content }: HeaderProps) {
             type="button"
             onClick={toggleMobileMenu}
             className={cn(
-              "inline-flex items-center justify-center rounded-md p-2 lg:hidden",
-              "text-primary transition-colors duration-200 hover:bg-muted-bg hover:text-accent focus-visible:outline-accent"
+              "tap-44 inline-flex items-center justify-center rounded-md p-2 lg:hidden",
+              "text-primary transition-colors duration-200 hover:bg-muted-bg hover:text-accent-text"
             )}
             aria-expanded={isMobileMenuOpen}
             aria-controls="mobile-navigation"
@@ -305,7 +305,7 @@ export default function Header({ content }: HeaderProps) {
                   onClick={closeMobileMenu}
                   className={cn(
                     "block w-full rounded-md px-5 py-3 text-center",
-                    "bg-accent text-primary-dark font-bold transition-all duration-200 hover:bg-accent-light"
+                    "bg-accent text-accent-ink font-bold transition-all duration-200 hover:bg-accent-light"
                   )}
                 >
                   {data.ctaText}
@@ -404,7 +404,7 @@ function DesktopDropdown({
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          aria-haspopup="menu"
+          aria-haspopup="true"
           aria-label={open ? `סגירת תפריט ${item.label}` : `פתיחת תפריט ${item.label}`}
           className={cn(
             "inline-flex items-center rounded-e-md px-1.5 py-2",
@@ -423,8 +423,12 @@ function DesktopDropdown({
       </div>
 
       {open ? (
+        // Deliberately a plain list, not role="menu": that role promises
+        // application-menu keyboard behaviour (arrows between items, Home /
+        // End, Tab exits the whole menu) that site navigation neither has
+        // nor wants. A list of links is what this is, and what a screen
+        // reader handles best (WCAG 4.1.2).
         <ul
-          role="menu"
           aria-label={item.label}
           className={cn(
             "absolute end-0 top-full mt-1 min-w-[14rem]",
@@ -433,10 +437,9 @@ function DesktopDropdown({
           )}
         >
           {item.children!.map((child) => (
-            <li key={child.href} role="none">
+            <li key={child.href}>
               <Link
                 href={child.href}
-                role="menuitem"
                 className={cn(
                   "block px-4 py-2 text-sm transition-colors duration-200",
                   isActive(child.href)

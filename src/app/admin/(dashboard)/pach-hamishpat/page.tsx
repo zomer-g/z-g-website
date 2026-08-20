@@ -437,7 +437,7 @@ function MessagesTab({
             aria-label="לבחירת תמונה או גרירה לכאן"
             className={cn(
               "rounded-lg border-2 border-dashed p-6 text-center cursor-pointer transition-colors",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "focus-visible:ring-2 focus-visible:ring-primary",
               isDragging
                 ? "border-primary bg-primary/5"
                 : "border-border bg-muted-bg hover:border-primary/40",
@@ -566,6 +566,7 @@ function MessagesTab({
                   className="text-xs text-primary hover:underline mt-1 inline-block break-all"
                 >
                   {m.image_url}
+                <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                 </a>
               ) : null}
             </div>

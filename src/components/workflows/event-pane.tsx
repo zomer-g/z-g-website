@@ -263,7 +263,7 @@ export function EventPane({
         <button
           type="button"
           onClick={selectionMode ? onExitSelection : onBack}
-          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+          className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
           aria-label={selectionMode ? "יציאה ממצב סימון" : "חזרה לרשימה"}
           title={selectionMode ? "ביטול מצב סימון" : "חזרה לרשימה"}
         >
@@ -298,7 +298,7 @@ export function EventPane({
                 title={starFilterActive ? "הצגת כל האירועים" : "הצגת מועדפים בלבד"}
                 aria-label={starFilterActive ? "הצגת כל האירועים" : "הצגת אירועים מועדפים בלבד"}
                 className={cn(
-                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
+                  "relative inline-flex items-center justify-center h-9 w-9 rounded-full focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 transition-colors",
                   starFilterActive
                     ? "bg-amber-100 text-amber-600 hover:bg-amber-200"
                     : "hover:bg-black/5 text-gray-600",
@@ -319,7 +319,7 @@ export function EventPane({
                 onClick={onPrintAll}
                 title="הדפסת כל האירועים המוצגים"
                 aria-label="הדפסת כל האירועים המוצגים"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <Printer className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -328,7 +328,7 @@ export function EventPane({
                 onClick={onEnterSelection}
                 title="בחירת אירועים"
                 aria-label="כניסה למצב בחירת אירועים"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-black/5 text-gray-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <CheckSquare className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -341,7 +341,7 @@ export function EventPane({
                 disabled={(selectedIds?.size ?? 0) === 0}
                 title="סימון הנבחרים כמועדפים"
                 aria-label="סימון האירועים הנבחרים כמועדפים"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-amber-600 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1"
               >
                 <Star className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -351,7 +351,7 @@ export function EventPane({
                 disabled={(selectedIds?.size ?? 0) === 0}
                 title="הדפסת הנבחרים"
                 aria-label="הדפסת האירועים הנבחרים"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <Printer className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -360,7 +360,7 @@ export function EventPane({
                 onClick={onExitSelection}
                 title="יציאה ממצב בחירה"
                 aria-label="יציאה ממצב בחירת אירועים"
-                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
+                className="inline-flex items-center justify-center h-9 w-9 rounded-full text-gray-700 hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1"
               >
                 <X className="h-5 w-5" aria-hidden="true" />
               </button>

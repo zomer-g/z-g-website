@@ -26,7 +26,7 @@ export default function Footer({ content }: FooterProps) {
                   href={data.contactInfo.phoneHref}
                   className={cn(
                     "flex items-center gap-2 text-sm text-white/80",
-                    "transition-colors duration-200 hover:text-accent focus-visible:text-accent"
+                    "transition-colors duration-200 hover:text-accent-on-dark focus-visible:text-accent-on-dark"
                   )}
                   aria-label={`התקשרו: ${data.contactInfo.phone}`}
                 >
@@ -39,7 +39,7 @@ export default function Footer({ content }: FooterProps) {
                   href={data.contactInfo.emailHref}
                   className={cn(
                     "flex items-center gap-2 text-sm text-white/80",
-                    "transition-colors duration-200 hover:text-accent focus-visible:text-accent"
+                    "transition-colors duration-200 hover:text-accent-on-dark focus-visible:text-accent-on-dark"
                   )}
                   aria-label={`שלחו אימייל: ${data.contactInfo.email}`}
                 >
@@ -59,7 +59,7 @@ export default function Footer({ content }: FooterProps) {
                     href={link.href}
                     className={cn(
                       "text-xs text-white/80 transition-colors duration-200",
-                      "hover:text-accent focus-visible:text-accent"
+                      "hover:text-accent-on-dark focus-visible:text-accent-on-dark"
                     )}
                   >
                     {link.label}
