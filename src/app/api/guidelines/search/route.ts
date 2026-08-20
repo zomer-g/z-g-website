@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Guideline } from "@/types/guideline";
+import { UNFILTERED_KEY } from "@/lib/guidelines-cache";
 import {
-  getCached,
-  getStale,
-  setCached,
-  findUnfilteredKey,
-  UNFILTERED_KEY,
-} from "@/lib/guidelines-cache";
+  getGuidelinesCorpus,
+  type CorpusStatus,
+} from "@/lib/guidelines-corpus";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
 import {
@@ -28,11 +26,7 @@ import {
   isBareSingleWord,
   hasPhrase,
 } from "@/lib/guidelines-query";
-import {
-  fetchAllUpstreamGuidelines,
-  getGuidelinesApiKey,
-  stripUrls,
-} from "@/lib/guidelines-upstream";
+import { getGuidelinesApiKey } from "@/lib/guidelines-upstream";
 import { readGuidelinesConfig } from "../documents/route";
 import { evaluateFilter } from "@/lib/rulings-filter-eval";
 import type { UpstreamRulingItem } from "@/lib/rulings-upstream";
@@ -54,35 +48,12 @@ async function readTtlMs(): Promise<number> {
   }
 }
 
-async function ensureItemsCache(): Promise<Guideline[] | null> {
-  if (!getGuidelinesApiKey()) return null;
-
-  const existingKey = findUnfilteredKey();
-  if (existingKey) {
-    const cached = getCached(existingKey);
-    if (cached) return cached;
-  }
-
-  const [rawItems, ttlMs] = await Promise.all([
-    fetchAllUpstreamGuidelines(),
-    readTtlMs(),
-  ]);
-  if (rawItems === null) {
-    // Upstream refresh failed (TAG-IT slow/down). Serve the last-known-good
-    // corpus if we ever loaded it, so search degrades to slightly-stale rather
-    // than 502. Null only when we've never had a successful load.
-    const stale = getStale(UNFILTERED_KEY);
-    if (stale) {
-      console.warn(
-        "[guidelines-search] upstream refresh failed — serving stale corpus",
-      );
-      return stale;
-    }
-    return null;
-  }
-  const cleaned = stripUrls(rawItems);
-  setCached(UNFILTERED_KEY, cleaned, ttlMs);
-  return cleaned;
+// Search matches ids against the embeddings index, then needs the corpus to
+// turn those ids into documents. Same corpus, same single crawl, as
+// /documents and /sources — see lib/guidelines-corpus.
+async function ensureItemsCache(): Promise<CorpusStatus> {
+  if (!getGuidelinesApiKey()) return { kind: "failed" };
+  return getGuidelinesCorpus(UNFILTERED_KEY, {}, await readTtlMs());
 }
 
 function clampInt(v: string | null, min: number, fallback: number): number {
@@ -243,13 +214,20 @@ export async function GET(req: NextRequest) {
   }
 
   // Pull metadata for those ids from the documents cache.
-  const allItems = await ensureItemsCache();
-  if (!allItems) {
+  const corpus = await ensureItemsCache();
+  if (corpus.kind === "warming") {
+    return NextResponse.json(
+      { error: "מאגר ההנחיות בטעינה — נסו שוב בעוד רגע.", warming: true },
+      { status: 503, headers: { "Retry-After": "15" } },
+    );
+  }
+  if (corpus.kind === "failed") {
     return NextResponse.json(
       { error: "Upstream metadata unavailable" },
       { status: 502 },
     );
   }
+  const allItems = corpus.items;
   const byId = new Map<number, Guideline>();
   for (const it of allItems) byId.set(it.id, it);
 

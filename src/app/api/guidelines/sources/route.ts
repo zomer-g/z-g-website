@@ -1,19 +1,10 @@
 import { NextResponse } from "next/server";
 import type { Guideline } from "@/types/guideline";
-import {
-  getCached,
-  getStale,
-  setCached,
-  findUnfilteredKey,
-  UNFILTERED_KEY,
-} from "@/lib/guidelines-cache";
+import { UNFILTERED_KEY } from "@/lib/guidelines-cache";
+import { getGuidelinesCorpus } from "@/lib/guidelines-corpus";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
-import {
-  fetchAllUpstreamGuidelines,
-  getGuidelinesApiKey,
-  stripUrls,
-} from "@/lib/guidelines-upstream";
+import { getGuidelinesApiKey } from "@/lib/guidelines-upstream";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_TTL_MINUTES = 60;
@@ -38,42 +29,20 @@ export async function GET() {
     return NextResponse.json({ error: "API not configured" }, { status: 503 });
   }
 
-  // Reuse the unfiltered cache populated by /documents if present.
-  const unfilteredKey = findUnfilteredKey();
-  let items: Guideline[] | null = unfilteredKey ? getCached(unfilteredKey) : null;
-
-  if (!items) {
-    try {
-      const [rawItems, ttlMs] = await Promise.all([
-        fetchAllUpstreamGuidelines(),
-        readTtlMs(),
-      ]);
-      if (rawItems === null) {
-        // Refresh failed — fall back to the last-known-good corpus if we have
-        // one, so facets keep rendering instead of 502-ing.
-        const stale = getStale(UNFILTERED_KEY);
-        if (!stale) {
-          return NextResponse.json(
-            { error: "Upstream fetch failed" },
-            { status: 502 },
-          );
-        }
-        console.warn("[guidelines-sources] upstream refresh failed — serving stale corpus");
-        items = stale;
-      } else {
-        const cleaned = stripUrls(rawItems);
-        setCached(UNFILTERED_KEY, cleaned, ttlMs);
-        items = cleaned;
-      }
-    } catch (err) {
-      console.error("guidelines sources error:", err);
-      const stale = getStale(UNFILTERED_KEY);
-      if (!stale) {
-        return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
-      }
-      items = stale;
-    }
+  // Shares the unfiltered corpus — and the single crawl that loads it — with
+  // /documents and /search. The dashboard hits this and /documents together on
+  // every page load, so without the sharing a cold start meant two walks.
+  const corpus = await getGuidelinesCorpus(UNFILTERED_KEY, {}, await readTtlMs());
+  if (corpus.kind === "warming") {
+    return NextResponse.json(
+      { error: "מאגר ההנחיות בטעינה — נסו שוב בעוד רגע.", warming: true },
+      { status: 503, headers: { "Retry-After": "15" } },
+    );
   }
+  if (corpus.kind === "failed") {
+    return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+  }
+  const items: Guideline[] = corpus.items;
 
   const counts: Record<string, number> = {};
   const idsBySource = new Map<string, number[]>();

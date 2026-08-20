@@ -37,12 +37,14 @@ export function getCached(key: string): Guideline[] | null {
 // upstream refresh fails, so the corpus keeps serving (slightly stale) instead
 // of 502-ing. Returns null only if the entry was never populated. Touches LRU
 // so a served-stale entry isn't the next eviction victim.
-export function getStale(key: string): Guideline[] | null {
+export function getStale(
+  key: string,
+): { items: Guideline[]; ageMs: number } | null {
   const entry = cache.get(key);
   if (!entry) return null;
   cache.delete(key);
   cache.set(key, entry);
-  return entry.items;
+  return { items: entry.items, ageMs: Date.now() - entry.ts };
 }
 
 export function setCached(key: string, items: Guideline[], ttlMs: number) {
@@ -53,6 +55,38 @@ export function setCached(key: string, items: Guideline[], ttlMs: number) {
     if (!oldest) break;
     cache.delete(oldest);
   }
+}
+
+/* ─── Single-flight ───
+ *
+ * A miss pulls the ENTIRE corpus (~4,200 docs over many upstream pages), and
+ * three public routes — documents, sources and search — all need the same
+ * unfiltered set. Without coordination, one visitor landing on /guidelines
+ * starts two crawls at once, and every extra visitor during the warm-up starts
+ * two more. On 2026-08-20 that turned a slow upstream into a hard outage: each
+ * request piled another 9-page walk onto the same 512 MB instance and none of
+ * them finished inside the 90 s proxy window.
+ *
+ * With this, N concurrent callers share ONE crawl. Note that the promise is
+ * kept until the FETCHER settles, not until a caller stops waiting — a request
+ * that gives up early leaves the crawl running, so the work still lands in the
+ * cache for whoever asks next.
+ */
+const inFlight = new Map<string, Promise<Guideline[] | null>>();
+
+export function runSingleFlight(
+  key: string,
+  fetcher: () => Promise<Guideline[] | null>,
+): Promise<Guideline[] | null> {
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+  const p = fetcher().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+export function isInFlight(key: string): boolean {
+  return inFlight.has(key);
 }
 
 export function clearCache(): number {

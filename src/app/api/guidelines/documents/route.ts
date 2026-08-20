@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Guideline, GuidelinesListResponse } from "@/types/guideline";
-import { getCached, setCached } from "@/lib/guidelines-cache";
+import { getGuidelinesCorpus } from "@/lib/guidelines-corpus";
 import { getPageContent } from "@/lib/content";
 import type { GuidelinesPageContent } from "@/types/content";
 import type {
@@ -18,11 +18,7 @@ import {
   computeSelectOptions,
   sortByConfiguredField,
 } from "@/lib/rulings-user-filters";
-import {
-  fetchAllUpstreamGuidelines,
-  getGuidelinesApiKey,
-  stripUrls,
-} from "@/lib/guidelines-upstream";
+import { getGuidelinesApiKey } from "@/lib/guidelines-upstream";
 
 const UPSTREAM_PARAMS = ["q", "date_from", "date_to", "topic", "directive_number"] as const;
 
@@ -170,33 +166,31 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(100, Math.max(1, clampInt(params.get("limit"), 1, 20)));
 
   const cacheKey = buildCacheKey(params);
-  let allItems = getCached(cacheKey);
-  let cacheStatus = allItems ? "HIT" : "MISS";
-
   const config = await readConfig();
 
-  if (!allItems) {
-    try {
-      const rawItems = await fetchAllUpstreamGuidelines({
-        filters: buildUpstreamFilters(params),
-      });
+  const corpus = await getGuidelinesCorpus(
+    cacheKey,
+    buildUpstreamFilters(params),
+    config.ttlMs,
+  );
 
-      if (rawItems === null) {
-        return NextResponse.json(
-          { error: "Upstream fetch failed" },
-          { status: 502 },
-        );
-      }
-
-      const cleanedItems = stripUrls(rawItems);
-      setCached(cacheKey, cleanedItems, config.ttlMs);
-      allItems = cleanedItems;
-      cacheStatus = "MISS";
-    } catch (err) {
-      console.error("guidelines proxy error:", err);
-      return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
-    }
+  if (corpus.kind === "warming") {
+    // 503 + Retry-After, not 502: nothing is broken, the corpus just isn't
+    // loaded yet. The dashboard retries on this and says so to the reader.
+    return NextResponse.json(
+      { error: "מאגר ההנחיות בטעינה — נסו שוב בעוד רגע.", warming: true },
+      { status: 503, headers: { "Retry-After": "15", "X-Cache": "WARMING" } },
+    );
   }
+  if (corpus.kind === "failed") {
+    return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });
+  }
+
+  const allItems = corpus.items;
+  const cacheStatus =
+    corpus.kind === "stale"
+      ? `STALE-${Math.round(corpus.ageMs / 1000)}s`
+      : "HIT";
 
   // Admin base filter restricts the whole set first, so facets + results both
   // reflect it.

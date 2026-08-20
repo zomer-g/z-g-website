@@ -28,6 +28,11 @@ const dateFmt = new Intl.DateTimeFormat("he-IL", {
   day: "2-digit",
 });
 
+// A cold corpus takes the server up to a minute to pull from upstream. Retry
+// quietly for about that long before admitting defeat to the reader.
+const WARMING_RETRY_MS = 8_000;
+const WARMING_MAX_ATTEMPTS = 8;
+
 function fmtDate(s: string | null | undefined) {
   if (!s) return "—";
   const d = new Date(s);
@@ -477,6 +482,15 @@ export function GuidelinesDashboard() {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // True while the server reports the corpus is still loading after a restart.
+  const [warming, setWarming] = useState(false);
+  const warmingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (warmingTimer.current) clearTimeout(warmingTimer.current);
+    },
+    [],
+  );
 
   // Admin-configured extras — local state (not URL).
   const [userFiltersDraft, setUserFiltersDraft] = useState<Record<string, UserFilterValue>>({});
@@ -489,6 +503,7 @@ export function GuidelinesDashboard() {
       s: number,
       uf: Record<string, UserFilterValue>,
       cs: { key: string; dir: SortDir } | null,
+      attempt = 0,
     ) => {
       setLoading(true);
       setError(null);
@@ -508,11 +523,31 @@ export function GuidelinesDashboard() {
           ? `/api/guidelines/search?${qs}`
           : `/api/guidelines/documents?${qs}`;
         const res = await fetch(url);
+
+        // 503 + warming means the corpus is still loading upstream after a
+        // restart — not a failure. Keep the spinner up and retry rather than
+        // showing an error the reader can do nothing about.
+        if (res.status === 503) {
+          const body = await res.json().catch(() => null);
+          if (body?.warming && attempt < WARMING_MAX_ATTEMPTS) {
+            setWarming(true);
+            warmingTimer.current = setTimeout(() => {
+              void fetchData(f, s, uf, cs, attempt + 1);
+            }, WARMING_RETRY_MS);
+            return; // stay in the loading state; the retry resolves it
+          }
+          setWarming(false);
+          throw new Error(
+            body?.error || "מאגר ההנחיות בטעינה. רעננו את העמוד בעוד רגע.",
+          );
+        }
+
         if (!res.ok) {
           const body = await res.json().catch(() => null);
           throw new Error(body?.error || `HTTP ${res.status}`);
         }
         const json = (await res.json()) as SearchResponse;
+        setWarming(false);
         setData(json);
       } catch (e) {
         console.error(e);
@@ -822,7 +857,11 @@ export function GuidelinesDashboard() {
             the only signal anything happened — announce it (WCAG 4.1.3). */}
         <div role="status" aria-atomic="true">
           {loading ? (
-            <span>בטעינה…</span>
+            <span>
+              {warming
+                ? "מאגר ההנחיות נטען מהמקור — זה עשוי לקחת כדקה לאחר עדכון גרסה."
+                : "בטעינה…"}
+            </span>
           ) : error ? (
             <span className="text-red-800">{error}</span>
           ) : (
