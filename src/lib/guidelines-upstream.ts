@@ -63,6 +63,14 @@ export async function fetchAllUpstreamGuidelines(
         if (res.ok) {
           return (await res.json()) as UpstreamGuidelinesListResponse;
         }
+        // Every failure mode used to collapse into a bare null here, so a
+        // rejected key, a broken collection and a slow one were
+        // indistinguishable from the outside. Diagnosing the 2026-08-20
+        // outage meant guessing between them; log enough to tell them apart.
+        const body = await res.text().catch(() => "");
+        console.error(
+          `[guidelines-upstream] skip=${skip} attempt=${attempt}/${MAX_ATTEMPTS} → HTTP ${res.status} ${body.slice(0, 200)}`,
+        );
         // Client errors (except 408/429) won't fix themselves on retry.
         if (res.status < 500 && res.status !== 408 && res.status !== 429) {
           return null;
@@ -72,6 +80,11 @@ export async function fetchAllUpstreamGuidelines(
         if (opts.signal?.aborted) throw err;
         // Otherwise: our timeout or a transient network error → fall through
         // and retry.
+        console.error(
+          `[guidelines-upstream] skip=${skip} attempt=${attempt}/${MAX_ATTEMPTS} → ${
+            err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+          }`,
+        );
       }
       if (attempt < MAX_ATTEMPTS) {
         await new Promise((r) => setTimeout(r, 500 * attempt));
@@ -81,8 +94,12 @@ export async function fetchAllUpstreamGuidelines(
   };
 
   // First page tells us the total.
+  const startedAt = Date.now();
   const first = await fetchOne(0);
-  if (!first) return null;
+  if (!first) {
+    console.error("[guidelines-upstream] first page failed — corpus unavailable");
+    return null;
+  }
   const all: Guideline[] = [...(first.items || [])];
   if (opts.sampleOnly) return all;
   const total = Number(first.total) || all.length;
@@ -99,12 +116,23 @@ export async function fetchAllUpstreamGuidelines(
   for (let i = 0; i < offsets.length; i += PARALLEL) {
     const batch = offsets.slice(i, i + PARALLEL);
     const pages = await Promise.all(batch.map(fetchOne));
-    if (pages.some((p) => p === null)) return null; // partial failure → bail
+    if (pages.some((p) => p === null)) {
+      console.error(
+        `[guidelines-upstream] bailed after ${all.length}/${total} items ` +
+          `(page size ${actualPageSize}, ${Math.round((Date.now() - startedAt) / 1000)}s in)`,
+      );
+      return null; // partial failure → bail
+    }
     for (const page of pages) {
       if (page) all.push(...(page.items || []));
     }
   }
 
+  console.info(
+    `[guidelines-upstream] loaded ${all.length} items in ` +
+      `${Math.round((Date.now() - startedAt) / 1000)}s ` +
+      `(${offsets.length + 1} pages of ${actualPageSize})`,
+  );
   return all;
 }
 
