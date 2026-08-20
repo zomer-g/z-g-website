@@ -43,7 +43,7 @@ function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span
       className="inline-block text-xs font-semibold rounded-md px-2 py-0.5"
-      style={{ color: "#2a6f97", background: "#e1ecf3" }}
+      style={{ color: "#1c5069", background: "#e1ecf3" }}
     >
       {children}
     </span>

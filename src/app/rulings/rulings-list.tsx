@@ -126,8 +126,11 @@ type SortDir = "asc" | "desc";
 const PAGE_SIZE = 24;
 
 const C_PRIMARY = "#1a365d";
-const C_PD = "#2a6f97";
-const C_MUTED = "#4b5563";
+// 7.29:1 on the #e1ecf3 badge tint and 8.75:1 on white — the old
+// #2a6f97 sat at 4.58:1 there, passing AA but not AAA.
+const C_PD = "#1c5069";
+// Matches the --muted token; 7.85:1 on the #eef0f3 badge tint.
+const C_MUTED = "#414a57";
 
 const dateFmt = new Intl.DateTimeFormat("he-IL", {
   year: "numeric",

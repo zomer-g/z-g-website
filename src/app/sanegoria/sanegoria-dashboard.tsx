@@ -13,9 +13,9 @@ const OTHER = "ללא סניגוריה ציבורית";
 // Site palette
 const C_PRIMARY = "#1a365d";      // כחול כהה — כותרות, טקסט
 const C_ACCENT  = "#c9a84c";      // זהב — הדגשות
-const C_PD      = "#2a6f97";      // כחול-טורקיז — עמודות סניגוריה
+const C_PD      = "#1c5069";      // כחול-טורקיז — עמודות סניגוריה
 const C_OTHER   = "#e07b54";      // כתום-חום — עמודות ללא סניגוריה
-const C_MUTED   = "#4b5563";      // אפור
+const C_MUTED   = "#414a57";      // אפור
 
 // ── Reusable components ──
 
