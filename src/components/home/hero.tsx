@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import type { HomeHeroContent } from "@/types/content";
 
+// The heading and description are NOT animated — see below. This is for the
+// decorative rule and the CTA row only, and the delays are short because
+// nothing is waiting on them.
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (delay: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, delay, ease: "easeOut" as const },
+    transition: { duration: 0.45, delay, ease: "easeOut" as const },
   }),
 };
 
@@ -55,34 +58,31 @@ export default function Hero({ content }: HeroProps) {
             aria-hidden="true"
           />
 
-          <motion.h1
+          {/* Deliberately not animated. This h1 is the page's LCP element,
+              and fading it in from opacity 0 meant the browser could not
+              report Largest Contentful Paint until the animation finished:
+              0.15s delay + 0.7s duration on top of TTFB measured as LCP 1.6s
+              on desktop and 5.0s on mobile, against a first paint of 0.5s and
+              1.2s. Painting it immediately is worth more than the entrance.
+              The same goes for the description directly below it. */}
+          <h1
             id="hero-heading"
             className="text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl"
-            initial="hidden"
-            animate="visible"
-            custom={0.15}
-            variants={fadeUp}
           >
             {title}
             <br />
             <span className="text-accent">{titleAccent}</span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            className="mt-6 max-w-2xl text-lg leading-relaxed text-white/80 sm:text-xl"
-            initial="hidden"
-            animate="visible"
-            custom={0.3}
-            variants={fadeUp}
-          >
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/80 sm:text-xl">
             {description}
-          </motion.p>
+          </p>
 
           <motion.div
             className="mt-10 flex flex-wrap items-center gap-4"
             initial="hidden"
             animate="visible"
-            custom={0.45}
+            custom={0.1}
             variants={fadeUp}
           >
             <Button href={ctaLink} variant="accent" size="lg">

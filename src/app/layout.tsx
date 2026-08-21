@@ -101,11 +101,20 @@ export default function RootLayout({
               "(function(){try{var v=new URLSearchParams(location.search).get('view');if(v&&/^(clean|0|embed|raw)$/i.test(v)){document.documentElement.classList.add('view-clean');}}catch(e){}})();",
           }}
         />
+        {/*
+          lazyOnload, not afterInteractive. gtag.js is 166 KB — 42% of all the
+          JavaScript this site ships — and afterInteractive starts it the
+          moment hydration ends, competing with the page for the main thread
+          exactly when the reader is trying to use it. It cost 661 ms of
+          bootup on mobile, against a total blocking time of 1,010 ms.
+          lazyOnload waits for the browser to go idle. Analytics is not
+          time-critical; the page is.
+        */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

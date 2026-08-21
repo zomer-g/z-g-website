@@ -122,11 +122,19 @@ export default function Header({ content }: HeaderProps) {
               "flex items-center gap-3 text-primary",
               "transition-colors duration-200 hover:text-primary-light"
             )}
-            aria-label={`${data.logoText} - ${data.logoSubtext} - עמוד הבית`}
           >
+            {/* No aria-label here on purpose. One used to spell the same words
+                with different punctuation ("זומר - משפט…" against a visible
+                "זומר | משפט…"), which breaks WCAG 2.5.3 Label in Name: the
+                accessible name has to CONTAIN the visible text, or someone
+                saying "click זומר משפט טכנולוגיה מידע" to a voice control
+                cannot activate the link. Letting the link's own text be its
+                name makes that true by construction, and keeps it true when
+                an editor changes the wording in the CMS. */}
             <span className="text-2xl font-bold tracking-tight">{data.logoText}</span>
             <span className="hidden text-sm font-medium text-muted sm:inline-block" aria-hidden="true">|</span>
             <span className="hidden text-sm font-medium text-muted sm:inline-block">{data.logoSubtext}</span>
+            <span className="sr-only">— עמוד הבית</span>
           </Link>
 
           <nav role="navigation" aria-label="ניווט ראשי" className="hidden lg:flex">
