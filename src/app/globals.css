@@ -273,6 +273,33 @@ html.view-clean body {
   padding-top: 0 !important;
 }
 
+/* ── Hero entrance ──
+   Replaces framer-motion, which this site imported in exactly one file to
+   produce exactly this fade — 39 KB over the wire and 119 KB to parse, on
+   the landing page, for two elements. Two keyframes cost nothing and let the
+   hero render on the server.
+
+   The heading and description are deliberately NOT given this class: the h1
+   is the page's LCP element, and animating its opacity means the browser
+   cannot report Largest Contentful Paint until the animation ends. The
+   global prefers-reduced-motion block already neutralises both of these. */
+@keyframes heroRise {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-rise {
+  animation: heroRise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.hero-rise--delayed {
+  animation-delay: 0.1s;
+}
+
 /* ── /dictionary interactive lexicon ── */
 @keyframes milonFlip {
   from {

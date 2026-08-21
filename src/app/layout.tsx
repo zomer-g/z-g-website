@@ -102,19 +102,22 @@ export default function RootLayout({
           }}
         />
         {/*
-          lazyOnload, not afterInteractive. gtag.js is 166 KB — 42% of all the
-          JavaScript this site ships — and afterInteractive starts it the
-          moment hydration ends, competing with the page for the main thread
-          exactly when the reader is trying to use it. It cost 661 ms of
-          bootup on mobile, against a total blocking time of 1,010 ms.
-          lazyOnload waits for the browser to go idle. Analytics is not
-          time-critical; the page is.
+          afterInteractive, deliberately — do not move this to lazyOnload.
+          It was tried: gtag.js is 166 KB and starting it the moment hydration
+          ends does compete for the main thread, but deferring it to browser
+          idle bought only ~60 ms of desktop blocking time and nothing at all
+          on mobile, where it still burned ~1,090 ms inside the measurement
+          window. What it did buy was a window in which a reader on a slow
+          connection can leave before the tag has loaded, and that pageview is
+          simply never recorded. Analytics completeness is worth more than
+          60 ms; the blocking time is being paid down by shipping less of our
+          own JavaScript instead.
         */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-          strategy="lazyOnload"
+          strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="lazyOnload">
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

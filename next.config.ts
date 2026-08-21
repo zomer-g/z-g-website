@@ -49,6 +49,31 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // ── Back/forward cache ──
+      //
+      // 64 of the 67 public pages are `force-dynamic`, for which Next sends
+      // `no-store`. Chrome refuses to put a page with `no-store` into the
+      // back/forward cache at all, so every use of the back button was a full
+      // round trip and re-hydration rather than an instant restore. Lighthouse
+      // reported it as three bf-cache failures, one of them "Actionable".
+      //
+      // `no-cache` (not `no-store`) keeps the freshness guarantee that
+      // force-dynamic exists for: the browser may hold a copy but must
+      // revalidate before reusing it, so a reader never sees stale CMS
+      // content. `private` keeps it out of any shared or CDN cache.
+      //
+      // Scoped away from /api and /admin on purpose. API responses set their
+      // own caching per route, and admin pages are the one place where a
+      // restored-from-memory view could show another session's chrome.
+      {
+        source: "/((?!api/|admin/|_next/).*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, max-age=0, must-revalidate",
+          },
+        ],
+      },
     ];
   },
 };

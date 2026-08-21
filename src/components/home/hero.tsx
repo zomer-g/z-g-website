@@ -1,21 +1,10 @@
-"use client";
-
-import { motion } from "framer-motion";
+// No "use client" and no animation library. The entrance is two CSS
+// keyframes (.hero-rise in globals.css); nothing here needs state, effects or
+// event handlers, so the hero renders entirely on the server and contributes
+// no JavaScript to the landing page at all.
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import type { HomeHeroContent } from "@/types/content";
-
-// The heading and description are NOT animated — see below. This is for the
-// decorative rule and the CTA row only, and the delays are short because
-// nothing is waiting on them.
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (delay: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.45, delay, ease: "easeOut" as const },
-  }),
-};
 
 interface HeroProps {
   content?: HomeHeroContent;
@@ -49,12 +38,8 @@ export default function Hero({ content }: HeroProps) {
 
       <div className="relative mx-auto max-w-7xl px-4 py-28 sm:px-6 sm:py-36 lg:px-8 lg:py-44">
         <div className="max-w-3xl">
-          <motion.div
-            className="mb-8 h-1 w-20 rounded-full bg-accent"
-            initial="hidden"
-            animate="visible"
-            custom={0}
-            variants={fadeUp}
+          <div
+            className="hero-rise mb-8 h-1 w-20 rounded-full bg-accent"
             aria-hidden="true"
           />
 
@@ -78,13 +63,7 @@ export default function Hero({ content }: HeroProps) {
             {description}
           </p>
 
-          <motion.div
-            className="mt-10 flex flex-wrap items-center gap-4"
-            initial="hidden"
-            animate="visible"
-            custom={0.1}
-            variants={fadeUp}
-          >
+          <div className="hero-rise hero-rise--delayed mt-10 flex flex-wrap items-center gap-4">
             <Button href={ctaLink} variant="accent" size="lg">
               {ctaText}
               <ArrowLeft className="h-5 w-5" aria-hidden="true" />
@@ -92,7 +71,7 @@ export default function Hero({ content }: HeroProps) {
             <Button href={secondaryCtaLink} variant="secondary" size="lg" className="border-white/30 text-white hover:bg-white/10 hover:text-white">
               {secondaryCtaText}
             </Button>
-          </motion.div>
+          </div>
         </div>
       </div>
 
