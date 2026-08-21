@@ -14,7 +14,8 @@ const cache = new Map<string, CacheEntry>();
 // out, bounding worst-case memory without hurting typical browsing.
 // NOTE: expired entries are deliberately kept resident (see getCached) as a
 // stale fallback, so this cap is the ONLY thing bounding this cache — 16
-// full corpora (4188 docs each) was a large share of the 512 MB container.
+// full corpora (12,281 docs each as of 2026-08) is far more than the 512 MB
+// container can hold — hence the low cap.
 const MAX_ENTRIES = 6;
 
 export function getCached(key: string): Guideline[] | null {

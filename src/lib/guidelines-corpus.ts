@@ -22,11 +22,16 @@ import { fetchAllUpstreamGuidelines, stripUrls } from "./guidelines-upstream";
  *
  * The rules here:
  *   1. Fresh cache wins outright.
- *   2. Otherwise ONE crawl runs, shared by every concurrent caller.
- *   3. Callers wait a bounded time, well under the proxy timeout. The crawl
- *      is not cancelled when they stop waiting — it keeps going and caches
- *      its result, so giving up early still makes progress for everyone.
- *   4. If the wait runs out, serve the last known copy rather than an error.
+ *   2. An expired copy is served immediately and refreshed behind the reader.
+ *      A full refresh takes ~5.5 minutes, so blocking on it would make every
+ *      request after the TTL lapses pay the whole wait budget and then be
+ *      handed the old copy regardless.
+ *   3. With nothing cached at all, ONE crawl runs, shared by every concurrent
+ *      caller, and they wait a bounded time well under the proxy timeout.
+ *   4. That crawl is never cancelled when callers stop waiting — it keeps
+ *      going and caches its result, so giving up early still makes progress
+ *      for whoever asks next. This is what stops a cold start from being
+ *      self-sustaining.
  *   5. Only with no copy at all do we admit we have nothing yet.
  *
  * Note what this deliberately does NOT do: warm itself on boot or on a timer.
@@ -45,24 +50,21 @@ export type CorpusStatus =
   | { kind: "warming" }
   | { kind: "failed" };
 
-export async function getGuidelinesCorpus(
+// Two things happen inside the single-flight, both on purpose:
+//
+//  - Caching. A crawl that finishes after every caller has walked away must
+//    still store its result, so setCached lives here rather than at the call
+//    site. That is what lets an abandoned crawl still help the next reader.
+//  - Swallowing rejections. Callers stop awaiting this when their wait budget
+//    runs out, and a background refresh is never awaited at all; a rejection
+//    with no handler attached is an unhandled rejection, which can take the
+//    process down — a worse failure than the one being fixed.
+function startCrawl(
   cacheKey: string,
   filters: Record<string, string>,
   ttlMs: number,
-): Promise<CorpusStatus> {
-  const cached = getCached(cacheKey);
-  if (cached) return { kind: "fresh", items: cached };
-
-  // Two things happen inside the single-flight, both on purpose:
-  //
-  //  - Caching. A crawl that finishes after every caller has walked away must
-  //    still store its result, so setCached lives here rather than at the
-  //    call site.
-  //  - Swallowing rejections. Callers stop awaiting this promise when their
-  //    wait budget runs out; if it rejected afterwards with nobody attached,
-  //    Node would see an unhandled rejection and could take the process down.
-  //    Failure is reported as null instead.
-  const crawl = runSingleFlight(cacheKey, async () => {
+): Promise<Guideline[] | null> {
+  return runSingleFlight(cacheKey, async () => {
     try {
       const raw = await fetchAllUpstreamGuidelines({ filters });
       if (raw === null) return null;
@@ -74,6 +76,29 @@ export async function getGuidelinesCorpus(
       return null;
     }
   });
+}
+
+export async function getGuidelinesCorpus(
+  cacheKey: string,
+  filters: Record<string, string>,
+  ttlMs: number,
+): Promise<CorpusStatus> {
+  const cached = getCached(cacheKey);
+  if (cached) return { kind: "fresh", items: cached };
+
+  // Stale-while-revalidate. A full refresh of this corpus takes ~5.5 minutes
+  // (12,281 docs over 25 upstream pages), so once the TTL lapses, making
+  // readers wait for it means every one of them pays the full wait budget and
+  // then gets the old copy anyway — measured at 25 s per request. Hand back
+  // what we have immediately and let the refresh run behind them.
+  const stale = getStale(cacheKey);
+  if (stale) {
+    if (!isInFlight(cacheKey)) void startCrawl(cacheKey, filters, ttlMs);
+    return { kind: "stale", items: stale.items, ageMs: stale.ageMs };
+  }
+
+  // Nothing cached at all — the caller has to wait for a first load.
+  const crawl = startCrawl(cacheKey, filters, ttlMs);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const TIMED_OUT = Symbol("timeout");
@@ -92,16 +117,17 @@ export async function getGuidelinesCorpus(
     if (timer) clearTimeout(timer);
   }
 
-  // Either the crawl failed, or it is still running. Both are survivable if we
-  // have an older copy — guidelines change on the order of weeks, not seconds.
-  const stale = getStale(cacheKey);
-  if (stale) {
+  // The crawl either failed or is still running. There was nothing cached when
+  // we started, but a concurrent caller's crawl may have landed in the
+  // meantime — check once more before giving up.
+  const late = getStale(cacheKey);
+  if (late) {
     console.warn(
-      `guidelines: serving cache ${Math.round(stale.ageMs / 1000)}s old (${
+      `guidelines: serving cache ${Math.round(late.ageMs / 1000)}s old (${
         isInFlight(cacheKey) ? "refresh still running" : "refresh failed"
       })`,
     );
-    return { kind: "stale", items: stale.items, ageMs: stale.ageMs };
+    return { kind: "stale", items: late.items, ageMs: late.ageMs };
   }
 
   // Nothing cached at all — the first load after a restart. Say so plainly so

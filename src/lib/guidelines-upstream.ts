@@ -7,10 +7,14 @@ const PAGE_SIZE = 500; // upstream max
 const PARALLEL = 2;
 // Per-page hard timeout + retries. TAG-IT's authenticated list query on this
 // collection is occasionally very slow / drops a single page; without a bound
-// one hung page stalls the whole corpus load for ~2 min and one flaky page
-// fails the entire fetch. A tight-ish timeout with a couple of retries turns
-// that transient into a success instead of a 502.
-const PAGE_TIMEOUT_MS = 30_000;
+// one hung page stalls the whole corpus load and one flaky page fails the
+// entire fetch.
+//
+// 45s, not the original 30s: production logs show pages that time out on all
+// three attempts at 30s and then succeed on a later crawl, so the bound was
+// cutting off pages that were still coming. Three failed attempts cost more
+// than one slower success.
+const PAGE_TIMEOUT_MS = 45_000;
 const MAX_ATTEMPTS = 3;
 
 export function getGuidelinesApiKey(): string | undefined {
@@ -113,20 +117,54 @@ export async function fetchAllUpstreamGuidelines(
   const offsets: number[] = [];
   for (let skip = actualPageSize; skip < total; skip += actualPageSize) offsets.push(skip);
 
+  // One bad page used to discard the whole corpus. At 25 pages that made a
+  // complete crawl improbable: any single offset timing out three times threw
+  // away everything already fetched, and the next attempt started from zero.
+  // Failed offsets are collected and swept once more at the end instead.
+  //
+  // Pages are keyed by offset rather than appended, so the retried ones land
+  // back in their original position — callers that don't apply an explicit
+  // sort rely on upstream order.
+  const byOffset = new Map<number, Guideline[]>();
+  const failed: number[] = [];
+
   for (let i = 0; i < offsets.length; i += PARALLEL) {
     const batch = offsets.slice(i, i + PARALLEL);
     const pages = await Promise.all(batch.map(fetchOne));
-    if (pages.some((p) => p === null)) {
-      console.error(
-        `[guidelines-upstream] bailed after ${all.length}/${total} items ` +
-          `(page size ${actualPageSize}, ${Math.round((Date.now() - startedAt) / 1000)}s in)`,
-      );
-      return null; // partial failure → bail
-    }
-    for (const page of pages) {
-      if (page) all.push(...(page.items || []));
+    batch.forEach((skip, j) => {
+      const page = pages[j];
+      if (page) byOffset.set(skip, page.items || []);
+      else failed.push(skip);
+    });
+  }
+
+  if (failed.length > 0) {
+    console.warn(
+      `[guidelines-upstream] retrying ${failed.length} failed page(s): ${failed.join(", ")}`,
+    );
+    for (let i = 0; i < failed.length; i += PARALLEL) {
+      const batch = failed.slice(i, i + PARALLEL);
+      const pages = await Promise.all(batch.map(fetchOne));
+      for (let j = 0; j < batch.length; j++) {
+        const page = pages[j];
+        if (!page) {
+          // Still short after a second pass. Returning a corpus with silent
+          // holes would show as "no such guideline" to a reader searching for
+          // one of the missing documents, which is worse than a visible
+          // failure the caller can fall back to a cached copy for.
+          console.error(
+            `[guidelines-upstream] bailed — page ${batch[j]} failed twice ` +
+              `(${byOffset.size + 1}/${offsets.length + 1} pages, ` +
+              `${Math.round((Date.now() - startedAt) / 1000)}s in)`,
+          );
+          return null;
+        }
+        byOffset.set(batch[j], page.items || []);
+      }
     }
   }
+
+  for (const skip of offsets) all.push(...(byOffset.get(skip) || []));
 
   console.info(
     `[guidelines-upstream] loaded ${all.length} items in ` +
