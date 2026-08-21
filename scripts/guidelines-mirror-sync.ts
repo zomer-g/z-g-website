@@ -34,9 +34,9 @@ async function main() {
   const { syncGuidelinesMirror } = await import("../src/lib/guidelines-mirror");
 
   console.log("guidelines-mirror-sync: starting full walk");
-  const { mirrored, pruned, durationMs } = await syncGuidelinesMirror();
+  const { mirrored, replaced, durationMs } = await syncGuidelinesMirror();
   console.log(
-    `guidelines-mirror-sync: done — ${mirrored} mirrored, ${pruned} pruned, ${Math.round(
+    `guidelines-mirror-sync: done — ${mirrored} mirrored (replaced ${replaced}), ${Math.round(
       durationMs / 1000,
     )}s`,
   );

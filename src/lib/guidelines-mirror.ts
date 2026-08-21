@@ -63,15 +63,29 @@ function parseDate(v: unknown): Date | null {
 
 export interface SyncResult {
   mirrored: number;
-  pruned: number;
+  replaced: number;
   durationMs: number;
 }
 
+// Bulk inserts, not per-row upserts. 12,281 individual upserts overran
+// Prisma's 5s interactive-transaction limit after ~500 rows; createMany is a
+// single multi-row INSERT per chunk and finishes the whole corpus in seconds.
+const INSERT_CHUNK = 500;
+
+// The walk itself is the slow part and has already happened by the time this
+// transaction opens, but a full replace of 12k rows still needs more than the
+// 5s default.
+const TX_TIMEOUT_MS = 120_000;
+
 /**
- * Full replace: walk upstream, upsert every document, then delete the ids that
- * are no longer there. Incremental would need an upstream "changed since"
- * cursor, which this collection does not expose; a full walk is ~5-6 minutes
- * on a runner, which is cheap enough to just do.
+ * Full replace: walk upstream, then swap the whole table over in one
+ * transaction. Incremental would need an upstream "changed since" cursor,
+ * which this collection does not expose; a full walk is ~5 minutes on a
+ * runner, which is cheap enough to just do.
+ *
+ * Delete-then-insert inside a transaction also removes the need for a
+ * separate prune pass, and readers keep seeing the previous corpus until it
+ * commits — at no point is a half-built mirror visible.
  */
 export async function syncGuidelinesMirror(): Promise<SyncResult> {
   const startedAt = Date.now();
@@ -90,55 +104,50 @@ export async function syncGuidelinesMirror(): Promise<SyncResult> {
   // upstream file/text URLs carry our key, and they must not be persisted.
   const cleaned = stripUrls(items);
 
-  const seen = new Set<number>();
-  const CHUNK = 500;
-  for (let i = 0; i < cleaned.length; i += CHUNK) {
-    const chunk = cleaned.slice(i, i + CHUNK);
-    await prisma.$transaction(
-      chunk.map((doc) => {
-        seen.add(doc.id);
-        const row = {
-          data: doc as unknown as object,
-          documentDate: parseDate((doc as { document_date?: unknown }).document_date),
-          sourceLabel: doc.source_label ?? null,
-        };
-        return prisma.guidelineDoc.upsert({
-          where: { id: doc.id },
-          create: { id: doc.id, ...row },
-          update: row,
-        });
-      }),
-    );
-    console.log(
-      `[guidelines-mirror] upserted ${Math.min(i + CHUNK, cleaned.length)}/${cleaned.length}`,
-    );
-  }
+  // Upstream can repeat an id across pages when documents shift between
+  // requests; the primary key would reject the duplicate and abort the swap.
+  const byId = new Map<number, (typeof cleaned)[number]>();
+  for (const doc of cleaned) byId.set(doc.id, doc);
+  const rows = Array.from(byId.values()).map((doc) => ({
+    id: doc.id,
+    data: doc as unknown as object,
+    documentDate: parseDate((doc as { document_date?: unknown }).document_date),
+    sourceLabel: doc.source_label ?? null,
+  }));
 
-  // Prune documents the upstream no longer returns. Done after the upserts so
-  // a crash midway leaves the mirror over-complete rather than short.
-  const { count: pruned } = await prisma.guidelineDoc.deleteMany({
-    where: { id: { notIn: Array.from(seen) } },
-  });
+  const replaced = await prisma.$transaction(
+    async (tx) => {
+      const { count } = await tx.guidelineDoc.deleteMany({});
+      for (let i = 0; i < rows.length; i += INSERT_CHUNK) {
+        await tx.guidelineDoc.createMany({
+          data: rows.slice(i, i + INSERT_CHUNK),
+        });
+      }
+      return count;
+    },
+    { timeout: TX_TIMEOUT_MS, maxWait: 20_000 },
+  );
+  console.log(`[guidelines-mirror] replaced ${replaced} rows with ${rows.length}`);
 
   const durationMs = Date.now() - startedAt;
   await prisma.guidelineSyncState.upsert({
     where: { id: STATE_ID },
     create: {
       id: STATE_ID,
-      upstreamTotal: cleaned.length,
-      mirroredCount: cleaned.length,
+      upstreamTotal: rows.length,
+      mirroredCount: rows.length,
       lastSyncAt: new Date(),
       lastDurationMs: durationMs,
       lastError: null,
     },
     update: {
-      upstreamTotal: cleaned.length,
-      mirroredCount: cleaned.length,
+      upstreamTotal: rows.length,
+      mirroredCount: rows.length,
       lastSyncAt: new Date(),
       lastDurationMs: durationMs,
       lastError: null,
     },
   });
 
-  return { mirrored: cleaned.length, pruned, durationMs };
+  return { mirrored: rows.length, replaced, durationMs };
 }
