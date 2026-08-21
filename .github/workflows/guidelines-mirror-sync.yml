@@ -1,0 +1,50 @@
+name: guidelines-mirror-sync
+
+# Keeps the guidelines mirror (guideline_docs) fresh.
+#
+# The corpus is 12,281 documents over 25 upstream pages and takes ~5-6 minutes
+# to walk. That is far too slow to do inside a request, and the in-process
+# cache that used to hide it is emptied by every deploy — which is how
+# /guidelines came to be down for six hours on 2026-08-20. The walk happens
+# here instead, on a runner with a normal heap, writing to the same production
+# database. Same shape and same reasoning as rulings-mirror-sync.yml and
+# ca-sync.yml; see src/instrumentation.ts for why it must not run in the web
+# process.
+#
+# Guidelines are published on the order of weeks, so a daily walk is plenty.
+
+on:
+  schedule:
+    # 01:20 UTC (04:20 Israel) — after the rulings full resync at 00:10 so the
+    # two are not competing for the same upstream at the same time.
+    - cron: "20 1 * * *"
+  workflow_dispatch:
+
+concurrency:
+  # A walk can run for several minutes against a slow upstream. Never start a
+  # second run on top of one in flight, and never cancel one midway — a partial
+  # sync is detected and ignored by the read path, but it wastes a cycle.
+  group: guidelines-mirror-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # postinstall runs `prisma generate` — the sync needs the client.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync
+        run: npx tsx scripts/guidelines-mirror-sync.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GUIDELINES_API_KEY: ${{ secrets.GUIDELINES_API_KEY }}
+          CLASS_ACTION_API_KEY: ${{ secrets.CLASS_ACTION_API_KEY }}

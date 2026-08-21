@@ -5,7 +5,9 @@ import {
   setCached,
   runSingleFlight,
   isInFlight,
+  UNFILTERED_KEY,
 } from "./guidelines-cache";
+import { loadCorpusFromMirror } from "./guidelines-mirror";
 import { fetchAllUpstreamGuidelines, stripUrls } from "./guidelines-upstream";
 
 /**
@@ -34,10 +36,16 @@ import { fetchAllUpstreamGuidelines, stripUrls } from "./guidelines-upstream";
  *      self-sustaining.
  *   5. Only with no copy at all do we admit we have nothing yet.
  *
- * Note what this deliberately does NOT do: warm itself on boot or on a timer.
- * Corpus walks inside the 512 MB web instance are what caused the OOM kills of
- * late July — see src/instrumentation.ts. This only ever crawls in response to
- * a real request, and now at most once at a time.
+ * Where the corpus comes from: the local mirror (guideline_docs) when it has
+ * been synced, which reads back in seconds; the upstream walk otherwise, which
+ * takes ~337s. The mirror is a preference, never a dependency — any problem
+ * reading it falls through to upstream, so the page cannot be taken down by
+ * it.
+ *
+ * Note what this deliberately does NOT do: warm itself on boot or on a timer,
+ * or write to the mirror. Corpus walks inside the 512 MB web instance are what
+ * caused the OOM kills of late July — see src/instrumentation.ts. Syncing is
+ * the GitHub runner's job.
  */
 
 // Comfortably inside the ~90 s proxy limit. A caller that hits this gets a
@@ -66,6 +74,23 @@ function startCrawl(
 ): Promise<Guideline[] | null> {
   return runSingleFlight(cacheKey, async () => {
     try {
+      // The mirror holds the full corpus and reads back in seconds instead of
+      // the ~337s an upstream walk takes, so it is the preferred source for
+      // the unfiltered set. It only answers for the unfiltered key: filtered
+      // requests carry upstream query params whose semantics we do not
+      // reimplement, and they stay on the upstream path unchanged.
+      if (cacheKey === UNFILTERED_KEY) {
+        const mirrored = await loadCorpusFromMirror();
+        if (mirrored) {
+          setCached(cacheKey, mirrored, ttlMs);
+          console.info(
+            `[guidelines-corpus] served ${mirrored.length} docs from the mirror`,
+          );
+          return mirrored;
+        }
+      }
+
+      // No mirror (not synced yet, incomplete, or unreadable) — walk upstream.
       const raw = await fetchAllUpstreamGuidelines({ filters });
       if (raw === null) return null;
       const cleaned = stripUrls(raw);
