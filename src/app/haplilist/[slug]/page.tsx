@@ -89,9 +89,11 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${post.title} | הפליליסט הדיגיטלי`,
+    // Absolute: the layout template would otherwise append the firm name on
+    // top of the blog name, giving a three-part title Google truncates.
+    title: { absolute: `${post.title} | הפליליסט הדיגיטלי` },
     description: post.excerpt || post.seoDesc || undefined,
-    robots: { index: false, follow: false },
+    alternates: { canonical: `/haplilist/${slug}` },
   };
 }
 

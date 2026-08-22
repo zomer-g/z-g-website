@@ -56,8 +56,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // absent from this list, so the only route in was a crawl of /projects.
     // /pach-hamishpat is the clearest case: it ranks 7th for its own head
     // term while never having been submitted. Deliberately NOT added:
-    // /haplilist and /foi-guide, which set robots noindex on purpose.
+    // /foi-guide, which sets robots noindex on purpose.
     staticEntry("/pach-hamishpat", "hourly", 0.8),
+    staticEntry("/haplilist", "weekly", 0.7),
     staticEntry("/drug-sentencing", "weekly", 0.7),
     staticEntry("/foi-rulings", "weekly", 0.7),
     staticEntry("/comptroller-reports", "weekly", 0.7),
@@ -120,18 +121,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   /* ── Dynamic: published personal-blog posts ── */
 
-  // NOT listed. /haplilist and /haplilist/[slug] both emit
-  // `robots: { index: false, follow: false }` while it is soft-launched, and
-  // asking Google to crawl a URL we then tell it not to index just earns a
-  // "Submitted URL marked noindex" error and burns crawl budget. Six posts
-  // were being submitted that way. If the blog is ever opened up, drop the
-  // noindex on both pages FIRST and restore the block below in the same
-  // change — the two must never disagree again.
-  //
-  //   const posts = await prisma.plilistPost.findMany({
-  //     where: { status: "PUBLISHED" },
-  //     select: { slug: true, updatedAt: true },
-  //   });
+  // Back in, together with the removal of `robots: noindex` from /haplilist
+  // and /haplilist/[slug]. These three must always agree: submitting a URL
+  // that then says noindex is a Search Console error, not a strategy.
 
-  return [...staticPages, ...servicePages, ...articlePages];
+  let plilistPages: MetadataRoute.Sitemap = [];
+  try {
+    const posts = await prisma.plilistPost.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+    });
+    plilistPages = posts.map((p) => ({
+      url: `${SITE_URL}/haplilist/${p.slug}`,
+      lastModified: p.updatedAt ?? new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    // ignore
+  }
+
+  return [...staticPages, ...servicePages, ...articlePages, ...plilistPages];
 }

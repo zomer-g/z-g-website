@@ -23,14 +23,17 @@ export const dynamic = "force-dynamic";
 const EDIT_HREF = "/admin/site-editor/haplilist";
 
 /* ─── Metadata ─── */
-// robots: noindex — the blog is "soft-launched": reachable by URL but kept out
-// of search engines (and the site nav) until it's made public.
+// The soft-launch noindex is gone. It outlived its purpose once the blog was
+// promoted to the top-level nav — the site was linking to it from every page
+// while asking Google to ignore it, and the sitemap was submitting its posts
+// anyway, which only earns "Submitted URL marked noindex". Indexed now, on
+// purpose, in all three places at once.
 
 export const metadata: Metadata = {
   title: 'הפליליסט הדיגיטלי',
   description:
     "הבלוג האישי של עו\"ד גיא זומר — פרספקטיבה אישית על המשפט הפלילי, מערכת המשפט והחיים שסביבם.",
-  robots: { index: false, follow: false },
+  alternates: { canonical: "/haplilist" },
 };
 
 /* ─── CSS Gradient Patterns for Post Covers ─── */
