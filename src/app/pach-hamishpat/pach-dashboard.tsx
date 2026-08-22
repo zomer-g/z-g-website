@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
 import { AutoRefreshToggle } from "@/components/ui/auto-refresh-toggle";
+import {
+  computePachStatus,
+  PACH_STATUS_TEXT as STATUS_TEXT,
+  type PachStatus as Status,
+} from "@/lib/pach-status";
 
 /**
  * Public dashboard for /pach-hamishpat — community status reporting for
@@ -29,8 +34,6 @@ import { AutoRefreshToggle } from "@/components/ui/auto-refresh-toggle";
  * that a websocket would be overkill, and polling keeps the page simple
  * to reason about (no stale connection edge cases).
  */
-
-type Status = "green" | "orange" | "red";
 
 interface Report {
   id: number;
@@ -63,12 +66,6 @@ interface SystemMessage {
   is_archived: boolean;
   created_date: string;
 }
-
-const STATUS_TEXT: Record<Status, string> = {
-  green: "המערכת תקינה",
-  orange: "תקלה חלקית במערכת",
-  red: "המערכת קרסה",
-};
 
 // Original asset URLs from pah.org.il's Supabase bucket. They're public,
 // CDN-served, and serve the brand identity for the trash-can graphic.
@@ -107,33 +104,25 @@ function fmtIsraeliTime(s: string): string {
   });
 }
 
-/** Walks the visible report list newest-first and picks the first one
- *  that's actually in effect right now. Mirrors the original Home.jsx. */
-function computeCurrentStatus(reports: Report[]): Status {
-  const now = Date.now();
-  for (const r of reports) {
-    if (r.is_scheduled) {
-      const from = r.scheduled_from ? new Date(r.scheduled_from).getTime() : null;
-      const until = r.scheduled_until ? new Date(r.scheduled_until).getTime() : null;
-      if (from != null && until != null && now >= from && now <= until) {
-        return r.status;
-      }
-      continue;
-    }
-    if (r.status === "green") return "green";
-    if (r.status === "red" || r.status === "orange") {
-      if (!r.expires_at || new Date(r.expires_at).getTime() > now) {
-        return r.status;
-      }
-    }
-  }
-  return "green";
-}
-
-export function PachDashboard() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [messages, setMessages] = useState<SystemMessage[]>([]);
+/**
+ * `initial*` come from the server render. Without them the first paint shows
+ * an empty board and — because an empty report list computes to green — the
+ * banner claimed המערכת תקינה even mid-outage, until the first poll landed.
+ * Seeding from the server makes the first frame correct and gives crawlers
+ * the real status instead of a permanent "all clear".
+ */
+export function PachDashboard({
+  initialReports = [],
+  initialComments = [],
+  initialMessages = [],
+}: {
+  initialReports?: Report[];
+  initialComments?: Comment[];
+  initialMessages?: SystemMessage[];
+}) {
+  const [reports, setReports] = useState<Report[]>(initialReports);
+  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [messages, setMessages] = useState<SystemMessage[]>(initialMessages);
   const [submitting, setSubmitting] = useState(false);
   const [daysToShow, setDaysToShow] = useState(1);
   const [showCommentForm, setShowCommentForm] = useState(false);
@@ -163,7 +152,7 @@ export function PachDashboard() {
 
   const autoRefresh = useAutoRefresh(loadAll, POLL_MS, "pach-autorefresh");
 
-  const currentStatus = useMemo(() => computeCurrentStatus(reports), [reports]);
+  const currentStatus = useMemo(() => computePachStatus(reports), [reports]);
   const statusText = STATUS_TEXT[currentStatus];
 
   const submitReport = useCallback(

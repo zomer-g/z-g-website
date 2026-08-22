@@ -52,6 +52,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/legal-tools", "monthly", 0.7),
     staticEntry("/sanegoria", "monthly", 0.7),
     staticEntry("/digital-services", "monthly", 0.6),
+    // Everything below was live, indexable and linked from /projects — and
+    // absent from this list, so the only route in was a crawl of /projects.
+    // /pach-hamishpat is the clearest case: it ranks 7th for its own head
+    // term while never having been submitted. Deliberately NOT added:
+    // /haplilist and /foi-guide, which set robots noindex on purpose.
+    staticEntry("/pach-hamishpat", "hourly", 0.8),
+    staticEntry("/drug-sentencing", "weekly", 0.7),
+    staticEntry("/foi-rulings", "weekly", 0.7),
+    staticEntry("/comptroller-reports", "weekly", 0.7),
+    staticEntry("/mmm", "weekly", 0.7),
+    staticEntry("/dictionary", "monthly", 0.6),
+    staticEntry("/letz", "monthly", 0.6),
+    staticEntry("/govscraper", "monthly", 0.5),
+    staticEntry("/court-downloader", "monthly", 0.5),
+    staticEntry("/ocoi-extension", "monthly", 0.5),
+    staticEntry("/ocal", "monthly", 0.5),
+    staticEntry("/o", "monthly", 0.5),
+    staticEntry("/data-pipeline", "monthly", 0.5),
+    staticEntry("/workflows", "monthly", 0.5),
+    staticEntry("/over-looker", "monthly", 0.5),
+    staticEntry("/over-looker-privacy", "yearly", 0.2),
+    staticEntry("/over-looker-terms", "yearly", 0.2),
+    staticEntry("/over-looker-support", "yearly", 0.2),
     // /whatsapp is the public landing/demo (mock chats). Private workspace
     // sub-pages live under /whatsapp/<slug> and are blocked in robots.ts;
     // we deliberately do NOT enumerate them here.
@@ -97,21 +120,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   /* ── Dynamic: published personal-blog posts ── */
 
-  let plilistPages: MetadataRoute.Sitemap = [];
-  try {
-    const posts = await prisma.plilistPost.findMany({
-      where: { status: "PUBLISHED" },
-      select: { slug: true, updatedAt: true },
-    });
-    plilistPages = posts.map((p) => ({
-      url: `${SITE_URL}/haplilist/${p.slug}`,
-      lastModified: p.updatedAt ?? new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.6,
-    }));
-  } catch {
-    // ignore
-  }
+  // NOT listed. /haplilist and /haplilist/[slug] both emit
+  // `robots: { index: false, follow: false }` while it is soft-launched, and
+  // asking Google to crawl a URL we then tell it not to index just earns a
+  // "Submitted URL marked noindex" error and burns crawl budget. Six posts
+  // were being submitted that way. If the blog is ever opened up, drop the
+  // noindex on both pages FIRST and restore the block below in the same
+  // change — the two must never disagree again.
+  //
+  //   const posts = await prisma.plilistPost.findMany({
+  //     where: { status: "PUBLISHED" },
+  //     select: { slug: true, updatedAt: true },
+  //   });
 
-  return [...staticPages, ...servicePages, ...articlePages, ...plilistPages];
+  return [...staticPages, ...servicePages, ...articlePages];
 }
