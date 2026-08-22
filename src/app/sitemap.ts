@@ -1,7 +1,12 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 
-const SITE_URL = "https://z-g.co.il";
+// Was a second hardcoded copy of the domain — and the bare form, while the
+// site serves www. Structured data and the sitemap must name the same URL the
+// canonical tag does, or they contradict each other.
+import { SITE_ORIGIN } from "@/lib/site";
+
+const SITE_URL = SITE_ORIGIN;
 
 // Force-dynamic + revalidate=0 so the sitemap re-queries the DB on
 // EVERY request. Without this, Next.js could serve a stale cached
@@ -90,5 +95,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ignore
   }
 
-  return [...staticPages, ...servicePages, ...articlePages];
+  /* ── Dynamic: published personal-blog posts ── */
+
+  let plilistPages: MetadataRoute.Sitemap = [];
+  try {
+    const posts = await prisma.plilistPost.findMany({
+      where: { status: "PUBLISHED" },
+      select: { slug: true, updatedAt: true },
+    });
+    plilistPages = posts.map((p) => ({
+      url: `${SITE_URL}/haplilist/${p.slug}`,
+      lastModified: p.updatedAt ?? new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    }));
+  } catch {
+    // ignore
+  }
+
+  return [...staticPages, ...servicePages, ...articlePages, ...plilistPages];
 }

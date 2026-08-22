@@ -6,7 +6,12 @@
  * criminal law attorney website.
  */
 
-const SITE_URL = "https://z-g.co.il";
+// Was a second hardcoded copy of the domain — and the bare form, while the
+// site serves www. Structured data and the sitemap must name the same URL the
+// canonical tag does, or they contradict each other.
+import { SITE_ORIGIN } from "@/lib/site";
+
+const SITE_URL = SITE_ORIGIN;
 const FIRM_NAME_HE = "עו\"ד גיא זומר";
 const FIRM_NAME_EN = "Advocate Guy Zomer";
 const ATTORNEY_NAME_HE = "עו\"ד גיא זומר";

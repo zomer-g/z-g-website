@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
+import { CrawlableIndex } from "@/components/seo/crawlable-index";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Container } from "@/components/ui/container";
 import { GuidelinesDashboard } from "./guidelines-dashboard";
@@ -81,6 +82,7 @@ export default async function GuidelinesPage() {
       </Container>
       <Container className="py-8">
         <GuidelinesDashboard />
+        <CrawlableIndex kind="guidelines" />
       </Container>
     </PublicLayout>
   );

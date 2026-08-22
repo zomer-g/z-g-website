@@ -1,13 +1,17 @@
 import type { MetadataRoute } from "next";
+import { SITE_ORIGIN } from "@/lib/site";
+import { documentChunks } from "@/lib/sitemap-documents";
 
 /**
  * Robots.txt configuration via Next.js metadata API.
  *
- * Allows all crawlers access to all public pages and
- * references the sitemap for efficient indexing.
+ * Allows all crawlers access to all public pages and lists every sitemap:
+ * the hand-written one plus a slice per document corpus. Before this, the
+ * only sitemap held 36 URLs while the site served ~41,000 indexable document
+ * pages that nothing linked to.
  */
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
   return {
     rules: [
       {
@@ -21,6 +25,15 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/admin/", "/whatsapp/", "/timeline/"],
       },
     ],
-    sitemap: "https://z-g.co.il/sitemap.xml",
+    // The document sitemaps are listed individually rather than behind a
+    // sitemap index: robots.txt is itself a perfectly good index, and one less
+    // indirection is one less thing to get wrong. If the chunk plan cannot be
+    // read (database hiccup), the main sitemap is still advertised.
+    sitemap: [
+      `${SITE_ORIGIN}/sitemap.xml`,
+      ...(await documentChunks().catch(() => [])).map(
+        (_, i) => `${SITE_ORIGIN}/sitemap-docs/${i}.xml`,
+      ),
+    ],
   };
 }

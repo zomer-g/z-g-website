@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Heebo } from "next/font/google";
 import { AttorneySchema, OrganizationSchema, WebSiteSchema } from "@/components/seo/json-ld";
 import { Providers } from "@/components/providers";
+import { SITE_ORIGIN, absoluteUrl } from "@/lib/site";
 import ConsoleGreeting from "@/components/console-greeting";
 import "./globals.css";
 
@@ -15,7 +16,9 @@ const heebo = Heebo({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL || "https://z-g.co.il"),
+  // Not process.env.SITE_URL — that was set to the Render host and made every
+  // canonical on the site point at z-g-website.onrender.com. See lib/site.ts.
+  metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע",
     template: "%s | עו\"ד גיא זומר",
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
   description:
     "עו\"ד גיא זומר — עורך דין פלילי וחופש מידע. ייצוג חשודים, נאשמים ונפגעי עבירה, עתירות חופש מידע, ולשון הרע. מפעיל את מאגר ההנחיות הציבורי, מאגר פסקי דין בלשון הרע ומאגר פסקי דין בחופש מידע.",
   applicationName: "עו\"ד גיא זומר",
-  authors: [{ name: "עו\"ד גיא זומר", url: "https://z-g.co.il/about" }],
+  authors: [{ name: "עו\"ד גיא זומר", url: absoluteUrl("/about") }],
   creator: "עו\"ד גיא זומר",
   publisher: "עו\"ד גיא זומר",
   keywords: [
@@ -46,11 +49,14 @@ export const metadata: Metadata = {
     "Zomer Law",
   ],
   alternates: {
-    canonical: "/",
-    languages: {
-      he: "/",
-      "he-IL": "/",
-    },
+    // "./" — relative, NOT "/". This is the whole fix. An absolute "/" here is
+    // inherited verbatim by every page that does not override it, and 45 of the
+    // 67 public pages did not: /about, /articles, /contact and the rest each
+    // declared itself a duplicate of the homepage and asked Google not to rank
+    // it. Next resolves a RELATIVE canonical against the current page, so the
+    // same one line now gives every page a correct self-canonical, and pages
+    // that set their own still win.
+    canonical: "./",
   },
   // No title/description/url here on purpose: whatever this block sets is
   // inherited verbatim by every page that doesn't define its own openGraph,

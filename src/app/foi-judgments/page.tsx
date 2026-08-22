@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
+import { CrawlableIndex } from "@/components/seo/crawlable-index";
 import { Container } from "@/components/ui/container";
 import { getPageContent } from "@/lib/content";
 import { auth } from "@/lib/auth";
@@ -46,6 +47,7 @@ export default async function FoiJudgmentsPage() {
       </EditableSection>
       <Container className="py-8">
         <RulingsList category="foi-judgments" legislation={content.legislation} />
+        <CrawlableIndex kind="rulings" scopeId={6} basePath="/rulings" />
       </Container>
     </PublicLayout>
   );
