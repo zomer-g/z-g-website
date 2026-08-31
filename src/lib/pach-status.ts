@@ -51,23 +51,37 @@ export function toPachStatus(s: string): PachStatus {
  * pah.org.il Home.jsx — a scheduled window only counts inside its window, an
  * unscheduled outage only counts until it expires, and the newest green wins
  * immediately because a human said "it's back".
+ *
+ * Returns the deciding report alongside the status, because the public API
+ * has to answer "why" and not only "what": a caller polling the status
+ * endpoint needs to know which report put the board in this state and when it
+ * expires. `report` is null when nothing is in effect and the board falls
+ * through to green by default.
  */
-export function computePachStatus(reports: PachStatusInput[], nowMs = Date.now()): PachStatus {
+export function resolvePachStatus<T extends PachStatusInput>(
+  reports: T[],
+  nowMs = Date.now(),
+): { status: PachStatus; report: T | null } {
   for (const r of reports) {
     if (r.is_scheduled) {
       const from = r.scheduled_from ? new Date(r.scheduled_from).getTime() : null;
       const until = r.scheduled_until ? new Date(r.scheduled_until).getTime() : null;
       if (from != null && until != null && nowMs >= from && nowMs <= until) {
-        return toPachStatus(r.status);
+        return { status: toPachStatus(r.status), report: r };
       }
       continue;
     }
-    if (r.status === "green") return "green";
+    if (r.status === "green") return { status: "green", report: r };
     if (r.status === "red" || r.status === "orange") {
       if (!r.expires_at || new Date(r.expires_at).getTime() > nowMs) {
-        return toPachStatus(r.status);
+        return { status: toPachStatus(r.status), report: r };
       }
     }
   }
-  return "green";
+  return { status: "green", report: null };
+}
+
+/** The status alone, for the callers that do not care which report decided it. */
+export function computePachStatus(reports: PachStatusInput[], nowMs = Date.now()): PachStatus {
+  return resolvePachStatus(reports, nowMs).status;
 }

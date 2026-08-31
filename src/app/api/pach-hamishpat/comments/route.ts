@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { readJsonBody } from "@/lib/request-body";
+import { PACH_CORS_HEADERS, pachCorsPreflight } from "@/lib/pach-public";
 
 /** Ported from pach-hamishpat/server/routes/comments.js. */
 
@@ -25,6 +26,10 @@ function serialize(c: {
     is_hidden: c.isHidden,
     created_date: c.createdDate.toISOString(),
   };
+}
+
+export async function OPTIONS() {
+  return pachCorsPreflight();
 }
 
 export async function GET(req: NextRequest) {
@@ -53,7 +58,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const rows = await prisma.pachComment.findMany({ where, orderBy, take: limit });
-    return NextResponse.json(rows.map(serialize));
+    // Public read endpoint, documented next to /status; see the note on the
+    // reports route for why the wildcard origin is safe here.
+    return NextResponse.json(rows.map(serialize), {
+      headers: PACH_CORS_HEADERS,
+    });
   } catch (e) {
     console.error("GET /api/pach-hamishpat/comments", e);
     return NextResponse.json({ error: "שגיאה בטעינת תגובות" }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { readJsonBody } from "@/lib/request-body";
+import { PACH_CORS_HEADERS, pachCorsPreflight } from "@/lib/pach-public";
 
 // A status report's free-text description; a paragraph at most.
 const MAX_DESCRIPTION_LENGTH = 2000;
@@ -45,6 +46,10 @@ function serialize(r: {
   };
 }
 
+export async function OPTIONS() {
+  return pachCorsPreflight();
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const isHiddenRaw = sp.get("is_hidden");
@@ -80,7 +85,14 @@ export async function GET(req: NextRequest) {
       orderBy,
       take: limit,
     });
-    return NextResponse.json(rows.map(serialize));
+    // Documented alongside /status as a public read endpoint, so it has to be
+    // reachable from a browser on another origin too. No `Cache-Control` is
+    // set: the admin variant of this response is not the same document, and
+    // the wildcard origin is only safe because CORS never sends the cookie
+    // that would produce it.
+    return NextResponse.json(rows.map(serialize), {
+      headers: PACH_CORS_HEADERS,
+    });
   } catch (e) {
     console.error("GET /api/pach-hamishpat/reports", e);
     return NextResponse.json({ error: "שגיאה בטעינת דיווחים" }, { status: 500 });
