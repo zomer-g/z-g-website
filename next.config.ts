@@ -65,8 +65,15 @@ const nextConfig: NextConfig = {
       // Scoped away from /api and /admin on purpose. API responses set their
       // own caching per route, and admin pages are the one place where a
       // restored-from-memory view could show another session's chrome.
+      //
+      // The פח המשפט RSS feed is excluded for the same reason as /api: it is
+      // a route handler that sets its own caching, and it is not a page, so
+      // none of the bf-cache reasoning above applies to it. Without the
+      // exclusion this rule overwrote its `s-maxage`, which meant every feed
+      // reader's poll — the exact traffic the short shared cache exists to
+      // collapse — reached the database.
       {
-        source: "/((?!api/|admin/|_next/).*)",
+        source: "/((?!api/|admin/|_next/|pach-hamishpat/feed\\.xml).*)",
         headers: [
           {
             key: "Cache-Control",
