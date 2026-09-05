@@ -58,3 +58,10 @@ next-env.d.ts
 
 # local crawler smoke test artifacts
 /.tmp/
+
+# public/uploads is the runtime/persistent-disk directory. Its contents come
+# from admin uploads at runtime and from public/seed-uploads at startup — the
+# committed copies of the seed thumbnails predate that mechanism and stay
+# tracked, but nothing new belongs here (it would be a second copy of a file
+# already tracked under public/seed-uploads).
+/public/uploads/*

@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
       { label: "מילון", href: "/admin/milon", icon: BookMarked },
       { label: "תחומי עיסוק", href: "/admin/services", icon: Briefcase },
       { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
+      { label: "מסמכי תיקים", href: "/admin/case-documents", icon: Gavel },
       { label: "העלאת קבצים", href: "/admin/media", icon: Image },
     ],
   },

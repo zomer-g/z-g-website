@@ -39,6 +39,7 @@ interface MediaAppearanceItem {
   thumbnailUrl: string | null;
   order: number;
   isActive: boolean;
+  caseTag: string | null;
 }
 
 interface MediaAppearanceForm {
@@ -51,6 +52,7 @@ interface MediaAppearanceForm {
   thumbnailUrl: string;
   order: number;
   isActive: boolean;
+  caseTag: string;
 }
 
 const EMPTY_FORM: MediaAppearanceForm = {
@@ -63,6 +65,7 @@ const EMPTY_FORM: MediaAppearanceForm = {
   thumbnailUrl: "",
   order: 0,
   isActive: true,
+  caseTag: "",
 };
 
 const TYPE_OPTIONS: { value: MediaType; label: string; icon: React.ElementType; tab: "press" | "academic" }[] = [
@@ -177,6 +180,7 @@ export default function AdminMediaAppearancesPage() {
       thumbnailUrl: item.thumbnailUrl || "",
       order: item.order,
       isActive: item.isActive,
+      caseTag: item.caseTag || "",
     });
     setShowForm(true);
     setFeedback(null);
@@ -218,6 +222,7 @@ export default function AdminMediaAppearancesPage() {
           thumbnailUrl: form.thumbnailUrl || undefined,
           order: form.order,
           isActive: form.isActive,
+          caseTag: form.caseTag,
         }),
       });
 
@@ -440,6 +445,15 @@ export default function AdminMediaAppearancesPage() {
               />
             </div>
 
+            <Input
+              label="מזהה תיק (אופציונלי)"
+              value={form.caseTag}
+              onChange={(e) => setForm((prev) => ({ ...prev, caseTag: e.target.value }))}
+              placeholder="better-rail"
+              dir="ltr"
+              helperText="פרסום שמשויך לתיק מופיע גם בעמוד הפוסט של אותו תיק, בנוסף למסך הפרסומים."
+            />
+
             <div className="grid gap-4 sm:grid-cols-3">
               <Input
                 label="קישור (אופציונלי)"
@@ -660,6 +674,11 @@ function ItemGroup({
                     <Badge variant={item.isActive ? "success" : "muted"}>
                       {item.isActive ? "פעיל" : "לא פעיל"}
                     </Badge>
+                    {item.caseTag && (
+                      <Badge variant="accent" className="text-xs" dir="ltr">
+                        {item.caseTag}
+                      </Badge>
+                    )}
                   </div>
                   <p className="truncate text-sm text-muted mt-0.5">
                     {item.source} | {item.date}

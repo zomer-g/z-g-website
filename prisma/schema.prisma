@@ -100,6 +100,9 @@ model PlilistPost {
   seoDesc     String?
   // PDF attachments shown at the bottom of the post: [{ name, url }]
   attachments Json?
+  // When set, the post renders the case file for that tag underneath the body:
+  // its press coverage (MediaAppearance) and its documents (CaseDocument).
+  caseTag     String?
 }
 
 model Page {
@@ -158,7 +161,7 @@ model MediaAppearance {
   id           String   @id @default(cuid())
   title        String
   description  String
-  type         String // "video" | "article" | "podcast"
+  type         String // "video" | "article" | "podcast" | "academic"
   source       String
   date         String
   url          String?
@@ -166,6 +169,41 @@ model MediaAppearance {
   order        Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
+  // Optional case this appearance belongs to (e.g. "better-rail"). Items keep
+  // showing on /media exactly as before; the tag is what lets a case page pull
+  // its own coverage out of the same table instead of duplicating it.
+  caseTag      String?
+
+  @@index([caseTag, date])
+}
+
+// A document filed in — or relied on by — a case the office is running.
+// Deliberately generic: `caseTag` groups them, `category` splits letters from
+// case-law so one table drives both lists on a case page. Everything is
+// editable from /admin/case-documents, so a case can keep growing after the
+// post is published.
+model CaseDocument {
+  id          String    @id @default(cuid())
+  caseTag     String
+  category    String // "letter" | "ruling"
+  title       String
+  description String?
+  // Free-text so a letter can read "9.8.2026" and a judgment "8.9.1985" —
+  // sortDate carries the machine-comparable value when one exists.
+  docDate     String?
+  sortDate    DateTime?
+  // Citation for case-law (e.g. ע"א 360/83); sender → recipient for letters.
+  citation    String?
+  // Court / instance for case-law; author for letters.
+  authority   String?
+  fileUrl     String?
+  sourceUrl   String?
+  order       Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([caseTag, category, order])
 }
 
 model SiteSettings {

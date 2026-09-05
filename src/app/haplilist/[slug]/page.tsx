@@ -14,6 +14,7 @@ import {
 import { formatDate, safeHref } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { TipTapRenderer } from "@/components/tiptap-renderer";
+import { CaseFile } from "@/components/case-file/case-file";
 
 /* ─── PDF attachments ─── */
 
@@ -303,10 +304,24 @@ export default async function PlilistPostPage({ params }: PageProps) {
         </Container>
       </section>
 
+      {/* Case File — coverage, case documents and case-law for this case.
+          Full width rather than inside the article column: the coverage grid
+          needs the room, and the file is a reference section, not prose. */}
+      {post.caseTag && (
+        <section
+          className="border-t border-border bg-muted-bg py-16 sm:py-20"
+          aria-label="תיק התקשורת והמסמכים"
+        >
+          <Container>
+            <CaseFile caseTag={post.caseTag} />
+          </Container>
+        </section>
+      )}
+
       {/* More Posts Section */}
       {relatedPosts.length > 0 && (
         <section
-          className="bg-muted-bg py-16"
+          className="border-t border-border bg-muted-bg py-16"
           aria-labelledby="more-posts-heading"
         >
           <Container>

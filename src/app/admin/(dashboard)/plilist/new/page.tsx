@@ -26,6 +26,7 @@ export default function NewPlilistPostPage() {
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [content, setContent] = useState<Record<string, unknown> | null>(null);
   const [attachments, setAttachments] = useState<PdfAttachment[]>([]);
+  const [caseTag, setCaseTag] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export default function NewPlilistPostPage() {
         seoTitle: seoTitle || undefined,
         seoDesc: seoDesc || undefined,
         attachments,
+        caseTag: caseTag || undefined,
         status,
       };
 
@@ -158,6 +160,28 @@ export default function NewPlilistPostPage() {
           attachments={attachments}
           onChange={setAttachments}
         />
+
+        {/* Case file */}
+        <div className="space-y-2 rounded-lg border border-border bg-gray-50/50 p-4">
+          <h2 className="text-sm font-semibold text-foreground">תיק מקושר</h2>
+          <Input
+            label="מזהה תיק (caseTag)"
+            value={caseTag}
+            onChange={(e) => setCaseTag(e.target.value)}
+            placeholder="better-rail"
+          />
+          <p className="text-xs text-muted">
+            כשממלאים כאן מזהה תיק, הפוסט מציג בתחתיתו את הסיקור התקשורתי ואת
+            מסמכי התיק שמשויכים לאותו מזהה. את התוכן מנהלים במסך{" "}
+            <a
+              href="/admin/case-documents"
+              className="font-semibold text-primary underline"
+            >
+              מסמכי תיקים
+            </a>{" "}
+            ובמסך הופעות מדיה.
+          </p>
+        </div>
 
         {/* SEO Section */}
         <div className="space-y-4 rounded-lg border border-border bg-gray-50/50 p-4">
