@@ -44,7 +44,12 @@ export default async function DefamationRulingsPage() {
       </EditableSection>
       <Container className="py-8">
         <RulingsList category="defamation" legislation={content.legislation} />
-        <CrawlableIndex kind="rulings" scopeId={4} basePath="/rulings" />
+        <CrawlableIndex
+          kind="rulings"
+          scopeId={4}
+          basePath="/rulings"
+          pageSlug="defamation-rulings"
+        />
       </Container>
     </PublicLayout>
   );

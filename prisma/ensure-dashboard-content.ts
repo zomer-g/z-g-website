@@ -477,10 +477,19 @@ async function repairDefamationDisplayFields() {
     // filterable upstream, so it must never be used as a search key.
     { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
     { key: "sql.פלטפורמה", label: "פלטפורמה", control: "text" },
-    // Boolean (כן/לא) filters over scalar case-level flags.
-    { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+    // Boolean (כן/לא) filters. Both publication flags live UNDER
+    // רשימת_פרסומים — see DEAD_FILTER_KEYS below.
+    {
+      key: "sql.רשימת_פרסומים.נקבע_כלשון_הרע",
+      label: "נקבע כלשון הרע",
+      control: "boolean",
+    },
     { key: "sql.מטרה_לפגוע.קביעה_על_מטרה_לפגוע", label: "כוונה לפגוע", control: "boolean" },
-    { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
+    {
+      key: "sql.רשימת_פרסומים.חלו_הגנות",
+      label: "חלו הגנות",
+      control: "boolean",
+    },
     // Per-defense search (TAG-IT "any element" array filtering).
     { key: "sql.הגנות_שנטענו.שם_ההגנה", label: "שם הגנה", control: "text" },
     {
@@ -490,6 +499,21 @@ async function repairDefamationDisplayFields() {
       options: ["כן", "לא", "חלקית", "לא נדונה"],
     },
   ];
+  // Keys that must NOT survive in the config, and the working key each was
+  // repointed to. These two named scalars that do not exist upstream: they
+  // matched nothing on any of the 4,544 judgments while costing ~40s a query,
+  // and because their labels are identical to the working pair the filter bar
+  // showed "נקבע כלשון הרע" and "חלו הגנות" twice — picking the wrong twin
+  // returned "לא נמצאו פסקי דין" with nothing on screen to tell them apart.
+  //
+  // They are listed here, and not only removed once by a script, because the
+  // append loop below re-adds every DEFAULT_FILTER_FIELDS key that is missing:
+  // a one-off cleanup would be undone by the next deploy. That is what already
+  // happened once, after scripts/fix-rulings-page-filters.ts repointed them.
+  const DEAD_FILTER_KEYS: Record<string, string> = {
+    "sql.נקבע_כלשון_הרע": "sql.רשימת_פרסומים.נקבע_כלשון_הרע",
+    "sql.חלו_הגנות": "sql.רשימת_פרסומים.חלו_הגנות",
+  };
   const page = await prisma.page.findUnique({ where: { slug } });
   if (!page) return;
   const isCorrupt = (fields: unknown): boolean =>
@@ -527,6 +551,20 @@ async function repairDefamationDisplayFields() {
       if (pubIdx > -1 && defIdx > -1 && pubIdx > defIdx) {
         df.splice(pubIdx, 1);
         df.splice(df.indexOf(DEFENSES), 0, PUBLICATIONS);
+        changed = true;
+      }
+    }
+    // Drop any filter repointed to a working key. Done before the seed/append
+    // step so the replacement is what gets appended if it is also missing.
+    if (Array.isArray(c.query.filterFields)) {
+      const fields = c.query.filterFields as { key?: string }[];
+      const present = new Set(fields.map((f) => f && f.key).filter(Boolean));
+      const kept = fields.filter(
+        (f) =>
+          !(f && f.key && DEAD_FILTER_KEYS[f.key] && present.has(DEAD_FILTER_KEYS[f.key])),
+      );
+      if (kept.length !== fields.length) {
+        c.query.filterFields = kept;
         changed = true;
       }
     }

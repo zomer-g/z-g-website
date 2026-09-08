@@ -843,11 +843,22 @@ export async function GET(req: NextRequest) {
     // filter offers, so the pairing is expressible as an ordinary indexed
     // clause — no corpus snapshot, no in-memory pass. See
     // `drugQuantityClauses`.
-    const drugSelRaw = userFilters["meta.drug_types"];
+    //
+    // Honoured only on a page whose config actually declares them. Every
+    // other filter already goes through `userFilterClauses`, which iterates
+    // the CONFIG — these two read the query string directly, so without this
+    // guard a link carrying /drug-sentencing's filters emptied whatever
+    // dashboard it was pasted into, and spent a corpus scan doing it.
+    const declaredKeys = new Set(config.filterFields.map((f) => f.key));
+    const drugSelRaw = declaredKeys.has("meta.drug_types")
+      ? userFilters["meta.drug_types"]
+      : undefined;
     const drugSel = Array.isArray(drugSelRaw)
       ? drugSelRaw.map((x) => String(x).trim()).filter(Boolean)
       : [];
-    const qtyRaw = userFilters["meta.drug_max_grams"];
+    const qtyRaw = declaredKeys.has("meta.drug_max_grams")
+      ? userFilters["meta.drug_max_grams"]
+      : undefined;
     const qtyRange =
       qtyRaw && typeof qtyRaw === "object" && !Array.isArray(qtyRaw)
         ? (qtyRaw as { min?: number; max?: number })

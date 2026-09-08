@@ -1930,6 +1930,17 @@ export function RulingsList({
   // "Copied" feedback for the share-link button.
   const [copied, setCopied] = useState(false);
 
+  // A URL can carry filters this page does not have — a link copied from
+  // another dashboard, or a control the admin has since removed. Nothing
+  // renders them (the filter bar is built from the config), so they sit
+  // invisible and silently empty the results. When the URL seeds any filter
+  // we therefore hold the first query until the config has arrived and the
+  // unknown keys have been dropped.
+  const [configResolved, setConfigResolved] = useState(false);
+  const [filtersSettled, setFiltersSettled] = useState(
+    () => Object.keys(urlSeed.filters).length === 0,
+  );
+
   const fetchData = useCallback(
     async (
       cat: string,
@@ -1983,9 +1994,49 @@ export function RulingsList({
     [],
   );
 
+  // Drop URL-seeded filters this page has no control for, so a stale or
+  // foreign link degrades to the search the page CAN run instead of an
+  // unexplained "no results" the reader has no way to undo. Declared before
+  // the fetch effect so it runs first in the same commit — the pruned set is
+  // what gets queried, never the raw one.
   useEffect(() => {
+    if (!configResolved) return;
+    const fields = config?.filterFields;
+    if (fields) {
+      const known = new Set(fields.map((f) => f.key));
+      const keep = (k: string) => {
+        for (const suffix of [MS_MODE_SUFFIX, UNIT_SUFFIX]) {
+          if (k.endsWith(suffix)) return known.has(k.slice(0, -suffix.length));
+        }
+        if (k === LAW_SECTION_KEY) return !!config?.lawSectionFilter;
+        return known.has(k);
+      };
+      // Same object back when nothing was dropped — no re-render, no refetch.
+      const prune = (f: Record<string, UserFilterValue>) => {
+        const kept = Object.entries(f).filter(([k]) => keep(k));
+        return kept.length === Object.keys(f).length
+          ? f
+          : (Object.fromEntries(kept) as Record<string, UserFilterValue>);
+      };
+      setDraftFilters(prune);
+      setAppliedFilters(prune);
+    }
+    setFiltersSettled(true);
+  }, [configResolved, config]);
+
+  useEffect(() => {
+    if (!filtersSettled) return;
     fetchData(category, page, appliedFilters, sortKey, sortDir, textApplied);
-  }, [fetchData, category, page, appliedFilters, sortKey, sortDir, textApplied]);
+  }, [
+    fetchData,
+    filtersSettled,
+    category,
+    page,
+    appliedFilters,
+    sortKey,
+    sortDir,
+    textApplied,
+  ]);
 
   // Fetch the filter/sort CONFIG up front (fast — no TAG-IT document query) so
   // the filter bar appears immediately, before the (possibly slow) results.
@@ -1994,10 +2045,13 @@ export function RulingsList({
     fetch(`/api/rulings?category=${encodeURIComponent(category)}&meta=1`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
-        if (!cancelled && j) setConfig(j as RulingsResponse);
+        if (cancelled) return;
+        if (j) setConfig(j as RulingsResponse);
+        setConfigResolved(true);
       })
       .catch(() => {
         /* fall back to config from the results response */
+        if (!cancelled) setConfigResolved(true);
       });
     return () => {
       cancelled = true;

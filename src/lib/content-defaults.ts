@@ -682,10 +682,17 @@ export const DEFAULT_DEFAMATION_RULINGS_CONTENT: DefamationRulingsPageContent = 
       // filterable upstream (TAG-IT returns 0).
       { key: "sql.תיאור_הפרסום", label: "חיפוש בפרסומים", control: "text" },
       { key: "sql.פלטפורמה", label: "פלטפורמה", control: "text" },
-      // Boolean (כן/לא) filters over scalar case-level flags.
-      { key: "sql.נקבע_כלשון_הרע", label: "נקבע כלשון הרע", control: "boolean" },
+      // Boolean (כן/לא) filters. Both publication flags live UNDER
+      // רשימת_פרסומים — the scalar sql.נקבע_כלשון_הרע / sql.חלו_הגנות keys
+      // these once named do not exist upstream and matched nothing on any of
+      // the 4,544 documents, at ~40s a query.
+      {
+        key: "sql.רשימת_פרסומים.נקבע_כלשון_הרע",
+        label: "נקבע כלשון הרע",
+        control: "boolean",
+      },
       { key: "sql.מטרה_לפגוע.קביעה_על_מטרה_לפגוע", label: "כוונה לפגוע", control: "boolean" },
-      { key: "sql.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
+      { key: "sql.רשימת_פרסומים.חלו_הגנות", label: "חלו הגנות", control: "boolean" },
       // Per-defense search. TAG-IT filters array elements with "any element"
       // semantics, so name + status combined finds cases where a specific
       // defense was accepted/rejected.
