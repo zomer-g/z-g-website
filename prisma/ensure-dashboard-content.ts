@@ -131,8 +131,8 @@ const LEAM_DEFAULT = {
       tagline: "מעקב אחר פעילות נבחרי ציבור",
       description:
         "כלי שמתעד ומנגיש את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, הצבעות ופעילות שוטפת — ומקשר בין דמויות ציבוריות לבין ציר הזמן. נציגים שנבחרו לשרת את הציבור צריכים להיות אחראים כלפיו.",
-      domain: "ocal.org.il",
-      url: "https://ocal.org.il/",
+      domain: "over.org.il/projects/ocal",
+      url: "https://www.over.org.il/projects/ocal",
       icon: "Calendar",
       tags: ["נבחרי ציבור", "ציר זמן", "אחריותיות"],
     },
@@ -142,8 +142,8 @@ const LEAM_DEFAULT = {
       tagline: "מאגר הסדרי ניגוד עניינים של נושאי משרה",
       description:
         "מנוע חיפוש שמרכז את הסדרי ניגוד העניינים של בעלי תפקידים ציבוריים בישראל ומאפשר לבדוק אילו זיקות כלכליות ועסקיות קיימות להם — וגם למפות חזותית את רשת הקשרים שביניהם.",
-      domain: "ocoi.org.il",
-      url: "https://www.ocoi.org.il/",
+      domain: "over.org.il/projects/ocoi",
+      url: "https://www.over.org.il/projects/ocoi",
       icon: "Network",
       tags: ["גרף קשרים", "ניגוד עניינים", "מיפוי קשרים"],
     },

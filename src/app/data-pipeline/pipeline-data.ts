@@ -178,10 +178,10 @@ export const PIPELINE_NODES: PipelineNode[] = [
     name: "יומן לעם (OCAL)",
     tagline: "יומני נבחרי ציבור",
     description:
-      "פלטפורמה אזרחית (ocal.org.il) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. ניזונה מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
+      "פלטפורמה אזרחית (over.org.il/projects/ocal) שמתעדת ומנגישה את יומני הפעילות של נבחרי ציבור בישראל — ישיבות, אירועים ומפגשים. ניזונה מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מושך ממנה אירועים ומקשר ישויות (אנשים וגופים) שעולות בכתבות לאירועים שביומנים.",
     tags: ["נבחרי ציבור", "יומנים", "API", "MCP"],
     links: [
-      { kind: "site", url: "https://ocal.org.il", label: "לאתר יומן לעם" },
+      { kind: "site", url: "https://www.over.org.il/projects/ocal", label: "לאתר יומן לעם" },
       { kind: "github", url: "https://github.com/zomer-g/ocal" },
     ],
     icon: "Calendar",
@@ -197,7 +197,7 @@ export const PIPELINE_NODES: PipelineNode[] = [
       "מאגר וגרף (ocoi.org.il) של הסדרי ניגוד עניינים של נושאי משרה ציבורית, שחולצו ממסמכים ממשלתיים. ניזון מנתוני הבסיס של מידע לעם. דשבורד העיתונאים מקשר ישויות מהכתבות לצמתים בגרף ומציג את הזיקות הכלכליות והעסקיות שלהן.",
     tags: ["ניגוד עניינים", "גרף קשרים", "API", "MCP"],
     links: [
-      { kind: "site", url: "https://www.ocoi.org.il", label: "לאתר ניגוד עניינים לעם" },
+      { kind: "site", url: "https://www.over.org.il/projects/ocoi", label: "לאתר ניגוד עניינים לעם" },
       { kind: "github", url: "https://github.com/zomer-g/ocoi" },
     ],
     icon: "Network",
