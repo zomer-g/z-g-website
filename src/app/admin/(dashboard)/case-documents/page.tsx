@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Save,
+  ScrollText,
   Trash2,
   Upload,
   X,
@@ -22,7 +23,7 @@ import { cn } from "@/lib/utils";
 
 /* ─── Types ─── */
 
-type Category = "letter" | "ruling";
+type Category = "letter" | "ruling" | "law";
 
 interface CaseDocumentItem {
   id: string;
@@ -87,6 +88,13 @@ const CATEGORIES: {
     icon: Gavel,
     citationLabel: "מספר ההליך",
     authorityLabel: "הערכאה",
+  },
+  {
+    value: "law",
+    label: "חקיקה",
+    icon: ScrollText,
+    citationLabel: "סעיפים רלוונטיים",
+    authorityLabel: "מקור הנוסח",
   },
 ];
 
@@ -183,7 +191,9 @@ export default function AdminCaseDocumentsPage() {
     setEditingId(item.id);
     setForm({
       caseTag: item.caseTag,
-      category: item.category === "ruling" ? "ruling" : "letter",
+      category: CATEGORIES.some((c) => c.value === item.category)
+        ? (item.category as Category)
+        : "letter",
       title: item.title,
       description: item.description ?? "",
       docDate: item.docDate ?? "",

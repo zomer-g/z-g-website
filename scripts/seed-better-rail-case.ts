@@ -201,6 +201,14 @@ const COVERAGE: Coverage[] = [
     url: "https://www.geektime.co.il/israel-railways-better-rail-strikes-back-10k/",
   },
   {
+    source: "מאקו — נקסטר",
+    date: "2026-09-07",
+    title: "הנתונים ממשרד התחבורה לא מספיק מדויקים - ובטר רייל חזרה להשתמש בנתוני הרכבת",
+    description:
+      'לפני ראש השנה חזרה בטר רייל לנתוני הרכבת, לאחר שפיד משרד התחבורה הציג לוח זמנים של יום ראשון רגיל בזמן שהרכבות אינן פועלות. מציינת כ-20,000 הורדות מאז פרוץ הפרשה, ומצטטת את המפתחים: "המטרה המרכזית שלנו היא שמשרד התחבורה ורכבת ישראל יסדירו את כלל הפערים".',
+    url: "https://www.mako.co.il/nexter-news/Article-0688805783b70a1026.htm",
+  },
+  {
     source: "כלכליסט",
     date: "2026-09-08",
     title: 'סערת הלו"ז בחג: Better Rail חוזרת לשאוב מידע מהרכבת',
@@ -216,18 +224,28 @@ const COVERAGE: Coverage[] = [
       'לפי לוחות הזמנים באתר משרד התחבורה, שמזינים את יישומוני התחבורה, הרכבות יפעלו בחג אף שהשירות מושבת. בטר רייל מצוטטת: "התרענו כבר בתחילת השבוע על המידע השגוי".',
     url: "https://www.themarker.com/news/transport/2026-09-10/ty-article/.premium/000001a0-8aa2-d9a4-a3a7-9ff24c0e0000",
   },
+  {
+    source: "ice",
+    date: "2026-09-11",
+    title: "למרות איומי התביעה: הצעד הדרמטי נגד רכבת ישראל",
+    description:
+      "מפתחי בטר רייל חזרו לשאוב נתונים ישירות משרתי הרכבת, בשל פערים מהותיים בנתוני משרד התחבורה: בעוד שאתר הרכבת הציג את לוחות החג המעודכנים, המאגר הממשלתי המשיך להציג לוח של יום ראשון רגיל — מידע שעלול היה להטעות נוסעים בחג.",
+    url: "https://www.ice.co.il/auto/news/article/1129609",
+  },
 ];
 
 /* ──────────────────────────── Case documents ──────────────────────────── */
 
 interface CaseDoc {
-  category: "letter" | "ruling";
+  category: "letter" | "ruling" | "law";
   title: string;
   description: string;
   citation?: string;
   authority?: string;
   docDate?: string;
-  fileUrl: string;
+  // A hosted file, an external link, or both — laws only have the link.
+  fileUrl?: string;
+  sourceUrl?: string;
 }
 
 const LETTERS: CaseDoc[] = [
@@ -323,6 +341,26 @@ const RULINGS: CaseDoc[] = [
   },
   {
     category: "ruling",
+    title: 'חשבים ה.פ.ס. מידע עסקי בע"מ נ\' הנהלת בתי המשפט',
+    citation: 'בג"ץ 5870/14',
+    authority: 'בית המשפט העליון בשבתו כבג"ץ',
+    docDate: "12.11.2015",
+    description:
+      "הנהלת בתי המשפט התנתה את הגישה למאגר פסקי הדין שבידיה בהתחייבות שלא לאפשר את איתורם במנועי חיפוש, ומולה חברה מסחרית ששואבת את המאגר לאתריה. בית המשפט ביטל את ההחלטה וקבע כי הגבלה כזו על השימוש החוזר במידע שבידי גוף ציבורי מצריכה הכרעה של המחוקק, ולא החלטה מינהלית.",
+    fileUrl: "/uploads/br-ruling-bagatz-5870-14-hashavim-courts-admin.pdf",
+  },
+  {
+    category: "ruling",
+    title: 'מדינת ישראל — הנהלת בתי המשפט נ\' דה מרקר — עיתון הארץ',
+    citation: 'עע"מ 3908/11',
+    authority: "בית המשפט העליון, בהרכב מורחב של שבעה שופטים",
+    docDate: "22.9.2014",
+    description:
+      "האם חוק חופש המידע חל על נתונים בדבר התיקים התלויים ועומדים בפני כל שופט. ברוב דעות נקבע כי יש למסור את המידע, תוך הדגשת זכות הציבור לדעת כיצד פועלות רשויות השלטון והחשיבות של שקיפות לאמון הציבור — גם כשהרשות חוששת מהשימוש שייעשה בו.",
+    fileUrl: "/uploads/br-ruling-aaa-3908-11-courts-admin-themarker.pdf",
+  },
+  {
+    category: "ruling",
     title: 'בזק נ\' דפי זהב',
     citation: 'בש"א 11667/09 (ת"א 1684/09)',
     authority: 'בית המשפט המחוזי תל אביב-יפו, כב\' השופט א\' זמיר',
@@ -367,6 +405,35 @@ const RULINGS: CaseDoc[] = [
     description:
       'האם מדריך טלפונים הוא "יצירה" לפי חוק זכות יוצרים, התשס"ח-2007. פסק דין ממוקד בהגנה על אוספי מידע פונקציונליים.',
     fileUrl: "/uploads/br-ruling-ta-5310-08-kavei-meida-bell.pdf",
+  },
+];
+
+const LAWS: CaseDoc[] = [
+  {
+    category: "law",
+    title: 'חוק חופש המידע, התשנ"ח-1998',
+    description:
+      "מעגן את זכותו של כל אזרח ותושב לקבל מידע מרשות ציבורית, לרבות חברה ממשלתית. נקודת המוצא לשאלה אם מידע תפעולי שרשות מחזיקה ומפרסמת לציבור יכול להיחשב נכס פרטי שלה.",
+    sourceUrl:
+      "https://he.wikisource.org/wiki/%D7%97%D7%95%D7%A7_%D7%97%D7%95%D7%A4%D7%A9_%D7%94%D7%9E%D7%99%D7%93%D7%A2",
+  },
+  {
+    category: "law",
+    title: 'חוק זכות יוצרים, התשס"ח-2007',
+    citation: "סעיף 5",
+    description:
+      "קובע מהי יצירה מוגנת ומה אינו מוגן. סעיף 5 מוציא מן ההגנה עובדה או נתון כשלעצמם, וההגנה חלה על דרך הביטוי בלבד — נקודת המוצא לבחינת הטענה שלוחות זמנים הם נכס קנייני.",
+    sourceUrl:
+      "https://he.wikisource.org/wiki/%D7%97%D7%95%D7%A7_%D7%96%D7%9B%D7%95%D7%AA_%D7%99%D7%95%D7%A6%D7%A8%D7%99%D7%9D",
+  },
+  {
+    category: "law",
+    title: 'חוק עוולות מסחריות, התשנ"ט-1999',
+    citation: "סעיף 5",
+    description:
+      'מסדיר את עוולת גזל הסוד המסחרי. לפי ההגדרה בסעיף 5, סוד מסחרי הוא מידע "שאינו נחלת הרבים" ושבעליו נוקט אמצעים סבירים לשמור על סודיותו — והיא עומדת במרכז התשובה לטענת הסוד המסחרי במכתב ההתראה.',
+    sourceUrl:
+      "https://he.wikisource.org/wiki/%D7%97%D7%95%D7%A7_%D7%A2%D7%95%D7%95%D7%9C%D7%95%D7%AA_%D7%9E%D7%A1%D7%97%D7%A8%D7%99%D7%95%D7%AA",
   },
 ];
 
@@ -655,11 +722,14 @@ async function seedDocuments() {
   let created = 0;
   let updated = 0;
 
-  const all = [...LETTERS, ...RULINGS];
+  const all = [...LETTERS, ...RULINGS, ...LAWS];
 
   for (const [index, doc] of all.entries()) {
     const existing = await prisma.caseDocument.findFirst({
-      where: { caseTag: CASE_TAG, fileUrl: doc.fileUrl },
+      // Match on whatever identifies the document: the file, or for laws the link.
+      where: doc.fileUrl
+        ? { caseTag: CASE_TAG, fileUrl: doc.fileUrl }
+        : { caseTag: CASE_TAG, sourceUrl: doc.sourceUrl },
     });
 
     const data = {
@@ -670,7 +740,8 @@ async function seedDocuments() {
       docDate: doc.docDate ?? null,
       citation: doc.citation ?? null,
       authority: doc.authority ?? null,
-      fileUrl: doc.fileUrl,
+      fileUrl: doc.fileUrl ?? null,
+      sourceUrl: doc.sourceUrl ?? null,
       order: index + 1,
       isActive: LIVE,
     };

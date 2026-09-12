@@ -1,4 +1,11 @@
-import { ArrowUpLeft, FileText, Gavel, Newspaper, Scale } from "lucide-react";
+import {
+  ArrowUpLeft,
+  FileText,
+  Gavel,
+  Newspaper,
+  Scale,
+  ScrollText,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
 import { cn, safeHref } from "@/lib/utils";
@@ -174,6 +181,7 @@ function CoverageCard({
 function DocumentRow({
   doc,
   icon: Icon,
+  linkLabel,
 }: {
   doc: {
     title: string;
@@ -185,6 +193,8 @@ function DocumentRow({
     sourceUrl: string | null;
   };
   icon: React.ElementType;
+  /** Overrides the default "view document" / "to source" link text. */
+  linkLabel?: string;
 }) {
   // The hosted file wins; an external source is the fallback for a document we
   // point at but do not host ourselves.
@@ -221,7 +231,7 @@ function DocumentRow({
         )}
         {href && (
           <span className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-200 group-hover:text-accent-text">
-            {doc.fileUrl ? "לצפייה במסמך" : "למקור"}
+            {linkLabel ?? (doc.fileUrl ? "לצפייה במסמך" : "למקור")}
             <ArrowUpLeft className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </span>
@@ -264,8 +274,14 @@ export async function CaseFile({
 
   const letters = documents.filter((d) => d.category === "letter");
   const rulings = documents.filter((d) => d.category === "ruling");
+  const laws = documents.filter((d) => d.category === "law");
 
-  if (coverage.length === 0 && letters.length === 0 && rulings.length === 0) {
+  if (
+    coverage.length === 0 &&
+    letters.length === 0 &&
+    rulings.length === 0 &&
+    laws.length === 0
+  ) {
     return null;
   }
 
@@ -304,6 +320,30 @@ export async function CaseFile({
           <ul role="list" className="space-y-4">
             {letters.map((doc) => (
               <DocumentRow key={doc.id} doc={doc} icon={FileText} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── Legislation — statute before case-law, the order a lawyer reads them ── */}
+      {laws.length > 0 && (
+        <section aria-labelledby={`case-${caseTag}-laws`}>
+          <SectionHeader
+            id={`case-${caseTag}-laws`}
+            as={headingLevel}
+            icon={ScrollText}
+            title="החקיקה הרלוונטית"
+            subtitle="החוקים שבמרכז המחלוקת, בנוסחם המלא."
+            count={laws.length}
+          />
+          <ul role="list" className="space-y-4">
+            {laws.map((doc) => (
+              <DocumentRow
+                key={doc.id}
+                doc={doc}
+                icon={ScrollText}
+                linkLabel="לנוסח החוק"
+              />
             ))}
           </ul>
         </section>

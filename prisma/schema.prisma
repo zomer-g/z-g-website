@@ -185,7 +185,7 @@ model MediaAppearance {
 model CaseDocument {
   id          String    @id @default(cuid())
   caseTag     String
-  category    String // "letter" | "ruling"
+  category    String // "letter" | "ruling" | "law"
   title       String
   description String?
   // Free-text so a letter can read "9.8.2026" and a judgment "8.9.1985" —

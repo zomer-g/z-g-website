@@ -103,7 +103,7 @@ export const mediaAppearanceSchema = z.object({
 
 export const caseDocumentSchema = z.object({
   caseTag: z.string().min(1, "מזהה תיק נדרש"),
-  category: z.enum(["letter", "ruling"]),
+  category: z.enum(["letter", "ruling", "law"]),
   title: z.string().min(1, "כותרת נדרשת"),
   description: emptyToNull,
   docDate: emptyToNull,
