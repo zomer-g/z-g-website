@@ -1,0 +1,754 @@
+{
+  "kind": "db",
+  "label": "db-t1-xhostd-restore",
+  "host": "db.xhostd.com",
+  "database": "ch_e18e80340afb41a180e3634fedb7f6ab",
+  "version": "PostgreSQL 18.4 (Debian 18.4-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "startedAt": "2026-09-13T06:16:02.095Z",
+  "finishedAt": "2026-09-13T06:16:34.065Z",
+  "extensions": [
+    "pg_trgm@1.6",
+    "plpgsql@1.0"
+  ],
+  "tables": [
+    {
+      "name": "Account",
+      "rows": 5,
+      "bytes": 57344,
+      "hashMode": "full",
+      "hash": "afabe2406c77aa0ebc035aa339b25c81",
+      "indexes": [
+        "Account_pkey",
+        "Account_provider_providerAccountId_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "CaseDocument",
+      "rows": 19,
+      "bytes": 57344,
+      "hashMode": "full",
+      "hash": "c5b0df9bdc5356eecef1e9c34d3b3f6a",
+      "indexes": [
+        "CaseDocument_caseTag_category_order_idx",
+        "CaseDocument_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Media",
+      "rows": 9,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "c52f5be5f0effcf985a7a7707b9351df",
+      "indexes": [
+        "Media_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "MediaAppearance",
+      "rows": 57,
+      "bytes": 73728,
+      "hashMode": "full",
+      "hash": "653c66b46824a59da464fd4fd33c97de",
+      "indexes": [
+        "MediaAppearance_caseTag_date_idx",
+        "MediaAppearance_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Page",
+      "rows": 55,
+      "bytes": 925696,
+      "hashMode": "full",
+      "hash": "1b5aaef4e337501ce4e6176bd2921c9e",
+      "indexes": [
+        "Page_pkey",
+        "Page_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "PlilistPost",
+      "rows": 7,
+      "bytes": 106496,
+      "hashMode": "full",
+      "hash": "69f912c86152c544108198bbeaefcc4d",
+      "indexes": [
+        "PlilistPost_pkey",
+        "PlilistPost_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Post",
+      "rows": 13,
+      "bytes": 106496,
+      "hashMode": "full",
+      "hash": "33ec232a00a5e339c273e33abb312787",
+      "indexes": [
+        "Post_pkey",
+        "Post_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Service",
+      "rows": 11,
+      "bytes": 90112,
+      "hashMode": "full",
+      "hash": "9e42afee9f00e85f0aef66adf393a7d8",
+      "indexes": [
+        "Service_pkey",
+        "Service_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Session",
+      "rows": 65,
+      "bytes": 57344,
+      "hashMode": "full",
+      "hash": "c5b756f7d32c43546a6847ea1c8d5f65",
+      "indexes": [
+        "Session_pkey",
+        "Session_sessionToken_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "SiteSettings",
+      "rows": 1,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "4b9dbd8537ce9911e436959fb39268ff",
+      "indexes": [
+        "SiteSettings_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "Submission",
+      "rows": 3,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "930c65219ceffd05503d921cfc9b30c9",
+      "indexes": [
+        "Submission_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "User",
+      "rows": 4,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "2a3d7955a602c4e375f99a51a938e16a",
+      "indexes": [
+        "User_email_key",
+        "User_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "VerificationToken",
+      "rows": 0,
+      "bytes": 24576,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "VerificationToken_identifier_token_key",
+        "VerificationToken_token_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "ca_records",
+      "rows": 35110,
+      "bytes": 102285312,
+      "hashMode": "full",
+      "hash": "6e00b33d21dd6e5d1f4c3b330147b602",
+      "indexes": [
+        "ca_records_date_idx",
+        "ca_records_district_idx",
+        "ca_records_offense_idx",
+        "ca_records_pkey",
+        "ca_records_source_date_idx",
+        "ca_records_source_district_idx",
+        "ca_records_source_idx",
+        "ca_records_source_offense_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "ca_sync",
+      "rows": 1,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "78e7232f4b651db8a034bce3962dc4dc",
+      "indexes": [
+        "ca_sync_pkey"
+      ],
+      "maxSyncedAt": "2026-09-10 09:04:28.959"
+    },
+    {
+      "name": "foi_decided_examples",
+      "rows": 149,
+      "bytes": 335872,
+      "hashMode": "full",
+      "hash": "6d7d567bd015b02e63151de546798c5b",
+      "indexes": [
+        "foi_decided_examples_pkey",
+        "foi_decided_examples_section_id_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "foi_guide_chunks",
+      "rows": 325,
+      "bytes": 6021120,
+      "hashMode": "full",
+      "hash": "d4aeb93b070b30451162dc6a8619582f",
+      "indexes": [
+        "foi_guide_chunks_doc_id_chunk_idx_key",
+        "foi_guide_chunks_doc_id_idx",
+        "foi_guide_chunks_pkey",
+        "foi_guide_chunks_section_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "foi_guide_docs",
+      "rows": 22,
+      "bytes": 163840,
+      "hashMode": "full",
+      "hash": "845f05ca77086689341a286c0b12d49d",
+      "indexes": [
+        "foi_guide_docs_pkey",
+        "foi_guide_docs_slug_key",
+        "foi_guide_docs_url_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "foi_law_sections",
+      "rows": 22,
+      "bytes": 73728,
+      "hashMode": "full",
+      "hash": "30a0d6c24fe797dc30f0795b8dbb0287",
+      "indexes": [
+        "foi_law_sections_doc_id_section_ref_key",
+        "foi_law_sections_pkey",
+        "foi_law_sections_section_ref_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "guideline_chunks",
+      "rows": 31738,
+      "bytes": 570146816,
+      "hashMode": "pk",
+      "hash": "7f4fa1c8e237b0c792c267caecd3718b",
+      "indexes": [
+        "guideline_chunks_doc_id_chunk_idx_key",
+        "guideline_chunks_doc_id_idx",
+        "guideline_chunks_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "guideline_docs",
+      "rows": 12281,
+      "bytes": 21962752,
+      "hashMode": "full",
+      "hash": "3e2488d5b4c600a0f14cbc53d4c732e1",
+      "indexes": [
+        "guideline_docs_document_date_idx",
+        "guideline_docs_pkey",
+        "guideline_docs_source_label_idx"
+      ],
+      "maxSyncedAt": "2026-09-12 05:57:28.701"
+    },
+    {
+      "name": "guideline_embeddings",
+      "rows": 3452,
+      "bytes": 655360,
+      "hashMode": "full",
+      "hash": "19af9f3e41b055440938d3fb2b006c3d",
+      "indexes": [
+        "guideline_embeddings_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "guideline_sync_state",
+      "rows": 1,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "53e287d85af4a8f7b7a74b8b76b14813",
+      "indexes": [
+        "guideline_sync_state_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "mcp_invites",
+      "rows": 2,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "c57ab0f407cc1343ccbf15da939efc31",
+      "indexes": [
+        "mcp_invites_email_key",
+        "mcp_invites_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "mcp_oauth_access_tokens",
+      "rows": 0,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "mcp_oauth_access_tokens_email_idx",
+        "mcp_oauth_access_tokens_expires_at_idx",
+        "mcp_oauth_access_tokens_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "mcp_oauth_auth_codes",
+      "rows": 16,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "e253a3531b5f1afc0f57bbb744fd4407",
+      "indexes": [
+        "mcp_oauth_auth_codes_expires_at_idx",
+        "mcp_oauth_auth_codes_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "mcp_oauth_clients",
+      "rows": 19,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "e6e4d3bea604bc7c27a1149c340be019",
+      "indexes": [
+        "mcp_oauth_clients_client_id_key",
+        "mcp_oauth_clients_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "mcp_usage",
+      "rows": 23,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "f9313a4da23c342e24702c6346910835",
+      "indexes": [
+        "mcp_usage_email_created_at_idx",
+        "mcp_usage_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "milon_entries",
+      "rows": 7,
+      "bytes": 57344,
+      "hashMode": "full",
+      "hash": "5e7f0b962fc359b50352d72109dc098b",
+      "indexes": [
+        "milon_entries_pkey",
+        "milon_entries_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "pach_comments",
+      "rows": 24,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "bf0281f2f62f966b9ed037ee578efd91",
+      "indexes": [
+        "pach_comments_created_date_idx",
+        "pach_comments_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "pach_reports",
+      "rows": 310,
+      "bytes": 106496,
+      "hashMode": "full",
+      "hash": "3fb994861149dc1791aab3817a05eb9a",
+      "indexes": [
+        "pach_reports_created_date_idx",
+        "pach_reports_is_hidden_created_date_idx",
+        "pach_reports_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "pach_system_messages",
+      "rows": 74,
+      "bytes": 475136,
+      "hashMode": "full",
+      "hash": "aea70f30b293587f2ce8cac685f2377c",
+      "indexes": [
+        "pach_system_messages_is_archived_order_index_idx",
+        "pach_system_messages_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "sanegoria_cases",
+      "rows": 108970,
+      "bytes": 47587328,
+      "hashMode": "full",
+      "hash": "b0b0e8a4f09e102c59d3188b6638edae",
+      "indexes": [
+        "idx_cases_year",
+        "sanegoria_cases_acceptance_date_idx",
+        "sanegoria_cases_case_id_key",
+        "sanegoria_cases_court_id_idx",
+        "sanegoria_cases_is_pd_acceptance_date_court_id_idx",
+        "sanegoria_cases_is_pd_acceptance_date_idx",
+        "sanegoria_cases_is_pd_acceptance_date_verdict_idx",
+        "sanegoria_cases_is_pd_court_id_idx",
+        "sanegoria_cases_is_pd_idx",
+        "sanegoria_cases_is_pd_verdict_idx",
+        "sanegoria_cases_pkey",
+        "sanegoria_cases_verdict_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "sanegoria_hearings",
+      "rows": 51627,
+      "bytes": 8314880,
+      "hashMode": "full",
+      "hash": "eb1a5475fe6fdbbffca58bc209f2f08b",
+      "indexes": [
+        "sanegoria_hearings_case_id_idx",
+        "sanegoria_hearings_case_id_is_pd_idx",
+        "sanegoria_hearings_is_pd_idx",
+        "sanegoria_hearings_is_pd_meeting_date_idx",
+        "sanegoria_hearings_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "sanegoria_offenses",
+      "rows": 137537,
+      "bytes": 25026560,
+      "hashMode": "full",
+      "hash": "c79d13700c3f15b227aaba7a61e7d391",
+      "indexes": [
+        "sanegoria_offenses_case_id_idx",
+        "sanegoria_offenses_case_id_offense_code_idx",
+        "sanegoria_offenses_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "tagit_docs",
+      "rows": 82459,
+      "bytes": 541941760,
+      "hashMode": "pk",
+      "hash": "c11b012db3f02384409272e3bdc34cbb",
+      "indexes": [
+        "tagit_docs_data_idx",
+        "tagit_docs_doc_id_idx",
+        "tagit_docs_pkey",
+        "tagit_docs_scope_id_document_date_idx"
+      ],
+      "maxSyncedAt": "2026-09-12 21:34:46.86"
+    },
+    {
+      "name": "tagit_sync_state",
+      "rows": 3,
+      "bytes": 155648,
+      "hashMode": "full",
+      "hash": "1c9ff1a255e8554af4dc6e6653875d6c",
+      "indexes": [
+        "tagit_sync_state_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_event_tags",
+      "rows": 0,
+      "bytes": 24576,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "timeline_event_tags_pkey",
+        "timeline_event_tags_tag_id_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_events",
+      "rows": 0,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "timeline_events_layer_id_order_idx",
+        "timeline_events_layer_id_timestamp_idx",
+        "timeline_events_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_layers",
+      "rows": 1,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "e8d4cc6a20b9fec095c8f1cc965f5ec8",
+      "indexes": [
+        "timeline_layers_pkey",
+        "timeline_layers_project_id_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_media",
+      "rows": 0,
+      "bytes": 24576,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "timeline_media_layer_id_idx",
+        "timeline_media_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_project_access",
+      "rows": 0,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "timeline_project_access_email_idx",
+        "timeline_project_access_pkey",
+        "timeline_project_access_project_id_email_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_projects",
+      "rows": 1,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "a2ad3093961bccc3fa62792caf616f77",
+      "indexes": [
+        "timeline_projects_pkey",
+        "timeline_projects_slug_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "timeline_tags",
+      "rows": 0,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "timeline_tags_pkey",
+        "timeline_tags_project_id_idx",
+        "timeline_tags_project_id_name_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_chats",
+      "rows": 6,
+      "bytes": 65536,
+      "hashMode": "full",
+      "hash": "ee6d7498e827f996e7458828ba3670cc",
+      "indexes": [
+        "whatsapp_chats_pkey",
+        "whatsapp_chats_workspace_id_idx",
+        "whatsapp_chats_workspace_id_last_at_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_media",
+      "rows": 213,
+      "bytes": 14401536,
+      "hashMode": "full",
+      "hash": "631cf86c7715326a06b3e7dca7a6a478",
+      "indexes": [
+        "whatsapp_media_chat_id_idx",
+        "whatsapp_media_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_message_tags",
+      "rows": 0,
+      "bytes": 24576,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "whatsapp_message_tags_pkey",
+        "whatsapp_message_tags_tag_id_idx"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_messages",
+      "rows": 1067,
+      "bytes": 483328,
+      "hashMode": "full",
+      "hash": "d47eaa607e74932504020bbdb492a08a",
+      "indexes": [
+        "whatsapp_messages_chat_id_order_idx",
+        "whatsapp_messages_pkey"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_tags",
+      "rows": 0,
+      "bytes": 32768,
+      "hashMode": "full",
+      "hash": "d41d8cd98f00b204e9800998ecf8427e",
+      "indexes": [
+        "whatsapp_tags_pkey",
+        "whatsapp_tags_workspace_id_idx",
+        "whatsapp_tags_workspace_id_name_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_workspace_access",
+      "rows": 3,
+      "bytes": 65536,
+      "hashMode": "full",
+      "hash": "71e877341d120bcf5dde62c4e8b7fe6f",
+      "indexes": [
+        "whatsapp_workspace_access_email_idx",
+        "whatsapp_workspace_access_pkey",
+        "whatsapp_workspace_access_workspace_id_email_key"
+      ],
+      "maxSyncedAt": null
+    },
+    {
+      "name": "whatsapp_workspaces",
+      "rows": 1,
+      "bytes": 49152,
+      "hashMode": "full",
+      "hash": "1b0f4a6ff8051da2c539302b2058d85f",
+      "indexes": [
+        "whatsapp_workspaces_pkey",
+        "whatsapp_workspaces_slug_key"
+      ],
+      "maxSyncedAt": null
+    }
+  ],
+  "sequences": [
+    {
+      "name": "foi_decided_examples_id_seq",
+      "table": "foi_decided_examples",
+      "column": "id",
+      "lastValue": 417,
+      "maxValue": 417,
+      "ok": true
+    },
+    {
+      "name": "foi_guide_chunks_id_seq",
+      "table": "foi_guide_chunks",
+      "column": "id",
+      "lastValue": 930,
+      "maxValue": 930,
+      "ok": true
+    },
+    {
+      "name": "foi_guide_docs_id_seq",
+      "table": "foi_guide_docs",
+      "column": "id",
+      "lastValue": 43,
+      "maxValue": 43,
+      "ok": true
+    },
+    {
+      "name": "foi_law_sections_id_seq",
+      "table": "foi_law_sections",
+      "column": "id",
+      "lastValue": 56,
+      "maxValue": 56,
+      "ok": true
+    },
+    {
+      "name": "guideline_chunks_id_seq",
+      "table": "guideline_chunks",
+      "column": "id",
+      "lastValue": 326417,
+      "maxValue": 326417,
+      "ok": true
+    },
+    {
+      "name": "mcp_usage_id_seq",
+      "table": "mcp_usage",
+      "column": "id",
+      "lastValue": 23,
+      "maxValue": 23,
+      "ok": true
+    },
+    {
+      "name": "pach_comments_id_seq",
+      "table": "pach_comments",
+      "column": "id",
+      "lastValue": 24,
+      "maxValue": 24,
+      "ok": true
+    },
+    {
+      "name": "pach_reports_id_seq",
+      "table": "pach_reports",
+      "column": "id",
+      "lastValue": 310,
+      "maxValue": 310,
+      "ok": true
+    },
+    {
+      "name": "pach_system_messages_id_seq",
+      "table": "pach_system_messages",
+      "column": "id",
+      "lastValue": 74,
+      "maxValue": 74,
+      "ok": true
+    },
+    {
+      "name": "sanegoria_cases_id_seq",
+      "table": "sanegoria_cases",
+      "column": "id",
+      "lastValue": 348745,
+      "maxValue": 348740,
+      "ok": true
+    },
+    {
+      "name": "sanegoria_hearings_id_seq",
+      "table": "sanegoria_hearings",
+      "column": "id",
+      "lastValue": 1599128,
+      "maxValue": 1598975,
+      "ok": true
+    },
+    {
+      "name": "sanegoria_offenses_id_seq",
+      "table": "sanegoria_offenses",
+      "column": "id",
+      "lastValue": 146310,
+      "maxValue": 146310,
+      "ok": true
+    }
+  ]
+}

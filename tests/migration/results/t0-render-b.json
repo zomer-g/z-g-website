@@ -1,0 +1,4311 @@
+{
+  "kind": "http",
+  "label": "t0-render-b",
+  "base": "https://www.z-g.co.il",
+  "publicOrigin": "https://www.z-g.co.il",
+  "resolved": [
+    "216.24.57.7",
+    "216.24.57.15"
+  ],
+  "startedAt": "2026-09-12T20:51:24.032Z",
+  "finishedAt": "2026-09-12T20:55:48.886Z",
+  "client": {
+    "node": "v24.14.0",
+    "platform": "win32"
+  },
+  "rounds": 5,
+  "sanity": [
+    {
+      "id": "home",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca498f6b7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 426,
+      "attempts": 1,
+      "detail": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע",
+      "fingerprint": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע"
+    },
+    {
+      "id": "security-headers",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4aa8987d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 122.3,
+      "attempts": 1,
+      "detail": "all present",
+      "fingerprint": "d410eeef24af0889"
+    },
+    {
+      "id": "static-asset",
+      "group": "infra",
+      "headers": {
+        "content-type": "application/javascript; charset=UTF-8",
+        "cache-control": "public, max-age=31536000, immutable",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4b69507d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/_next/static/chunks/0m97bbjp.vgzu.js",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 204.5,
+      "attempts": 1,
+      "detail": "public, max-age=31536000, immutable",
+      "fingerprint": null
+    },
+    {
+      "id": "not-found",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4caa7a7d9e-TLV",
+        "x-nextjs-cache": "HIT",
+        "x-nextjs-prerender": "1, 1",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/__migration-probe-not-found",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 84.5,
+      "attempts": 1,
+      "detail": "HTTP 404",
+      "fingerprint": null
+    },
+    {
+      "id": "robots",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/plain",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4d3af77d9e-TLV",
+        "x-nextjs-cache": "HIT",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/robots.txt",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 82.7,
+      "attempts": 1,
+      "detail": "10 sitemap(s)",
+      "fingerprint": "803ef558bf5b528e"
+    },
+    {
+      "id": "sitemap",
+      "group": "infra",
+      "headers": {
+        "content-type": "application/xml",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4dbb6e7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/sitemap.xml",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 98.7,
+      "attempts": 1,
+      "detail": "urls=62",
+      "fingerprint": 62
+    },
+    {
+      "id": "sitemap-docs",
+      "group": "infra",
+      "headers": {
+        "content-type": "application/xml; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca4e5c167d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/sitemap-docs/0.xml",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 478.8,
+      "attempts": 1,
+      "detail": "urls=5000",
+      "fingerprint": 5000
+    },
+    {
+      "id": "og-image:/",
+      "group": "infra",
+      "headers": {
+        "content-type": "image/png",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca516eb37d9e-TLV",
+        "x-nextjs-cache": "HIT",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/opengraph-image",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 109,
+      "attempts": 1,
+      "detail": "HTTP 200",
+      "fingerprint": null
+    },
+    {
+      "id": "og-image:/guidelines",
+      "group": "infra",
+      "headers": {
+        "content-type": "image/png",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca52387c7d95-TLV",
+        "x-nextjs-cache": "HIT",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines/opengraph-image",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 111.4,
+      "attempts": 1,
+      "detail": "HTTP 200",
+      "fingerprint": null
+    },
+    {
+      "id": "image-optimizer",
+      "group": "infra",
+      "headers": {
+        "content-type": "image/png",
+        "content-length": "8426",
+        "cache-control": "public, max-age=14400, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca52c8667d9e-TLV",
+        "x-nextjs-cache": "HIT",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/_next/image?url=%2Fuploads%2Fmedia-thumb-cmn1dg5mg0000d89o8gg0zeyk.png&w=384&q=75",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 83.2,
+      "attempts": 1,
+      "detail": "HTTP 200",
+      "fingerprint": null
+    },
+    {
+      "id": "http-redirects-to-https",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "content-length": "57",
+        "location": "https://www.z-g.co.il/",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca53595f7da4-TLV"
+      },
+      "url": "http://www.z-g.co.il/",
+      "ok": true,
+      "skipped": false,
+      "status": 301,
+      "ms": 88.8,
+      "attempts": 1,
+      "detail": "→ https://www.z-g.co.il/",
+      "fingerprint": null
+    },
+    {
+      "id": "apex-redirects-to-www",
+      "group": "infra",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "content-length": "57",
+        "location": "https://www.z-g.co.il/",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca540da1f169-TLV"
+      },
+      "url": "https://z-g.co.il/",
+      "ok": true,
+      "skipped": false,
+      "status": 301,
+      "ms": 120,
+      "attempts": 1,
+      "detail": "→ https://www.z-g.co.il/",
+      "fingerprint": null
+    },
+    {
+      "id": "auth-providers",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca549a0a7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/auth/providers",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 84.8,
+      "attempts": 1,
+      "detail": "https://www.z-g.co.il/api/auth/callback/google",
+      "fingerprint": "https://www.z-g.co.il/api/auth/callback/google"
+    },
+    {
+      "id": "auth-session-anonymous",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-cache, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca551a897d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/auth/session",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 83.1,
+      "attempts": 1,
+      "detail": "HTTP 200",
+      "fingerprint": null
+    },
+    {
+      "id": "admin-redirects-to-login",
+      "group": "auth",
+      "headers": {
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "location": "https://www.z-g.co.il/admin/login?callbackUrl=%2Fadmin",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca55aaf17d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/admin",
+      "ok": true,
+      "skipped": false,
+      "status": 307,
+      "ms": 81,
+      "attempts": 1,
+      "detail": "→ /admin/login?callbackUrl=%2Fadmin",
+      "fingerprint": "/admin/login"
+    },
+    {
+      "id": "admin-login-page",
+      "group": "auth",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "s-maxage=31536000",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca562b2e7d95-TLV",
+        "x-nextjs-cache": "HIT",
+        "x-nextjs-prerender": "1, 1",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/admin/login",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 87.4,
+      "attempts": 1,
+      "detail": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע",
+      "fingerprint": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע"
+    },
+    {
+      "id": "guard:/api/admin/billing",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca56bbb77d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/admin/billing",
+      "ok": true,
+      "skipped": false,
+      "status": 401,
+      "ms": 82.5,
+      "attempts": 1,
+      "detail": "HTTP 401",
+      "fingerprint": null
+    },
+    {
+      "id": "guard:/api/submissions",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca573c507d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/submissions",
+      "ok": true,
+      "skipped": false,
+      "status": 401,
+      "ms": 84.7,
+      "attempts": 1,
+      "detail": "HTTP 401",
+      "fingerprint": null
+    },
+    {
+      "id": "guard:/api/rulings/schema",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca57ccde7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/rulings/schema?category=defamation",
+      "ok": true,
+      "skipped": false,
+      "status": 401,
+      "ms": 89,
+      "attempts": 1,
+      "detail": "HTTP 401",
+      "fingerprint": null
+    },
+    {
+      "id": "oauth-authorization-server",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca584d567d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/.well-known/oauth-authorization-server",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 80.1,
+      "attempts": 1,
+      "detail": "issuer https://www.z-g.co.il",
+      "fingerprint": "https://www.z-g.co.il"
+    },
+    {
+      "id": "oauth-protected-resource",
+      "group": "auth",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca58cdcb7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/.well-known/oauth-protected-resource",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 86.1,
+      "attempts": 1,
+      "detail": "HTTP 200",
+      "fingerprint": null
+    },
+    {
+      "id": "data:guidelines-documents",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca595e4f7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/guidelines/documents?limit=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 87.8,
+      "attempts": 1,
+      "detail": "total=12281",
+      "fingerprint": 12281
+    },
+    {
+      "id": "data:guidelines-search-bare",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca59eee87d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/guidelines/search?q=%D7%94%D7%A4%D7%92%D7%A0%D7%94&limit=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 6184.8,
+      "attempts": 1,
+      "detail": "total=33 methods={\"semantic\":false,\"substring\":true}",
+      "fingerprint": "33|{\"semantic\":false,\"substring\":true}"
+    },
+    {
+      "id": "data:guidelines-search-phrase",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1ca808abf7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/guidelines/search?q=%22%D7%9E%D7%A6%D7%9C%D7%9E%D7%95%D7%AA%20%D7%92%D7%95%D7%A3%22&limit=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 5899.7,
+      "attempts": 1,
+      "detail": "total=4 methods={\"semantic\":false,\"substring\":true}",
+      "fingerprint": "4|{\"semantic\":false,\"substring\":true}"
+    },
+    {
+      "id": "data:guidelines-sources",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caa5692f7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/guidelines/sources",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 395.4,
+      "attempts": 1,
+      "detail": "sources=26",
+      "fingerprint": 26
+    },
+    {
+      "id": "data:class-actions",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caa7eb857d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/class-actions/documents?limit=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 271.9,
+      "attempts": 1,
+      "detail": "total=2075",
+      "fingerprint": 2075
+    },
+    {
+      "id": "data:rulings-defamation",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caa99d677d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/rulings?category=defamation&page=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 172.9,
+      "attempts": 1,
+      "detail": "total=1881",
+      "fingerprint": 1881
+    },
+    {
+      "id": "data:rulings-foi-judgments",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caaace7e7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/rulings?category=foi-judgments&page=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 158.6,
+      "attempts": 1,
+      "detail": "total=937",
+      "fingerprint": 937
+    },
+    {
+      "id": "data:rulings-foi-costs",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caabcf6d7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/rulings?category=foi-costs&page=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 101.7,
+      "attempts": 1,
+      "detail": "total=584",
+      "fingerprint": 584
+    },
+    {
+      "id": "data:rulings-drug-sentencing",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caac783c7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/rulings?category=drug-sentencing&page=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 98.1,
+      "attempts": 1,
+      "detail": "total=5707",
+      "fingerprint": 5707
+    },
+    {
+      "id": "data:comptroller-reports",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caad18ac7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/comptroller-reports/documents?limit=12&skip=0",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 563.1,
+      "attempts": 1,
+      "detail": "total=9074",
+      "fingerprint": 9074
+    },
+    {
+      "id": "data:mmm",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "private, no-store",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cab0ab8a7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/mmm/documents?limit=12&skip=0",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 970.8,
+      "attempts": 1,
+      "detail": "total=6519",
+      "fingerprint": 6519
+    },
+    {
+      "id": "data:ca-records",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, s-maxage=60, stale-while-revalidate=3600",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cab6b86c7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/conditional-arrangements/records?limit=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 1170.4,
+      "attempts": 1,
+      "detail": "total=35110",
+      "fingerprint": 35110
+    },
+    {
+      "id": "data:ca-facets",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cabe0e847d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/conditional-arrangements/facets",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 111.7,
+      "attempts": 1,
+      "detail": "districts=54",
+      "fingerprint": 54
+    },
+    {
+      "id": "data:sanegoria-filters",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, s-maxage=86400, stale-while-revalidate=172800",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cabecf147d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/sanegoria?filters=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 145.4,
+      "attempts": 1,
+      "detail": "courts=48",
+      "fingerprint": 48
+    },
+    {
+      "id": "data:sanegoria-dashboard",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, s-maxage=86400, stale-while-revalidate=604800",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cabfaf9f7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/sanegoria?page=1",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 80.6,
+      "attempts": 1,
+      "detail": "kpis: totalCases,pctPd,pctSole,avgHearings,avgDaysFirst,avgOffenses",
+      "fingerprint": "7bf9f75a8f39273f"
+    },
+    {
+      "id": "data:content-pages",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac02ffa7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/pages",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 289.1,
+      "attempts": 1,
+      "detail": "pages=55",
+      "fingerprint": 55
+    },
+    {
+      "id": "data:content-posts",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac209567d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/posts",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 92.1,
+      "attempts": 1,
+      "detail": "posts=4",
+      "fingerprint": 4
+    },
+    {
+      "id": "data:content-plilist",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac29a087d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/plilist",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 92.2,
+      "attempts": 1,
+      "detail": "posts=7",
+      "fingerprint": 7
+    },
+    {
+      "id": "data:content-services",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac32a727d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/services",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 87.6,
+      "attempts": 1,
+      "detail": "services=11",
+      "fingerprint": 11
+    },
+    {
+      "id": "data:content-settings",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac3bade7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/settings",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 84.8,
+      "attempts": 1,
+      "detail": "id=main",
+      "fingerprint": null
+    },
+    {
+      "id": "data:content-milon",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac44b357d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/milon",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 86.8,
+      "attempts": 1,
+      "detail": "entries=7",
+      "fingerprint": 7
+    },
+    {
+      "id": "data:content-media-appearances",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac4cb977d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/media-appearances",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 88.7,
+      "attempts": 1,
+      "detail": "appearances=57",
+      "fingerprint": 57
+    },
+    {
+      "id": "data:content-case-documents",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac55bdc7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/case-documents",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 81.8,
+      "attempts": 1,
+      "detail": "documents=19",
+      "fingerprint": 19
+    },
+    {
+      "id": "data:pach-status",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "cache-control": "public, max-age=10, s-maxage=10, stale-while-revalidate=60",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac5dc487d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/pach-hamishpat/status",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 87.9,
+      "attempts": 1,
+      "detail": "status=green",
+      "fingerprint": null
+    },
+    {
+      "id": "data:pach-reports",
+      "group": "data",
+      "headers": {
+        "content-type": "application/json",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac66cba7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/api/pach-hamishpat/reports",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 83.5,
+      "attempts": 1,
+      "detail": "reports=50",
+      "fingerprint": null
+    },
+    {
+      "id": "data:pach-feed",
+      "group": "data",
+      "headers": {
+        "content-type": "application/rss+xml; charset=utf-8",
+        "cache-control": "public, max-age=10, s-maxage=10, stale-while-revalidate=60",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac6fd357d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/pach-hamishpat/feed.xml",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 113.9,
+      "attempts": 1,
+      "detail": "rss document",
+      "fingerprint": null
+    },
+    {
+      "id": "upload:lost:1778609221905-WhatsApp_Image_2026-05-12_at_14_15_12.jpeg",
+      "group": "upload",
+      "headers": {
+        "content-type": "text/plain;charset=UTF-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac7add97d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1778609221905-WhatsApp_Image_2026-05-12_at_14_15_12.jpeg",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 84.7,
+      "attempts": 1,
+      "detail": "still missing, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "upload:lost:1780654807116-Screenshot_2026-06-05_131909.png",
+      "group": "upload",
+      "headers": {
+        "content-type": "text/plain;charset=UTF-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac7db33fc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1780654807116-Screenshot_2026-06-05_131909.png",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 109.4,
+      "attempts": 1,
+      "detail": "still missing, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "upload:lost:1784572831623-dec1933-2016.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "text/plain;charset=UTF-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac7de5bc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784572831623-dec1933-2016.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 109.9,
+      "attempts": 1,
+      "detail": "still missing, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "upload:lost:1784572839766-RecommendationsReportOnDataFlowImprovement160728_c.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "text/plain;charset=UTF-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac89f07c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784572839766-RecommendationsReportOnDataFlowImprovement160728_c.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 345.5,
+      "attempts": 1,
+      "detail": "still missing, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "upload:lost:1784647191242-Doch.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "text/plain;charset=UTF-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac8bcb9c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784647191242-Doch.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 275.8,
+      "attempts": 1,
+      "detail": "still missing, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "upload:runtime:1784648632918-dec1933-2016.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "349505",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac85c68fc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784648632918-dec1933-2016.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 306.7,
+      "attempts": 1,
+      "detail": "349505 bytes",
+      "fingerprint": "349505:ae955299f6b5bd4a"
+    },
+    {
+      "id": "upload:runtime:1784648640701-דוח_הצוות_הבין_משרדי.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "1039383",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac8ded27d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784648640701-%D7%93%D7%95%D7%97_%D7%94%D7%A6%D7%95%D7%95%D7%AA_%D7%94%D7%91%D7%99%D7%9F_%D7%9E%D7%A9%D7%A8%D7%93%D7%99.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 398.3,
+      "attempts": 1,
+      "detail": "1039383 bytes",
+      "fingerprint": "1039383:27df464d5ba5bbb5"
+    },
+    {
+      "id": "upload:runtime:1784649022270-dec1933-2016.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "349505",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cac9dff5c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784649022270-dec1933-2016.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 223.6,
+      "attempts": 1,
+      "detail": "349505 bytes",
+      "fingerprint": "349505:ae955299f6b5bd4a"
+    },
+    {
+      "id": "upload:runtime:1784649034817-דוח_הצוות_הבין_משרדי.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "1039383",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caca99dcfc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/1784649034817-%D7%93%D7%95%D7%97_%D7%94%D7%A6%D7%95%D7%95%D7%AA_%D7%94%D7%91%D7%99%D7%9F_%D7%9E%D7%A9%D7%A8%D7%93%D7%99.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 477.2,
+      "attempts": 1,
+      "detail": "1039383 bytes",
+      "fingerprint": "1039383:27df464d5ba5bbb5"
+    },
+    {
+      "id": "upload:seed:media-thumb-cmn1dg5mg0000d89o8gg0zeyk.png",
+      "group": "upload",
+      "headers": {
+        "content-type": "image/png",
+        "content-length": "25225",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caca4858c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/media-thumb-cmn1dg5mg0000d89o8gg0zeyk.png",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 133.7,
+      "attempts": 1,
+      "detail": "25225 bytes",
+      "fingerprint": "25225:03c72409b872baf4"
+    },
+    {
+      "id": "upload:seed:br-letter-01-warning-2026-08-09.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "652590",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacaee63c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/br-letter-01-warning-2026-08-09.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 287.6,
+      "attempts": 1,
+      "detail": "652590 bytes",
+      "fingerprint": "652590:0caf20406195e87e"
+    },
+    {
+      "id": "upload:seed:br-ruling-ca-360-83-strosky-whitman.pdf",
+      "group": "upload",
+      "headers": {
+        "content-type": "application/pdf",
+        "content-length": "451149",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacb18b67d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/uploads/br-ruling-ca-360-83-strosky-whitman.pdf",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 244.7,
+      "attempts": 1,
+      "detail": "451149 bytes",
+      "fingerprint": "451149:8f12939e5f2f00cf"
+    },
+    {
+      "id": "page:/",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacb3933c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 110.6,
+      "attempts": 1,
+      "detail": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע",
+      "fingerprint": "עו&quot;ד גיא זומר — עורך דין פלילי וחופש מידע"
+    },
+    {
+      "id": "page:/about",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacbf9c3c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/about",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 106.3,
+      "attempts": 1,
+      "detail": "אודות | עו&quot;ד גיא זומר",
+      "fingerprint": "אודות | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/accessibility",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caccaa44c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/accessibility",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 198.9,
+      "attempts": 1,
+      "detail": "הצהרת נגישות | עו&quot;ד גיא זומר",
+      "fingerprint": "הצהרת נגישות | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/articles",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caccaa4bc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/articles",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 578.9,
+      "attempts": 1,
+      "detail": "מאמרים | עו&quot;ד גיא זומר",
+      "fingerprint": "מאמרים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/articles/conditional-arrangement-guide",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacca9e47d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/articles/conditional-arrangement-guide",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 579.4,
+      "attempts": 1,
+      "detail": "הסדר מותנה: סגירת תיק פלילי בלי כתב אישום ובלי הרשעה | מאמרים | עו&quot;ד גיא זומר",
+      "fingerprint": "הסדר מותנה: סגירת תיק פלילי בלי כתב אישום ובלי הרשעה | מאמרים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/articles/criminal-procedure-after-indictment",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacce811c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/articles/criminal-procedure-after-indictment",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 540.7,
+      "attempts": 1,
+      "detail": "ההליך הפלילי — מה קורה אחרי הגשת כתב אישום | מאמרים | עו&quot;ד גיא זומר",
+      "fingerprint": "ההליך הפלילי — מה קורה אחרי הגשת כתב אישום | מאמרים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/articles/criminal-procedure-before-indictment",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cacdd9cdfc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/articles/criminal-procedure-before-indictment",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 391.7,
+      "attempts": 1,
+      "detail": "ההליך הפלילי — מה קורה מרגע התלונה ועד כתב האישום | מאמרים | עו&quot;ד גיא זומר",
+      "fingerprint": "ההליך הפלילי — מה קורה מרגע התלונה ועד כתב האישום | מאמרים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/articles/investigation-preparation-guide",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad04d62c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/articles/investigation-preparation-guide",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 1101,
+      "attempts": 1,
+      "detail": "זומנתם לחקירה? מדריך מעשי להכנה לפני חקירה משטרתית | מאמרים | עו&quot;ד גיא זומר",
+      "fingerprint": "זומנתם לחקירה? מדריך מעשי להכנה לפני חקירה משטרתית | מאמרים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/case-tracker",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad04cad7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/case-tracker",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 1020,
+      "attempts": 1,
+      "detail": "איתור אסמכתאות משפטיות | תוסף דפדפן | עו&quot;ד גיא זומר",
+      "fingerprint": "איתור אסמכתאות משפטיות | תוסף דפדפן | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/class-actions",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad04f7dfc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/class-actions",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 597.8,
+      "attempts": 1,
+      "detail": "תובענות ייצוגיות — תובענות אחרונות שהוגשו | עו&quot;ד גיא זומר",
+      "fingerprint": "תובענות ייצוגיות — תובענות אחרונות שהוגשו | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/comptroller-reports",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad04b42c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/comptroller-reports",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 689.8,
+      "attempts": 1,
+      "detail": "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו&quot;ד גיא זומר",
+      "fingerprint": "מאגר דוחות מבקר המדינה — חיפוש בתוכן | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/conditional-arrangements",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad408fcfc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/conditional-arrangements",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 618.4,
+      "attempts": 1,
+      "detail": "הסדרים מותנים — משטרה, פרקליטות ומשרד העבודה | עו&quot;ד גיא זומר",
+      "fingerprint": "הסדרים מותנים — משטרה, פרקליטות ומשרד העבודה | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/contact",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad49ed1c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/contact",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 407.8,
+      "attempts": 1,
+      "detail": "צור קשר | עו&quot;ד גיא זומר",
+      "fingerprint": "צור קשר | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/court-downloader",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad6a9f07d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/court-downloader",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 281.3,
+      "attempts": 1,
+      "detail": "לץ המשפט | עו&quot;ד גיא זומר",
+      "fingerprint": "לץ המשפט | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/data-pipeline",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad72b6fc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/data-pipeline",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 228.2,
+      "attempts": 1,
+      "detail": "זרימת המידע | עו&quot;ד גיא זומר",
+      "fingerprint": "זרימת המידע | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/defamation-rulings",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad72908c22f-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/defamation-rulings",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 27137.4,
+      "attempts": 1,
+      "detail": "פסקי דין בלשון הרע | עו&quot;ד גיא זומר",
+      "fingerprint": "פסקי דין בלשון הרע | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/dictionary",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad7eb20fc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/dictionary",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 144.1,
+      "attempts": 1,
+      "detail": "מילון | עו&quot;ד גיא זומר",
+      "fingerprint": "מילון | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/digital-services",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad87b9c7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/digital-services",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 393,
+      "attempts": 1,
+      "detail": "שירותים דיגיטליים | עו&quot;ד גיא זומר",
+      "fingerprint": "שירותים דיגיטליים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/drug-sentencing",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad89cd8c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/drug-sentencing",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 402.7,
+      "attempts": 1,
+      "detail": "גזרי דין בעבירות סמים | עו&quot;ד גיא זומר",
+      "fingerprint": "גזרי דין בעבירות סמים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/foi-costs",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cad8dd64fc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/foi-costs",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 319,
+      "attempts": 1,
+      "detail": "הוצאות חופש מידע | עו&quot;ד גיא זומר",
+      "fingerprint": "הוצאות חופש מידע | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/foi-judgments",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cadadb33fc6b-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/foi-judgments",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 26293.8,
+      "attempts": 1,
+      "detail": "פסיקות חופש מידע | עו&quot;ד גיא זומר",
+      "fingerprint": "פסיקות חופש מידע | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/foi-rulings",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "location": "/foi-judgments",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cadaedf27d9e-TLV",
+        "x-nextjs-cache": "HIT",
+        "x-nextjs-prerender": "1, 1",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/foi-rulings",
+      "ok": true,
+      "skipped": false,
+      "status": 307,
+      "ms": 94.2,
+      "attempts": 1,
+      "detail": "→ /foi-judgments",
+      "fingerprint": "307 /foi-judgments"
+    },
+    {
+      "id": "page:/govscraper",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cadb1efdc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/govscraper",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 248.6,
+      "attempts": 1,
+      "detail": "לץ הממשל — מוריד מאגרי ממשלה | עו&quot;ד גיא זומר",
+      "fingerprint": "לץ הממשל — מוריד מאגרי ממשלה | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/guidelines",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cadb7e617d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 1999.8,
+      "attempts": 1,
+      "detail": "מאגר הנחיות יועמ&quot;ש, פרקליט המדינה ומשטרה | עו&quot;ד גיא זומר",
+      "fingerprint": "מאגר הנחיות יועמ&quot;ש, פרקליט המדינה ומשטרה | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/haplilist",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cadca833c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 297.2,
+      "attempts": 1,
+      "detail": "הפליליסט הדיגיטלי | עו&quot;ד גיא זומר",
+      "fingerprint": "הפליליסט הדיגיטלי | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/haplilist/1933",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cade8981c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/1933",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 397.5,
+      "attempts": 1,
+      "detail": "למה אני משקיע כל כך הרבה זמן באיסוף, שימור והנגשת מידע ממשלתי | הפליליסט הדיגיטלי",
+      "fingerprint": "למה אני משקיע כל כך הרבה זמן באיסוף, שימור והנגשת מידע ממשלתי | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/government-data-vision",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cae10ba8c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/government-data-vision",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 190.8,
+      "attempts": 1,
+      "detail": "כשממשלה חולמת, ואזרח אחד בונה | הפליליסט הדיגיטלי",
+      "fingerprint": "כשממשלה חולמת, ואזרח אחד בונה | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/israel-railways-vs-better-rail",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cae23ca5c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/israel-railways-vs-better-rail",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 1335.6,
+      "attempts": 1,
+      "detail": "כשחברה ממשלתית מאיימת על מפתח אחד: רכבת ישראל נגד Better Rail | הפליליסט הדיגיטלי",
+      "fingerprint": "כשחברה ממשלתית מאיימת על מפתח אחד: רכבת ישראל נגד Better Rail | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/not-just-another-case-law-database",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cae809357d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/not-just-another-case-law-database",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 586.3,
+      "attempts": 1,
+      "detail": "לא עוד מאגר פסיקה — מסד נתונים שמבין איך עורכי דין חושבים | הפליליסט הדיגיטלי",
+      "fingerprint": "לא עוד מאגר פסיקה — מסד נתונים שמבין איך עורכי דין חושבים | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/product-first-specification",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caea9c0cc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/product-first-specification",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 166.4,
+      "attempts": 1,
+      "detail": "אפיון מונחה מוצר: למה אני בונה קודם ורק אחר כך מאפיין | הפליליסט הדיגיטלי",
+      "fingerprint": "אפיון מונחה מוצר: למה אני בונה קודם ורק אחר כך מאפיין | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/supreme-court-scanner-donation",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caeb9cf3c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/supreme-court-scanner-donation",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 117.8,
+      "attempts": 1,
+      "detail": "המתנה שסירבו לקבל: איך ביקשתי לתרום סורק לבית המשפט העליון | הפליליסט הדיגיטלי",
+      "fingerprint": "המתנה שסירבו לקבל: איך ביקשתי לתרום סורק לבית המשפט העליון | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/haplilist/supreme-court-url-backslash-fix",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caebac847d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/haplilist/supreme-court-url-backslash-fix",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 299.2,
+      "attempts": 1,
+      "detail": "הלוכסן ההפוך: איך תו אחד בשורת הכתובת שבר את שיתוף פסקי הדין של בית המשפט העליון | הפליליס",
+      "fingerprint": "הלוכסן ההפוך: איך תו אחד בשורת הכתובת שבר את שיתוף פסקי הדין של בית המשפט העליון | הפליליסט הדיגיטלי"
+    },
+    {
+      "id": "page:/legal-tools",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caec5da1c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/legal-tools",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 339.5,
+      "attempts": 1,
+      "detail": "כלים משפטיים | תוסף ל-Google Docs™ | עו&quot;ד גיא זומר",
+      "fingerprint": "כלים משפטיים | תוסף ל-Google Docs™ | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/letz",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caed8e147d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/letz",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 251.1,
+      "attempts": 1,
+      "detail": "לץ — סדרת תוספי הדפדפן | עו&quot;ד גיא זומר",
+      "fingerprint": "לץ — סדרת תוספי הדפדפן | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/media",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caee7f91c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/media",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 305.8,
+      "attempts": 1,
+      "detail": "פרסומים | עו&quot;ד גיא זומר",
+      "fingerprint": "פרסומים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/mmm",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caef1f6f7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/mmm",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 101.2,
+      "attempts": 1,
+      "detail": "HTTP 404, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "page:/o",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caefb82d7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/o",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 195.7,
+      "attempts": 1,
+      "detail": "לעם — מקבץ אתרים אזרחיים | עו&quot;ד גיא זומר",
+      "fingerprint": "לעם — מקבץ אתרים אזרחיים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/ocal",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf06992c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/ocal",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 231.1,
+      "attempts": 1,
+      "detail": "HTTP 404, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "page:/ocoi-extension",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf0f9087d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/ocoi-extension",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 94.4,
+      "attempts": 1,
+      "detail": "HTTP 404, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "page:/over-looker",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf199877d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/over-looker",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 105.2,
+      "attempts": 1,
+      "detail": "מחבר Looker Studio — גרסאות לעם | עו&quot;ד גיא זומר",
+      "fingerprint": "מחבר Looker Studio — גרסאות לעם | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/over-looker-privacy",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf1daefc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/over-looker-privacy",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 242.3,
+      "attempts": 1,
+      "detail": "מדיניות פרטיות — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר",
+      "fingerprint": "מדיניות פרטיות — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/over-looker-support",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf23a097d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/over-looker-support",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 181.7,
+      "attempts": 1,
+      "detail": "תמיכה — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר",
+      "fingerprint": "תמיכה — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/over-looker-terms",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf37b1a7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/over-looker-terms",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 169.8,
+      "attempts": 1,
+      "detail": "תנאי שימוש — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר",
+      "fingerprint": "תנאי שימוש — מחבר Looker Studio של גרסאות לעם | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/pach-hamishpat",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf37c81c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/pach-hamishpat",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 615.8,
+      "attempts": 1,
+      "detail": "נט המשפט לא עובד? סטטוס נט המשפט עכשיו | פח המשפט",
+      "fingerprint": "נט המשפט לא עובד? סטטוס נט המשפט עכשיו | פח המשפט"
+    },
+    {
+      "id": "page:/privacy",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf48bfb7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/privacy",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 218.7,
+      "attempts": 1,
+      "detail": "מדיניות פרטיות | עו&quot;ד גיא זומר",
+      "fingerprint": "מדיניות פרטיות | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/projects",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf5ccec7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/projects",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 264.7,
+      "attempts": 1,
+      "detail": "מיזמים | עו&quot;ד גיא זומר",
+      "fingerprint": "מיזמים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/rulings",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf73fb2c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/rulings",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 144.2,
+      "attempts": 1,
+      "detail": "עדכוני פסיקה | עו&quot;ד גיא זומר",
+      "fingerprint": "עדכוני פסיקה | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/sanegoria",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf76e6d7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/sanegoria",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 260.9,
+      "attempts": 1,
+      "detail": "דשבורד סניגוריה ציבורית | ניתוח הליכים פליליים | עו&quot;ד גיא זומר",
+      "fingerprint": "דשבורד סניגוריה ציבורית | ניתוח הליכים פליליים | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf81874c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 205.5,
+      "attempts": 1,
+      "detail": "תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/complexcases",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf91fbb7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/complexcases",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 239.7,
+      "attempts": 1,
+      "detail": "תיקים מורכבים | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "תיקים מורכבים | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/druginvestigation",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caf9697ac233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/druginvestigation",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 186.4,
+      "attempts": 1,
+      "detail": "חקירת סמים | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "חקירת סמים | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/foi",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cafa98ec7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/foi",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 537.9,
+      "attempts": 1,
+      "detail": "עתירות חופש מידע | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "עתירות חופש מידע | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/preinvestigationadvice",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cafa9a93c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/preinvestigationadvice",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 430.7,
+      "attempts": 1,
+      "detail": "ייעוץ לפני חקירה | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "ייעוץ לפני חקירה | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/privacy-harassment",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cafd6c51c224-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/privacy-harassment",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 446.3,
+      "attempts": 1,
+      "detail": "פגיעה בפרטיות והטרדה | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "פגיעה בפרטיות והטרדה | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/propertyoffenses",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cafdfb7d7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/propertyoffenses",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 282.9,
+      "attempts": 1,
+      "detail": "רכוש והונאה | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "רכוש והונאה | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/reason",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1caffbce97d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/reason",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 207.9,
+      "attempts": 1,
+      "detail": "בקשות שינוי עילת סגירת תיק | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "בקשות שינוי עילת סגירת תיק | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/victims",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb000f6bc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/victims",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 255.5,
+      "attempts": 1,
+      "detail": "ליווי נפגעי עבירה | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "ליווי נפגעי עבירה | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/services/violenceoffenses",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb010e197d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/services/violenceoffenses",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 195.1,
+      "attempts": 1,
+      "detail": "עבירות אלימות | תחומי עיסוק | עו&quot;ד גיא זומר",
+      "fingerprint": "עבירות אלימות | תחומי עיסוק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/terms",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb01a8fdc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/terms",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 183.7,
+      "attempts": 1,
+      "detail": "תנאי שימוש | עו&quot;ד גיא זומר",
+      "fingerprint": "תנאי שימוש | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/timeline",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb023f157d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/timeline",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 197.9,
+      "attempts": 1,
+      "detail": "ציר זמן — הדגמת ממשק | עו&quot;ד גיא זומר",
+      "fingerprint": "ציר זמן — הדגמת ממשק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/whatsapp",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb02d9e2c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/whatsapp",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 211.5,
+      "attempts": 1,
+      "detail": "תצוגת ווטסאפ — הדגמת ממשק | עו&quot;ד גיא זומר",
+      "fingerprint": "תצוגת ווטסאפ — הדגמת ממשק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/workflows",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb0388457d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/workflows",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 173.9,
+      "attempts": 1,
+      "detail": "ניהול תהליכי עבודה — הדגמת ממשק | עו&quot;ד גיא זומר",
+      "fingerprint": "ניהול תהליכי עבודה — הדגמת ממשק | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page:/foi-guide",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb042af1c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/foi-guide",
+      "ok": true,
+      "skipped": false,
+      "status": 404,
+      "ms": 179.1,
+      "attempts": 1,
+      "detail": "HTTP 404, as on Render",
+      "fingerprint": 404
+    },
+    {
+      "id": "page:/pach-hamishpat/personal-area",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb0489457d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/pach-hamishpat/personal-area",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 167.3,
+      "attempts": 1,
+      "detail": "אזור אישי חדש — פח המשפט | עו&quot;ד גיא זומר",
+      "fingerprint": "אזור אישי חדש — פח המשפט | עו&quot;ד גיא זומר"
+    },
+    {
+      "id": "page-detail:guidelines",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb053cabc233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines/240779",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 250.4,
+      "attempts": 1,
+      "detail": "תופעות הזנות והסחר בבני אדם למטרות זנות - היבטים באכיפה ובהגנה על הקורבנות | מאגר הנחיות |",
+      "fingerprint": null
+    },
+    {
+      "id": "page-detail:rulings",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb059a2b7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/rulings/251622",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 363.1,
+      "attempts": 1,
+      "detail": "ת&quot;א 17427-09-24 בהיג&#x27; מנסור נ&#x27; עאסי וזהב ואח&#x27; | עו&quot;ד גיא זומר",
+      "fingerprint": null
+    },
+    {
+      "id": "page-detail:class-actions",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb06de43c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/class-actions/33165-09-26",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 151.5,
+      "attempts": 1,
+      "detail": "לנדאו ואח&#x27; נ&#x27; בי.אס.אייץ.מכשירים ביתיים בע&quot;מ | תובענות ייצוגיות | עו&quot;ד",
+      "fingerprint": null
+    },
+    {
+      "id": "page-detail:comptroller-reports",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb07cf2ac233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/comptroller-reports/240779",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 204.2,
+      "attempts": 1,
+      "detail": "תופעות הזנות והסחר בבני אדם למטרות זנות - היבטים באכיפה ובהגנה על הקורבנות | דוחות מבקר המ",
+      "fingerprint": null
+    },
+    {
+      "id": "page-detail:mmm",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb07ec717d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/mmm/248214",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 184.4,
+      "attempts": 1,
+      "detail": "הסדרים משפטיים בנוגע לצילום עצמי (סלפי) של ההצבעה בקלפי - עדכון מסמך | מסמכי מ.מ.מ | עו&qu",
+      "fingerprint": null
+    },
+    {
+      "id": "page-docs-sample:1",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb090d6a7d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines/61750",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 195.8,
+      "attempts": 1,
+      "detail": "משך טיפול התביעה עד להגשת כתב אישום | מאגר הנחיות | עו&quot;ד גיא זומר",
+      "fingerprint": null
+    },
+    {
+      "id": "page-docs-sample:2",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb090849c233-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines/128085",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 195,
+      "attempts": 1,
+      "detail": "הנחיה 2.06 - סירוב להיבדק | מאגר הנחיות | עו&quot;ד גיא זומר",
+      "fingerprint": null
+    },
+    {
+      "id": "page-docs-sample:3",
+      "group": "page",
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a3a1cb0a4e837d9e-TLV",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "x-frame-options": "SAMEORIGIN",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=()"
+      },
+      "url": "https://www.z-g.co.il/guidelines/239764",
+      "ok": true,
+      "skipped": false,
+      "status": 200,
+      "ms": 197.5,
+      "attempts": 1,
+      "detail": "פרסום וניהול של מכרזי מסגרת ברשויות מקומיות ובתאגידים עירוניים | מאגר הנחיות | עו&quot;ד ג",
+      "fingerprint": null
+    }
+  ],
+  "perf": [
+    {
+      "id": "page:/",
+      "url": "https://www.z-g.co.il/",
+      "first": {
+        "status": 200,
+        "ttfbMs": 146.3,
+        "totalMs": 154.3,
+        "bytes": 136760,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 94.2,
+          "p50": 97.4,
+          "p95": 103.1,
+          "max": 103.1,
+          "mean": 98.3
+        },
+        "total": {
+          "n": 5,
+          "min": 108.2,
+          "p50": 159.5,
+          "p95": 211.3,
+          "max": 211.3,
+          "mean": 166.6
+        },
+        "bytes": 136760
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/guidelines",
+      "url": "https://www.z-g.co.il/guidelines",
+      "first": {
+        "status": 200,
+        "ttfbMs": 300,
+        "totalMs": 359.3,
+        "bytes": 111237,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 235.6,
+          "p50": 294.1,
+          "p95": 382,
+          "max": 382,
+          "mean": 304.9
+        },
+        "total": {
+          "n": 5,
+          "min": 239,
+          "p50": 298.3,
+          "p95": 439.7,
+          "max": 439.7,
+          "mean": 320.4
+        },
+        "bytes": 111237
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/defamation-rulings",
+      "url": "https://www.z-g.co.il/defamation-rulings",
+      "first": {
+        "status": 200,
+        "ttfbMs": 16309.8,
+        "totalMs": 16315.1,
+        "bytes": 99907,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 13754.4,
+          "p50": 15937.4,
+          "p95": 18127.7,
+          "max": 18127.7,
+          "mean": 15732.7
+        },
+        "total": {
+          "n": 5,
+          "min": 13812.1,
+          "p50": 15944.3,
+          "p95": 18134.3,
+          "max": 18134.3,
+          "mean": 15770.2
+        },
+        "bytes": 99907
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/sanegoria",
+      "url": "https://www.z-g.co.il/sanegoria",
+      "first": {
+        "status": 200,
+        "ttfbMs": 190.2,
+        "totalMs": 192.8,
+        "bytes": 60572,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 97.3,
+          "p50": 101.5,
+          "p95": 179,
+          "max": 179,
+          "mean": 115.7
+        },
+        "total": {
+          "n": 5,
+          "min": 101.5,
+          "p50": 109.4,
+          "p95": 254.1,
+          "max": 254.1,
+          "mean": 143.6
+        },
+        "bytes": 60572
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/dictionary",
+      "url": "https://www.z-g.co.il/dictionary",
+      "first": {
+        "status": 200,
+        "ttfbMs": 100.6,
+        "totalMs": 159,
+        "bytes": 78575,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 91.8,
+          "p50": 96.5,
+          "p95": 143,
+          "max": 143,
+          "mean": 105.5
+        },
+        "total": {
+          "n": 5,
+          "min": 99.8,
+          "p50": 108.1,
+          "p95": 203.8,
+          "max": 203.8,
+          "mean": 135.9
+        },
+        "bytes": 78575
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/haplilist/<post>",
+      "url": "https://www.z-g.co.il/haplilist/not-just-another-case-law-database",
+      "first": {
+        "status": 200,
+        "ttfbMs": 138.9,
+        "totalMs": 142.6,
+        "bytes": 112615,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 98.9,
+          "p50": 112.3,
+          "p95": 177.3,
+          "max": 177.3,
+          "mean": 129.6
+        },
+        "total": {
+          "n": 5,
+          "min": 103.7,
+          "p50": 161.3,
+          "p95": 191.8,
+          "max": 191.8,
+          "mean": 148.7
+        },
+        "bytes": 112615
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/articles/<article>",
+      "url": "https://www.z-g.co.il/articles/conditional-arrangement-guide",
+      "first": {
+        "status": 200,
+        "ttfbMs": 104.3,
+        "totalMs": 165.6,
+        "bytes": 134126,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 103,
+          "p50": 104.7,
+          "p95": 155.8,
+          "max": 155.8,
+          "mean": 114.5
+        },
+        "total": {
+          "n": 5,
+          "min": 108.9,
+          "p50": 114.5,
+          "p95": 163,
+          "max": 163,
+          "mean": 122.3
+        },
+        "bytes": 134126
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "page:/guidelines/<id>",
+      "url": "https://www.z-g.co.il/guidelines/240779",
+      "first": {
+        "status": 200,
+        "ttfbMs": 147.1,
+        "totalMs": 150.3,
+        "bytes": 64884,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 139.1,
+          "p50": 145.2,
+          "p95": 150.2,
+          "max": 150.2,
+          "mean": 144.7
+        },
+        "total": {
+          "n": 5,
+          "min": 144.2,
+          "p50": 196.9,
+          "p95": 208.1,
+          "max": 208.1,
+          "mean": 180.3
+        },
+        "bytes": 64884
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:pages",
+      "url": "https://www.z-g.co.il/api/pages",
+      "first": {
+        "status": 200,
+        "ttfbMs": 201.3,
+        "totalMs": 247.4,
+        "bytes": 983467,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 98.6,
+          "p50": 104.4,
+          "p95": 104.9,
+          "max": 104.9,
+          "mean": 102.7
+        },
+        "total": {
+          "n": 5,
+          "min": 127.7,
+          "p50": 137.5,
+          "p95": 547.8,
+          "max": 547.8,
+          "mean": 265.3
+        },
+        "bytes": 983467
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:posts",
+      "url": "https://www.z-g.co.il/api/posts",
+      "first": {
+        "status": 200,
+        "ttfbMs": 274.6,
+        "totalMs": 330.7,
+        "bytes": 47317,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 84.8,
+          "p50": 86.3,
+          "p95": 180.8,
+          "max": 180.8,
+          "mean": 106.8
+        },
+        "total": {
+          "n": 5,
+          "min": 85.7,
+          "p50": 87.3,
+          "p95": 181.9,
+          "max": 181.9,
+          "mean": 107.8
+        },
+        "bytes": 47317
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:plilist",
+      "url": "https://www.z-g.co.il/api/plilist",
+      "first": {
+        "status": 200,
+        "ttfbMs": 88.8,
+        "totalMs": 93.5,
+        "bytes": 84226,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 86.2,
+          "p50": 87.5,
+          "p95": 92.4,
+          "max": 92.4,
+          "mean": 88
+        },
+        "total": {
+          "n": 5,
+          "min": 88.9,
+          "p50": 94.5,
+          "p95": 143.3,
+          "max": 143.3,
+          "mean": 111.8
+        },
+        "bytes": 84226
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:pach-status",
+      "url": "https://www.z-g.co.il/api/pach-hamishpat/status",
+      "first": {
+        "status": 200,
+        "ttfbMs": 92.2,
+        "totalMs": 92.9,
+        "bytes": 1008,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 84.8,
+          "p50": 86.9,
+          "p95": 92.1,
+          "max": 92.1,
+          "mean": 87.9
+        },
+        "total": {
+          "n": 5,
+          "min": 85.3,
+          "p50": 87.6,
+          "p95": 92.8,
+          "max": 92.8,
+          "mean": 88.6
+        },
+        "bytes": 1008
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, max-age=10, s-maxage=10, stale-while-revalidate=60",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:guidelines-documents",
+      "url": "https://www.z-g.co.il/api/guidelines/documents?limit=20&skip=0",
+      "first": {
+        "status": 200,
+        "ttfbMs": 89.9,
+        "totalMs": 91.9,
+        "bytes": 41958,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 83.2,
+          "p50": 87,
+          "p95": 92.9,
+          "max": 92.9,
+          "mean": 87.4
+        },
+        "total": {
+          "n": 5,
+          "min": 83.7,
+          "p50": 88.1,
+          "p95": 93.5,
+          "max": 93.5,
+          "mean": 88.1
+        },
+        "bytes": 41958
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:guidelines-search-bare",
+      "url": "https://www.z-g.co.il/api/guidelines/search?q=%D7%94%D7%A4%D7%92%D7%A0%D7%94&limit=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 6576.1,
+        "totalMs": 6577.8,
+        "bytes": 1812,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 6531.6,
+          "p50": 6604.8,
+          "p95": 7324.2,
+          "max": 7324.2,
+          "mean": 6820.2
+        },
+        "total": {
+          "n": 3,
+          "min": 6532,
+          "p50": 6605.2,
+          "p95": 7324.6,
+          "max": 7324.6,
+          "mean": 6820.6
+        },
+        "bytes": 1812
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:guidelines-search-phrase",
+      "url": "https://www.z-g.co.il/api/guidelines/search?q=%22%D7%9E%D7%A6%D7%9C%D7%9E%D7%95%D7%AA%20%D7%92%D7%95%D7%A3%22&limit=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 6220.9,
+        "totalMs": 6221.7,
+        "bytes": 1570,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 6283.6,
+          "p50": 6522.9,
+          "p95": 7177.4,
+          "max": 7177.4,
+          "mean": 6661.3
+        },
+        "total": {
+          "n": 3,
+          "min": 6284.2,
+          "p50": 6523.9,
+          "p95": 7178,
+          "max": 7178,
+          "mean": 6662
+        },
+        "bytes": 1570
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:rulings-defamation",
+      "url": "https://www.z-g.co.il/api/rulings?category=defamation&page=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 97.3,
+        "totalMs": 104.3,
+        "bytes": 574071,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 91.1,
+          "p50": 93.7,
+          "p95": 97.4,
+          "max": 97.4,
+          "mean": 94.1
+        },
+        "total": {
+          "n": 3,
+          "min": 101,
+          "p50": 112.9,
+          "p95": 205.3,
+          "max": 205.3,
+          "mean": 139.7
+        },
+        "bytes": 574071
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:rulings-drug-sentencing",
+      "url": "https://www.z-g.co.il/api/rulings?category=drug-sentencing&page=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 188.1,
+        "totalMs": 232.6,
+        "bytes": 82406,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 86.8,
+          "p50": 91,
+          "p95": 159.5,
+          "max": 159.5,
+          "mean": 112.4
+        },
+        "total": {
+          "n": 3,
+          "min": 92.8,
+          "p50": 146.5,
+          "p95": 249.1,
+          "max": 249.1,
+          "mean": 162.8
+        },
+        "bytes": 82406
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, max-age=30, s-maxage=120, stale-while-revalidate=600",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:comptroller-reports",
+      "url": "https://www.z-g.co.il/api/comptroller-reports/documents?limit=12&skip=0",
+      "first": {
+        "status": 200,
+        "ttfbMs": 212.2,
+        "totalMs": 213,
+        "bytes": 4770,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 122.9,
+          "p50": 125.6,
+          "p95": 133,
+          "max": 133,
+          "mean": 127.2
+        },
+        "total": {
+          "n": 3,
+          "min": 125.1,
+          "p50": 127.1,
+          "p95": 134.5,
+          "max": 134.5,
+          "mean": 128.9
+        },
+        "bytes": 4770
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:mmm",
+      "url": "https://www.z-g.co.il/api/mmm/documents?limit=12&skip=0",
+      "first": {
+        "status": 200,
+        "ttfbMs": 164.7,
+        "totalMs": 166.9,
+        "bytes": 8517,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 122.9,
+          "p50": 123.1,
+          "p95": 131.8,
+          "max": 131.8,
+          "mean": 125.9
+        },
+        "total": {
+          "n": 3,
+          "min": 123.9,
+          "p50": 124.4,
+          "p95": 132.8,
+          "max": 132.8,
+          "mean": 127
+        },
+        "bytes": 8517
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:class-actions",
+      "url": "https://www.z-g.co.il/api/class-actions/documents?limit=20&skip=0",
+      "first": {
+        "status": 200,
+        "ttfbMs": 101.1,
+        "totalMs": 162.2,
+        "bytes": 278469,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 94.5,
+          "p50": 99.5,
+          "p95": 102.5,
+          "max": 102.5,
+          "mean": 98.8
+        },
+        "total": {
+          "n": 3,
+          "min": 108.2,
+          "p50": 109.3,
+          "p95": 152.6,
+          "max": 152.6,
+          "mean": 123.4
+        },
+        "bytes": 278469
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-store",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:ca-records",
+      "url": "https://www.z-g.co.il/api/conditional-arrangements/records?limit=20&skip=0",
+      "first": {
+        "status": 200,
+        "ttfbMs": 919.2,
+        "totalMs": 924.6,
+        "bytes": 18016,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 404.8,
+          "p50": 580.3,
+          "p95": 592.3,
+          "max": 592.3,
+          "mean": 532.9
+        },
+        "total": {
+          "n": 5,
+          "min": 405.4,
+          "p50": 580.7,
+          "p95": 593.1,
+          "max": 593.1,
+          "mean": 533.6
+        },
+        "bytes": 18016
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, s-maxage=60, stale-while-revalidate=3600",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:ca-facets",
+      "url": "https://www.z-g.co.il/api/conditional-arrangements/facets",
+      "first": {
+        "status": 200,
+        "ttfbMs": 88.2,
+        "totalMs": 145.7,
+        "bytes": 477523,
+        "error": null
+      },
+      "warm": {
+        "n": 2,
+        "statuses": {
+          "200": 2
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 2,
+          "min": 85.3,
+          "p50": 85.3,
+          "p95": 85.9,
+          "max": 85.9,
+          "mean": 85.6
+        },
+        "total": {
+          "n": 2,
+          "min": 93.6,
+          "p50": 93.6,
+          "p95": 198.9,
+          "max": 198.9,
+          "mean": 146.3
+        },
+        "bytes": 477523
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:sanegoria-filters",
+      "url": "https://www.z-g.co.il/api/sanegoria?filters=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 85.5,
+        "totalMs": 86.6,
+        "bytes": 81336,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 77.2,
+          "p50": 81.5,
+          "p95": 86,
+          "max": 86,
+          "mean": 81.6
+        },
+        "total": {
+          "n": 3,
+          "min": 87,
+          "p50": 135.9,
+          "p95": 136.1,
+          "max": 136.1,
+          "mean": 119.7
+        },
+        "bytes": 81336
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, s-maxage=86400, stale-while-revalidate=172800",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "api:sanegoria-dashboard",
+      "url": "https://www.z-g.co.il/api/sanegoria?page=1",
+      "first": {
+        "status": 200,
+        "ttfbMs": 82.9,
+        "totalMs": 83.3,
+        "bytes": 13083,
+        "error": null
+      },
+      "warm": {
+        "n": 2,
+        "statuses": {
+          "200": 2
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 2,
+          "min": 81.4,
+          "p50": 81.4,
+          "p95": 91.9,
+          "max": 91.9,
+          "mean": 86.7
+        },
+        "total": {
+          "n": 2,
+          "min": 81.8,
+          "p50": 81.8,
+          "p95": 92.5,
+          "max": 92.5,
+          "mean": 87.2
+        },
+        "bytes": 13083
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, s-maxage=86400, stale-while-revalidate=604800",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "asset:next-static-js",
+      "url": "https://www.z-g.co.il/_next/static/chunks/0m97bbjp.vgzu.js",
+      "first": {
+        "status": 200,
+        "ttfbMs": 83.3,
+        "totalMs": 84.5,
+        "bytes": 6558,
+        "error": null
+      },
+      "warm": {
+        "n": 5,
+        "statuses": {
+          "200": 5
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 5,
+          "min": 78.7,
+          "p50": 81.3,
+          "p95": 83.4,
+          "max": 83.4,
+          "mean": 81
+        },
+        "total": {
+          "n": 5,
+          "min": 79.2,
+          "p50": 81.8,
+          "p95": 83.9,
+          "max": 83.9,
+          "mean": 81.5
+        },
+        "bytes": 6558
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "public, max-age=31536000, immutable",
+        "cf-cache-status": "DYNAMIC"
+      }
+    },
+    {
+      "id": "asset:og-image",
+      "url": "https://www.z-g.co.il/opengraph-image",
+      "first": {
+        "status": 200,
+        "ttfbMs": 90.9,
+        "totalMs": 93.8,
+        "bytes": 63283,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 82.3,
+          "p50": 82.6,
+          "p95": 96.5,
+          "max": 96.5,
+          "mean": 87.1
+        },
+        "total": {
+          "n": 3,
+          "min": 101.1,
+          "p50": 110.5,
+          "p95": 195.3,
+          "max": 195.3,
+          "mean": 135.6
+        },
+        "bytes": 63283
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC",
+        "x-nextjs-cache": "HIT"
+      }
+    },
+    {
+      "id": "asset:largest-upload",
+      "url": "https://www.z-g.co.il/uploads/1784648640701-%D7%93%D7%95%D7%97_%D7%94%D7%A6%D7%95%D7%95%D7%AA_%D7%94%D7%91%D7%99%D7%9F_%D7%9E%D7%A9%D7%A8%D7%93%D7%99.pdf",
+      "first": {
+        "status": 200,
+        "ttfbMs": 201.3,
+        "totalMs": 539.4,
+        "bytes": 1039383,
+        "error": null
+      },
+      "warm": {
+        "n": 3,
+        "statuses": {
+          "200": 3
+        },
+        "errors": 0,
+        "ttfb": {
+          "n": 3,
+          "min": 156.3,
+          "p50": 158,
+          "p95": 163.8,
+          "max": 163.8,
+          "mean": 159.4
+        },
+        "total": {
+          "n": 3,
+          "min": 183.6,
+          "p50": 203.9,
+          "p95": 235.4,
+          "max": 235.4,
+          "mean": 207.6
+        },
+        "bytes": 1039383
+      },
+      "headers": {
+        "server": "cloudflare",
+        "cache-control": "private, no-cache, max-age=0, must-revalidate",
+        "cf-cache-status": "DYNAMIC"
+      }
+    }
+  ],
+  "bursts": [
+    {
+      "id": "burst:/",
+      "url": "https://www.z-g.co.il/",
+      "parallel": 10,
+      "bursts": 3,
+      "statuses": {
+        "200": 30
+      },
+      "errors": 0,
+      "ttfb": {
+        "n": 30,
+        "min": 390.5,
+        "p50": 598.2,
+        "p95": 1456.3,
+        "max": 1547.7,
+        "mean": 746.6
+      },
+      "total": {
+        "n": 30,
+        "min": 472.1,
+        "p50": 1293.1,
+        "p95": 1660,
+        "max": 1660.1,
+        "mean": 1126.6
+      },
+      "wallMs": {
+        "n": 3,
+        "min": 793.1,
+        "p50": 1303.3,
+        "p95": 1662.1,
+        "max": 1662.1,
+        "mean": 1252.8
+      }
+    },
+    {
+      "id": "burst:api-posts",
+      "url": "https://www.z-g.co.il/api/posts",
+      "parallel": 10,
+      "bursts": 3,
+      "statuses": {
+        "200": 30
+      },
+      "errors": 0,
+      "ttfb": {
+        "n": 30,
+        "min": 97.4,
+        "p50": 177.3,
+        "p95": 832.7,
+        "max": 836.9,
+        "mean": 326.5
+      },
+      "total": {
+        "n": 30,
+        "min": 98.8,
+        "p50": 183.7,
+        "p95": 838.1,
+        "max": 886.9,
+        "mean": 345.7
+      },
+      "wallMs": {
+        "n": 3,
+        "min": 190.7,
+        "p50": 252.7,
+        "p95": 890.7,
+        "max": 890.7,
+        "mean": 444.7
+      }
+    }
+  ]
+}
