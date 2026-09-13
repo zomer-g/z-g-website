@@ -108,7 +108,10 @@ export default function Header({ content }: HeaderProps) {
     <header
       role="banner"
       className={cn(
-        "sticky z-50 w-full transition-all duration-300",
+        // Only the scrolled-state shadow and tint fade. `transition-all` also
+        // animated `top` (admin bar) and the backdrop blur — neither can run on
+        // the compositor, so every scroll past 10px repainted the header.
+        "sticky z-50 w-full transition-[box-shadow,background-color] duration-300",
         hasAdminBar ? "top-10" : "top-0",
         "border-b border-border bg-background",
         isScrolled && "shadow-md backdrop-blur-sm bg-background/95"
