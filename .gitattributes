@@ -1,0 +1,2 @@
+# xhostd runs install.sh / launch.sh with /bin/sh; a CRLF line ending breaks them.
+*.sh text eol=lf

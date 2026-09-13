@@ -1,19 +1,19 @@
 import { NextRequest } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { prisma } from "@/lib/prisma";
 
 /**
- * Serves user-uploaded files from the persistent uploads disk.
+ * Serves uploaded files at /uploads/<filename>.
  *
- * Why this route exists: in production `next start` only serves files that were
- * present in `public/` at BUILD time. Files written to public/uploads at runtime
- * (post PDF attachments, admin media) live on the Render persistent disk but are
- * NOT in the build's static manifest, so Next's static handler 404s them. This
- * handler reads the file straight off disk and streams it back.
+ * Uploads made through /api/media/upload are stored in the uploaded_files
+ * table, because the container filesystem is wiped on every deploy. Anything
+ * not in the table is read from public/uploads as before: the git-committed
+ * seed files, and any runtime upload still sitting on a Render disk.
  *
- * Seed files committed to git (public/uploads/media-thumb-*.png) are in the build
- * manifest and keep being served statically — the static handler wins for those,
- * and only static misses (i.e. runtime uploads) fall through to this route.
+ * Why a route at all: `next start` only serves files that were in `public/` at
+ * BUILD time. Seed files copied in before the build are served statically and
+ * never reach this handler; every static miss falls through to it.
  */
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,18 @@ function notFound() {
   return new Response("Not found", { status: 404 });
 }
 
+function fileResponse(data: Uint8Array<ArrayBuffer>, contentType: string, filename: string) {
+  return new Response(data, {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Content-Length": String(data.length),
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    },
+  });
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ filename: string }> },
@@ -46,6 +58,19 @@ export async function GET(
     filename.includes("..")
   ) {
     return notFound();
+  }
+
+  try {
+    const stored = await prisma.uploadedFile.findUnique({
+      where: { filename },
+      select: { data: true, mimeType: true },
+    });
+    if (stored) {
+      return fileResponse(new Uint8Array(stored.data), stored.mimeType, filename);
+    }
+  } catch (err) {
+    // A database hiccup should not hide a file that is also on disk.
+    console.error("GET /uploads: uploaded_files lookup failed:", err);
   }
 
   const uploadsDir = path.resolve(path.join(process.cwd(), "public", "uploads"));
@@ -64,15 +89,9 @@ export async function GET(
   }
 
   const ext = path.extname(filePath).toLowerCase();
-  const contentType = CONTENT_TYPES[ext] ?? "application/octet-stream";
-
-  return new Response(new Uint8Array(data), {
-    status: 200,
-    headers: {
-      "Content-Type": contentType,
-      "Content-Length": String(data.length),
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
-    },
-  });
+  return fileResponse(
+    new Uint8Array(data),
+    CONTENT_TYPES[ext] ?? "application/octet-stream",
+    filename,
+  );
 }

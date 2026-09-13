@@ -17,6 +17,9 @@
     "db:studio": "prisma studio",
     "test:monitor": "node --import tsx --test tests/monitoring/*.test.ts",
     "test:unit": "node --import tsx --test tests/unit/*.test.ts",
+    "test:migration": "tsx tests/migration/run.ts",
+    "test:migration:db": "tsx tests/migration/db-snapshot.ts",
+    "test:migration:compare": "tsx tests/migration/compare.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

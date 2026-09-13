@@ -477,6 +477,21 @@ model WhatsappMedia {
   @@map("whatsapp_media")
 }
 
+// Files uploaded through /api/media/upload (admin media, post attachments,
+// case documents), served back at /uploads/<filename>. Kept in Postgres, not
+// on disk: the xhostd container filesystem is wiped on every deploy, and one
+// database backup then covers the files as well. Same TOAST reasoning as
+// WhatsappMedia — only the serving route ever selects `data`.
+model UploadedFile {
+  filename  String   @id // stored name, e.g. 1784649022270-dec1933-2016.pdf
+  mimeType  String   @map("mime_type")
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("uploaded_files")
+}
+
 // ─── Tag pools — per-feature, per-workspace/project ─── //
 // WhatsappTag lives in a WhatsappWorkspace; TimelineTag lives in a
 // TimelineProject. The pools are intentionally separate so unrelated

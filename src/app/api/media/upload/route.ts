@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 /* ---- Allowed MIME types ---- */
@@ -88,26 +87,24 @@ export async function POST(req: NextRequest) {
       .slice(0, 50);
     const filename = `${timestamp}-${safeName}${ext}`;
 
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
-
-    // Write file to disk
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const filePath = path.join(uploadsDir, filename);
-    await writeFile(filePath, buffer);
-
-    // Create media record in database
+    // Store the bytes in Postgres rather than on disk: the container
+    // filesystem does not survive a deploy. /uploads/[filename] serves them.
+    const data = new Uint8Array(await file.arrayBuffer());
     const url = `/uploads/${filename}`;
-    const media = await prisma.media.create({
-      data: {
-        url,
-        filename: file.name,
-        mimeType: file.type,
-        size: file.size,
-        alt: formData.get("alt") as string | null,
-      },
-    });
+    const [, media] = await prisma.$transaction([
+      prisma.uploadedFile.create({
+        data: { filename, mimeType: file.type, size: data.length, data },
+      }),
+      prisma.media.create({
+        data: {
+          url,
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+          alt: formData.get("alt") as string | null,
+        },
+      }),
+    ]);
 
     return NextResponse.json(
       { media, url },

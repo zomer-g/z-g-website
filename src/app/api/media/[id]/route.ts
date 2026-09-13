@@ -31,13 +31,18 @@ export async function DELETE(
       );
     }
 
-    // Delete file from disk
+    // Uploads live in uploaded_files; a file from before that table may still
+    // be on disk. Remove whichever exists.
+    if (media.url.startsWith("/uploads/")) {
+      await prisma.uploadedFile.deleteMany({
+        where: { filename: decodeURIComponent(media.url.slice("/uploads/".length)) },
+      });
+    }
     try {
       const filePath = path.join(process.cwd(), "public", media.url);
       await unlink(filePath);
     } catch {
-      // File may not exist on disk, continue with DB deletion
-      console.warn(`Could not delete file from disk: ${media.url}`);
+      // Not on disk — the normal case for uploads stored in the database.
     }
 
     // Delete record from database
