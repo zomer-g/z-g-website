@@ -37,10 +37,13 @@ const PORTRAIT_URL = `${SITE_URL}/images/guy-zomer.jpg`;
 /* ─── Base Component ─── */
 
 export function JsonLd({ data }: { data: Record<string, unknown> }) {
+  // A `</script>` inside any string value would end the element early and turn
+  // the rest of the JSON into markup. JSON parsers read `<` back as `<`.
+  const json = JSON.stringify(data, null, 0).replace(/</g, "\\u003c");
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data, null, 0) }}
+      dangerouslySetInnerHTML={{ __html: json }}
     />
   );
 }

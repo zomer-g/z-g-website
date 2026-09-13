@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "חסרים פרמטרים page ו-section" }, { status: 400 });
       }
 
-      const url = `${WIKISOURCE_API}?action=parse&page=${encodeURIComponent(page)}&prop=text&section=${section}&format=json`;
+      const url = `${WIKISOURCE_API}?action=parse&page=${encodeURIComponent(page)}&prop=text&section=${encodeURIComponent(section)}&format=json`;
       const res = await fetch(url);
       const data = await res.json();
 

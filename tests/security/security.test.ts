@@ -27,10 +27,15 @@ mock.module("@/lib/auth", {
 
 // Mock @/lib/prisma → a Proxy that records every model.method(...) call and
 // returns canned data from state.impl when provided.
-const prisma = new Proxy(
+const prisma: any = new Proxy(
   {},
   {
     get(_t, model: string) {
+      // Interactive transactions run the callback against this same mock, so the
+      // calls inside it are recorded like any other; the array form resolves each.
+      if (model === "$transaction") {
+        return async (arg: any) => (typeof arg === "function" ? arg(prisma) : Promise.all(arg));
+      }
       return new Proxy(
         {},
         {
@@ -657,4 +662,79 @@ test("#8 getSigningSecret refuses the dev fallback in production", async () => {
     if (saved.a === undefined) delete process.env.AUTH_SECRET;
     else process.env.AUTH_SECRET = saved.a;
   }
+});
+
+// ============================================================================
+// #T8 — leftovers from the July review: constant-time PKCE (L1), one token per
+// auth code under concurrency (L2), JSON-LD that cannot break out of <script> (L3)
+// ============================================================================
+async function s256(verifier: string) {
+  const { createHash } = await import("node:crypto");
+  return createHash("sha256").update(verifier).digest("base64url");
+}
+
+test("#T8a verifyPkce: accepts only the S256 match", async () => {
+  const mod: any = await import("@/lib/mcp-oauth");
+  const verifier = "v".repeat(43);
+  const challenge = await s256(verifier);
+  assert.equal(mod.verifyPkce(verifier, challenge, "S256"), true);
+  assert.equal(mod.verifyPkce("w".repeat(43), challenge, "S256"), false, "wrong verifier");
+  assert.equal(mod.verifyPkce(verifier, challenge.slice(1), "S256"), false, "a length mismatch must fail, not throw");
+  assert.equal(mod.verifyPkce(verifier, verifier, "plain"), false, "plain is rejected");
+});
+
+async function tokenExchange(claimCount: number) {
+  const verifier = "v".repeat(43);
+  const challenge = await s256(verifier);
+  state.impl = {
+    mcpOauthAuthCode: {
+      findUnique: () => ({
+        used: false,
+        expiresAt: new Date(Date.now() + 60_000),
+        clientId: "c",
+        redirectUri: "https://claude.ai/cb",
+        codeChallenge: challenge,
+        codeChallengeMethod: "S256",
+        email: "u@example.com",
+      }),
+      updateMany: () => ({ count: claimCount }),
+    },
+    mcpInvite: { findUnique: () => ({ email: "u@example.com" }) },
+    mcpOauthAccessToken: { create: (a: any) => ({ ...a.data }) },
+  };
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/token/route");
+  return POST(
+    formReq("https://z-g.co.il/api/mcp/foi-guide/oauth/token", {
+      grant_type: "authorization_code",
+      code: "raw-code",
+      code_verifier: verifier,
+      client_id: "c",
+      redirect_uri: "https://claude.ai/cb",
+    }),
+  );
+}
+
+test("#T8b token: a code another request already claimed mints no token", async () => {
+  // Both redemptions read used=false; only one conditional update can claim the row.
+  const res = await tokenExchange(0);
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error, "invalid_grant");
+  assert.equal(called("mcpOauthAccessToken", "create"), false, "the losing redemption must not get a token");
+});
+
+test("#T8c token: the winning redemption claims the unused code and mints one token", async () => {
+  const res = await tokenExchange(1);
+  assert.equal(res.status, 200);
+  assert.ok((await res.json()).access_token, "token returned to the client");
+  assert.equal(lastCall("mcpOauthAuthCode", "updateMany")?.args[0].where.used, false, "the claim must be conditional on used=false");
+  const creates = state.dbCalls.filter((c) => c.model === "mcpOauthAccessToken" && c.method === "create");
+  assert.equal(creates.length, 1, "exactly one token");
+});
+
+test("#T8d JsonLd: a </script> inside a value cannot close the script element", async () => {
+  const { JsonLd }: any = await import("@/components/seo/json-ld");
+  const payload = "</script><img src=x onerror=alert(1)>";
+  const html: string = JsonLd({ data: { name: payload } }).props.dangerouslySetInnerHTML.__html;
+  assert.ok(!html.includes("<"), "no raw < may reach the script body");
+  assert.equal(JSON.parse(html).name, payload, "the JSON still parses back to the original value");
 });

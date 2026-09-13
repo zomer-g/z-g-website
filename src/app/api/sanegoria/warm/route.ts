@@ -33,12 +33,9 @@ export async function GET(_req: NextRequest) {
       });
       results.push({ url: combo, ms: Date.now() - t0, ok: res.ok, status: res.status });
     } catch (err) {
-      results.push({
-        url: combo,
-        ms: Date.now() - t0,
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
-      });
+      // The reason stays in the server log; this route answers anyone.
+      console.error(`[sanegoria/warm] ${combo || "(no filters)"} failed:`, err);
+      results.push({ url: combo, ms: Date.now() - t0, ok: false, error: "fetch failed" });
     }
   }
 

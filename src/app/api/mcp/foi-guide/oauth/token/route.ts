@@ -161,20 +161,26 @@ export async function POST(req: NextRequest) {
   const token = randomToken(32);
   const expiresAt = new Date(Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000);
 
-  await prisma.$transaction([
-    prisma.mcpOauthAuthCode.update({
-      where: { codeHash },
+  // Claim the code and mint the token together, and claim it only while it is
+  // still unused. The `record.used` check above reads before this write, so two
+  // concurrent redemptions of one code could both pass it and each get a token.
+  const claimed = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.mcpOauthAuthCode.updateMany({
+      where: { codeHash, used: false },
       data: { used: true },
-    }),
-    prisma.mcpOauthAccessToken.create({
+    });
+    if (count !== 1) return false;
+    await tx.mcpOauthAccessToken.create({
       data: {
         tokenHash: hashToken(token),
         clientId,
         email: record.email,
         expiresAt,
       },
-    }),
-  ]);
+    });
+    return true;
+  });
+  if (!claimed) return jsonError("invalid_grant", "code already used");
 
   // Identify the token in logs by its hash prefix, never the token itself —
   // the raw value appears only in the response body below.

@@ -200,6 +200,9 @@ export function verifyConsent(token: string): ConsentTicket | null {
 // PKCE — we only accept S256 (plain is rejected by the OAuth 2.1 spec).
 export function verifyPkce(verifier: string, challenge: string, method: string): boolean {
   if (method !== "S256") return false;
-  const hash = createHash("sha256").update(verifier).digest("base64url");
-  return hash === challenge;
+  const hash = Buffer.from(createHash("sha256").update(verifier).digest("base64url"));
+  const expected = Buffer.from(challenge);
+  // Constant-time, like verifyPayload: `===` returns as soon as a byte differs,
+  // which leaks how much of the challenge a guess got right.
+  return hash.length === expected.length && timingSafeEqual(hash, expected);
 }

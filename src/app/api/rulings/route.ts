@@ -1280,11 +1280,9 @@ export async function GET(req: NextRequest) {
       },
     );
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    console.error("Rulings API error:", detail);
-    return NextResponse.json(
-      { error: "שגיאה בטעינת פסיקה", detail },
-      { status: 500 },
-    );
+    // Logged in full, answered generically: the message can carry upstream
+    // URLs and internals, and this route is public.
+    console.error("Rulings API error:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: "שגיאה בטעינת פסיקה" }, { status: 500 });
   }
 }
