@@ -31,6 +31,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // The 21 KB site stylesheet was the one render-blocking request Lighthouse
+    // still reported on a clean desktop run (13.9.26). Inlining it removes that
+    // round trip before first paint; the cost is the same bytes in every page's
+    // HTML instead of one cached file. style-src already allows 'unsafe-inline'.
+    inlineCss: true,
+  },
   images: {
     remotePatterns: [
       {
