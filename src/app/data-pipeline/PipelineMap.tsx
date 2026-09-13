@@ -341,18 +341,13 @@ export function PipelineMap({
     })).filter((g) => g.nodes.length > 0);
   }, [hasSelection, routeNodeIds]);
 
-  // WCAG 2.2.2: the connector dashes and travelling packets loop forever and
-  // start on their own, so the page has to offer a stop. prefers-reduced-motion
-  // covers people who set it system-wide; this covers everyone else.
-  const [motionPaused, setMotionPaused] = useState(false);
-
   const togglePackage = (id: string) =>
     setSelection((s) => (s?.kind === "package" && s.id === id ? null : { kind: "package", id }));
   const toggleSeries = (id: string) =>
     setSelection((s) => (s?.kind === "series" && s.id === id ? null : { kind: "series", id }));
 
   return (
-    <div className={cn("relative", motionPaused && "motion-paused")}>
+    <div className="relative">
       {/* ── Selector panel ── */}
       <div
         className={cn(
@@ -368,19 +363,6 @@ export function PipelineMap({
               חבילות נתונים — בחרו כדי לראות את המסלול
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setMotionPaused((v) => !v)}
-            aria-pressed={motionPaused}
-            className={cn(
-              "rounded-full border px-3 py-1 font-mono text-[11px] font-medium transition-colors",
-              motionPaused
-                ? "border-accent bg-accent text-accent-ink"
-                : "border-white/25 bg-white/[0.04] text-white/80 hover:border-accent/60",
-            )}
-          >
-            {motionPaused ? "הפעלת האנימציה" : "עצירת האנימציה"}
-          </button>
         </div>
         <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="חבילות נתונים">
           {DATA_PACKAGES.map((pkg) => {
@@ -393,7 +375,7 @@ export function PipelineMap({
                 aria-pressed={isActive}
                 title={pkg.subtitle}
                 className={cn(
-                  "rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium transition-all duration-200",
+                  "rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium",
                   isActive
                     ? "border-accent bg-accent text-accent-ink shadow-[0_0_16px_-2px_var(--accent)]"
                     : "border-white/20 bg-white/[0.04] text-white/80 hover:border-accent/50 hover:bg-white/[0.08]",
@@ -428,7 +410,7 @@ export function PipelineMap({
                       : { borderColor: `${s.color}66` }
                   }
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium transition-all duration-200",
+                    "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-xs font-medium",
                     "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                     !isActive && "bg-white/[0.04] text-white/85 hover:bg-white/[0.08]",
                   )}
@@ -454,7 +436,7 @@ export function PipelineMap({
               aria-label="נקה בחירה"
               className={cn(
                 "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
-                "border border-white/25 text-white/70 transition-colors hover:border-accent hover:text-accent-on-dark",
+                "border border-white/25 text-white/70 hover:border-accent hover:text-accent-on-dark",
               )}
             >
               <X className="h-3 w-3" aria-hidden="true" />
@@ -483,7 +465,7 @@ export function PipelineMap({
                 href={activeSeries.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ms-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-primary-dark transition-opacity hover:opacity-90"
+                className="ms-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-primary-dark hover:opacity-90"
                 style={{ backgroundColor: activeSeries.color, color: "#fff" }}
               >
                 <span>לאתר הסדרה</span>
@@ -554,37 +536,14 @@ export function PipelineMap({
                   strokeDasharray="7 6"
                   markerEnd={`url(#${markerId})`}
                   markerStart={p.bidirectional ? `url(#${markerId})` : undefined}
-                  className={cn("pipeline-edge", state === "dim" && "pipeline-edge--dim")}
-                  style={active ? { animationDuration: "0.7s" } : undefined}
                 />
               </g>
             );
           })}
         </svg>
-
-        {/* Traveling data packets */}
-        {edgePaths.map((p) => {
-          const state = edgeState(p.key);
-          if (state === "dim") return null;
-          const active = state === "active";
-          return (
-            <div
-              key={`packet-${p.key}`}
-              aria-hidden="true"
-              className="pipeline-packet pointer-events-none absolute start-0 top-0 z-10 hidden rounded-full sm:block"
-              style={{
-                offsetPath: `path("${p.d}")`,
-                width: active ? 7 : 4,
-                height: active ? 7 : 4,
-                background: active ? highlightColor : "var(--accent-text)",
-                boxShadow: active
-                  ? `0 0 10px 2px ${highlightColor}`
-                  : "0 0 4px 0 var(--accent-text)",
-                animationDuration: active ? "1.3s" : "2.6s",
-              }}
-            />
-          );
-        })}
+        {/* The connectors are deliberately still. Flowing dashes and travelling
+            packets animated stroke-dashoffset and offset-distance, which the
+            browser repaints on the main thread every frame; removed 13.9.26. */}
 
         {edgePaths
           .filter((p) => p.label)
@@ -657,8 +616,8 @@ export function PipelineMap({
                       }}
                       className={cn(
                         "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 text-start sm:w-[184px] sm:p-5 lg:w-[200px]",
-                        "shadow-sm shadow-primary/5 transition-all duration-300",
-                        "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/10",
+                        "shadow-sm shadow-primary/5",
+                        "hover:shadow-lg hover:shadow-primary/10",
                         external
                           ? "border border-dashed border-muted/50 bg-muted-bg/40"
                           : "bg-white",
@@ -692,7 +651,7 @@ export function PipelineMap({
 
                       <div
                         className={cn(
-                          "relative flex h-11 w-11 items-center justify-center rounded-lg transition-colors duration-200",
+                          "relative flex h-11 w-11 items-center justify-center rounded-lg",
                           external
                             ? "bg-muted/10 text-muted"
                             : "bg-primary/5 text-primary group-hover:bg-accent/10 group-hover:text-accent-text",
@@ -701,7 +660,6 @@ export function PipelineMap({
                         <Icon className="h-5 w-5" aria-hidden="true" />
                         {external ? null : (
                           <span className="absolute -end-1 -top-1 flex h-2.5 w-2.5">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
                             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent" />
                           </span>
                         )}
@@ -790,7 +748,7 @@ export function PipelineMap({
               aria-label="סגירה"
               className={cn(
                 "absolute end-4 top-4 flex h-8 w-8 items-center justify-center rounded-full",
-                "text-muted transition-colors hover:bg-muted-bg hover:text-foreground",
+                "text-muted hover:bg-muted-bg hover:text-foreground",
               )}
             >
               <X className="h-4 w-4" aria-hidden="true" />
@@ -875,7 +833,7 @@ export function PipelineMap({
                       target="_blank"
                       rel="noopener noreferrer"
                       className={cn(
-                        "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold transition-all duration-200",
+                        "inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-bold",
                         isGithub
                           ? "border-primary/20 bg-primary/5 text-primary-dark hover:border-primary hover:bg-primary hover:text-white"
                           : "border-accent/30 bg-accent/5 text-accent-ink hover:border-accent hover:bg-accent",

@@ -84,22 +84,11 @@ function ExtensionCard({
     <article
       className={cn(
         "group relative isolate overflow-hidden rounded-2xl",
-        "border border-white/15 bg-white/[0.05] backdrop-blur-sm",
-        "transition-all duration-300",
+        "border border-white/15 bg-white/[0.05]",
         "hover:border-accent/50 hover:bg-white/[0.08]",
         "focus-within:border-accent/60",
       )}
     >
-      {/* Glow halo behind the icon — pure decoration. */}
-      <div
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute -end-16 -top-16 h-56 w-56 rounded-full",
-          "bg-accent/10 blur-3xl",
-          "transition-opacity duration-500",
-          "opacity-50 group-hover:opacity-90",
-        )}
-      />
 
       {/* Top-right ordinal — decorative mono digit */}
       <div
@@ -114,8 +103,7 @@ function ExtensionCard({
           className={cn(
             "flex h-14 w-14 items-center justify-center rounded-xl",
             "border border-accent/40 bg-accent/15 text-accent-light",
-            "shadow-[0_0_24px_-8px_var(--accent)] transition-transform duration-300",
-            "group-hover:scale-105",
+            "shadow-[0_0_24px_-8px_var(--accent)]",
           )}
         >
           <Icon className="h-7 w-7" aria-hidden="true" />
@@ -177,7 +165,7 @@ function ExtensionCard({
             className={cn(
               "inline-flex items-center gap-2 rounded-lg",
               "border border-accent/60 bg-accent/15 px-4 py-2",
-              "text-sm font-semibold text-accent-light transition-all duration-200",
+              "text-sm font-semibold text-accent-light",
               "hover:border-accent hover:bg-accent hover:text-accent-ink",
             )}
             aria-label={`${ctaLabel} ${site.name}${external ? " — נפתח בכרטיסייה חדשה" : ""}`}
@@ -220,18 +208,10 @@ export default async function LetzPage() {
               backgroundSize: "28px 28px",
             }}
           />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-32 end-1/4 h-96 w-96 rounded-full bg-accent/20 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 start-1/4 h-96 w-96 rounded-full bg-primary-light/30 blur-3xl"
-          />
 
           <Container className="relative py-20 sm:py-28">
             {/* Top meta strip */}
-            <div className="mx-auto mb-10 flex max-w-fit items-center gap-3 rounded-full border border-white/25 bg-white/[0.08] px-4 py-1.5 backdrop-blur-sm">
+            <div className="mx-auto mb-10 flex max-w-fit items-center gap-3 rounded-full border border-white/25 bg-white/[0.08] px-4 py-1.5">
               <span
                 aria-hidden="true"
                 className="inline-block h-2 w-2 rounded-full bg-accent shadow-[0_0_8px_var(--accent)]"
@@ -343,14 +323,6 @@ export default async function LetzPage() {
               backgroundSize: "32px 32px",
             }}
           />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute end-0 top-1/3 h-96 w-96 rounded-full bg-accent/10 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute start-0 bottom-1/4 h-80 w-80 rounded-full bg-primary-light/30 blur-3xl"
-          />
 
           <Container className="relative">
             <div className="mb-12 text-center">
@@ -414,7 +386,7 @@ export default async function LetzPage() {
                   href={content.cta.primaryCtaLink}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-lg bg-accent px-6 py-3",
-                    "text-base font-bold text-primary-dark transition-colors duration-200",
+                    "text-base font-bold text-primary-dark",
                     "hover:bg-accent-light",
                     "focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-dark",
                   )}
@@ -428,7 +400,7 @@ export default async function LetzPage() {
                     className={cn(
                       "inline-flex items-center gap-2 rounded-lg",
                       "border border-white/30 bg-white/[0.08] px-6 py-3",
-                      "text-base font-semibold text-white transition-all duration-200",
+                      "text-base font-semibold text-white",
                       "hover:bg-white/[0.15] hover:border-white/50",
                     )}
                   >
