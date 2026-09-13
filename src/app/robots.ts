@@ -2,6 +2,11 @@ import type { MetadataRoute } from "next";
 import { SITE_ORIGIN } from "@/lib/site";
 import { documentChunks } from "@/lib/sitemap-documents";
 
+// Rendered per request, like sitemap.ts. Left static, Next prerenders this at
+// build time — and a build with no database (xhostd builds have none) bakes
+// the catch below into a robots.txt that lists no document sitemaps at all.
+export const dynamic = "force-dynamic";
+
 /**
  * Robots.txt configuration via Next.js metadata API.
  *
