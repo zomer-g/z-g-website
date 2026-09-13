@@ -12,6 +12,15 @@ export default auth((req) => {
   // checks reach the service on exactly that hostname, so the copy is left
   // reachable and told not to be indexed instead.
   const host = req.headers.get("host");
+
+  // The bare domain is served by this app directly on xhostd. Render answered
+  // it with its own 301 to www before the request ever reached Next, so the
+  // redirect has to live here now or the apex becomes a second copy of the site.
+  if (host?.toLowerCase().split(":")[0] === "z-g.co.il") {
+    const url = new URL(req.nextUrl.pathname + req.nextUrl.search, "https://www.z-g.co.il");
+    return NextResponse.redirect(url, 301);
+  }
+
   if (!isCanonicalHost(host)) {
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
