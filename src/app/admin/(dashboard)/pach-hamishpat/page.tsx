@@ -5,6 +5,7 @@ import {
   Archive,
   ArchiveRestore,
   Calendar,
+  ClipboardPaste,
   Eye,
   EyeOff,
   ImagePlus,
@@ -69,6 +70,43 @@ function fmt(s: string) {
     minute: "2-digit",
     hour12: false,
   });
+}
+
+// Raw image cap. The bytes are stored inline on the row as a data URL.
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+
+function readAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("שגיאה בקריאת הקובץ"));
+    reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("פורמט קריאה לא צפוי"));
+        return;
+      }
+      resolve(reader.result);
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Screenshots pasted from the clipboard are full-resolution PNGs that often
+// pass the cap. Re-encode them smaller instead of rejecting the paste.
+async function shrinkImage(file: File): Promise<Blob> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1920 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  for (const quality of [0.85, 0.7, 0.5]) {
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", quality),
+    );
+    if (blob && blob.size <= MAX_IMAGE_BYTES) return blob;
+  }
+  throw new Error("התמונה גדולה מדי גם אחרי דחיסה.");
 }
 
 export default function PachAdminPage() {
@@ -183,6 +221,7 @@ function MessagesTab({
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -192,32 +231,22 @@ function MessagesTab({
   // weren't surviving — the image broke as soon as a deploy ran. Storing
   // the bytes in the DB column makes the image truly part of the record
   // and works the same in admin preview and public render. We cap at 2MB
-  // raw to keep row size sane.
+  // raw (larger images are re-encoded down) to keep row size sane.
   const uploadFile = useCallback(async (file: File): Promise<void> => {
     if (!file.type.startsWith("image/")) {
       setUploadError("רק תמונות נתמכות (JPEG, PNG, WebP, GIF).");
       return;
     }
-    const MAX_RAW = 2 * 1024 * 1024;
-    if (file.size > MAX_RAW) {
-      setUploadError("הקובץ גדול מ-2MB. כדאי לדחוס תמונה לפני העלאה.");
+    if (file.size > MAX_IMAGE_BYTES && file.type === "image/gif") {
+      // Re-encoding would drop the animation, so a big GIF is rejected.
+      setUploadError("קובץ GIF גדול מ-2MB. כדאי לדחוס אותו לפני העלאה.");
       return;
     }
     setUploading(true);
     setUploadError(null);
     try {
-      const dataUrl: string = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(reader.error ?? new Error("שגיאה בקריאת הקובץ"));
-        reader.onload = () => {
-          if (typeof reader.result !== "string") {
-            reject(new Error("פורמט קריאה לא צפוי"));
-            return;
-          }
-          resolve(reader.result);
-        };
-        reader.readAsDataURL(file);
-      });
+      const blob = file.size > MAX_IMAGE_BYTES ? await shrinkImage(file) : file;
+      const dataUrl = await readAsDataUrl(blob);
       setDraft((d) => ({ ...d, image_url: dataUrl }));
     } catch (e) {
       setUploadError(e instanceof Error ? e.message : "שגיאה בהעלאה");
@@ -225,6 +254,51 @@ function MessagesTab({
       setUploading(false);
     }
   }, []);
+
+  // Ctrl+V anywhere on the page. A paste handler on the dropzone alone never
+  // fired in practice: clicking the dropzone opens the file picker, so it
+  // could not hold focus for the paste. Text pasted into the title/content
+  // fields is left alone.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const data = e.clipboardData;
+      if (!data) return;
+      const target = e.target instanceof Element ? e.target : null;
+      const inTextField = !!target?.closest("input, textarea, [contenteditable]");
+      if (inTextField && data.types.includes("text/plain")) return;
+      const item = Array.from(data.items).find(
+        (it) => it.kind === "file" && it.type.startsWith("image/"),
+      );
+      const file = item?.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      void uploadFile(file);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [uploadFile]);
+
+  const pasteFromClipboard = async () => {
+    setUploadError(null);
+    if (!navigator.clipboard?.read) {
+      setUploadError("הדפדפן לא מאפשר קריאה מהלוח. אפשר ללחוץ Ctrl+V בכל מקום בעמוד.");
+      return;
+    }
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (!type) continue;
+        const blob = await item.getType(type);
+        await uploadFile(new File([blob], "clipboard", { type }));
+        return;
+      }
+      setUploadError("אין תמונה בלוח. יש להעתיק תמונה ולנסות שוב.");
+    } catch {
+      setUploadError(
+        "לא ניתן לקרוא מהלוח (ייתכן שההרשאה נחסמה). אפשר ללחוץ Ctrl+V בכל מקום בעמוד.",
+      );
+    }
+  };
 
   const openNew = () => {
     setEditing(null);
@@ -249,6 +323,7 @@ function MessagesTab({
 
   const save = async () => {
     setBusy(true);
+    setSaveError(null);
     try {
       // The datetime-local input gives us local time without zone info.
       // Convert to a real Date so the server stores the moment the admin
@@ -256,8 +331,9 @@ function MessagesTab({
       const createdIso = draft.created_date
         ? new Date(draft.created_date).toISOString()
         : null;
+      let res: Response;
       if (editing) {
-        await fetch(`/api/pach-hamishpat/messages/${editing.id}`, {
+        res = await fetch(`/api/pach-hamishpat/messages/${editing.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -272,7 +348,7 @@ function MessagesTab({
           (m, x) => Math.min(m, x.order_index ?? 0),
           0,
         );
-        await fetch("/api/pach-hamishpat/messages", {
+        res = await fetch("/api/pach-hamishpat/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -283,6 +359,12 @@ function MessagesTab({
             ...(createdIso ? { created_date: createdIso } : {}),
           }),
         });
+      }
+      if (!res.ok) {
+        // Keep the draft so nothing typed is lost.
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        setSaveError(body?.error ?? `השמירה נכשלה (${res.status}).`);
+        return;
       }
       setEditing(null);
       setDraft({ title: "", content: "", image_url: "", created_date: "" });
@@ -387,27 +469,13 @@ function MessagesTab({
           </div>
         </label>
         {/* Image dropzone — click to pick, drag-and-drop, or paste from
-            clipboard. Falls back to a URL field below if the operator wants
-            to point at an external image instead of uploading. */}
+            clipboard (Ctrl+V anywhere on the page, or the button below).
+            Falls back to a URL field if the operator wants to point at an
+            external image instead of uploading. */}
         <div className="space-y-2">
           <span className="text-sm font-semibold text-foreground">תמונה</span>
           <div
             onClick={() => fileInputRef.current?.click()}
-            onPaste={(e) => {
-              const items = e.clipboardData?.items;
-              if (!items) return;
-              for (let i = 0; i < items.length; i++) {
-                const it = items[i];
-                if (it.kind === "file" && it.type.startsWith("image/")) {
-                  const f = it.getAsFile();
-                  if (f) {
-                    e.preventDefault();
-                    void uploadFile(f);
-                    break;
-                  }
-                }
-              }
-            }}
             onDragOver={(e) => {
               e.preventDefault();
               setIsDragging(true);
@@ -484,12 +552,24 @@ function MessagesTab({
               <div className="flex flex-col items-center gap-2 text-muted">
                 <ImagePlus className="h-8 w-8" />
                 <p className="text-sm font-medium">
-                  לבחירה, לגרירה לכאן, או להדבקה (Ctrl+V)
+                  לבחירה, לגרירה לכאן, או הדבקה (Ctrl+V) בכל מקום בעמוד
                 </p>
-                <p className="text-xs">JPEG / PNG / WebP / GIF, עד 10MB</p>
+                <p className="text-xs">
+                  JPEG / PNG / WebP / GIF · תמונה מעל 2MB תידחס אוטומטית
+                </p>
               </div>
             )}
           </div>
+
+          <button
+            type="button"
+            onClick={() => void pasteFromClipboard()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-sm font-semibold hover:bg-muted-bg disabled:opacity-50"
+          >
+            <ClipboardPaste className="h-4 w-4" />
+            הדבקת תמונה מהלוח
+          </button>
 
           {uploadError ? (
             <p className="text-sm text-red-600">{uploadError}</p>
@@ -502,7 +582,8 @@ function MessagesTab({
             <input
               type="url"
               placeholder="https://..."
-              value={draft.image_url}
+              // An uploaded image is a data URL; don't dump its base64 here.
+              value={draft.image_url.startsWith("data:") ? "" : draft.image_url}
               dir="ltr"
               onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
               className="mt-2 w-full rounded border border-border px-3 py-2 text-left"
@@ -510,7 +591,12 @@ function MessagesTab({
           </details>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex items-center justify-end gap-3">
+          {saveError ? (
+            <p className="text-sm text-red-600" role="alert">
+              {saveError}
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={save}
@@ -559,15 +645,12 @@ function MessagesTab({
                 </p>
               ) : null}
               {m.image_url ? (
-                <a
-                  href={m.image_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline mt-1 inline-block break-all"
-                >
-                  {m.image_url}
-                <span className="sr-only"> (נפתח בלשונית חדשה)</span>
-                </a>
+                <img
+                  src={m.image_url}
+                  alt="תמונה מצורפת להודעה"
+                  loading="lazy"
+                  className="mt-2 max-h-40 max-w-full rounded border border-border object-contain"
+                />
               ) : null}
             </div>
             <div className="flex items-center gap-1 shrink-0">

@@ -5,6 +5,9 @@ import { readJsonBody } from "@/lib/request-body";
 
 /** Ported from pach-hamishpat/server/routes/system-messages.js. */
 
+// 2MB raw image → ~2.7MB as base64, plus title/content.
+const MAX_ADMIN_BODY_BYTES = 4 * 1024 * 1024;
+
 function serialize(m: {
   id: number;
   title: string | null;
@@ -60,8 +63,11 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // The image travels inline as a base64 data URL, so the public 64KB cap
+    // would reject any real photo. The admin check above already ran, so a
+    // larger cap here is not reachable by an anonymous caller.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const parsedBody = await readJsonBody<Record<string, any>>(req);
+    const parsedBody = await readJsonBody<Record<string, any>>(req, MAX_ADMIN_BODY_BYTES);
     if (!parsedBody.ok) return parsedBody.response;
     const body = parsedBody.data;
     // Optional explicit backdating — lets the admin enter historical
