@@ -8,8 +8,8 @@
  *   litigants, so the files are loaded straight into the uploaded_files table,
  *   which /uploads/[filename] serves first. No deploy is needed. Point
  *   TM_FILES_DIR at the folder holding the (already redacted) PDFs.
- * - The coverage already exists on /media, so it is only tagged here (caseTag),
- *   never re-created or re-ordered.
+ * - Much of the coverage already exists on /media. Those rows are tagged and
+ *   keep their visibility; only new items are created (hidden until --live).
  *
  * Idempotent: files upsert on filename, documents match on (caseTag, fileUrl),
  * the post upserts on slug. Seeds hidden by default; `--live` publishes.
@@ -36,15 +36,202 @@ const FILES_DIR = process.env.TM_FILES_DIR;
 
 /* ─────────────────────────── Press coverage ─────────────────────────── */
 
-// Existing /media rows about the project. Tagged only — their order and
-// visibility on /media stay exactly as they are.
-const COVERAGE_IDS = [
-  "cmn1dg6io0008d89oyvig4bg3", // גלובס 5.2.2022 — המיזם שפתח 6 מיליון תיקים
-  "cmn1dg6ao0006d89ommae2pie", // גלובס 8.8.2022 — מחקר רשות המסים על נתוני התולעת
-  "cmn1dg5mg0000d89o8gg0zeyk", // TheMarker 26.12.2025 — "הילדים הרעים של השקיפות"
-  "cmpawdtin00008vz8xlp7icib", // ישראל היום 10.5.2026 — פסק דין אומן
-  "cmpawdtk000018vz88xppaftd", // law.co.il 11.5.2026 — פסק דין אומן
-  "cmpawdtk400028vz8fk3l3i37", // ביזפורטל 15.5.2026 — פסק דין אומן
+interface Coverage {
+  url: string;
+  date: string; // ISO — /media sorts this column as a string
+  // New items only. A url already on /media is just tagged, and `fix` (below)
+  // corrects fields that were verified wrong on the existing row.
+  source?: string;
+  title?: string;
+  description?: string;
+  type?: "article" | "video" | "podcast";
+  fix?: { title?: string; date?: string; description?: string };
+}
+
+// Everything the project got over the years, oldest first — this is also the
+// order of the case file. `order` is read only by the case file (/media sorts
+// by date), so renumbering the existing rows moves nothing on /media.
+const COVERAGE: Coverage[] = [
+  {
+    url: "https://www.the7eye.org.il/236311",
+    date: "2017-02-11",
+    type: "podcast",
+    source: "העין השביעית — קול העין",
+    title: "קול העין: תביעת המיליון נגד שרון שפורר, אריה שקד נגד יואב יצחק, אמיר חייק על לילה כלכלי ופרויקט ביג דאטה משפטי",
+    description:
+      "פרק בתוכנית הרדיו של העין השביעית וקול הקמפוס. באחד מפריטיו מציג אנדי וורמס את תולעת המשפט בשלביו הראשונים: פרויקט ביג דאטה שמנגיש את נתוני בתי המשפט.",
+  },
+  {
+    url: "https://www.the7eye.org.il/236310",
+    date: "2017-02-16",
+    source: "העין השביעית",
+    title: "תולעת במערכת",
+    description:
+      "ראיון עם אנדי וורמס על פרויקט שמחלץ נתונים מאתר הרשות השופטת לגיליונות פתוחים, כדי לאפשר ניתוח של עומס שופטים, מינויים ודפוסי התדיינות.",
+  },
+  {
+    url: "https://portal.takdin.co.il/Article/Article/5941050",
+    date: "2018-02-22",
+    source: "תקדין",
+    title: "הכירו את \"התולעת\": המיזם החתרני שפועל לשקיפות במערכת המשפט",
+    description:
+      "פרופיל של המיזם ושל הרובוט שסורק את נט המשפט, עם ממצאים ראשונים: פערים בין שופטים בשיעורי המעצר, התובע הסדרתי הגדול בתביעות קטנות, ויותר מ-7,000 תובענות ייצוגיות.",
+  },
+  {
+    url: "https://www.the7eye.org.il/330479",
+    date: "2019-05-27",
+    source: "העין השביעית",
+    title: "מחקר: תופעת תביעות ההשתקה צוברת תאוצה",
+    description:
+      "דיווח על מחקר שערכתי על נתוני תולעת המשפט, שמצא עלייה עקבית במספר תביעות לשון הרע ובסכומים הנתבעים בשנים 2010–2017.",
+  },
+  {
+    url: "https://shakuf.co.il/9502",
+    date: "2019-08-21",
+    source: "שקוף",
+    title: "רוצים להיות זבוב על הקיר של אמיר אוחנה? הכירו את מאגר המידע החדש שינגיש לכם את פסקי הדין",
+    description:
+      "כתבה על השקת אתר תולעת המשפט כמאגר חינמי ופתוח של תיקים ופסקי דין מנט המשפט, על רקע התשלום שהמדינה משלמת לחברות פרטיות על מאגרי פסיקה.",
+  },
+  { url: "https://www.haaretz.co.il/captain/software/2019-11-01/ty-article/.premium/0000017f-f459-d47e-a37f-fd7d5b3f0000", date: "2019-11-01" },
+  { url: "https://news.walla.co.il/item/3368198", date: "2020-06-20" },
+  {
+    url: "https://www.the7eye.org.il/385495",
+    date: "2020-08-26",
+    fix: {
+      date: "2020-08-26",
+      title: "נתונים חלקיים, מסקנות לא מייצגות: מבט ביקורתי על דו\"ח חופש המידע הממשלתי",
+      description:
+        "מאמר שכתבתי על דוח היחידה הממשלתית לחופש המידע. בדיקה של תולעת המשפט הראתה שהדוח ניתח רק 137 מתוך 494 עתירות חופש מידע שהסתיימו ב-2019.",
+    },
+  },
+  { url: "https://www.themarker.com/magazine/2020-11-02/ty-article-static-ext/0000017f-e54c-d7b2-a77f-e74f486b0000", date: "2020-11-02" },
+  {
+    url: "https://newmedia.calcalist.co.il/magazine-10-12-20/m02.html",
+    date: "2020-12-10",
+    source: "כלכליסט",
+    title: "עו\"ד אילנה סקר חברה בוועדה למינוי שופטים. זה לא מפריע לה ולמשרדה לייצג לקוחות בפני שופטים שהיא יכולה לחרוץ את עתידם המקצועי",
+    description:
+      "תחקיר במוסף כלכליסט שנשען על נתוני תולעת המשפט כדי לאתר יותר מ-1,000 תיקים שבהם ייצג משרדה של חברת הוועדה לבחירת שופטים.",
+  },
+  { url: "https://13tv.co.il/item/news/domestic/crime-and-justice/police-complaints-1307014/", date: "2021-08-05" },
+  { url: "https://www.globes.co.il/news/article.aspx?did=1001387868", date: "2021-10-19" },
+  {
+    url: "https://www.globes.co.il/news/article.aspx?did=1001390209",
+    date: "2021-11-09",
+    source: "גלובס",
+    title: "המכורים לתביעות ייצוגיות: אלה עורכי הדין והמשרדים המובילים",
+    description:
+      "ניתוח של עורכי הדין והמשרדים שמגישים הכי הרבה תובענות ייצוגיות, המבוסס במפורש על מאגר תולעת המשפט.",
+  },
+  // The row said 1.1.2023; the article is from 27.12.2021.
+  { url: "https://www.ice.co.il/career/news/article/839133", date: "2021-12-27", fix: { date: "2021-12-27" } },
+  { url: "https://www.idi.org.il/books/38952", date: "2022-01-01" },
+  { url: "https://www.globes.co.il/news/article.aspx?did=1001401121", date: "2022-02-05" },
+  { url: "https://www.shomrim.news/hebrew/494", date: "2022-02-09" },
+  { url: "https://www.globes.co.il/news/article.aspx?did=1001420722", date: "2022-08-08" },
+  {
+    url: "https://www.globes.co.il/news/article.aspx?did=1001420852",
+    date: "2022-08-09",
+    source: "גלובס",
+    title: "משבר השכירות: שיא במספר תביעות הפינוי שמגיעות לבתי המשפט",
+    description:
+      "כתבה על שיא בתביעות לפינוי שוכרים, המבוססת בין היתר על בדיקה של תולעת המשפט בנתוני נט המשפט.",
+  },
+  {
+    url: "https://www.the7eye.org.il/472274",
+    date: "2022-12-06",
+    source: "העין השביעית",
+    title: "אלי ובתיה ציפורי מתחרטים: מבקשים למחוק תביעה בסך כחצי מיליון שקל, אחרונה בשרשרת תביעות נגררות",
+    description:
+      "דיווח על בקשת בני הזוג ציפורי למחוק את תביעת הפרטיות והדיבה שהגישו נגד עמותת התמנון בגלל פרסום בתולעת המשפט, ועל טענת העמותה שמדובר בשרשרת תביעות נגררות.",
+  },
+  {
+    url: "https://news.walla.co.il/item/3561519",
+    date: "2023-02-27",
+    source: "וואלה",
+    title: "השר לענייני תביעות דיבה: בכמה הליכים משפטיים בן גביר מעורב?",
+    description:
+      "בדיקה שנערכה באמצעות מאגר תולעת המשפט ומנתה את תביעות הדיבה שהשר בן גביר מעורב בהן.",
+  },
+  {
+    url: "https://www.odata.org.il/dataset/f24bf9e2-a01e-4066-b74b-788f8bb3199e",
+    date: "2023-05-13",
+    source: "ועדת אנגלרד",
+    title: "דוח הוועדה הציבורית לבחינת שאלות הנוגעות לפרסום פרטים מזהים בפסקי-דין ובהחלטות של בתי המשפט ולעיון בתיקי בתי המשפט",
+    description:
+      "הדוח הסופי של הוועדה, שהוגש לשר המשפטים ב-2023. אחת מפסקאותיו מתארת את תולעת המשפט ואת משמעות האינדוקס של החלטות שיפוטיות במנועי חיפוש.",
+  },
+  {
+    url: "https://www.the7eye.org.il/509786",
+    date: "2024-02-17",
+    source: "העין השביעית",
+    title: "מגיפת תביעות הדיבה: ב-2023 הוגשו בישראל כמעט שלוש תביעות לשון הרע מדי יום",
+    description:
+      "ניתוח נתוני תולעת המשפט על היקף תביעות הדיבה בישראל: 1,054 תביעות ב-2023, והמגמה לאורך עשור.",
+  },
+  {
+    url: "https://www.globes.co.il/news/article.aspx?did=1001476262",
+    date: "2024-04-11",
+    source: "גלובס",
+    title: "אלפי תביעות נגד עסקים: הכירו את שיטת מצליח של עורכי הדין",
+    description:
+      "כתבה על עורכי דין שמגישים אלפי תובענות ייצוגיות, המבוססת על בדיקה מקיפה של תולעת המשפט בנתוני נט המשפט.",
+  },
+  {
+    url: "https://www.globes.co.il/news/article.aspx?did=1001501047",
+    date: "2025-02-03",
+    source: "גלובס",
+    title: "נתונים חדשים מגלים: 2024 הייתה שנת שיא בתביעות לפינוי שוכרים",
+    description:
+      "כתבה על שיא בתביעות הפינוי ב-2024, המבוססת בין היתר על בדיקה של תולעת המשפט בנתוני נט המשפט.",
+  },
+  { url: "https://www.themarker.com/weekend/2025-12-26/ty-article-magazine/.highlight/0000019b-49df-d034-ab9b-c9dff81c0000", date: "2025-12-26" },
+  {
+    url: "https://www.the7eye.org.il/573617",
+    date: "2026-02-03",
+    source: "העין השביעית",
+    title: "מחקר: העלייה במספר תביעות הדיבה נבלמה עם עליית ממשלת השינוי והתחדשה כשנפלה",
+    description:
+      "מחקר על תביעות הדיבה בשנים 2008–2024, המבוסס על מאגר תביעות הדיבה שבניתי מנתוני תולעת המשפט.",
+  },
+  { url: "https://www.israelhayom.co.il/news/law/article/20503250", date: "2026-05-10" },
+  { url: "https://www.law.co.il/computer-law/2026/05/11/uman-v-the-octopus-public-information-for-all-ra/", date: "2026-05-11" },
+  {
+    url: "https://www.beithamishpat.co.il/post/court-2564",
+    date: "2026-05-11",
+    source: "בית המשפט",
+    title: "ניצחון ל\"תולעת המשפט\": ביהמ\"ש דחה תביעה בעקבות פרסום פסקי דין",
+    description:
+      "דיווח על דחיית תביעת הפרטיות נגד העמותה, נגדי ונגד הנהלת בתי המשפט: פרסום מסמכים מהליכים פומביים מוגן גם כשיש בהם מידע אישי רגיש.",
+  },
+  { url: "https://www.bizportal.co.il/takdin/news/article/20031848", date: "2026-05-15" },
+  {
+    url: "https://www.the7eye.org.il/584639",
+    date: "2026-05-23",
+    fix: {
+      date: "2026-05-23",
+      title: "פסק דין: הזכות לפרטיות נסוגה מפני עיקרון פומביות הדיון",
+      description:
+        "דיווח על פסק הדין שדחה את התביעה נגד תולעת המשפט וקבע שפרסום נכון והוגן של מסמכים מהליכים פומביים מוגן, גם כשהוא פוגע בפרטיות.",
+    },
+  },
+  {
+    url: "https://www.beithamishpat.co.il/post/court-2646",
+    date: "2026-06-08",
+    source: "בית המשפט",
+    title: "השופטת מזהירה את חבריה השופטים: \"פומביות הדיון היא אינטרס ציבורי\"",
+    description:
+      "דיווח על החלטת השופטת דורית פיינשטיין שביטלה צו איסור פרסום בתביעה נגד התמנון ונגד החברה המפעילה את תולעת המשפט, וקראה לשופטים להיזהר במתן צווים כאלה.",
+  },
+  {
+    url: "https://www.the7eye.org.il/590800",
+    date: "2026-07-28",
+    source: "העין השביעית",
+    title: "מחקר ראשון מסוגו משרטט את התהליך המהיר והמדאיג שבו נשחק חופש המידע בישראל",
+    description:
+      "דיווח על מחקר שמיפה כ-4,000 עתירות חופש מידע בשנים 2012–2024. תשתית הנתונים שלו נבנתה מתולעת המשפט.",
+  },
 ];
 
 /* ──────────────────────────── Case documents ──────────────────────────── */
@@ -362,7 +549,8 @@ const content = {
 /* ─────────────────────────────── Runner ─────────────────────────────── */
 
 async function seedFiles() {
-  if (!FILES_DIR) throw new Error("Set TM_FILES_DIR to the folder holding the PDFs.");
+  // The PDFs only need loading once; later runs (e.g. --live) can skip it.
+  if (!FILES_DIR) return console.log("  files: skipped (TM_FILES_DIR not set)");
 
   for (const doc of RULINGS) {
     const data = await readFile(path.join(FILES_DIR, doc.file));
@@ -375,12 +563,56 @@ async function seedFiles() {
   console.log(`  files: ${RULINGS.length} upserted`);
 }
 
-async function tagCoverage() {
-  const { count } = await prisma.mediaAppearance.updateMany({
-    where: { id: { in: COVERAGE_IDS } },
-    data: { caseTag: CASE_TAG },
-  });
-  console.log(`  coverage: ${count}/${COVERAGE_IDS.length} tagged`);
+async function seedCoverage() {
+  let created = 0;
+  let tagged = 0;
+
+  for (const [index, item] of COVERAGE.entries()) {
+    // Match on url alone: most of these already sit on /media, untagged.
+    const existing = await prisma.mediaAppearance.findFirst({ where: { url: item.url } });
+
+    if (existing) {
+      // An existing row keeps its visibility; only the tag, the case-file
+      // order and any verified correction change.
+      // Rows this script created (they carry a title here) are its own, so a
+      // re-run refreshes their text too.
+      const own = item.title
+        ? { title: item.title, source: item.source, description: item.description ?? null, type: item.type ?? "article", date: item.date }
+        : {};
+      await prisma.mediaAppearance.update({
+        where: { id: existing.id },
+        data: { caseTag: CASE_TAG, order: index + 1, ...own, ...item.fix },
+      });
+      tagged++;
+    } else {
+      if (!item.title || !item.source) throw new Error(`New coverage needs title+source: ${item.url}`);
+      await prisma.mediaAppearance.create({
+        data: {
+          title: item.title,
+          description: item.description ?? null,
+          type: item.type ?? "article",
+          source: item.source,
+          date: item.date,
+          url: item.url,
+          order: index + 1,
+          isActive: LIVE,
+          caseTag: CASE_TAG,
+        },
+      });
+      created++;
+    }
+  }
+
+  // New rows are created hidden; --live on a later run turns them on.
+  if (LIVE) {
+    const urls = COVERAGE.filter((c) => c.title).map((c) => c.url);
+    await prisma.mediaAppearance.updateMany({
+      where: { caseTag: CASE_TAG, url: { in: urls } },
+      data: { isActive: true },
+    });
+  }
+
+  console.log(`  coverage: ${created} created, ${tagged} existing tagged`);
 }
 
 async function seedDocuments() {
@@ -447,12 +679,22 @@ async function seedPost() {
     caseTag: CASE_TAG,
   } as const;
 
-  const post = await prisma.plilistPost.upsert({
-    where: { slug: SLUG },
-    // publishedAt is stamped when the post actually goes live, not at draft time.
-    update: { ...fields, ...(LIVE ? { publishedAt: new Date() } : {}) },
-    create: { ...fields, slug: SLUG, authorId: author.id, publishedAt: new Date() },
-  });
+  // Once the post exists it belongs to /admin: the author edits it there, so a
+  // re-run only flips its status and never touches the text.
+  const existing = await prisma.plilistPost.findUnique({ where: { slug: SLUG } });
+  const post = existing
+    ? await prisma.plilistPost.update({
+        where: { slug: SLUG },
+        data: {
+          status: POST_STATUS,
+          caseTag: CASE_TAG,
+          // Stamped when the post actually goes live, not at draft time.
+          ...(LIVE && existing.status !== "PUBLISHED" ? { publishedAt: new Date() } : {}),
+        },
+      })
+    : await prisma.plilistPost.create({
+        data: { ...fields, slug: SLUG, authorId: author.id, publishedAt: new Date() },
+      });
 
   console.log(`  post: /haplilist/${post.slug} (${post.status})`);
 }
@@ -461,7 +703,7 @@ async function main() {
   const host = new URL(process.env.DATABASE_URL ?? "postgres://none").hostname;
   console.log(`Seeding case "${CASE_TAG}" on ${host} — ${LIVE ? "LIVE" : "hidden (pass --live to publish)"}`);
   await seedFiles();
-  await tagCoverage();
+  await seedCoverage();
   await seedDocuments();
   await seedPost();
   await prisma.$disconnect();
