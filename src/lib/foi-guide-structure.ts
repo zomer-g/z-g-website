@@ -51,6 +51,21 @@ interface Heading {
 // chapter titles don't over-match section boundaries we don't want.
 const LAW_SECTION_RE = /סעיף\s*(\d+[א-ת]?(?:\([^)]{1,8}\))+)/;
 const EXAMPLES_HEADING_RE = /דוגמאות שהוכרעו/;
+// The chapter title may name a bare clause ("14 – סעיף 20 לחוק – שמירת
+// דינים"). Used only when no h2 inside the chapter names a clause.
+const TITLE_SECTION_RE = /סעיף\s*(\d+[א-ת]?(?:\([^)]{1,8}\))*)/;
+
+// The chapter's own clause, from its h1 (or <title>), as a pseudo-heading
+// that precedes everything else in the document.
+function chapterTitleHeading(html: string): { ref: string; heading: Heading } | null {
+  const raw =
+    html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ??
+    html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+  if (!raw) return null;
+  const text = cleanText(htmlToText(raw)).split(" – חוק חופש המידע")[0];
+  const mm = text.match(TITLE_SECTION_RE);
+  return mm ? { ref: mm[1], heading: { pos: -1, level: 1, text, id: null } } : null;
+}
 
 // Decision-bucket markers that appear as their own paragraph above each list.
 const REJECTED_MARKER = /דחה את ההסתמכות|דחה את הסתמכות|לא קיבל את ההסתמכות/;
@@ -190,6 +205,7 @@ export function extractLawSections(
   const footnoteById = new Map(footnotes.map((f) => [f.footnoteId, f]));
   const headings = collectHeadings(html);
   const exampleHeads = headings.filter((h) => EXAMPLES_HEADING_RE.test(h.text));
+  const titleLaw = chapterTitleHeading(html);
 
   // Every clause that owns a dedicated heading somewhere in the chapter —
   // used to give a resolved-but-not-nominal ref (case 2 in resolveItemRef) a
@@ -208,7 +224,9 @@ export function extractLawSections(
   const byRef = new Map<string, LawSection>();
 
   for (const eh of exampleHeads) {
-    const law = nearestLawSectionRef(headings, eh.pos);
+    // Chapter 14 (סעיף 20) has no clause h2 at all — its examples belong to
+    // the clause in the chapter title.
+    const law = nearestLawSectionRef(headings, eh.pos) ?? titleLaw;
     if (!law) continue;
     const nominalRef = normaliseSectionRef(law.ref);
 
@@ -231,7 +249,11 @@ export function extractLawSections(
     for (const m of block.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)) {
       nodes.push({ pos: m.index!, html: m[1], tag: "li" });
     }
+    // A <p> nested inside an <li> (chapter 14's markup) is the same example
+    // again — only count the <li>.
+    const liSpans = nodes.map((n) => [n.pos, n.pos + n.html.length + 10] as const);
     for (const m of block.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)) {
+      if (liSpans.some(([from, to]) => m.index! > from && m.index! < to)) continue;
       nodes.push({ pos: m.index!, html: m[1], tag: "p" });
     }
     nodes.sort((a, b) => a.pos - b.pos);
