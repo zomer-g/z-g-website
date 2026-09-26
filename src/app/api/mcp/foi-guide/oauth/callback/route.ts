@@ -33,13 +33,32 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// next.config leaves this route out of the site-wide CSP, so every page here
+// carries its own. No scripts, nothing external; the only cross-origin thing
+// allowed is the consent form's redirect back to the MCP client.
+function csp(formTarget?: string): string {
+  return [
+    "default-src 'none'",
+    "style-src 'unsafe-inline'",
+    "frame-ancestors 'none'",
+    "base-uri 'none'",
+    `form-action 'self'${formTarget ? ` ${formTarget}` : ""}`,
+  ].join("; ");
+}
+
 function errorPage(title: string, body: string, status = 400) {
   return new NextResponse(
     `<!doctype html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>${title}</title>
      <style>body{font-family:system-ui;max-width:600px;margin:60px auto;padding:0 20px;color:#222}
      h1{color:#b91c1c}code{background:#f3f4f6;padding:2px 6px;border-radius:4px}</style>
      </head><body><h1>${title}</h1><p>${body}</p></body></html>`,
-    { status, headers: { "Content-Type": "text/html; charset=utf-8" } },
+    {
+      status,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Security-Policy": csp(),
+      },
+    },
   );
 }
 
@@ -54,8 +73,11 @@ function consentPage(
 ) {
   const name = info.clientName?.trim() || "(ללא שם)";
   let host = info.redirectUri;
+  let origin: string | undefined;
   try {
-    host = new URL(info.redirectUri).host;
+    const u = new URL(info.redirectUri);
+    host = u.host;
+    origin = u.origin;
   } catch {
     /* validated upstream; fall back to the raw string */
   }
@@ -101,6 +123,7 @@ function consentPage(
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",
+        "Content-Security-Policy": csp(origin),
       },
     },
   );

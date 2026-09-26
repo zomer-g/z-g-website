@@ -13,7 +13,9 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
-  {
+];
+
+const contentSecurityPolicy = {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
@@ -27,8 +29,7 @@ const securityHeaders = [
       "base-uri 'self'",
       "form-action 'self'",
     ].join("; "),
-  },
-];
+};
 
 const nextConfig: NextConfig = {
   images: {
@@ -48,6 +49,15 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      // The MCP OAuth consent screen sets its own CSP. Its form POSTs to us
+      // and we answer with a 303 to the MCP client (claude.ai…), and Chrome
+      // applies form-action to that redirect too — so the site-wide
+      // `form-action 'self'` silently swallowed the "אישור" click. Headers
+      // here override the route's own, hence the exclusion.
+      {
+        source: "/((?!api/mcp/foi-guide/oauth/callback).*)",
+        headers: [contentSecurityPolicy],
       },
       // ── Back/forward cache ──
       //
