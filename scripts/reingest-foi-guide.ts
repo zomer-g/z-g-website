@@ -69,7 +69,7 @@ async function main() {
   if (index.length < 15) throw new Error("Suspiciously small index — aborting");
 
   const existingDocs = await prisma.foiGuideDoc.findMany({
-    select: { id: true, url: true, contentHash: true },
+    select: { id: true, url: true, contentHash: true, chunkCount: true },
   });
   const existingByUrl = new Map(existingDocs.map((d) => [d.url, d]));
 
@@ -109,6 +109,16 @@ async function main() {
         console.log(`  = ${ref.title}: unchanged (structure refreshed)`);
         skipped++;
         continue;
+      }
+
+      // A chapter that suddenly parses to a fraction of its stored size is a
+      // markup change on foiguide.org.il, not an edit. Keep the old copy and
+      // fail the run so it shows in the log, instead of serving a gutted chapter.
+      if (prior && !force && chunks.length < prior.chunkCount * 0.5) {
+        throw new Error(
+          `parsed ${chunks.length} chunks, stored copy has ${prior.chunkCount}; ` +
+            "likely a site markup change — kept the stored copy (--force overrides)",
+        );
       }
 
       const embeddings = new Map<number, number[]>();

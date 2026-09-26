@@ -287,7 +287,9 @@ export interface FoiSearchResponse {
   resultCount: number;
   results: FoiSearchResult[];
   disclaimer: string;
-  source: { name: string; url: string };
+  // Oldest lastFetchedAt across the mirrored chapters: every chapter was
+  // checked against foiguide.org.il at least this recently.
+  source: { name: string; url: string; syncedAt: string | null };
 }
 
 // Per-call directive injected into every search response. The structure
@@ -317,12 +319,17 @@ export async function searchFoiGuide(
 ): Promise<FoiSearchResponse> {
   const topK = Math.max(1, Math.min(MAX_TOPK, opts.topK ?? DEFAULT_TOPK));
 
+  const synced = await prisma.foiGuideDoc.aggregate({ _min: { lastFetchedAt: true } });
   const baseResponse: FoiSearchResponse = {
     query,
     resultCount: 0,
     results: [],
     disclaimer: DISCLAIMER,
-    source: { name: "מדריך חופש המידע", url: "https://foiguide.org.il/" },
+    source: {
+      name: "מדריך חופש המידע",
+      url: "https://foiguide.org.il/",
+      syncedAt: synced._min.lastFetchedAt?.toISOString() ?? null,
+    },
   };
 
   const trimmed = query.trim();

@@ -12,6 +12,7 @@
  *   rulings full          00:10 daily
  *   guidelines            01:20 daily
  *   conditional arr.      04:30 Thursday
+ *   FOI guide             02:40 Sunday (hash-skips unchanged chapters)
  *
  * One job runs at a time, to keep the container's memory predictable. A job
  * that comes due while another runs waits in a queue that holds each job at
@@ -52,6 +53,13 @@ const ALL_JOBS: Job[] = [
     heapMb: 768,
     timeoutMin: 30,
     due: (d) => d.getUTCDay() === 4 && d.getUTCHours() === 4 && d.getUTCMinutes() === 30,
+  },
+  {
+    name: "foi-guide",
+    args: ["scripts/reingest-foi-guide.ts"],
+    heapMb: 512,
+    timeoutMin: 30,
+    due: (d) => d.getUTCDay() === 0 && d.getUTCHours() === 2 && d.getUTCMinutes() === 40,
   },
   {
     name: "rulings-incremental",

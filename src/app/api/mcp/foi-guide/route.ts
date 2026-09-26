@@ -395,6 +395,9 @@ function renderResultsMarkdown(
     "נשמע רלוונטי. אם אין דוגמה למבחן מסוים — אמור זאת מפורשות, אל תמציא.");
   lines.push("");
   lines.push(`*${r.disclaimer}*`);
+  if (r.source.syncedAt) {
+    lines.push(`*עותק המדריך סונכרן מול foiguide.org.il לאחרונה: ${r.source.syncedAt.slice(0, 10)}*`);
+  }
   if (r.resultCount === 0) {
     lines.push("\nלא נמצאו תוצאות.");
     return lines.join("\n");
