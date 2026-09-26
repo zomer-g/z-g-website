@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { isCanonicalHost } from "@/lib/site";
+import { getPrivateFiles, uploadNameFromPath } from "@/lib/private-files";
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
 
   // Render serves this app on its own subdomain as well as on the custom
@@ -19,6 +20,37 @@ export default auth((req) => {
   if (host?.toLowerCase().split(":")[0] === "z-g.co.il") {
     const url = new URL(req.nextUrl.pathname + req.nextUrl.search, "https://www.z-g.co.il");
     return NextResponse.redirect(url, 301);
+  }
+
+  // Files an admin marked non-public (/admin/files) answer 404 to everyone
+  // else, on every host. Checked here rather than in the /uploads route
+  // because seed files are served statically and never reach that route.
+  // Upload paths return here and skip the lowercase redirect below: file
+  // names are case-sensitive.
+  // The image optimizer reads local files without passing through here, so
+  // its own URL is checked for the file it is about to serve.
+  if (pathname === "/_next/image") {
+    const target = uploadNameFromPath(req.nextUrl.searchParams.get("url") ?? "");
+    if (target && req.auth?.user?.role !== "ADMIN" && (await getPrivateFiles()).has(target)) {
+      return new NextResponse("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    return NextResponse.next();
+  }
+
+  const uploadName = uploadNameFromPath(pathname);
+  if (uploadName) {
+    if (req.auth?.user?.role !== "ADMIN" && (await getPrivateFiles()).has(uploadName)) {
+      return new NextResponse("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    const res = NextResponse.next();
+    if (!isCanonicalHost(host)) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
   }
 
   if (!isCanonicalHost(host)) {
@@ -55,6 +87,11 @@ export default auth((req) => {
 export const config = {
   matcher: [
     "/admin/:path*",
+    // Every uploaded file, images included — the catch-all below skips
+    // image extensions, and hidden files must be checked whatever their type.
+    "/uploads/:path*",
+    "/seed-uploads/:path*",
+    "/_next/image",
     // Exclude /api/mcp/* and /.well-known/* from middleware entirely.
     // The MCP server does its own Bearer auth check; running the NextAuth
     // auth() wrapper on every JSON-RPC POST adds latency, may interfere

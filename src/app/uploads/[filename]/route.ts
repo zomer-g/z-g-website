@@ -38,7 +38,9 @@ function fileResponse(data: Uint8Array<ArrayBuffer>, contentType: string, filena
     headers: {
       "Content-Type": contentType,
       "Content-Length": String(data.length),
-      "Cache-Control": "public, max-age=31536000, immutable",
+      // Short on purpose: an admin can hide a file at any time (/admin/files),
+      // and a year-long immutable copy would outlive that.
+      "Cache-Control": "public, max-age=3600",
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
     },
   });

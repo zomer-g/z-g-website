@@ -30,6 +30,7 @@ import {
   Feather,
   BookMarked,
   Wallet,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +68,7 @@ const navGroups: NavGroup[] = [
       { label: "הופעות מדיה", href: "/admin/media-appearances", icon: Tv },
       { label: "מסמכי תיקים", href: "/admin/case-documents", icon: Gavel },
       { label: "העלאת קבצים", href: "/admin/media", icon: Image },
+      { label: "ניהול קבצים", href: "/admin/files", icon: FolderOpen },
     ],
   },
   {

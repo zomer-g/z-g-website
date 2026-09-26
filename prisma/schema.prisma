@@ -492,6 +492,18 @@ model UploadedFile {
   @@map("uploaded_files")
 }
 
+// Per-file settings for anything served under /uploads (a row in
+// uploaded_files or a git-committed seed file). No row = public. proxy.ts
+// answers 404 to non-admins for a file with isPublic = false.
+model FileSetting {
+  filename  String   @id
+  isPublic  Boolean  @default(true) @map("is_public")
+  note      String?
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("file_settings")
+}
+
 // ─── Tag pools — per-feature, per-workspace/project ─── //
 // WhatsappTag lives in a WhatsappWorkspace; TimelineTag lives in a
 // TimelineProject. The pools are intentionally separate so unrelated
