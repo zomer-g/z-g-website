@@ -42,6 +42,9 @@ function joinLine(items: Item[]): string {
   text = text.replace(/\s+/g, " ").trim();
   if (rtl) {
     text = text
+      // Some fonts store Hebrew letters as Windows-1255 bytes, which pdf.js
+      // reads as Latin-1 (0xF0 = נ comes out as ð). Map that block back.
+      .replace(/[à-ú]/g, (c) => String.fromCharCode(0x05d0 + c.charCodeAt(0) - 0xe0))
       .replace(/[()]/g, (c) => (c === "(" ? ")" : "("))
       // A list number drawn as ".1" at the start of a right-to-left line.
       .replace(/^\.(\d+)\s/, "$1. ");

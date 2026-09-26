@@ -1,6 +1,6 @@
 # Z-G | Guy Zomer — Attorney & Civic-Tech Website
 
-The website of Guy Zomer, a criminal-defense and freedom-of-information attorney. It is two things at once: the office's site (practice areas, articles, a blog, press coverage) and a home for public legal-data tools — searchable court-ruling dashboards, Attorney-General guidelines, conditional-arrangement records, browser extensions and two MCP servers that let AI assistants read the site's legal content.
+The website of Guy Zomer, a criminal-defense and freedom-of-information attorney. It is two things at once: the office's site (practice areas, articles, a blog, press coverage) and a home for public legal-data tools — searchable court-ruling dashboards, Attorney-General guidelines, conditional-arrangement records, browser extensions and two MCP servers that let AI assistants read the site's content and its attached rulings.
 
 **Live:** [www.z-g.co.il](https://www.z-g.co.il)
 
@@ -72,19 +72,21 @@ Browser extensions and add-ons, each with privacy/terms pages: `/case-tracker`, 
 
 Two [Model Context Protocol](https://modelcontextprotocol.io) servers (Streamable HTTP, JSON responses, no SSE). Add them in Claude ("Settings → Connectors → Add custom connector"), ChatGPT, Cursor or MCP Inspector by URL.
 
-### Legal articles — `https://www.z-g.co.il/api/mcp/articles`
+### Site content — `https://www.z-g.co.il/api/mcp/site`
 
-Public, no sign-in (the articles are public), rate-limited per IP; calls are logged to `mcp_usage` under `public`. Only published articles are visible.
+Everything a visitor can read on the site, plus the documents attached to it. Public, no sign-in (the content is public), rate-limited per IP; calls are logged to `mcp_usage` under `public`. Only published / active items are visible.
+
+Content types (`type`): `article` (legal articles), `blog` (הפליליסט posts, including their attachments and case files), `service` (practice areas), `project` (the `/projects`, לעם and לץ cards and the browser extensions), `dictionary` (מילון entries), `media` (press appearances), `page` (the site's other pages). Every item has an id of the form `type:slug`, e.g. `article:court-file-inspection-rights`.
 
 | Tool | What it does |
 |---|---|
-| `articles_list` | Every published article: title, slug, excerpt, category, tags, date, number of attached documents |
-| `articles_search` | Free-text search over titles, excerpts, tags, bodies and the names of attached documents; `"exact phrase"` supported |
-| `article_get` | The full article as Markdown, plus its **attached documents** — each with an id, title, parsed case citation (e.g. `ע"א 8849/01`), the section it is cited in, and its URL |
-| `article_documents` | Every attached document across all articles (or one article), and which articles cite it |
+| `site_list` | Every published item, optionally one type or category: id, title, URL, excerpt, date, number of attached documents |
+| `site_search` | Free-text search over titles, excerpts, tags, bodies and the names of attached documents, optionally one type; `"exact phrase"` supported |
+| `site_get` | One item in full as Markdown (by id, slug or URL), plus its **attached documents** — each with an id, title, parsed case citation (e.g. `ע"א 8849/01`), the section it sits in, and its URL. A blog post with a case file also returns the case's letters, rulings and laws |
+| `site_documents` | Every attached document across the site (or one item), and which items link to it |
 | `document_get_text` | Full text of an attached PDF, page by page, with paging for long documents; scanned PDFs are flagged |
 
-A document is any link in the article body to a file hosted on the site (`/uploads/…`) or to a PDF. Files hidden in `/admin/files` are listed as unavailable and never read. `document_get_text` only reads documents that a published article links to. Code: `src/app/api/mcp/articles/route.ts`, `src/lib/articles-mcp.ts`, `src/lib/pdf-text.ts`.
+A document is any link in the content to a file hosted on the site (`/uploads/…`) or to a PDF, a blog post's attachment, or a row of its case file. Files hidden in `/admin/files` are listed as unavailable and never read, and `document_get_text` only reads documents that published content links to. PDF text is extracted with pdf.js and re-ordered right to left for Hebrew (including PDFs whose fonts store Hebrew as Windows-1255). Code: `src/app/api/mcp/site/route.ts`, `src/lib/site-content-mcp.ts`, `src/lib/pdf-text.ts`.
 
 ### FOI guide — `https://www.z-g.co.il/api/mcp/foi-guide`
 
