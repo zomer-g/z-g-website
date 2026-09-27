@@ -45,7 +45,8 @@ interface Coverage {
   title?: string;
   description?: string;
   type?: "article" | "video" | "podcast";
-  fix?: { title?: string; date?: string; description?: string };
+  fix?: { title?: string; date?: string; description?: string; url?: string };
+  oldUrl?: string; // a previous address of the same row
 }
 
 // Everything the project got over the years, oldest first — this is also the
@@ -96,6 +97,14 @@ const COVERAGE: Coverage[] = [
   { url: "https://www.haaretz.co.il/captain/software/2019-11-01/ty-article/.premium/0000017f-f459-d47e-a37f-fd7d5b3f0000", date: "2019-11-01" },
   { url: "https://news.walla.co.il/item/3368198", date: "2020-06-20" },
   {
+    url: "https://www.srugim.co.il/482690",
+    date: "2020-08-21",
+    source: "סרוגים",
+    title: "העליון קבע: למסור את כל ההחלטות במשפט נתניהו",
+    description:
+      "הכתבה מציינת שפרויקט תולעת המשפט של עמותת התמנון מנהל מאבק לפרסום ההחלטות שבתי המשפט נותנים בפתקים.",
+  },
+  {
     url: "https://www.the7eye.org.il/385495",
     date: "2020-08-26",
     fix: {
@@ -114,6 +123,14 @@ const COVERAGE: Coverage[] = [
     description:
       "תחקיר במוסף כלכליסט שנשען על נתוני תולעת המשפט כדי לאתר יותר מ-1,000 תיקים שבהם ייצג משרדה של חברת הוועדה לבחירת שופטים.",
   },
+  {
+    url: "https://news.walla.co.il/item/3410202",
+    date: "2021-01-08",
+    source: "וואלה",
+    title: "המהלך שיכול לעזור לנתניהו להימנע מקמפיין בצל העדויות",
+    description:
+      "טור שעוסק ברובו בעתירה שהגשתי נגד הנהלת בתי המשפט לקבלת רשימת התיקים החסויים: מספר תיק, שופט ומועדים.",
+  },
   { url: "https://13tv.co.il/item/news/domestic/crime-and-justice/police-complaints-1307014/", date: "2021-08-05" },
   { url: "https://www.globes.co.il/news/article.aspx?did=1001387868", date: "2021-10-19" },
   {
@@ -124,12 +141,60 @@ const COVERAGE: Coverage[] = [
     description:
       "ניתוח של עורכי הדין והמשרדים שמגישים הכי הרבה תובענות ייצוגיות, המבוסס במפורש על מאגר תולעת המשפט.",
   },
+  {
+    url: "https://www.shomrim.news/hebrew/476",
+    date: "2021-11-28",
+    source: "שומרים",
+    title: "חשיפה: השופט כבוב לא נתן גילוי נאות על הקשר עם עורך דינו",
+    description:
+      "תחקיר על תיקים שבהם דן השופט כבוב. הבדיקה בנט המשפט נעשתה בין השאר בסיוע תולעת המשפט.",
+  },
   // The row said 1.1.2023; the article is from 27.12.2021.
   { url: "https://www.ice.co.il/career/news/article/839133", date: "2021-12-27", fix: { date: "2021-12-27" } },
   { url: "https://www.idi.org.il/books/38952", date: "2022-01-01" },
+  {
+    url: "https://finance.walla.co.il/item/3481772",
+    date: "2022-01-09",
+    source: "וואלה כסף",
+    title: "האם ניתן לתבוע את פייסבוק בביהמ\"ש בישראל?",
+    description:
+      "כתבה שנשענת על חיפוש במאגר תולעת המשפט, שמעלה עשרות תביעות נגד פייסבוק בבתי המשפט בישראל.",
+  },
   { url: "https://www.globes.co.il/news/article.aspx?did=1001401121", date: "2022-02-05" },
   { url: "https://www.shomrim.news/hebrew/494", date: "2022-02-09" },
+  {
+    url: "https://finance.walla.co.il/item/3514147",
+    date: "2022-06-23",
+    source: "וואלה כסף",
+    title: "רמי לוי נגד מנכ\"ל מגדלי הדגים: למה הוא תובע בשנית?",
+    description:
+      "הידיעה על תביעת הדיבה החוזרת של רמי לוי נחשפה, לפי הכתבה, באתר תולעת המשפט.",
+  },
+  {
+    url: "https://www.ice.co.il/law/news/article/865739",
+    date: "2022-06-23",
+    source: "ice",
+    title: "רמי לוי תובע חצי מיליון שקל: מי עשויים לשלם?",
+    description:
+      "גם כאן הדיווח על תביעת הדיבה של רמי לוי מיוחס לאתר תולעת המשפט.",
+  },
+  {
+    url: "https://finance.walla.co.il/item/3516263",
+    date: "2022-07-04",
+    source: "וואלה כסף",
+    title: "למה תובעת שופרסל את תאגיד איסוף המכלים?",
+    description:
+      "כתב התביעה של שופרסל נגד תאגיד אל\"ה אותר, לפי הכתבה, באמצעות תולעת המשפט.",
+  },
   { url: "https://www.globes.co.il/news/article.aspx?did=1001420722", date: "2022-08-08" },
+  {
+    url: "https://www.ice.co.il/research/news/article/874774",
+    date: "2022-08-08",
+    source: "ice",
+    title: "רשות המסים נחשפה: כך תצליחו להפחית את המס",
+    description:
+      "מחקר על 16,314 תיקי ערעורי מס שנעשה בעזרת אנדי וורמס ובעזרתי, מעמותת התמנון המפעילה את תולעת המשפט.",
+  },
   {
     url: "https://www.globes.co.il/news/article.aspx?did=1001420852",
     date: "2022-08-09",
@@ -163,6 +228,14 @@ const COVERAGE: Coverage[] = [
       "הדוח הסופי של הוועדה, שהוגש לשר המשפטים ב-2023. אחת מפסקאותיו מתארת את תולעת המשפט ואת משמעות האינדוקס של החלטות שיפוטיות במנועי חיפוש.",
   },
   {
+    url: "https://news.walla.co.il/item/3605571",
+    date: "2023-08-30",
+    source: "וואלה",
+    title: "הסכום שיאיר נתניהו שילם בגין התביעות המשפטיות נגדו",
+    description:
+      "לפי נתוני תולעת המשפט ונבו, יאיר נתניהו מעורב ב-26 הליכים משפטיים מאז 2017.",
+  },
+  {
     url: "https://www.the7eye.org.il/509786",
     date: "2024-02-17",
     source: "העין השביעית",
@@ -186,6 +259,22 @@ const COVERAGE: Coverage[] = [
     description:
       "כתבה על שיא בתביעות הפינוי ב-2024, המבוססת בין היתר על בדיקה של תולעת המשפט בנתוני נט המשפט.",
   },
+  {
+    url: "https://www.makorrishon.co.il/opinion/830740/",
+    date: "2025-04-27",
+    source: "מקור ראשון",
+    title: "השקר הבוטה של ynet מסייע לפרוטקשן בחסות החוק",
+    description:
+      "טור דעה שמצטט את בדיקת תולעת המשפט לגלובס על עורכי דין שמגישים אלפי תובענות ייצוגיות.",
+  },
+  {
+    url: "https://cdn.the7eye.org.il/uploads/2026/01/TEHOM_22-12-25_WEB-1.pdf",
+    date: "2025-12-22",
+    source: "העין השביעית ומכון ון ליר",
+    title: "מדד התקשורת החופשית בישראל: על סף תהום",
+    description:
+      "פרק תביעות הדיבה בדוח נשען על מאגר של 13,777 תביעות דיבה מהשנים 2008–2024, שבניתי מנתוני תולעת המשפט.",
+  },
   { url: "https://www.themarker.com/weekend/2025-12-26/ty-article-magazine/.highlight/0000019b-49df-d034-ab9b-c9dff81c0000", date: "2025-12-26" },
   {
     url: "https://www.the7eye.org.il/573617",
@@ -196,7 +285,13 @@ const COVERAGE: Coverage[] = [
       "מחקר על תביעות הדיבה בשנים 2008–2024, המבוסס על מאגר תביעות הדיבה שבניתי מנתוני תולעת המשפט.",
   },
   { url: "https://www.israelhayom.co.il/news/law/article/20503250", date: "2026-05-10" },
-  { url: "https://www.law.co.il/computer-law/2026/05/11/uman-v-the-octopus-public-information-for-all-ra/", date: "2026-05-11" },
+  {
+    // law.co.il moved the ruling from /05/11/ to /05/08/; the old address 404s.
+    url: "https://www.law.co.il/computer-law/2026/05/08/uman-v-the-octopus-public-information-for-all-ra/",
+    oldUrl: "https://www.law.co.il/computer-law/2026/05/11/uman-v-the-octopus-public-information-for-all-ra/",
+    date: "2026-05-11",
+    fix: { url: "https://www.law.co.il/computer-law/2026/05/08/uman-v-the-octopus-public-information-for-all-ra/" },
+  },
   {
     url: "https://www.beithamishpat.co.il/post/court-2564",
     date: "2026-05-11",
@@ -569,7 +664,9 @@ async function seedCoverage() {
 
   for (const [index, item] of COVERAGE.entries()) {
     // Match on url alone: most of these already sit on /media, untagged.
-    const existing = await prisma.mediaAppearance.findFirst({ where: { url: item.url } });
+    const existing = await prisma.mediaAppearance.findFirst({
+      where: { url: { in: item.oldUrl ? [item.url, item.oldUrl] : [item.url] } },
+    });
 
     if (existing) {
       // An existing row keeps its visibility; only the tag, the case-file

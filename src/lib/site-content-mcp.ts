@@ -431,6 +431,26 @@ async function loadContent(): Promise<Loaded[]> {
       rawLinks.push({ text: label, href, section: CASE_SECTION[d.category] ?? "תיק" });
     }
     const { documents, links } = buildDocuments(rawLinks, hidden);
+    // The case's press coverage, in the order the post's case file shows it.
+    const coverage = p.caseTag
+      ? media
+          .filter((a) => a.caseTag === p.caseTag)
+          .sort((a, b) => a.order - b.order || a.date.localeCompare(b.date))
+      : [];
+    for (const a of coverage) {
+      if (a.url) links.push({ title: `${a.source}: ${a.title}`, url: absolute(a.url) });
+    }
+    const coverageMd = coverage.length
+      ? "\n\n## הסיקור התקשורתי\n\n" +
+        coverage
+          .map(
+            (a) =>
+              `- ${a.date} · ${a.source}: **${a.title}**` +
+              (a.url ? ` — ${absolute(a.url)}` : "") +
+              (a.description ? `\n  ${a.description}` : ""),
+          )
+          .join("\n")
+      : "";
     const caseMd = caseRows.length
       ? "\n\n## תיק המקרה\n\n" +
         caseRows
@@ -452,11 +472,13 @@ async function loadContent(): Promise<Loaded[]> {
       category: p.caseTag ? `תיק: ${p.caseTag}` : null,
       tags: p.tags,
       date: p.publishedAt?.toISOString() ?? null,
-      markdown: markdown + caseMd,
+      markdown: markdown + caseMd + coverageMd,
       plain:
         plain +
         "\n" +
-        caseRows.map((d) => `${d.title} ${d.citation ?? ""} ${d.description ?? ""}`).join("\n"),
+        caseRows.map((d) => `${d.title} ${d.citation ?? ""} ${d.description ?? ""}`).join("\n") +
+        "\n" +
+        coverage.map((a) => `${a.source} ${a.title} ${a.description}`).join("\n"),
       documents,
       links,
     });
