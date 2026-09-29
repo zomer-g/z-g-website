@@ -25,7 +25,7 @@ const itemSchema = z
     url: httpUrl,
     title: z.string().trim().min(1).max(300),
     description: z.string().trim().min(1).max(2000),
-    type: z.enum(["video", "article", "podcast", "academic"]),
+    type: z.enum(["video", "article", "podcast", "academic", "lecture"]),
     source: z.string().trim().min(1).max(120),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
     thumbnailUrl: z.string().max(2048).refine(isSafeUrl, "url scheme not allowed").optional(),

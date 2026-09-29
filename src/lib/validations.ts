@@ -84,7 +84,7 @@ export const mediaAppearanceSchema = z.object({
   description: z.string().min(1, "תיאור נדרש"),
   // "academic" was already stored by the seed but never accepted here, so the
   // admin form could load an academic item and fail to save it back.
-  type: z.enum(["video", "article", "podcast", "academic"]),
+  type: z.enum(["video", "article", "podcast", "academic", "lecture"]),
   source: z.string().min(1, "מקור נדרש"),
   date: z.string().min(1, "תאריך נדרש"),
   url: z.string().optional(),

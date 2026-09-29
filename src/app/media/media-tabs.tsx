@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Play, ExternalLink, Newspaper, Mic, BookOpen } from "lucide-react";
+import { Play, Newspaper, Mic, BookOpen, Presentation } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { mediaBrand } from "@/lib/media-brands";
 
 /* ─── Types ─── */
 
-type MediaType = "video" | "article" | "podcast" | "academic";
+type MediaType = "video" | "article" | "podcast" | "academic" | "lecture";
 
 interface MediaItem {
   id: string;
@@ -33,9 +34,40 @@ const MEDIA_TYPE_ICONS: Record<MediaType, { icon: React.ElementType; color: stri
   article:  { icon: Newspaper,   color: "bg-blue-500/10 text-blue-600" },
   podcast:  { icon: Mic,         color: "bg-purple-500/10 text-purple-600" },
   academic: { icon: BookOpen,    color: "bg-emerald-500/10 text-emerald-700" },
+  lecture:  { icon: Presentation, color: "bg-amber-500/10 text-amber-800" },
 };
 
 const DEFAULT_ICON = MEDIA_TYPE_ICONS.article;
+
+/* ─── Brand banner ─── */
+
+// Drawn for every item without a thumbnail image: the outlet's colour, its
+// name and the headline — the same look the old generated PNGs had, but with
+// nothing to generate, so new items get it automatically. Decorative: the
+// headline is repeated as the card's <h3> right below.
+function BrandBanner({ source, title }: { source: string; title: string }) {
+  const brand = mediaBrand(source);
+  return (
+    <div
+      className="relative flex h-48 flex-col items-center justify-center overflow-hidden px-6 text-center"
+      style={{ backgroundColor: brand.bg }}
+      aria-hidden="true"
+    >
+      <span className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: brand.accent }} />
+      <span
+        className="absolute -left-6 -top-6 h-20 w-20 rounded-full opacity-10"
+        style={{ backgroundColor: brand.accent }}
+      />
+      <span
+        className="absolute -bottom-10 -right-10 h-28 w-28 rounded-full opacity-10"
+        style={{ backgroundColor: brand.accent }}
+      />
+      <span className="line-clamp-1 text-lg font-bold text-white">{brand.label}</span>
+      <span className="my-2.5 h-0.5 w-12 rounded-full" style={{ backgroundColor: brand.accent }} />
+      <span className="line-clamp-3 text-sm font-semibold leading-relaxed text-white">{title}</span>
+    </div>
+  );
+}
 
 /* ─── Card ─── */
 
@@ -67,23 +99,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
           />
         </div>
       ) : (
-        <div
-          className={cn(
-            "relative flex h-48 items-center justify-center",
-            "bg-gradient-to-br from-primary/5 to-primary/15",
-          )}
-          aria-hidden="true"
-        >
-          <div
-            className={cn(
-              "flex h-16 w-16 items-center justify-center rounded-full",
-              "bg-white/90 shadow-lg",
-              "transition-transform duration-200 group-hover:scale-110",
-            )}
-          >
-            <TypeIcon className="h-7 w-7 text-primary" />
-          </div>
-        </div>
+        <BrandBanner source={item.source} title={item.title} />
       )}
 
       <CardContent className="flex flex-1 flex-col">

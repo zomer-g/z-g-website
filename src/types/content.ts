@@ -246,6 +246,7 @@ export interface MediaTypeLabels {
   article: string;
   podcast: string;
   academic: string;
+  lecture?: string;
 }
 
 export interface MediaPageContent {

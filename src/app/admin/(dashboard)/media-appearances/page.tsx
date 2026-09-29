@@ -22,11 +22,12 @@ import {
   Mic,
   BookOpen,
   Upload,
+  Presentation,
 } from "lucide-react";
 
 /* ─── Types ─── */
 
-type MediaType = "video" | "article" | "podcast" | "academic";
+type MediaType = "video" | "article" | "podcast" | "academic" | "lecture";
 
 interface MediaAppearanceItem {
   id: string;
@@ -73,6 +74,7 @@ const TYPE_OPTIONS: { value: MediaType; label: string; icon: React.ElementType; 
   { value: "video",    label: "וידאו",          icon: Play,      tab: "press"    },
   { value: "podcast",  label: "פודקאסט",        icon: Mic,       tab: "press"    },
   { value: "academic", label: "מחקר / אקדמיה",  icon: BookOpen,  tab: "academic" },
+  { value: "lecture",  label: "הרצאה",          icon: Presentation, tab: "academic" },
 ];
 
 function typeIcon(type: string): React.ElementType {
