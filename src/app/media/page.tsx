@@ -45,10 +45,6 @@ export default async function MediaPage() {
     getPageContent<MediaPageContent>("media"),
   ]);
 
-  // Split by type: "academic" and "lecture" → אקדמיה tab; everything else → תקשורת tab
-  const isAcademic = (type: string) => type === "academic" || type === "lecture";
-  const pressItems    = items.filter((i) => !isAcademic(i.type));
-  const academicItems = items.filter((i) => isAcademic(i.type));
 
   const typeLabels: Record<string, string> = {
     video:    pageContent.typeLabels.video,
@@ -101,8 +97,7 @@ export default async function MediaPage() {
             </div>
           ) : (
             <MediaTabs
-              pressItems={pressItems}
-              academicItems={academicItems}
+              items={items}
               typeLabels={typeLabels}
             />
           )}

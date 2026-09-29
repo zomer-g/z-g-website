@@ -22,8 +22,7 @@ interface MediaItem {
 }
 
 interface Props {
-  pressItems: MediaItem[];
-  academicItems: MediaItem[];
+  items: MediaItem[];
   typeLabels: Record<string, string>;
 }
 
@@ -190,80 +189,63 @@ function MediaGrid({ items, typeLabels, emptyMessage }: { items: MediaItem[]; ty
   );
 }
 
-/* ─── Tabs ─── */
+/* ─── Filter + grid ─── */
 
-type Tab = "press" | "academic";
+// One list, newest first, with a filter chip per type (only types that have
+// items). "all" is the default.
+const TYPE_ORDER: MediaType[] = ["article", "video", "podcast", "academic", "lecture"];
 
-export function MediaTabs({ pressItems, academicItems, typeLabels }: Props) {
-  const [active, setActive] = useState<Tab>("press");
+export function MediaTabs({ items, typeLabels }: Props) {
+  const [active, setActive] = useState<MediaType | "all">("all");
 
-  const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: "press",    label: "תקשורת",  count: pressItems.length },
-    { id: "academic", label: "אקדמיה",  count: academicItems.length },
+  const counts = new Map<string, number>();
+  for (const i of items) counts.set(i.type, (counts.get(i.type) ?? 0) + 1);
+
+  const filters: { id: MediaType | "all"; label: string; count: number }[] = [
+    { id: "all", label: "הכל", count: items.length },
+    ...TYPE_ORDER.filter((t) => counts.has(t)).map((t) => ({
+      id: t,
+      label: typeLabels[t] ?? t,
+      count: counts.get(t) ?? 0,
+    })),
   ];
+
+  const shown = active === "all" ? items : items.filter((i) => i.type === active);
 
   return (
     <div>
-      {/* Tab strip */}
-      <div className="mb-8 flex gap-1 border-b border-border" role="tablist" aria-label="סוג פרסום">
-        {tabs.map((tab) => (
+      <div className="mb-8 flex flex-wrap gap-2" role="group" aria-label="סינון לפי סוג פרסום">
+        {filters.map((f) => (
           <button
-            key={tab.id}
-            role="tab"
-            aria-selected={active === tab.id}
-            aria-controls={`panel-${tab.id}`}
-            id={`tab-${tab.id}`}
-            onClick={() => setActive(tab.id)}
+            key={f.id}
+            type="button"
+            aria-pressed={active === f.id}
+            onClick={() => setActive(f.id)}
             className={cn(
-              "relative -mb-px px-5 py-3 text-sm font-semibold transition-colors duration-150",
-              active === tab.id
-                ? "border-b-2 border-accent text-primary-dark"
-                : "text-muted hover:text-primary-dark",
+              "inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors duration-150",
+              active === f.id
+                ? "border-primary bg-primary text-white"
+                : "border-border bg-white text-primary-dark hover:border-primary/40 hover:bg-muted-bg",
             )}
           >
-            {tab.label}
-            {tab.count > 0 && (
-              <span
-                className={cn(
-                  "ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium",
-                  active === tab.id
-                    ? "bg-accent/15 text-accent-text"
-                    : "bg-muted-bg text-muted",
-                )}
-              >
-                {tab.count}
-              </span>
-            )}
+            {f.label}
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-xs font-medium",
+                active === f.id ? "bg-white/20 text-white" : "bg-muted-bg text-muted",
+              )}
+            >
+              {f.count}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* Tab panels */}
-      <div
-        id="panel-press"
-        role="tabpanel"
-        aria-labelledby="tab-press"
-        hidden={active !== "press"}
-      >
-        <MediaGrid
-          items={pressItems}
-          typeLabels={typeLabels}
-          emptyMessage="כתבות תקשורת יתעדכנו בקרוב."
-        />
-      </div>
+      <p className="sr-only" aria-live="polite">
+        מוצגים {shown.length} פרסומים
+      </p>
 
-      <div
-        id="panel-academic"
-        role="tabpanel"
-        aria-labelledby="tab-academic"
-        hidden={active !== "academic"}
-      >
-        <MediaGrid
-          items={academicItems}
-          typeLabels={typeLabels}
-          emptyMessage="פרסומים אקדמיים יתעדכנו בקרוב."
-        />
-      </div>
+      <MediaGrid items={shown} typeLabels={typeLabels} emptyMessage="אין פרסומים מהסוג הזה." />
     </div>
   );
 }
