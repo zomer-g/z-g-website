@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
+  KeyRound,
   LayoutDashboard,
   FileText,
   Briefcase,
@@ -103,6 +104,7 @@ const navGroups: NavGroup[] = [
       { label: "הגהה אוטומטית", href: "/admin/proofread", icon: SpellCheck },
       { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
       { label: "עלויות ותקציב", href: "/admin/billing", icon: Wallet },
+      { label: "מפתחות API", href: "/admin/api-keys", icon: KeyRound },
       { label: "הגדרות", href: "/admin/settings", icon: Settings },
     ],
   },
