@@ -271,6 +271,10 @@ export default function ApiKeysPage() {
             PUT /api/v1/articles/&lt;slug&gt; — replace an existing article&apos;s content; needs the updatedAt it read,
             keeps the old version, never changes status (articles:edit)
           </li>
+          <li>
+            GET/PUT /api/v1/plilist/&lt;slug&gt;/edit — edit an existing blog post, published included; same rules
+            as articles (plilist:edit)
+          </li>
           <li>GET /api/v1/content — public read of all published content (no key)</li>
           <li>POST /api/mcp/site — public read-only MCP server (no key)</li>
         </ul>

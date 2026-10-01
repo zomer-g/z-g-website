@@ -868,6 +868,21 @@ model PostRevision {
   @@map("post_revisions")
 }
 
+// The same for הפליליסט posts edited through /api/v1/plilist/<slug>/edit
+// (scope plilist:edit): the version just before each API edit.
+model PlilistRevision {
+  id         Int      @id @default(autoincrement())
+  postId     String   @map("post_id")
+  title      String
+  excerpt    String?
+  content    Json
+  replacedBy String   @map("replaced_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([postId, createdAt])
+  @@map("plilist_revisions")
+}
+
 // One row per authenticated write-API call — who changed what, from where.
 model ApiKeyLog {
   id        Int      @id @default(autoincrement())
