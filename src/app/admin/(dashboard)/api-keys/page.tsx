@@ -266,6 +266,11 @@ export default function ApiKeysPage() {
           <li>PUT /api/v1/plilist/&lt;slug&gt; — create/update a draft (plilist:draft)</li>
           <li>GET /api/v1/plilist/&lt;slug&gt; — read a post incl. drafts (plilist:draft)</li>
           <li>PUT /api/v1/media-appearances — upsert a publication by url (media:write)</li>
+          <li>GET /api/v1/articles/&lt;slug&gt; — read an article&apos;s content (articles:edit)</li>
+          <li>
+            PUT /api/v1/articles/&lt;slug&gt; — replace an existing article&apos;s content; needs the updatedAt it read,
+            keeps the old version, never changes status (articles:edit)
+          </li>
           <li>GET /api/v1/content — public read of all published content (no key)</li>
           <li>POST /api/mcp/site — public read-only MCP server (no key)</li>
         </ul>

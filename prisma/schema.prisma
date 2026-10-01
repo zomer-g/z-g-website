@@ -852,6 +852,22 @@ model ApiKey {
   @@map("api_keys")
 }
 
+// The version of an article as it was just before an API edit replaced it
+// (/api/v1/articles, scope articles:edit), so any such edit can be undone.
+model PostRevision {
+  id        Int      @id @default(autoincrement())
+  postId    String   @map("post_id")
+  title     String
+  excerpt   String?
+  content   Json
+  // Who replaced this version: "api:<key id>".
+  replacedBy String  @map("replaced_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([postId, createdAt])
+  @@map("post_revisions")
+}
+
 // One row per authenticated write-API call — who changed what, from where.
 model ApiKeyLog {
   id        Int      @id @default(autoincrement())

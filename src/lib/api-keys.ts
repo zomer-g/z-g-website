@@ -19,6 +19,8 @@ import { getClientIp, rateLimit } from "@/lib/rate-limit";
 export const API_SCOPES = {
   "plilist:draft": "יצירה ועריכה של טיוטות בהפליליסט (לא פרסום, לא נגיעה בפוסט שפורסם)",
   "media:write": "הוספה ועדכון של פריטים ברשימת הפרסומים",
+  "articles:edit":
+    "עריכת התוכן של מאמר קיים, גם אם פורסם (בלי שינוי סטטוס, כתובת או מחיקה; כל עריכה שומרת את הגרסה הקודמת)",
 } as const;
 
 export type ApiScope = keyof typeof API_SCOPES;
