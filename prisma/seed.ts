@@ -89,9 +89,9 @@ async function main() {
     create: {
       id: "main",
       data: {
-        phone: "03-1234567",
-        email: "office@z-g.co.il",
-        address: "הברזל 30, תל אביב",
+        phone: "054-7650202",
+        email: "guy@z-g.co.il",
+        address: "",
         linkedin: "",
         facebook: "",
       },

@@ -54,8 +54,8 @@ const HOME_CONTENT = {
     description: "נשמח לשמוע על הצרכים המשפטיים שלכם ולהציע את הפתרון המתאים ביותר. צרו קשר עוד היום לשיחת ייעוץ ראשונית.",
     ctaText: "צרו קשר עכשיו",
     ctaLink: "/contact",
-    phone: "03-000-0000",
-    phoneHref: "tel:+972-3-000-0000",
+    phone: "054-7650202",
+    phoneHref: "tel:+972-54-7650202",
   },
 };
 
@@ -100,7 +100,7 @@ const ABOUT_CONTENT = {
 const CONTACT_CONTENT = {
   hero: { title: "צור קשר", subtitle: "נשמח לשמוע מכם. מלאו את הטופס או צרו עמנו קשר באחת מהדרכים הבאות ונחזור אליכם בהקדם." },
   form: { title: "השאירו פרטים" },
-  contactInfo: { phone: "03-000-0000", phoneHref: "tel:+972-3-000-0000", email: "info@zomer-law.co.il", emailHref: "mailto:info@zomer-law.co.il", address: "רחוב הברזל 30, תל אביב", hours: "א׳-ה׳: 08:30-18:00" },
+  contactInfo: { phone: "054-7650202", phoneHref: "tel:+972-54-7650202", email: "guy@z-g.co.il", emailHref: "mailto:guy@z-g.co.il", address: "", hours: "" },
   consultationNote: { title: "ייעוץ ראשוני", description: "הפגישה הראשונית עם צוות המשרד היא ללא עלות וללא התחייבות. מטרתה להבין את הצרכים שלכם ולבחון כיצד נוכל לסייע." },
 };
 
@@ -132,7 +132,7 @@ const FOOTER_CONTENT = {
     { label: "צור קשר", href: "/contact" },
   ],
   contactTitle: "צור קשר",
-  contactInfo: { phone: "03-000-0000", phoneHref: "tel:+972-3-000-0000", email: "info@zomer-law.co.il", emailHref: "mailto:info@zomer-law.co.il", address: "תל אביב, ישראל", hours: "" },
+  contactInfo: { phone: "054-7650202", phoneHref: "tel:+972-54-7650202", email: "guy@z-g.co.il", emailHref: "mailto:guy@z-g.co.il", address: "תל אביב, ישראל", hours: "" },
   legalLinks: [
     { label: "הצהרת נגישות", href: "/accessibility" },
     { label: "מדיניות פרטיות", href: "/privacy" },

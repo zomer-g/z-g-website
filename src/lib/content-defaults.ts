@@ -119,7 +119,7 @@ export const DEFAULT_ABOUT_CONTENT: AboutPageContent = {
 export const DEFAULT_CONTACT_CONTENT: ContactPageContent = {
   hero: { title: "צור קשר", subtitle: "אשמח לשמוע מכם. מלאו את הטופס או צרו קשר באחת מהדרכים הבאות ואחזור אליכם בהקדם." },
   form: { title: "השאירו פרטים", phoneLabel: "טלפון", emailLabel: "אימייל", addressLabel: "כתובת", hoursLabel: "שעות פעילות" },
-  contactInfo: { phone: "03-000-0000", phoneHref: "tel:+972-3-000-0000", email: "info@zomer-law.co.il", emailHref: "mailto:info@zomer-law.co.il", address: "רחוב הברזל 30, תל אביב", hours: "א׳-ה׳: 08:30-18:00" },
+  contactInfo: { phone: "054-7650202", phoneHref: "tel:+972-54-7650202", email: "guy@z-g.co.il", emailHref: "mailto:guy@z-g.co.il", address: "", hours: "" },
   consultationNote: { title: "ייעוץ ראשוני", description: "הפגישה הראשונית היא ללא עלות וללא התחייבות. מטרתה להבין את הצרכים שלכם ולבחון כיצד אוכל לסייע." },
 };
 
@@ -178,7 +178,7 @@ export const DEFAULT_FOOTER_CONTENT: FooterContent = {
     { label: "צור קשר", href: "/contact" },
   ],
   contactTitle: "צור קשר",
-  contactInfo: { phone: "03-000-0000", phoneHref: "tel:+972-3-000-0000", email: "info@zomer-law.co.il", emailHref: "mailto:info@zomer-law.co.il", address: "תל אביב, ישראל", hours: "" },
+  contactInfo: { phone: "054-7650202", phoneHref: "tel:+972-54-7650202", email: "guy@z-g.co.il", emailHref: "mailto:guy@z-g.co.il", address: "תל אביב, ישראל", hours: "" },
   legalLinks: [
     { label: "הצהרת נגישות", href: "/accessibility" },
     { label: "מדיניות פרטיות", href: "/privacy" },

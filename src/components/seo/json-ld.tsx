@@ -24,10 +24,12 @@ const ATTORNEY_ALT_NAMES = [
   "Advocate Guy Zomer",
   "Zomer Law",
 ];
-const PHONE = "+972-3-000-0000";
-const EMAIL = "info@zomer-law.co.il";
-const ADDRESS_STREET = "רחוב הברזל 30";
-const ADDRESS_CITY = "תל אביב";
+// Must match the contact page. These were template placeholders (03-000-0000,
+// a zomer-law.co.il address, a street address and office hours) that crawlers
+// published as the firm's details. The contact page lists no street address or
+// hours, so neither does the structured data.
+const PHONE = "+972-54-7650202";
+const EMAIL = "guy@z-g.co.il";
 const ADDRESS_COUNTRY = "IL";
 // Use the existing portrait as the brand image. /images/logo.png does not exist
 // in /public — pointing crawlers at a 404 weakens rich-result eligibility.
@@ -72,20 +74,7 @@ export function OrganizationSchema() {
     },
     address: {
       "@type": "PostalAddress",
-      streetAddress: ADDRESS_STREET,
-      addressLocality: ADDRESS_CITY,
       addressCountry: ADDRESS_COUNTRY,
-    },
-    geo: {
-      "@type": "GeoCoordinates",
-      latitude: 32.0853,
-      longitude: 34.7818,
-    },
-    openingHoursSpecification: {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
-      opens: "08:30",
-      closes: "18:00",
     },
     priceRange: "$$",
     areaServed: {
