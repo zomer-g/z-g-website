@@ -83,7 +83,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
     <Card
       role="listitem"
       className={cn(
-        "group flex flex-col overflow-hidden",
+        "group flex h-full flex-col overflow-hidden",
         "hover:shadow-md hover:border-accent/30",
       )}
     >
@@ -153,7 +153,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block"
+        className="block h-full"
       >
         {cardContent}
         <span className="sr-only"> (נפתח בחלון חדש)</span>
@@ -161,7 +161,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
     );
   }
 
-  return <div>{cardContent}</div>;
+  return <div className="h-full">{cardContent}</div>;
 }
 
 /* ─── Grid ─── */
@@ -178,7 +178,9 @@ function MediaGrid({ items, typeLabels, emptyMessage }: { items: MediaItem[]; ty
 
   return (
     <div
-      className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      // auto-rows-fr: every row as tall as the tallest card on the page, so
+      // all cards are one size regardless of how many lines their text runs.
+      className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
       role="list"
       aria-label="רשימת פרסומים"
     >
