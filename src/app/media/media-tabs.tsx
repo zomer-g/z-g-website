@@ -178,9 +178,10 @@ function MediaGrid({ items, typeLabels, emptyMessage }: { items: MediaItem[]; ty
 
   return (
     <div
-      // auto-rows-fr: every row as tall as the tallest card on the page, so
-      // all cards are one size regardless of how many lines their text runs.
-      className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      // sm:auto-rows-fr: from two columns up, every row as tall as the tallest
+      // card on the page, so cards side by side are one size. Not on the
+      // single-column phone layout, where it would only add empty space.
+      className="grid grid-cols-1 gap-6 sm:auto-rows-fr sm:grid-cols-2 lg:grid-cols-3"
       role="list"
       aria-label="רשימת פרסומים"
     >
