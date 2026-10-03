@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { submissionSchema } from "@/lib/validations";
 import { readJsonBody } from "@/lib/request-body";
+import { emailSubmission } from "@/lib/submission-email";
 
 /* ---- GET /api/submissions ---- */
 
@@ -78,6 +79,9 @@ export async function POST(req: NextRequest) {
     const submission = await prisma.submission.create({
       data: parsed.data,
     });
+
+    // Saved first; the email is a notification on top and never fails the form.
+    await emailSubmission(submission);
 
     return NextResponse.json(
       { message: "הפנייה נשלחה בהצלחה", id: submission.id },
