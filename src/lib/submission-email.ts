@@ -1,17 +1,17 @@
-import nodemailer from "nodemailer";
-
 /**
  * Emails each contact-form submission to the office, so a message is seen
  * without opening /admin/submissions. Reply-To is the sender, so answering
  * the email answers them directly.
  *
- * Sent through Gmail SMTP with an app password (not the account password —
- * revocable at myaccount.google.com/apppasswords). Env:
- *   SMTP_USER           the Gmail address that sends (zomerg@gmail.com)
- *   SMTP_APP_PASSWORD   its 16-character app password (secret)
- *   SUBMISSION_NOTIFY_TO  where submissions go (guy@z-g.co.il)
- * If any is missing the email is skipped and the submission is still saved —
- * a mail failure must never lose a message or fail the form.
+ * xhostd blocks outbound SMTP (smtp.gmail.com:465 timed out from prod,
+ * 3.10.2026), so mail goes over HTTPS to a Google Apps Script web app in the
+ * owner's account, which sends it with MailApp from their Gmail. The script
+ * (scripts/submission-mail-relay.gs) hard-codes the recipient, so the shared
+ * secret can only ever mail the office, never anyone else. Env:
+ *   SUBMISSION_MAIL_RELAY_URL     the web app's /exec URL
+ *   SUBMISSION_MAIL_RELAY_SECRET  shared secret, also in the script (secret)
+ * If either is missing the email is skipped and the submission is still
+ * saved — a mail failure must never lose a message or fail the form.
  */
 
 interface Submission {
@@ -24,21 +24,6 @@ interface Submission {
   createdAt: Date;
 }
 
-let transporter: nodemailer.Transporter | null = null;
-
-function getTransporter(user: string, pass: string) {
-  transporter ??= nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: { user, pass },
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 15_000,
-  });
-  return transporter;
-}
-
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
@@ -46,11 +31,10 @@ const esc = (s: string) =>
 const oneLine = (s: string) => s.replace(/[\r\n]+/g, " ").trim();
 
 export async function emailSubmission(s: Submission): Promise<void> {
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_APP_PASSWORD;
-  const to = process.env.SUBMISSION_NOTIFY_TO;
-  if (!user || !pass || !to) {
-    console.warn("[submission-email] SMTP_USER / SMTP_APP_PASSWORD / SUBMISSION_NOTIFY_TO not set; skipped");
+  const url = process.env.SUBMISSION_MAIL_RELAY_URL;
+  const secret = process.env.SUBMISSION_MAIL_RELAY_SECRET;
+  if (!url || !secret) {
+    console.warn("[submission-email] SUBMISSION_MAIL_RELAY_URL / _SECRET not set; skipped");
     return;
   }
 
@@ -80,14 +64,23 @@ ${rows.map(([k, v]) => `<tr><td style="padding:2px 0 2px 12px;color:#64748b">${e
 </div>`;
 
   try {
-    await getTransporter(user, pass).sendMail({
-      from: { name: "פנייה מהאתר z-g.co.il", address: user },
-      to,
-      replyTo: { name, address: s.email },
-      subject: `פנייה חדשה מהאתר: ${subjectLine} (${name})`,
-      text,
-      html,
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        secret,
+        replyTo: s.email,
+        subject: `פנייה חדשה מהאתר: ${subjectLine} (${name})`,
+        text,
+        html,
+      }),
+      redirect: "follow",
+      signal: AbortSignal.timeout(15_000),
     });
+    const out = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    if (!res.ok || !out?.ok) {
+      console.error(`[submission-email] relay refused submission ${s.id}: ${res.status} ${out?.error ?? ""}`);
+    }
   } catch (err) {
     console.error(`[submission-email] failed for submission ${s.id}:`, err);
   }
