@@ -276,6 +276,8 @@ export default function ApiKeysPage() {
             as articles (plilist:edit)
           </li>
           <li>GET/PUT /api/v1/milon/&lt;slug&gt; — create or update a dictionary entry, status included; no delete (milon:write)</li>
+          <li>PUT /api/v1/uploads/api-&lt;name&gt;.pdf — upload a PDF for a case file (cases:write)</li>
+          <li>PUT /api/v1/case-documents — create/update a case-file document (cases:write)</li>
           <li>GET /api/v1/content — public read of all published content (no key)</li>
           <li>POST /api/mcp/site — public read-only MCP server (no key)</li>
         </ul>

@@ -6,6 +6,7 @@ import {
   CheckCircle,
   FileText,
   Gavel,
+  Landmark,
   Loader2,
   Pencil,
   Plus,
@@ -23,7 +24,7 @@ import { cn } from "@/lib/utils";
 
 /* ─── Types ─── */
 
-type Category = "letter" | "ruling" | "law";
+type Category = "letter" | "court" | "ruling" | "law";
 
 interface CaseDocumentItem {
   id: string;
@@ -81,6 +82,13 @@ const CATEGORIES: {
     icon: FileText,
     citationLabel: "מאת → אל",
     authorityLabel: "גורם שולח",
+  },
+  {
+    value: "court",
+    label: "כתב בי-דין / החלטה בהליך",
+    icon: Landmark,
+    citationLabel: "מספר ההליך",
+    authorityLabel: "מגיש / ערכאה",
   },
   {
     value: "ruling",

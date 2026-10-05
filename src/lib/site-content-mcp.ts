@@ -356,6 +356,7 @@ interface ProjectLike {
 
 const CASE_SECTION: Record<string, string> = {
   letter: "תיק: מכתבים",
+  court: "תיק: ההליך המשפטי",
   ruling: "תיק: פסיקה",
   law: "תיק: חקיקה",
 };

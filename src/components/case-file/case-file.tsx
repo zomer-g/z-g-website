@@ -2,6 +2,7 @@ import {
   ArrowUpLeft,
   FileText,
   Gavel,
+  Landmark,
   Newspaper,
   Scale,
   ScrollText,
@@ -273,12 +274,14 @@ export async function CaseFile({
   const { coverage, documents } = await getCaseData(caseTag);
 
   const letters = documents.filter((d) => d.category === "letter");
+  const court = documents.filter((d) => d.category === "court");
   const rulings = documents.filter((d) => d.category === "ruling");
   const laws = documents.filter((d) => d.category === "law");
 
   if (
     coverage.length === 0 &&
     letters.length === 0 &&
+    court.length === 0 &&
     rulings.length === 0 &&
     laws.length === 0
   ) {
@@ -320,6 +323,25 @@ export async function CaseFile({
           <ul role="list" className="space-y-4">
             {letters.map((doc) => (
               <DocumentRow key={doc.id} doc={doc} icon={FileText} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── The proceeding itself: filings and the court's decisions ── */}
+      {court.length > 0 && (
+        <section aria-labelledby={`case-${caseTag}-court`}>
+          <SectionHeader
+            id={`case-${caseTag}-court`}
+            as={headingLevel}
+            icon={Landmark}
+            title="ההליך המשפטי"
+            subtitle="כתבי הטענות והחלטות בית המשפט, לפי סדר הגשתם. כל מסמך נפתח כקובץ PDF מלא."
+            count={court.length}
+          />
+          <ul role="list" className="space-y-4">
+            {court.map((doc) => (
+              <DocumentRow key={doc.id} doc={doc} icon={Landmark} />
             ))}
           </ul>
         </section>
