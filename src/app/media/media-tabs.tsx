@@ -50,7 +50,7 @@ function BrandBanner({ source, title }: { source: string; title: string }) {
   const brand = mediaBrand(source);
   return (
     <div
-      className="relative flex h-48 flex-col items-center justify-center overflow-hidden px-6 text-center"
+      className="relative flex aspect-video w-full flex-col items-center justify-center overflow-hidden px-6 text-center"
       style={{ backgroundColor: brand.bg }}
       aria-hidden="true"
     >
@@ -139,7 +139,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
       {videoId ? (
         <VideoEmbed id={videoId} title={item.title} />
       ) : item.thumbnailUrl ? (
-        <div className="relative h-48 overflow-hidden">
+        <div className="relative aspect-video w-full overflow-hidden">
           <img
             src={item.thumbnailUrl}
             alt={item.title}
