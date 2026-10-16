@@ -24,7 +24,8 @@ const contentSecurityPolicy = {
       "img-src 'self' data: https: blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://www.google-analytics.com https://he.wikisource.org",
-      "frame-src 'self'",
+      // YouTube's no-cookie player, for recordings embedded in /media cards.
+      "frame-src 'self' https://www.youtube-nocookie.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

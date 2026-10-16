@@ -5,6 +5,7 @@ import { Play, Newspaper, Mic, BookOpen, Presentation } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { mediaBrand } from "@/lib/media-brands";
+import { youtubeId } from "@/lib/youtube";
 
 /* ─── Types ─── */
 
@@ -19,6 +20,7 @@ interface MediaItem {
   date: string;
   url: string | null;
   thumbnailUrl: string | null;
+  videoUrl?: string | null;
 }
 
 interface Props {
@@ -68,6 +70,48 @@ function BrandBanner({ source, title }: { source: string; title: string }) {
   );
 }
 
+/* ─── Embedded video ─── */
+
+// A YouTube recording, loaded only on click: until then the card shows
+// YouTube's still frame and a play button, so /media makes no request to
+// YouTube for a visitor who never plays it. The player is the no-cookie one.
+function VideoEmbed({ id, title }: { id: string; title: string }) {
+  const [playing, setPlaying] = useState(false);
+  if (playing) {
+    return (
+      <div className="relative aspect-video w-full bg-black">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
+          title={title}
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          className="absolute inset-0 h-full w-full"
+        />
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setPlaying(true)}
+      className="group/play relative block aspect-video w-full overflow-hidden bg-black"
+      aria-label={`הפעלת הסרטון: ${title}`}
+    >
+      <img
+        src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
+        alt=""
+        className="h-full w-full object-cover opacity-90 transition-opacity group-hover/play:opacity-100"
+        loading="lazy"
+      />
+      <span className="absolute inset-0 flex items-center justify-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-transform group-hover/play:scale-110">
+          <Play className="h-6 w-6 translate-x-0.5 fill-current" aria-hidden="true" />
+        </span>
+      </span>
+    </button>
+  );
+}
+
 /* ─── Card ─── */
 
 function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<string, string> }) {
@@ -79,6 +123,10 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
   // Split description on double-newline to support footnotes / multi-paragraph text
   const paragraphs = item.description.split(/\n\n+/).filter(Boolean);
 
+  // A card with a player can't be one big link (the click would leave the
+  // page instead of playing), so there the title carries the link instead.
+  const videoId = youtubeId(item.videoUrl);
+
   const cardContent = (
     <Card
       role="listitem"
@@ -88,7 +136,9 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
       )}
     >
       {/* Thumbnail / Icon placeholder */}
-      {item.thumbnailUrl ? (
+      {videoId ? (
+        <VideoEmbed id={videoId} title={item.title} />
+      ) : item.thumbnailUrl ? (
         <div className="relative h-48 overflow-hidden">
           <img
             src={item.thumbnailUrl}
@@ -118,7 +168,19 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
 
         {/* Title */}
         <h3 className="text-lg font-bold leading-snug text-primary-dark">
-          {item.title}
+          {videoId && item.url ? (
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-accent hover:underline"
+            >
+              {item.title}
+              <span className="sr-only"> (נפתח בחלון חדש)</span>
+            </a>
+          ) : (
+            item.title
+          )}
         </h3>
 
         {/* Description (multi-paragraph: first is main, rest are footnote-style) */}
@@ -147,7 +209,7 @@ function MediaCard({ item, typeLabels }: { item: MediaItem; typeLabels: Record<s
     </Card>
   );
 
-  if (item.url) {
+  if (item.url && !videoId) {
     return (
       <a
         href={item.url}

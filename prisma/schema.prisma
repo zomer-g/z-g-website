@@ -166,6 +166,9 @@ model MediaAppearance {
   date         String
   url          String?
   thumbnailUrl String?
+  // A YouTube link to embed in the card (e.g. the recording of a lecture),
+  // kept apart from `url` so the card can still point at the event itself.
+  videoUrl     String?
   order        Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
