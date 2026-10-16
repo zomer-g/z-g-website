@@ -38,6 +38,7 @@ interface MediaAppearanceItem {
   date: string;
   url: string | null;
   thumbnailUrl: string | null;
+  videoUrl: string | null;
   order: number;
   isActive: boolean;
   caseTag: string | null;
@@ -51,6 +52,7 @@ interface MediaAppearanceForm {
   date: string;
   url: string;
   thumbnailUrl: string;
+  videoUrl: string;
   order: number;
   isActive: boolean;
   caseTag: string;
@@ -64,6 +66,7 @@ const EMPTY_FORM: MediaAppearanceForm = {
   date: "",
   url: "",
   thumbnailUrl: "",
+  videoUrl: "",
   order: 0,
   isActive: true,
   caseTag: "",
@@ -180,6 +183,7 @@ export default function AdminMediaAppearancesPage() {
       date: item.date,
       url: item.url || "",
       thumbnailUrl: item.thumbnailUrl || "",
+      videoUrl: item.videoUrl || "",
       order: item.order,
       isActive: item.isActive,
       caseTag: item.caseTag || "",
@@ -222,6 +226,7 @@ export default function AdminMediaAppearancesPage() {
           date: form.date,
           url: form.url || undefined,
           thumbnailUrl: form.thumbnailUrl || undefined,
+          videoUrl: form.videoUrl,
           order: form.order,
           isActive: form.isActive,
           caseTag: form.caseTag,
@@ -454,6 +459,15 @@ export default function AdminMediaAppearancesPage() {
               placeholder="better-rail"
               dir="ltr"
               helperText="פרסום שמשויך לתיק מופיע גם בעמוד הפוסט של אותו תיק, בנוסף למסך הפרסומים."
+            />
+
+            <Input
+              label="סרטון YouTube להטמעה (אופציונלי)"
+              value={form.videoUrl}
+              onChange={(e) => setForm((prev) => ({ ...prev, videoUrl: e.target.value }))}
+              placeholder="https://www.youtube.com/watch?v=..."
+              dir="ltr"
+              helperText="הסרטון מוטמע בכרטיס במקום התמונה. הקישור שלמעלה נשאר הקישור של כותרת הכרטיס."
             />
 
             <div className="grid gap-4 sm:grid-cols-3">

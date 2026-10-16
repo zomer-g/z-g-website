@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { youtubeId } from "./youtube";
 
 /** Optional free-text field: "" from a form becomes null, not an empty column. */
 const emptyToNull = z
@@ -89,6 +90,14 @@ export const mediaAppearanceSchema = z.object({
   date: z.string().min(1, "תאריך נדרש"),
   url: z.string().optional(),
   thumbnailUrl: z.string().optional(),
+  // null clears it; anything else must be a YouTube link the card can embed.
+  videoUrl: z
+    .string()
+    .trim()
+    .transform((v) => (v.length > 0 ? v : null))
+    .refine((v) => v === null || youtubeId(v) !== null, "קישור YouTube לא תקין")
+    .nullable()
+    .optional(),
   order: z.number().default(0),
   isActive: z.boolean().default(true),
   // Empty string from the form means "no case" — normalise it to null so the

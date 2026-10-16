@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isSafeUrl, logApiCall, requireApiKey } from "@/lib/api-keys";
 import { readJsonBody } from "@/lib/request-body";
+import { youtubeId } from "@/lib/youtube";
 
 /**
  * Write API for the publications list (/media). Scope: media:write.
@@ -29,6 +30,12 @@ const itemSchema = z
     source: z.string().trim().min(1).max(120),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD"),
     thumbnailUrl: z.string().max(2048).refine(isSafeUrl, "url scheme not allowed").optional(),
+    videoUrl: z
+      .string()
+      .max(2048)
+      .refine((u) => youtubeId(u) !== null, "must be a YouTube link")
+      .nullable()
+      .optional(),
     isActive: z.boolean().optional(),
     caseTag: z
       .string()
