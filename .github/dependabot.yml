@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # npm dependencies: one weekly PR batch for security + version bumps, with
+  # the framework and auth packages grouped so a Next/Auth.js advisory arrives
+  # as a single reviewable PR instead of several interdependent ones.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "06:00"
+      timezone: "Asia/Jerusalem"
+    open-pull-requests-limit: 10
+    groups:
+      next-and-auth:
+        patterns:
+          - "next"
+          - "next-auth"
+          - "@auth/*"
+          - "eslint-config-next"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      tiptap:
+        patterns:
+          - "@tiptap/*"
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # The scheduled sync / monitor workflows pin actions by major; keep them fresh.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "sunday"
+      time: "06:00"
+      timezone: "Asia/Jerusalem"

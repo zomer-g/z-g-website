@@ -12,12 +12,14 @@ const state: {
   session: Session;
   dbCalls: { model: string; method: string; args: any[] }[];
   impl: Record<string, Record<string, (...a: any[]) => any>>;
-} = { session: null, dbCalls: [], impl: {} };
+  privateFiles: Set<string>;
+} = { session: null, dbCalls: [], impl: {}, privateFiles: new Set() };
 
 beforeEach(() => {
   state.session = null;
   state.dbCalls = [];
   state.impl = {};
+  state.privateFiles = new Set();
 });
 
 // Mock @/lib/auth → auth() returns whatever the current test set.
@@ -36,6 +38,15 @@ const prisma: any = new Proxy(
       if (model === "$transaction") {
         return async (arg: any) => (typeof arg === "function" ? arg(prisma) : Promise.all(arg));
       }
+      // Client-level methods ($queryRaw, $queryRawUnsafe, $executeRaw…) are
+      // functions, not models: record the call and answer with canned rows.
+      if (model.startsWith("$")) {
+        return async (...args: unknown[]) => {
+          state.dbCalls.push({ model, method: "", args });
+          const fn = state.impl?.[model]?.[""];
+          return fn ? fn(...args) : [];
+        };
+      }
       return new Proxy(
         {},
         {
@@ -52,6 +63,16 @@ const prisma: any = new Proxy(
   },
 );
 mock.module("@/lib/prisma", { namedExports: { prisma } });
+
+// Mock @/lib/private-files → the set of hidden upload names each test chooses.
+// (The real module caches DB reads for 5s, which would bleed between tests.)
+mock.module("@/lib/private-files", {
+  namedExports: {
+    getPrivateFiles: async () => state.privateFiles,
+    setFileVisibility: async () => undefined,
+    uploadNameFromPath: (p: string) => p.match(/^\/(?:seed-)?uploads\/([^/]+)$/)?.[1] ?? null,
+  },
+});
 
 // ----------------------------------------------------------------------------
 // Helpers
@@ -737,4 +758,118 @@ test("#T8d JsonLd: a </script> inside a value cannot close the script element", 
   const html: string = JsonLd({ data: { name: payload } }).props.dangerouslySetInnerHTML.__html;
   assert.ok(!html.includes("<"), "no raw < may reach the script body");
   assert.equal(JSON.parse(html).name, payload, "the JSON still parses back to the original value");
+});
+
+// ============================================================================
+// #10 — /uploads/[filename] must enforce file visibility itself, not only via
+//      proxy.ts (a proxy bypass must not expose a hidden file).
+// ============================================================================
+const fileCtx = (filename: string) => ({ params: Promise.resolve({ filename }) });
+const pdfBytes = () => new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]);
+
+test("#10a uploads: anonymous request for a hidden file is 404 and never reads the bytes", async () => {
+  state.session = null;
+  state.privateFiles = new Set(["secret.pdf"]);
+  state.impl = { uploadedFile: { findUnique: () => ({ data: pdfBytes(), mimeType: "application/pdf" }) } };
+  const { GET } = await import("@/app/uploads/[filename]/route");
+  const res = await GET(jsonReq("https://z-g.co.il/uploads/secret.pdf"), fileCtx("secret.pdf"));
+  assert.equal(res.status, 404, "hidden file must 404 for anonymous even if the proxy did not run");
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  assert.equal(called("uploadedFile", "findUnique"), false, "bytes must not be read for a denied request");
+});
+
+test("#10b uploads: GUEST request for a hidden file is 404", async () => {
+  state.session = GUEST;
+  state.privateFiles = new Set(["secret.pdf"]);
+  state.impl = { uploadedFile: { findUnique: () => ({ data: pdfBytes(), mimeType: "application/pdf" }) } };
+  const { GET } = await import("@/app/uploads/[filename]/route");
+  const res = await GET(jsonReq("https://z-g.co.il/uploads/secret.pdf"), fileCtx("secret.pdf"));
+  assert.equal(res.status, 404);
+});
+
+test("#10c uploads: ADMIN can still open a hidden file, uncacheable", async () => {
+  state.session = ADMIN;
+  state.privateFiles = new Set(["secret.pdf"]);
+  state.impl = { uploadedFile: { findUnique: () => ({ data: pdfBytes(), mimeType: "application/pdf" }) } };
+  const { GET } = await import("@/app/uploads/[filename]/route");
+  const res = await GET(jsonReq("https://z-g.co.il/uploads/secret.pdf"), fileCtx("secret.pdf"));
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("cache-control"), "private, no-store", "a hidden file must never enter a shared cache");
+});
+
+test("#10d regression: a public file is still served to anonymous with a public cache", async () => {
+  state.session = null;
+  state.privateFiles = new Set(["secret.pdf"]);
+  state.impl = { uploadedFile: { findUnique: () => ({ data: pdfBytes(), mimeType: "application/pdf" }) } };
+  const { GET } = await import("@/app/uploads/[filename]/route");
+  const res = await GET(jsonReq("https://z-g.co.il/uploads/public.pdf"), fileCtx("public.pdf"));
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("cache-control"), "public, max-age=3600");
+});
+
+// ============================================================================
+// #11 — /api/sanegoria/warm fans out five heavy self-requests; it must not be
+//      callable by anyone who happens to know the URL.
+// ============================================================================
+test("#11a sanegoria/warm: anonymous, GUEST and a wrong secret are all 401 and trigger no fetch", async () => {
+  const realFetch = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = (async () => {
+    fetches++;
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  process.env.CRON_SECRET = "test-cron-secret";
+  try {
+    const { GET } = await import("@/app/api/sanegoria/warm/route");
+    for (const [session, headers] of [
+      [null, {}],
+      [GUEST, {}],
+      [null, { "x-cron-secret": "wrong" }],
+      [null, { "x-cron-secret": "" }],
+    ] as [Session, Record<string, string>][]) {
+      state.session = session;
+      const res = await GET(jsonReq("https://z-g.co.il/api/sanegoria/warm", { headers }));
+      assert.equal(res.status, 401);
+    }
+    assert.equal(fetches, 0, "no warm-up request may be sent for an unauthorized caller");
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.CRON_SECRET;
+  }
+});
+
+test("#11b sanegoria/warm: the cron secret (and an ADMIN session) still warm the cache", async () => {
+  const realFetch = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = (async () => {
+    fetches++;
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  process.env.CRON_SECRET = "test-cron-secret";
+  try {
+    const { GET } = await import("@/app/api/sanegoria/warm/route");
+    state.session = null;
+    let res = await GET(
+      jsonReq("https://z-g.co.il/api/sanegoria/warm", { headers: { "x-cron-secret": "test-cron-secret" } }),
+    );
+    assert.equal(res.status, 200);
+    assert.equal(fetches, 5);
+    state.session = ADMIN;
+    res = await GET(jsonReq("https://z-g.co.il/api/sanegoria/warm"));
+    assert.equal(res.status, 200);
+    assert.equal(fetches, 10);
+  } finally {
+    globalThis.fetch = realFetch;
+    delete process.env.CRON_SECRET;
+  }
+});
+
+test("#11c secretMatches: unset or empty never matches, equal strings do", async () => {
+  const { secretMatches } = await import("@/lib/shared-secret");
+  assert.equal(secretMatches("", ""), false, "an unset secret must not be matched by an empty header");
+  assert.equal(secretMatches("x", undefined), false);
+  assert.equal(secretMatches(null, "x"), false);
+  assert.equal(secretMatches("abc", "abd"), false);
+  assert.equal(secretMatches("abc", "abcd"), false);
+  assert.equal(secretMatches("s3cret", "s3cret"), true);
 });

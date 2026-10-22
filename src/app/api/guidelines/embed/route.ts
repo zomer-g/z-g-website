@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { secretMatches } from "@/lib/shared-secret";
 import { prisma } from "@/lib/prisma";
 import {
   embedTexts,
@@ -62,9 +63,7 @@ async function isAuthorized(req: NextRequest): Promise<boolean> {
   // ADMIN-only at the session level; GUEST users (WhatsApp workspace
   // allowlist) must NOT be able to trigger an expensive embed run.
   if (session?.user?.role === "ADMIN") return true;
-  const expected = process.env.CRON_SECRET;
-  if (expected && req.headers.get("x-cron-secret") === expected) return true;
-  return false;
+  return secretMatches(req.headers.get("x-cron-secret"), process.env.CRON_SECRET);
 }
 
 interface PendingEmbed {

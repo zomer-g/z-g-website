@@ -12,13 +12,14 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries every 5 minutes
+// Clean up expired entries every 5 minutes. unref() so a housekeeping timer
+// never keeps a process alive on its own (the test runner, one-off scripts).
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
     if (now > entry.resetAt) store.delete(key);
   }
-}, 5 * 60 * 1000);
+}, 5 * 60 * 1000).unref();
 
 /**
  * Check rate limit for a given key.
@@ -78,7 +79,7 @@ setInterval(() => {
     if (recent.length === 0) budgetStore.delete(key);
     else budgetStore.set(key, recent);
   }
-}, 5 * 60 * 1000);
+}, 5 * 60 * 1000).unref();
 
 /**
  * Try to reserve one unit of a shared, rolling-window budget.
