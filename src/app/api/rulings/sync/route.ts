@@ -10,6 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { secretMatches } from "@/lib/shared-secret";
 import {
   syncAllScopes,
   isSyncRunning,
@@ -17,8 +18,7 @@ import {
 } from "@/lib/rulings-mirror";
 
 async function isAuthorized(req: NextRequest): Promise<boolean> {
-  const secret = process.env.MIRROR_SYNC_SECRET;
-  if (secret && req.headers.get("x-sync-secret") === secret) return true;
+  if (secretMatches(req.headers.get("x-sync-secret"), process.env.MIRROR_SYNC_SECRET)) return true;
   const session = await auth();
   return session?.user?.role === "ADMIN";
 }
