@@ -17,6 +17,7 @@ import { getPageContent } from "@/lib/content";
 import { getIcon } from "@/lib/icons";
 import type { AboutPageContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
+import { DeveloperDocs } from "@/components/about/developer-docs";
 
 /* ─── Metadata ─── */
 
@@ -185,6 +186,9 @@ export default async function AboutPage() {
         </Container>
       </section>
       </EditableSection>
+
+      {/* ── API & MCP docs ── */}
+      <DeveloperDocs />
 
       {/* ── CTA ── */}
       <EditableSection editHref="/admin/site-editor/about" editLabel="קריאה לפעולה">
