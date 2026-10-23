@@ -37,22 +37,22 @@
     "@tiptap/pm": "^3.32.0",
     "@tiptap/react": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
-    "bidi-js": "^1.0.3",
+    "bidi-js": "^1.1.0",
     "clsx": "^2.1.1",
     "google-auth-library": "^10.6.2",
-    "jszip": "^3.10.1",
+    "jszip": "^3.10.2",
     "lucide-react": "^0.576.0",
     "next": "^16.4.2",
     "next-auth": "^5.0.0-beta.32",
-    "pg": "^8.19.0",
+    "pg": "^8.23.1",
     "prisma": "^7.10.1",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "recharts": "^3.8.1",
-    "tailwind-merge": "^3.5.0",
-    "unpdf": "^1.8.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.7.0",
+    "unpdf": "^1.9.1",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -63,7 +63,7 @@
     "eslint": "^9",
     "eslint-config-next": "^16.4.2",
     "tailwindcss": "^4",
-    "tsx": "^4.22.5",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }
