@@ -9,7 +9,8 @@ import { getClientIp, rateLimit } from "@/lib/rate-limit";
  * - Keys are 32 random bytes, shown once at creation; only SHA-256 is stored.
  *   A hash lookup is safe here (unlike a password) because the key has 256
  *   bits of entropy — there is nothing to brute-force offline.
- * - Every key has explicit scopes; a route asks for exactly one.
+ * - Every key has explicit scopes; a route asks for one (or, via
+ *   requireAnyApiKeyScope, for any one of a short list).
  * - Keys expire (max 365 days) and can be revoked from /admin/api-keys.
  * - Failed attempts are rate-limited per IP before the DB is touched, and
  *   each key has its own request budget.
@@ -17,7 +18,8 @@ import { getClientIp, rateLimit } from "@/lib/rate-limit";
  */
 
 export const API_SCOPES = {
-  "plilist:draft": "יצירה ועריכה של טיוטות בהפליליסט (לא פרסום, לא נגיעה בפוסט שפורסם)",
+  "plilist:draft":
+    "יצירה ועריכה של טיוטות בהפליליסט (לא פרסום, לא נגיעה בפוסט שפורסם), כולל העלאת תמונות PNG/JPEG/WebP לטיוטות (רק בשם api-*)",
   "media:write": "הוספה ועדכון של פריטים ברשימת הפרסומים",
   "articles:edit":
     "עריכת התוכן של מאמר קיים, גם אם פורסם (בלי שינוי סטטוס, כתובת או מחיקה; כל עריכה שומרת את הגרסה הקודמת)",
@@ -25,7 +27,7 @@ export const API_SCOPES = {
     "עריכת התוכן של פוסט קיים בהפליליסט, גם אם פורסם (בלי שינוי סטטוס, כתובת או מחיקה; כל עריכה שומרת את הגרסה הקודמת)",
   "milon:write": "הוספה ועדכון של ערכים במילון, כולל פרסום (בלי מחיקה)",
   "cases:write":
-    "העלאת קובצי PDF לתיקי פוסטים (רק בשם api-*, בלי לגעת בקבצים קיימים) והוספה ועדכון של מסמכים בתיק (בלי מחיקה)",
+    "העלאת קובצי PDF ותמונות לתיקי פוסטים (רק בשם api-*, בלי לגעת בקבצים קיימים) והוספה ועדכון של מסמכים בתיק (בלי מחיקה)",
 } as const;
 
 export type ApiScope = keyof typeof API_SCOPES;
@@ -67,6 +69,16 @@ export async function requireApiKey(
   req: Request,
   scope: ApiScope,
 ): Promise<{ ok: true; caller: ApiCaller } | { ok: false; response: NextResponse }> {
+  return requireAnyApiKeyScope(req, [scope]);
+}
+
+/**
+ * Like requireApiKey, but the key passes if it holds any one of `scopes`.
+ */
+export async function requireAnyApiKeyScope(
+  req: Request,
+  scopes: readonly ApiScope[],
+): Promise<{ ok: true; caller: ApiCaller } | { ok: false; response: NextResponse }> {
   const ip = getClientIp(req);
 
   const header = req.headers.get("authorization") ?? "";
@@ -89,10 +101,10 @@ export async function requireApiKey(
     return { ok: false, response: limited ?? unauthorized() };
   }
 
-  if (!row.scopes.includes(scope)) {
+  if (scopes.length === 0 || !scopes.some((scope) => row.scopes.includes(scope))) {
     return {
       ok: false,
-      response: NextResponse.json({ error: `missing scope: ${scope}` }, { status: 403 }),
+      response: NextResponse.json({ error: `missing scope: ${scopes.join(" or ")}` }, { status: 403 }),
     };
   }
 

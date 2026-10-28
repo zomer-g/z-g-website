@@ -44,6 +44,9 @@ function fileResponse(
     status: 200,
     headers: {
       "Content-Type": contentType,
+      // next.config.ts sets this site-wide too; repeated here so an image
+      // upload can never be sniffed into HTML even if that config changes.
+      "X-Content-Type-Options": "nosniff",
       "Content-Length": String(data.length),
       // Short on purpose: an admin can hide a file at any time (/admin/files),
       // and a year-long immutable copy would outlive that. A hidden file that

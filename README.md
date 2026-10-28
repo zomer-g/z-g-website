@@ -106,6 +106,7 @@ An admin bar on the public site adds edit buttons for signed-in admins.
 ## Files and uploads
 
 - Uploads (`/api/media/upload`) are stored **in Postgres** (`uploaded_files`) and served by `src/app/uploads/[filename]/route.ts`. Git-committed files in `public/seed-uploads/` are copied into `public/uploads/` at build and start.
+- An API key can upload too: `PUT /api/v1/uploads/api-<name>.<ext>` (`src/app/api/v1/uploads/[filename]/route.ts`). PDF needs `cases:write`; PNG, JPEG and WebP (e.g. screenshots for a draft) need `cases:write` or `plilist:draft`. The type is detected from the bytes and must match the extension (`src/lib/upload-type.ts`), SVG is refused, the name must start with `api-`, and the limit is 10MB.
 - **`/admin/files`** lists every file served under `/uploads`, where each one appears on the site (articles, posts, case documents, media appearances, pages and drafts, services, settings, פח המשפט), with search and filters (usage, visibility, format, size, storage).
 - Any file can be marked **non-public** (`file_settings`). `src/proxy.ts` then answers 404 to non-admins on `/uploads`, `/seed-uploads` and the `/_next/image` optimizer; the change takes effect within about 5 seconds.
 
