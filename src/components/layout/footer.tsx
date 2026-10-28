@@ -36,7 +36,7 @@ export default function Footer({ content }: FooterProps) {
               </li>
               <li>
                 <a
-                  href={data.contactInfo.emailHref}
+                  href={`mailto:${data.contactInfo.email.trim()}`}
                   className={cn(
                     "flex items-center gap-2 text-sm text-white/80",
                     "transition-colors duration-200 hover:text-accent-on-dark focus-visible:text-accent-on-dark"
