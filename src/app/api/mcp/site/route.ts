@@ -9,6 +9,8 @@ import {
   getDocumentText,
   type ContentDocument,
 } from "@/lib/site-content-mcp";
+import { getSiteUpdates } from "@/lib/site-updates";
+import { FEED_URL, UPDATE_TYPES, changeKind, parseLimit, parseSince, parseTypes } from "@/lib/site-updates-format";
 
 // MCP server for everything a visitor can read on z-g.co.il: articles,
 // הפליליסט blog posts (with their attachments and case files), practice
@@ -26,7 +28,7 @@ export const maxDuration = 60;
 
 const SUPPORTED_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 const SERVER_NAME = "z-g-site";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "1.1.0";
 const USAGE_EMAIL = "public";
 
 interface JsonRpcRequest {
@@ -155,6 +157,32 @@ const TOOLS = [
         max_chars: { type: "number", description: "אורך מרבי של הטקסט המוחזר (1,000-60,000, ברירת מחדל 30,000)." },
       },
       required: ["document"],
+    },
+    annotations: READ_ONLY,
+  },
+  {
+    name: "site_updates",
+    description:
+      "מה חדש באתר: כל התכנים שעלו לאתר לפי סדר כרונולוגי, מהחדש לישן — מאמרים, פוסטים בהפליליסט, " +
+      "מסמכים שנוספו לתיקי מקרה (מכתבים, פסיקה, חקיקה), ערכי מילון והופעות בתקשורת. " +
+      "עם since מוחזרים רק פריטים שפורסמו או נערכו מאז, וכל פריט מסומן new או updated. " +
+      "כדי לעקוב לאורך זמן, שמרו את checked_at מהתשובה והעבירו אותו כ-since בפעם הבאה. " +
+      "לקריאת פריט מלא העבירו את ה-url שלו ל-site_get; למסמך (type=document) — ל-document_get_text.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        since: {
+          type: "string",
+          description: "תאריך ISO (2026-10-01 או 2026-10-01T08:00:00Z). רק מה שפורסם או נערך מאז. לא חובה.",
+        },
+        types: {
+          type: "array",
+          items: { type: "string", enum: Object.keys(UPDATE_TYPES) },
+          description:
+            "הגבלה לסוגים: " + Object.entries(UPDATE_TYPES).map(([k, v]) => `${k} (${v})`).join(", ") + ". לא חובה.",
+        },
+        limit: { type: "number", description: "מספר פריטים מרבי (1-200, ברירת מחדל 50)." },
+      },
     },
     annotations: READ_ONLY,
   },
@@ -301,6 +329,34 @@ async function callTool(name: string, args: Record<string, unknown>) {
       });
     }
 
+    case "site_updates": {
+      const types = parseTypes(
+        Array.isArray(args.types) ? args.types.filter((t) => typeof t === "string").join(",") : str(args.types),
+      );
+      if (types && "error" in types) return errorResult(types.error);
+      const since = parseSince(str(args.since));
+      if (since && "error" in since) return errorResult(since.error);
+      const { items, asOf } = await getSiteUpdates({ types, since, limit: parseLimit(args.limit) });
+      await logUsage(name, [since?.toISOString(), types?.join(",")].filter(Boolean).join(" ") || null, items.length);
+      const withKind = items.map((u) => ({ ...u, change: changeKind(u, since) }));
+      const md = [
+        since
+          ? `# עדכונים באתר מאז ${since.toISOString()} (${items.length})`
+          : `# העדכונים האחרונים באתר (${items.length})`,
+        `checked_at: ${asOf.toISOString()} · RSS: ${FEED_URL}`,
+        ...(items.length === 0 ? ["", "אין תוכן חדש בטווח הזה."] : [""]),
+        ...withKind.map(
+          (u) =>
+            `- [${u.typeLabel}]${since && u.change === "updated" ? " (עודכן)" : ""} **${u.title}** · ${u.published.slice(0, 10)}` +
+            (u.category ? ` · ${u.category}` : "") +
+            (u.excerpt ? `\n  ${u.excerpt.replace(/\s+/g, " ").slice(0, 240)}` : "") +
+            `\n  ${u.url}` +
+            (u.parentUrl ? `\n  מתוך: ${u.parentUrl}` : ""),
+        ),
+      ].join("\n");
+      return result(md, { checked_at: asOf.toISOString(), since: since?.toISOString() ?? null, items: withKind });
+    }
+
     default:
       return null;
   }
@@ -322,6 +378,7 @@ async function handleRpc(req: JsonRpcRequest): Promise<JsonRpcResponse | null> {
           "ולמסמכים המצורפים אליהם." +
           "\n\n## סדר עבודה" +
           "\n1. site_search (או site_list עם type) כדי למצוא את הפריט הרלוונטי." +
+          "\n   למעקב אחרי מה שחדש באתר — site_updates (עם since מהבדיקה הקודמת)." +
           "\n2. site_get לקריאת הפריט המלא ולרשימת המסמכים המצורפים אליו." +
           "\n3. document_get_text כדי לקרוא פסק דין או מסמך מצורף במלואו, כשהשאלה דורשת את לשונו." +
           "\n\n## כללים" +
