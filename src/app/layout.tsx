@@ -57,6 +57,8 @@ export const metadata: Metadata = {
     // same one line now gives every page a correct self-canonical, and pages
     // that set their own still win.
     canonical: "./",
+    // Feed autodiscovery: a reader pointed at any page finds the site feed.
+    types: { "application/rss+xml": [{ url: "/feed.xml", title: 'עו"ד גיא זומר — עדכונים באתר' }] },
   },
   // No title/description/url here on purpose: whatever this block sets is
   // inherited verbatim by every page that doesn't define its own openGraph,
