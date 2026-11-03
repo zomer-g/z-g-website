@@ -166,13 +166,7 @@ export function FooterEditor({ content, onChange }: FooterEditorProps) {
             <Input
               label="אימייל"
               value={content.contactInfo.email}
-              onChange={(e) => onChange({ ...content, contactInfo: { ...content.contactInfo, email: e.target.value } })}
-              dir="ltr"
-            />
-            <Input
-              label="קישור אימייל"
-              value={content.contactInfo.emailHref}
-              onChange={(e) => onChange({ ...content, contactInfo: { ...content.contactInfo, emailHref: e.target.value } })}
+              onChange={(e) => onChange({ ...content, contactInfo: { ...content.contactInfo, email: e.target.value, emailHref: `mailto:${e.target.value.trim()}` } })}
               dir="ltr"
             />
           </div>

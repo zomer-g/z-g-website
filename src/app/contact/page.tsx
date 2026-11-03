@@ -36,7 +36,7 @@ export default async function ContactPage() {
       icon: Mail,
       label: content.form.emailLabel,
       value: content.contactInfo.email,
-      href: content.contactInfo.emailHref,
+      href: `mailto:${content.contactInfo.email.trim()}`,
       dir: "ltr" as const,
       ariaLabel: `שלחו אימייל: ${content.contactInfo.email}`,
     },
