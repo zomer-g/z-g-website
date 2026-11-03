@@ -86,6 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/privacy", "yearly", 0.3),
     staticEntry("/accessibility", "yearly", 0.3),
     staticEntry("/terms", "yearly", 0.3),
+    staticEntry("/developers", "monthly", 0.4),
   ];
 
   /* ── Dynamic: services from DB ── */

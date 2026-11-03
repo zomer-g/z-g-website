@@ -2,7 +2,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { prisma } from "@/lib/prisma";
 import { getPrivateFiles } from "@/lib/private-files";
-import { extractPdfText } from "@/lib/pdf-text";
+import { extractPdfText, type PdfText } from "@/lib/pdf-text";
 
 /**
  * Data layer for the site-content MCP server (/api/mcp/site).
@@ -767,7 +767,15 @@ export async function listDocuments(ref?: string, type?: string): Promise<Docume
   return [...byId.values()];
 }
 
-const textCache = new Map<string, { pages: string[]; totalPages: number }>();
+// Keyed by file name, and checked against the stored size on every read: a
+// file replaced in place (PUT /api/v1/uploads/<name>/replace, e.g. with a
+// re-redacted version) must never be answered from the old version's text.
+const textCache = new Map<string, { size: number | null; text: PdfText }>();
+
+async function storedSize(name: string): Promise<number | null> {
+  const row = await prisma.uploadedFile.findUnique({ where: { filename: name }, select: { size: true } });
+  return row?.size ?? null;
+}
 
 async function readHostedFile(name: string): Promise<Uint8Array | null> {
   const row = await prisma.uploadedFile.findUnique({ where: { filename: name }, select: { data: true } });
@@ -824,13 +832,15 @@ export async function getDocumentText(
     return { ok: false, error: `רק קובצי PDF נתמכים. קישור: ${doc.url}` };
   }
 
-  let parsed = textCache.get(doc.id);
-  if (!parsed) {
+  const size = await storedSize(doc.id);
+  let cached = textCache.get(doc.id);
+  if (!cached || cached.size !== size) {
     const data = await readHostedFile(doc.id);
     if (!data) return { ok: false, error: "הקובץ לא נמצא בשרת." };
-    parsed = await extractPdfText(data);
-    textCache.set(doc.id, parsed);
+    cached = { size, text: await extractPdfText(data) };
+    textCache.set(doc.id, cached);
   }
+  const parsed = cached.text;
 
   const total = parsed.totalPages;
   const fromPage = Math.min(Math.max(1, Math.floor(opts.fromPage ?? 1)), total);

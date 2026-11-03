@@ -8,8 +8,15 @@ interface FooterProps {
   content?: FooterContent;
 }
 
+// The developer docs link belongs to the code, not to the editable footer
+// content: it is always shown, after whatever links the admin configured.
+const DEVELOPERS_LINK = { label: "API ו-MCP", href: "/developers" };
+
 export default function Footer({ content }: FooterProps) {
   const data = content ?? DEFAULT_FOOTER_CONTENT;
+  const legalLinks = data.legalLinks.some((l) => l.href === DEVELOPERS_LINK.href)
+    ? data.legalLinks
+    : [...data.legalLinks, DEVELOPERS_LINK];
 
   return (
     <footer
@@ -53,7 +60,7 @@ export default function Footer({ content }: FooterProps) {
           {/* Legal Links */}
           <nav aria-label="קישורים משפטיים">
             <ul className="flex flex-wrap items-center justify-center gap-4 sm:gap-6" role="list">
-              {data.legalLinks.map((link) => (
+              {legalLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

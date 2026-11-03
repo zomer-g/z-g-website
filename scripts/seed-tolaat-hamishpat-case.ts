@@ -648,6 +648,17 @@ async function seedFiles() {
   if (!FILES_DIR) return console.log("  files: skipped (TM_FILES_DIR not set)");
 
   for (const doc of RULINGS) {
+    // A file that was later re-redacted in place keeps its old version as
+    // <name>-pre-redaction-<stamp>.pdf. Re-seeding it from FILES_DIR would put
+    // the less redacted version back on the site, so it is left alone.
+    const redactedSince = await prisma.uploadedFile.findFirst({
+      where: { filename: { startsWith: doc.file.replace(/\.pdf$/, "-pre-redaction-") } },
+      select: { filename: true },
+    });
+    if (redactedSince) {
+      console.log(`  files: ${doc.file} skipped — re-redacted since (${redactedSince.filename})`);
+      continue;
+    }
     const data = await readFile(path.join(FILES_DIR, doc.file));
     await prisma.uploadedFile.upsert({
       where: { filename: doc.file },
