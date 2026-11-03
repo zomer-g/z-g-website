@@ -351,8 +351,8 @@ export default function AdminFoiGuidePage() {
         )}
       </section>
 
-      {/* ── MCP invites ── */}
-      <section className="rounded-lg border border-border bg-background">
+      {/* ── MCP invites ── (linked from the sidebar as #mcp-invites) */}
+      <section id="mcp-invites" className="scroll-mt-6 rounded-lg border border-border bg-background">
         <div className="border-b border-border px-6 py-4">
           <h2 className="text-lg font-semibold text-foreground">
             גישת MCP — רשימת מוזמנים

@@ -32,6 +32,7 @@ import {
   BookMarked,
   Wallet,
   FolderOpen,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
 
@@ -105,6 +106,10 @@ const navGroups: NavGroup[] = [
       { label: "קידום SEO", href: "/admin/seo", icon: TrendingUp },
       { label: "עלויות ותקציב", href: "/admin/billing", icon: Wallet },
       { label: "מפתחות API", href: "/admin/api-keys", icon: KeyRound },
+      // The invite list lives at the bottom of the FOI guide screen; this
+      // jumps straight to it. A #hash href never matches the path, so it is
+      // never highlighted as active — the FOI guide item is.
+      { label: "הזמנות MCP", href: "/admin/foi-guide#mcp-invites", icon: UserPlus },
       { label: "הגדרות", href: "/admin/settings", icon: Settings },
     ],
   },

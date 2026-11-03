@@ -8,7 +8,8 @@ import { CONTENT_TYPES } from "@/lib/site-content-mcp";
 import { UPDATE_TYPES } from "@/lib/site-updates-format";
 
 /**
- * /developers — documentation of the site's public API and MCP servers.
+ * /developers — documentation of the site's public API and MCP server. The
+ * invite-only FOI guide MCP server is deliberately left out.
  * Linked from the footer (src/components/layout/footer.tsx). The scope and
  * content-type tables are read from the code that enforces them, so they
  * cannot drift; the endpoint descriptions mirror each route's doc comment.
@@ -202,14 +203,6 @@ export default function DevelopersPage() {
                 המסמכים עצמם מוגשים בכתובת <C>/uploads/&lt;name&gt;</C>. ה-MCP וה-API מגישים רק מסמכים שמצורפים
                 לתוכן שפורסם. קובץ שהוסתר על ידי מנהל האתר עונה 404 בכל הממשקים, והטקסט שלו אינו מוגש. מסמך
                 שהוחלף בגרסה מושחרת מוגש מאותה כתובת בגרסה החדשה בלבד.
-              </P>
-            </Section>
-
-            <Section id="foi-guide" title="שרת MCP של המדריך לחופש המידע">
-              <P>
-                שרת נפרד, <C>/api/mcp/foi-guide</C>, לחיפוש במדריך לחופש המידע ובדוגמאות מהפסיקה לפי סעיפי החוק
-                (<C>foi_guide_search</C>, <C>foi_list_sections</C>, <C>foi_examples_by_section</C>). הוא בגישה
-                מוגבלת בהזמנה, עם הזדהות דרך Google (OAuth 2.1). לבקשת גישה — <a className="underline" href="/contact">צרו קשר</a>.
               </P>
             </Section>
 
