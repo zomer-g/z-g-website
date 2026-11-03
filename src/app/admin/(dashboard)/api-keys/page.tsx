@@ -282,6 +282,10 @@ export default function ApiKeysPage() {
             type checked by its bytes, no SVG (cases:write or plilist:draft)
           </li>
           <li>PUT /api/v1/case-documents — create/update a case-file document (cases:write)</li>
+          <li>
+            PUT /api/v1/uploads/&lt;name&gt;.pdf/replace?stamp=YYYYMMDD[&amp;dryRun=1] — replace an existing PDF with a
+            re-redacted version; the old bytes stay as a hidden &lt;name&gt;-pre-redaction-&lt;stamp&gt;.pdf (uploads:replace)
+          </li>
           <li>GET /api/v1/content — public read of all published content (no key)</li>
           <li>GET /api/v1/updates — public stream of new/edited content, newest first; ?since=&amp;type=&amp;limit= (no key)</li>
           <li>GET /feed.xml — the same stream as RSS; ?type=article,blog,dictionary,media,document (no key)</li>
