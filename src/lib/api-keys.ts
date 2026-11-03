@@ -26,6 +26,8 @@ export const API_SCOPES = {
   "milon:write": "הוספה ועדכון של ערכים במילון, כולל פרסום (בלי מחיקה)",
   "cases:write":
     "העלאת קובצי PDF לתיקי פוסטים (רק בשם api-*, בלי לגעת בקבצים קיימים) והוספה ועדכון של מסמכים בתיק (בלי מחיקה)",
+  "uploads:replace":
+    "החלפת התוכן של קובץ PDF קיים בגרסה מושחרת (כל שם קיים; הגרסה הקודמת נשמרת כקובץ לא פומבי <שם>-pre-redaction-<תאריך>.pdf; בלי יצירת שמות חדשים ובלי מחיקה)",
 } as const;
 
 export type ApiScope = keyof typeof API_SCOPES;

@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma";
  * bounds how long a newly hidden file stays reachable.
  */
 
-const TTL_MS = 5_000;
+export const PRIVATE_FILES_TTL_MS = 5_000;
+const TTL_MS = PRIVATE_FILES_TTL_MS;
 let cache: { set: Set<string>; at: number } | null = null;
 let inflight: Promise<Set<string>> | null = null;
 
