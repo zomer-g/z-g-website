@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashToken, originFromRequest } from "@/lib/mcp-oauth";
+import { matchSharedToken } from "@/lib/mcp-shared-token";
 import { searchFoiGuide } from "@/lib/foi-guide-search";
 import {
   listLawSections,
@@ -85,6 +86,16 @@ async function authenticate(req: NextRequest): Promise<{ email: string } | null>
   if (!token) {
     console.error("[mcp/foi-guide] auth: empty token after Bearer");
     return null;
+  }
+
+  // Server-to-server clients (e.g. FOI-zomerg) present a shared token from
+  // FOI_GUIDE_SHARED_TOKENS instead of an OAuth token. They are attributed as
+  // "server:<name>" so mcp_usage keeps them apart from invited users. A
+  // token that doesn't match falls through to the OAuth lookup below and,
+  // if unknown there too, ends in a 401.
+  const sharedName = matchSharedToken(token);
+  if (sharedName) {
+    return { email: `server:${sharedName}` };
   }
 
   // The DB holds only sha256 digests, so match on the hash of what we were
