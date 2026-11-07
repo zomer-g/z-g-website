@@ -18,7 +18,7 @@ export async function GET(
       where: { id },
     });
 
-    if (!appearance) {
+    if (!appearance || (!appearance.isActive && (await auth())?.user?.role !== "ADMIN")) {
       return NextResponse.json(
         { error: "הופעת המדיה לא נמצאה" },
         { status: 404 },

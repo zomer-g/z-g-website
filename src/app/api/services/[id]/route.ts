@@ -18,7 +18,7 @@ export async function GET(
       where: { id },
     });
 
-    if (!service) {
+    if (!service || (!service.isActive && (await auth())?.user?.role !== "ADMIN")) {
       return NextResponse.json(
         { error: "השירות לא נמצא" },
         { status: 404 },

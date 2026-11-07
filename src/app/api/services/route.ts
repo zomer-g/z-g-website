@@ -7,7 +7,10 @@ import { serviceSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
+    // Inactive services are an admin's drafts; the public sees active ones.
+    const isAdmin = (await auth())?.user?.role === "ADMIN";
     const services = await prisma.service.findMany({
+      where: isAdmin ? undefined : { isActive: true },
       orderBy: { order: "asc" },
     });
 
