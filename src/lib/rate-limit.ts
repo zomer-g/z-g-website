@@ -107,18 +107,22 @@ export function tryConsumeBudget(
 
 /**
  * Extract client IP from request headers.
- * Uses x-forwarded-for but only trusts the LAST entry (set by the reverse proxy),
- * not the first (which can be spoofed by the client).
+ *
+ * Reads X-Forwarded-For from the right: each proxy we run behind appends the
+ * address it saw, so the entry TRUSTED_PROXY_HOPS from the end (default 1,
+ * the last one, written by the xhostd/Caddy edge) is the one a client cannot
+ * forge; everything left of it is whatever the client sent. Set
+ * TRUSTED_PROXY_HOPS=2 if a CDN is ever put in front of the edge.
+ *
+ * X-Real-IP is no longer read: it was set by Render, and with no proxy
+ * writing it any client could pick its own rate-limit bucket.
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    const ips = forwarded.split(",").map((s) => s.trim());
-    // Last IP is set by the reverse proxy (Render), harder to spoof
-    return ips[ips.length - 1] || ips[0] || "unknown";
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    const hops = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS) || 1);
+    return ips[Math.max(0, ips.length - hops)] || "unknown";
   }
-  // Fallback: Render-specific header
-  const realIp = request.headers.get("x-real-ip");
-  if (realIp) return realIp.trim();
   return "unknown";
 }
