@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { type ApiScope, logApiCall, requireAnyApiKeyScope } from "@/lib/api-keys";
 import { checkUpload, kindFromName } from "@/lib/upload-type";
+import { readCappedBody } from "@/lib/request-body";
 
 /**
  * Upload a PDF for a case file, or an image (e.g. a screenshot for a draft).
@@ -49,25 +50,36 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   const declared = Number(req.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_BYTES) return done(413, { error: "max 10MB" });
 
-  const data = new Uint8Array(await req.arrayBuffer());
+  if (await prisma.uploadedFile.findUnique({ where: { filename }, select: { filename: true } })) {
+    return done(409, { error: "file exists; uploads are create-only (use .../replace to change a PDF)" });
+  }
+
+  const data = await readCappedBody(req, MAX_BYTES);
+  // `>=`, not `>`: proxy.ts runs on this route, and Next.js hands a route
+  // behind a proxy at most 10MB of body, silently cutting a longer chunked
+  // upload to exactly that length. A body of exactly the cap is therefore a
+  // truncated file, not a whole one, and must not be stored.
+  if (data === null || data.length >= MAX_BYTES) return done(413, { error: "max 10MB" });
   if (data.length === 0) return done(400, { error: "empty body" });
-  if (data.length > MAX_BYTES) return done(413, { error: "max 10MB" });
 
   const checked = checkUpload(filename, data);
   if (!checked.ok) return done(checked.status, { error: checked.error });
   const { mimeType } = checked;
 
-  const existing = await prisma.uploadedFile.findUnique({ where: { filename }, select: { size: true } });
-  await prisma.uploadedFile.upsert({
-    where: { filename },
-    update: { data, size: data.length, mimeType },
-    create: { filename, data, size: data.length, mimeType },
-  });
+  try {
+    await prisma.uploadedFile.create({ data: { filename, data, size: data.length, mimeType } });
+  } catch (err) {
+    // A concurrent PUT of the same name won the race.
+    if ((err as { code?: string }).code === "P2002") {
+      return done(409, { error: "file exists; uploads are create-only (use .../replace to change a PDF)" });
+    }
+    throw err;
+  }
 
-  return done(existing ? 200 : 201, {
+  return done(201, {
     url: `/uploads/${filename}`,
     size: data.length,
     mimeType,
-    created: !existing,
+    created: true,
   });
 }

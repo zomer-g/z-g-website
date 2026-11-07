@@ -276,7 +276,7 @@ export default function ApiKeysPage() {
             as articles (plilist:edit)
           </li>
           <li>GET/PUT /api/v1/milon/&lt;slug&gt; — create or update a dictionary entry, status included; no delete (milon:write)</li>
-          <li>PUT /api/v1/uploads/api-&lt;name&gt;.pdf — upload a PDF for a case file (cases:write)</li>
+          <li>PUT /api/v1/uploads/api-&lt;name&gt;.pdf — upload a new PDF for a case file; create-only, an existing name answers 409 (cases:write)</li>
           <li>
             PUT /api/v1/uploads/api-&lt;name&gt;.png|jpg|jpeg|webp — upload an image, e.g. a screenshot for a draft;
             type checked by its bytes, no SVG (cases:write or plilist:draft)
