@@ -190,6 +190,10 @@ export async function requireMediaAccess(
     where: { id: mediaId },
     select: {
       chat: { select: { workspaceId: true } },
+      // Guests see a file only through a message they may read: one an admin
+      // hid takes its attachment with it, and so does a ZIP entry no message
+      // refers to. Without this, a guest who had the media URL kept it.
+      messages: { where: { isHidden: false }, select: { id: true }, take: 1 },
     },
   });
   if (!meta) {
@@ -198,7 +202,8 @@ export async function requireMediaAccess(
     };
   }
   if (!access.isAdmin) {
-    const allowed = await canAccessWorkspace(meta.chat.workspaceId, access);
+    const allowed =
+      meta.messages.length > 0 && (await canAccessWorkspace(meta.chat.workspaceId, access));
     if (!allowed) {
       return {
         response: NextResponse.json({ error: "לא נמצא" }, { status: 404 }),
