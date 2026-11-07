@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   AUTH_CODE_TTL_SECONDS,
+  claimConsentOnce,
   hashToken,
   isAllowedRedirectUri,
   randomToken,
@@ -47,6 +48,13 @@ export async function POST(req: NextRequest) {
     return errorPage(
       "פג תוקף הבקשה",
       "פג תוקף בקשת האישור. התחל את חיבור ה-MCP מחדש מהכלי שלך.",
+    );
+  }
+
+  if (!claimConsentOnce(ticketRaw, ticket.exp)) {
+    return errorPage(
+      "הבקשה כבר טופלה",
+      "אישור זה כבר נוצל. אם החיבור לא הושלם, התחל את חיבור ה-MCP מחדש מהכלי שלך.",
     );
   }
 

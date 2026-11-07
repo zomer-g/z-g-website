@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { readJsonBody } from "@/lib/request-body";
 import {
   isAllowedRedirectUri,
   randomToken,
@@ -21,17 +22,37 @@ interface RegisterRequest {
   response_types?: string[];
 }
 
+// Registration is open to anyone, so it is bounded: a client needs a handful
+// of redirect URIs at most, and a real MCP client registers once per user.
+const MAX_REDIRECT_URIS = 5;
+const MAX_URI_LENGTH = 500;
+const MAX_CLIENT_NAME = 100;
+
 export async function POST(req: NextRequest) {
-  let body: RegisterRequest;
-  try {
-    body = (await req.json()) as RegisterRequest;
-  } catch {
+  const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
+  const limited = rateLimit(`mcp-register:${getClientIp(req)}`, { limit: 10, windowMs: 60 * 60_000 });
+  if (limited) return limited;
+
+  const parsed = await readJsonBody<RegisterRequest>(req, 16 * 1024);
+  if (!parsed.ok || !parsed.data || typeof parsed.data !== "object") {
     return NextResponse.json({ error: "invalid_client_metadata" }, { status: 400 });
   }
+  const body = parsed.data;
 
   const redirectUris = Array.isArray(body.redirect_uris)
     ? body.redirect_uris.filter((u): u is string => typeof u === "string")
     : [];
+  if (redirectUris.length > MAX_REDIRECT_URIS || redirectUris.some((u) => u.length > MAX_URI_LENGTH)) {
+    return NextResponse.json(
+      {
+        error: "invalid_redirect_uri",
+        error_description: `at most ${MAX_REDIRECT_URIS} redirect_uris of up to ${MAX_URI_LENGTH} characters`,
+      },
+      { status: 400 },
+    );
+  }
+  const clientName =
+    typeof body.client_name === "string" ? body.client_name.trim().slice(0, MAX_CLIENT_NAME) || null : null;
   if (redirectUris.length === 0) {
     return NextResponse.json(
       { error: "invalid_redirect_uri", error_description: "redirect_uris is required" },
@@ -55,7 +76,7 @@ export async function POST(req: NextRequest) {
   const created = await prisma.mcpOauthClient.create({
     data: {
       clientId,
-      clientName: body.client_name ?? null,
+      clientName,
       redirectUris,
     },
   });

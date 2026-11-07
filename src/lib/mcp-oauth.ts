@@ -55,18 +55,40 @@ export function siteOrigin(): string {
 
 // Derives the origin from the incoming request, honoring whatever host
 // the client actually reached us on (so subsequent requests don't get
-// cross-host redirected and lose their auth header).
+// cross-host redirected and lose their auth header) — but only among the
+// hosts that really serve this app. The OAuth metadata (issuer, token and
+// authorization endpoints) is built from it, so a forged X-Forwarded-Host
+// must not be able to point a client at someone else's server. Anything
+// else falls back to siteOrigin().
 import type { NextRequest } from "next/server";
+
+const OAUTH_HOSTS = new Set(
+  [
+    "www.z-g.co.il",
+    "z-g.co.il",
+    "z-g-website-zomerg.xhostd.app",
+    ...(process.env.MCP_OAUTH_EXTRA_HOSTS ?? "").split(","),
+  ]
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean),
+);
+const LOCAL_HOST_RE = /^(localhost|127\.0\.0\.1)(:\d+)?$/;
+
 export function originFromRequest(req: NextRequest): string {
-  const proto =
-    req.headers.get("x-forwarded-proto") ??
-    (req.nextUrl.protocol.replace(":", "")) ??
-    "https";
-  const host =
+  const host = (
     req.headers.get("x-forwarded-host") ??
     req.headers.get("host") ??
-    req.nextUrl.host;
-  return `${proto}://${host}`.replace(/\/$/, "");
+    req.nextUrl.host
+  )
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (LOCAL_HOST_RE.test(host) && process.env.NODE_ENV !== "production") {
+    const proto = req.headers.get("x-forwarded-proto") === "https" ? "https" : "http";
+    return `${proto}://${host}`;
+  }
+  if (OAUTH_HOSTS.has(host)) return `https://${host}`;
+  return siteOrigin();
 }
 
 export function randomToken(bytes = 32): string {
@@ -195,6 +217,22 @@ export function signConsent(payload: ConsentTicket): string {
 
 export function verifyConsent(token: string): ConsentTicket | null {
   return verifyPayload<ConsentTicket>("consent", token);
+}
+
+// Consent tickets are stateless, so without this one ticket could be POSTed
+// again and again within its lifetime, minting a new auth code each time.
+// Held in memory until the ticket's own expiry: the app runs one instance,
+// and a restart only matters for tickets issued in the last few minutes.
+const usedConsent = new Map<string, number>();
+
+/** True the first time a ticket is claimed, false on every later attempt. */
+export function claimConsentOnce(token: string, exp: number): boolean {
+  const now = Math.floor(Date.now() / 1000);
+  for (const [k, e] of usedConsent) if (e < now) usedConsent.delete(k);
+  const key = hashToken(token);
+  if (usedConsent.has(key)) return false;
+  usedConsent.set(key, exp);
+  return true;
 }
 
 // PKCE — we only accept S256 (plain is rejected by the OAuth 2.1 spec).

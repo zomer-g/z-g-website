@@ -19,5 +19,9 @@ export function GET(req: NextRequest) {
     code_challenge_methods_supported: ["S256"],
     token_endpoint_auth_methods_supported: ["none"],
     scopes_supported: ["mcp:foi-guide:read"],
+  }, {
+    // Built from the request's host: never let a shared cache hand one
+    // host's answer to another.
+    headers: { "Cache-Control": "no-store", Vary: "Host, X-Forwarded-Host" },
   });
 }
