@@ -105,6 +105,12 @@ export const config = {
     // handler never being invoked (no [mcp/foi-guide] logs despite live
     // traffic). well-known metadata endpoints are also static spec
     // documents — no need to involve session auth.
-    "/((?!_next/static|_next/image|favicon.ico|images|api/mcp|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)",
+    //
+    // /api/whatsapp and /api/timeline are excluded too. They take chat-export
+    // uploads of up to 300MB and check auth themselves, and Next.js hands a
+    // route behind a proxy at most 10MB of body (proxyClientMaxBodySize),
+    // silently cutting the rest — so a large export arrived as a broken ZIP.
+    // Raising that limit instead would buffer the whole upload in the proxy.
+    "/((?!_next/static|_next/image|favicon.ico|images|api/mcp|api/whatsapp|api/timeline|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)).*)",
   ],
 };
