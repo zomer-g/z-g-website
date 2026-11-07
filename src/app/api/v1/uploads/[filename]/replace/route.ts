@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readCappedBody } from "@/lib/request-body";
 import { logApiCall, requireApiKey } from "@/lib/api-keys";
 import { planReplace, replaceUpload } from "@/lib/upload-replace";
 import { isPdf, isReplaceableName, STAMP_RE } from "@/lib/upload-replace-names";
@@ -42,8 +43,12 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   const declared = Number(req.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > MAX_BYTES) return done(413, { error: "max 10MB" });
 
-  const data = new Uint8Array(await req.arrayBuffer());
-  if (data.length > MAX_BYTES) return done(413, { error: "max 10MB" });
+  const data = await readCappedBody(req, MAX_BYTES);
+  // `>=`, not `>`: proxy.ts runs on this route, and Next.js hands a route
+  // behind a proxy at most 10MB of body, silently cutting a longer chunked
+  // upload to exactly that length. A body of exactly the cap is therefore a
+  // truncated file, not a whole one, and must not be stored.
+  if (data === null || data.length >= MAX_BYTES) return done(413, { error: "max 10MB" });
   if (!isPdf(data)) return done(415, { error: "not a PDF" });
 
   try {

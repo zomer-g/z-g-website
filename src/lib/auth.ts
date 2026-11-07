@@ -108,9 +108,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (!user.email) return false;
       const email = user.email.toLowerCase();
+
+      // Every role and every guest grant here hangs on the email string, and
+      // both providers link accounts by it. Only accept an address Google
+      // says it verified, rather than assuming it always does.
+      if (profile?.email_verified !== true) return false;
 
       // Admin client: webmasters.readonly is a sensitive scope, so the
       // OAuth client is locked to Google Testing-mode test users. Reject

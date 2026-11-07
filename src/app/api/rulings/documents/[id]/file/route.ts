@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { upstreamFileResponse } from "@/lib/upstream-file";
 
 const UPSTREAM_BASE = process.env.TAGIT_API_URL || "https://tag-it.biz";
 
@@ -10,7 +11,7 @@ function getApiKey() {
  * Proxy a rulings PDF through our server so public visitors can view it
  * without TAG-IT session auth. Mirrors the class-actions file proxy pattern:
  * server attaches the X-API-Key, streams the upstream response back, and
- * forces inline Content-Disposition so the PDF renders in the browser.
+ * forces inline Content-Disposition for real PDFs (see src/lib/upstream-file.ts).
  */
 export async function GET(
   _req: NextRequest,
@@ -35,34 +36,16 @@ export async function GET(
     });
 
     if (!upstream.ok || !upstream.body) {
+      // The upstream error body stays in our logs, not in a public response.
       const detail = await upstream.text().catch(() => "");
+      console.error(`Rulings PDF proxy: upstream ${upstream.status} for ${id}:`, detail.slice(0, 200));
       return NextResponse.json(
-        {
-          error: "PDF unavailable",
-          upstreamStatus: upstream.status,
-          detail: detail.slice(0, 200),
-        },
+        { error: "PDF unavailable", upstreamStatus: upstream.status },
         { status: upstream.status === 401 ? 502 : upstream.status },
       );
     }
 
-    const headers = new Headers();
-    const ct = upstream.headers.get("content-type");
-    const cd = upstream.headers.get("content-disposition");
-    const cl = upstream.headers.get("content-length");
-    if (ct) headers.set("Content-Type", ct);
-    // Force `inline` so browsers render the PDF rather than download it.
-    if (cd) {
-      const filenameMatch = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-      const filenamePart = filenameMatch ? `; filename="${filenameMatch[1]}"` : "";
-      headers.set("Content-Disposition", `inline${filenamePart}`);
-    } else {
-      headers.set("Content-Disposition", "inline");
-    }
-    if (cl) headers.set("Content-Length", cl);
-    headers.set("Cache-Control", "private, no-store");
-
-    return new NextResponse(upstream.body, { status: 200, headers });
+    return await upstreamFileResponse(upstream);
   } catch (err) {
     console.error("Rulings PDF proxy error:", err);
     return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });

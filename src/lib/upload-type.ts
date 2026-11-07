@@ -6,6 +6,8 @@
  * it is XML that can carry script.
  */
 
+import { BACKUP_TAG } from "@/lib/upload-replace-names";
+
 export type UploadKind = "pdf" | "png" | "jpeg" | "webp";
 
 export const UPLOAD_MIME: Record<UploadKind, string> = {
@@ -19,6 +21,10 @@ export const UPLOAD_NAME_RE = /^api-[a-z0-9][a-z0-9._-]{0,100}\.(pdf|png|jpe?g|w
 
 /** The kind the filename promises, or null if the name is not acceptable. */
 export function kindFromName(filename: string): UploadKind | null {
+  // Backup names (<name>-pre-redaction-<date>.pdf) belong to the replace flow
+  // and hold the only unredacted original. A key that could create one ahead
+  // of time made replaceUpload skip the backup, losing the original.
+  if (filename.includes(BACKUP_TAG)) return null;
   const m = UPLOAD_NAME_RE.exec(filename);
   if (!m) return null;
   const ext = m[1];

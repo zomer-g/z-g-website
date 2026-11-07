@@ -418,7 +418,14 @@ function dataChecks(): CheckDef[] {
           : { ok: false, detail: "no kpis in the dashboard payload" };
       },
     },
-    { id: "data:content-pages", group: "data", target: "/api/pages", validate: (r) => positive("pages", json(r).length) },
+    // Admin-only since it carries drafts: an anonymous read must be refused.
+    {
+      id: "auth:content-pages-admin-only",
+      group: "auth",
+      target: "/api/pages",
+      expect: [401],
+      validate: () => ({ ok: true, detail: "401 to anonymous callers" }),
+    },
     { id: "data:content-posts", group: "data", target: "/api/posts", validate: (r) => positive("posts", json(r).posts?.length) },
     { id: "data:content-plilist", group: "data", target: "/api/plilist", validate: (r) => positive("posts", json(r).posts?.length) },
     { id: "data:content-services", group: "data", target: "/api/services", validate: (r) => positive("services", json(r).length) },

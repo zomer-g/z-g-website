@@ -109,7 +109,7 @@ const WRITE_ENDPOINTS: [string, string][] = [
   ["GET/PUT /api/v1/milon/<slug>", "יצירה ועדכון של ערך במילון (milon:write)"],
   ["PUT /api/v1/media-appearances", "הוספה ועדכון של פריט ברשימת הפרסומים (media:write)"],
   ["PUT /api/v1/case-documents", "הוספה ועדכון של מסמך בתיק של פוסט (cases:write)"],
-  ["PUT /api/v1/uploads/api-<name>.pdf", "העלאת PDF או תמונה בשם שמתחיל ב-api- (cases:write)"],
+  ["PUT /api/v1/uploads/api-<name>.pdf", "העלאת PDF או תמונה חדשים בשם שמתחיל ב-api- (cases:write; יצירה בלבד, שם קיים מחזיר 409)"],
   ["PUT /api/v1/uploads/<name>.pdf/replace", "החלפת PDF קיים בגרסה מושחרת; הגרסה הקודמת נשמרת כקובץ לא פומבי (uploads:replace)"],
 ];
 

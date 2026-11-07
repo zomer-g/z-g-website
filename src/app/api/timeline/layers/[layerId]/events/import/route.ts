@@ -18,6 +18,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminOnly } from "@/lib/timeline-auth";
+import { readCappedBody } from "@/lib/request-body";
+
+const MAX_IMPORT_BYTES = 300 * 1024 * 1024;
 import {
   parseCsv,
   parseJsonArray,
@@ -72,18 +75,23 @@ export async function POST(
 
   let result: ImportResult;
   try {
+    // Counted while reading: the whole body used to be buffered with no cap.
+    const bytes = await readCappedBody(req, MAX_IMPORT_BYTES);
+    if (bytes === null) {
+      return NextResponse.json(
+        { error: `הקובץ גדול מדי (מקסימום ${MAX_IMPORT_BYTES / 1024 / 1024}MB)` },
+        { status: 413 },
+      );
+    }
+    const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     if (kind === "json") {
-      const json = await req.json();
-      result = parseJsonArray(json);
+      result = parseJsonArray(JSON.parse(buf.toString("utf8")));
     } else if (kind === "csv") {
-      const text = await req.text();
-      result = parseCsv(text);
+      result = parseCsv(buf.toString("utf8"));
     } else if (kind === "xlsx") {
-      const buf = Buffer.from(await req.arrayBuffer());
       result = await parseXlsxBuffer(buf);
     } else {
       // zip — could be WhatsApp ZIP, or .xlsx mis-typed by the browser.
-      const buf = Buffer.from(await req.arrayBuffer());
       if (await isWhatsappZipShape(buf)) {
         result = await parseWhatsappZipForTimeline(buf);
       } else {

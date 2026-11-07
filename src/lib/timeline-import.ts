@@ -20,7 +20,7 @@
 
 import JSZip from "jszip";
 import * as XLSX from "xlsx";
-import { parseWhatsappZip } from "@/lib/whatsapp-zip";
+import { assertZipWithinLimits, parseWhatsappZip } from "@/lib/whatsapp-zip";
 
 export interface ImportEvent {
   timestamp: Date;
@@ -359,6 +359,15 @@ export function parseJsonArray(json: unknown): ImportResult {
 }
 
 export async function parseXlsxBuffer(buffer: Buffer): Promise<ImportResult> {
+  // An .xlsx is a zip archive, and XLSX.read inflates all of it: check the
+  // declared sizes first (reading only the central directory is cheap).
+  let zip: JSZip | null = null;
+  try {
+    zip = await JSZip.loadAsync(buffer);
+  } catch {
+    // Not a zip (e.g. legacy .xls): nothing to check here.
+  }
+  if (zip) assertZipWithinLimits(zip);
   const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { events: [], warnings: ["אין גיליונות בקובץ"] };
@@ -399,8 +408,16 @@ export async function parseWhatsappZipForTimeline(
 // XLSX archives contain `xl/workbook.xml`; WhatsApp archives contain
 // a `.txt` and never that path.
 export async function isWhatsappZipShape(buffer: Buffer): Promise<boolean> {
+  let zip: JSZip;
   try {
-    const zip = await JSZip.loadAsync(buffer);
+    zip = await JSZip.loadAsync(buffer);
+  } catch {
+    return false;
+  }
+  // Outside the try on purpose: an archive over the limits must fail the
+  // import, not fall through to the XLSX parser, which would inflate it.
+  assertZipWithinLimits(zip);
+  try {
     const names = Object.keys(zip.files);
     if (names.some((n) => n.toLowerCase().endsWith("xl/workbook.xml"))) {
       return false; // XLSX

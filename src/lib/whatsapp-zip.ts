@@ -19,6 +19,90 @@
 
 import JSZip from "jszip";
 
+// ── Zip-bomb limits ──
+// A chat export can be large (300MB upload cap), but a crafted archive of a
+// megabyte can claim tens of gigabytes once inflated and take the process
+// down. These bound what we are willing to inflate, whatever the entries
+// claim about themselves: sizes are counted while decompressing.
+export const ZIP_MAX_ENTRIES = 10_000;
+export const ZIP_MAX_ENTRY_BYTES = 100 * 1024 * 1024;
+export const ZIP_MAX_TOTAL_BYTES = 1024 * 1024 * 1024;
+
+const declaredSize = (f: JSZip.JSZipObject): number =>
+  (f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize ?? 0;
+
+/** Rejects an archive whose declared shape is already over the limits. */
+export function assertZipWithinLimits(zip: JSZip): void {
+  const files = Object.values(zip.files).filter((f) => !f.dir);
+  if (files.length > ZIP_MAX_ENTRIES) {
+    throw new Error(`ה-ZIP מכיל יותר מ-${ZIP_MAX_ENTRIES} קבצים`);
+  }
+  let total = 0;
+  for (const f of files) {
+    const n = declaredSize(f);
+    if (n > ZIP_MAX_ENTRY_BYTES) throw new Error(`קובץ בתוך ה-ZIP גדול מדי: ${f.name}`);
+    total += n;
+  }
+  if (total > ZIP_MAX_TOTAL_BYTES) throw new Error("תוכן ה-ZIP גדול מדי לאחר פריסה");
+}
+
+interface JSZipStream {
+  on(event: "data", cb: (chunk: Uint8Array) => void): JSZipStream;
+  on(event: "error", cb: (err: Error) => void): JSZipStream;
+  on(event: "end", cb: () => void): JSZipStream;
+  pause(): JSZipStream;
+  resume(): JSZipStream;
+}
+
+/**
+ * Inflate one entry, counting bytes as they come out: the declared size
+ * in the archive is attacker-controlled, so it is not the guarantee.
+ */
+function readEntryCapped(
+  entry: JSZip.JSZipObject,
+  budget: { left: number },
+): Promise<Uint8Array<ArrayBuffer>> {
+  return new Promise((resolve, reject) => {
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    let failed = false;
+    // internalStream is public JSZip API but missing from its type file.
+    const stream = (entry as unknown as {
+      internalStream(type: "uint8array"): JSZipStream;
+    }).internalStream("uint8array");
+    stream
+      .on("data", (chunk: Uint8Array) => {
+        if (failed) return;
+        size += chunk.length;
+        budget.left -= chunk.length;
+        if (size > ZIP_MAX_ENTRY_BYTES || budget.left < 0) {
+          failed = true;
+          stream.pause();
+          reject(new Error(`תוכן ה-ZIP גדול מדי לאחר פריסה (${entry.name})`));
+          return;
+        }
+        chunks.push(chunk);
+      })
+      .on("error", (err: Error) => {
+        if (!failed) {
+          failed = true;
+          reject(err);
+        }
+      })
+      .on("end", () => {
+        if (failed) return;
+        const out = new Uint8Array(size);
+        let off = 0;
+        for (const c of chunks) {
+          out.set(c, off);
+          off += c.length;
+        }
+        resolve(out);
+      })
+      .resume();
+  });
+}
+
 export interface ParsedMedia {
   filename: string;
   mimeType: string;
@@ -206,6 +290,8 @@ function detectAttachment(
 
 export async function parseWhatsappZip(buffer: Buffer): Promise<ParsedChat> {
   const zip = await JSZip.loadAsync(buffer);
+  assertZipWithinLimits(zip);
+  const budget = { left: ZIP_MAX_TOTAL_BYTES };
 
   // Locate the chat .txt. WhatsApp localises the filename ("WhatsApp Chat
   // with X.txt", "_chat.txt", "צ׳אט WhatsApp עם X.txt", and similar
@@ -250,7 +336,7 @@ export async function parseWhatsappZip(buffer: Buffer): Promise<ParsedChat> {
     );
   }
 
-  const rawText = await txtEntry.async("string");
+  const rawText = new TextDecoder("utf-8").decode(await readEntryCapped(txtEntry, budget));
   // Strip a BOM if present, then split into lines preserving order.
   const text = rawText.replace(/^﻿/, "");
   const lines = stripBidiAndNbsp(text).split(/\r?\n/);
@@ -268,15 +354,9 @@ export async function parseWhatsappZip(buffer: Buffer): Promise<ParsedChat> {
     if (entry.dir) continue;
     if (entry === txtEntry) continue;
     const filename = name.split(/[\\/]/).pop() ?? name;
-    // JSZip's "uint8array" output is typed `Uint8Array` (which TS treats
-    // as `Uint8Array<ArrayBufferLike>` — could be SharedArrayBuffer).
-    // Prisma's Bytes input requires `Uint8Array<ArrayBuffer>`. The
-    // `Uint8Array.from(iterable)` overload is specified to always
-    // allocate a fresh ArrayBuffer, so its return type is the strict
-    // `Uint8Array<ArrayBuffer>` we need. Pays one O(n) copy per file —
-    // negligible at our sizes.
-    const raw = await entry.async("uint8array");
-    const data = Uint8Array.from(raw);
+    // readEntryCapped returns a fresh ArrayBuffer-backed array, the strict
+    // `Uint8Array<ArrayBuffer>` Prisma's Bytes input requires.
+    const data = await readEntryCapped(entry, budget);
     media.push({
       filename,
       mimeType: mimeFor(filename),

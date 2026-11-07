@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/request-body";
 import { prisma } from "@/lib/prisma";
 import { hashToken, originFromRequest } from "@/lib/mcp-oauth";
 import { matchSharedToken } from "@/lib/mcp-shared-token";
@@ -595,6 +596,9 @@ function methodIsPublic(method: string): boolean {
   return PUBLIC_METHODS.has(method);
 }
 
+const MAX_RPC_BATCH = 20;
+const MAX_RPC_BODY_BYTES = 256 * 1024;
+
 export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") ?? "<none>";
   const authHeader = req.headers.get("authorization");
@@ -606,16 +610,23 @@ export async function POST(req: NextRequest) {
 
   // Parse body FIRST so we know whether this is an initialize call (which
   // is allowed without auth) or a tool call (which is not).
-  let body: JsonRpcRequest | JsonRpcRequest[];
-  try {
-    body = (await req.json()) as JsonRpcRequest | JsonRpcRequest[];
-  } catch {
+  const parsed = await readJsonBody<JsonRpcRequest | JsonRpcRequest[]>(req, MAX_RPC_BODY_BYTES);
+  if (!parsed.ok) {
     return NextResponse.json(
-      rpcError(null, -32700, "Parse error"),
+      rpcError(null, -32700, "Parse error or body too large"),
       { status: 400 },
     );
   }
+  const body = parsed.data;
   const requests: JsonRpcRequest[] = Array.isArray(body) ? body : [body];
+  // Each search may call a paid embedding API; one request must not carry
+  // an unbounded number of them.
+  if (requests.length > MAX_RPC_BATCH) {
+    return NextResponse.json(
+      rpcError(null, -32600, `Batch too large (max ${MAX_RPC_BATCH})`),
+      { status: 400 },
+    );
+  }
   const allPublic = requests.every(
     (r) => typeof r?.method === "string" && methodIsPublic(r.method),
   );

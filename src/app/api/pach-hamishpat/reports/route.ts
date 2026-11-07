@@ -7,6 +7,19 @@ import { PACH_CORS_HEADERS, pachCorsPreflight } from "@/lib/pach-public";
 // A status report's free-text description; a paragraph at most.
 const MAX_DESCRIPTION_LENGTH = 2000;
 
+// How long a public (non-admin) outage report can stay in effect. The public
+// widgets ask for 30 or 60 minutes; anything longer, scheduling and hiding
+// are admin powers.
+const MAX_PUBLIC_REPORT_MS = 60 * 60_000;
+
+/** A date from the request body: null when absent, undefined when invalid. */
+function parseDate(v: unknown): Date | null | undefined {
+  if (v === undefined || v === null || v === "") return null;
+  if (typeof v !== "string" && typeof v !== "number") return undefined;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
 /**
  * Ported from pach-hamishpat/server/routes/status-reports.js.
  *
@@ -127,19 +140,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "התיאור ארוך מדי" }, { status: 400 });
     }
 
-    const created = await prisma.pachReport.create({
-      data: {
+    const expiresAt = parseDate(body.expires_at);
+    const scheduledFrom = parseDate(body.scheduled_from);
+    const scheduledUntil = parseDate(body.scheduled_until);
+    if (expiresAt === undefined || scheduledFrom === undefined || scheduledUntil === undefined) {
+      return NextResponse.json({ error: "תאריך לא תקין" }, { status: 400 });
+    }
+
+    // Scheduling, hiding and open-ended outages are admin-only. Before this,
+    // one anonymous POST could hold the public board at "red" until 2099 or
+    // announce fake maintenance windows in the status API and the RSS feed.
+    let data;
+    if (isAdmin) {
+      data = {
         status,
         description,
-        // Trust admin status from the session, not from the client payload.
-        reporterType: isAdmin ? "admin" : "user",
-        expiresAt: body.expires_at ? new Date(body.expires_at) : null,
+        reporterType: "admin",
+        expiresAt,
         isHidden: !!body.is_hidden,
         isScheduled: !!body.is_scheduled,
-        scheduledFrom: body.scheduled_from ? new Date(body.scheduled_from) : null,
-        scheduledUntil: body.scheduled_until ? new Date(body.scheduled_until) : null,
-      },
-    });
+        scheduledFrom,
+        scheduledUntil,
+      };
+    } else {
+      const latest = new Date(Date.now() + MAX_PUBLIC_REPORT_MS);
+      data = {
+        status,
+        description,
+        reporterType: "user",
+        // A green report clears the board and has no expiry; an outage
+        // report lasts at most MAX_PUBLIC_REPORT_MS.
+        expiresAt:
+          status === "green" ? null : expiresAt && expiresAt < latest ? expiresAt : latest,
+        isHidden: false,
+        isScheduled: false,
+        scheduledFrom: null,
+        scheduledUntil: null,
+      };
+    }
+
+    const created = await prisma.pachReport.create({ data });
     return NextResponse.json(serialize(created));
   } catch (e) {
     console.error("POST /api/pach-hamishpat/reports", e);

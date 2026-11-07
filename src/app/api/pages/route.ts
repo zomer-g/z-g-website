@@ -8,6 +8,16 @@ import { ensureExtensionPagesExist } from "@/lib/extension-pages-manifest";
 
 export async function GET() {
   try {
+    // Admin-only: rows carry DRAFT pages and unpublished draftContent. The
+    // public site reads published content through src/lib/content.ts, not here.
+    const session = await auth();
+    if (session?.user?.role !== "ADMIN") {
+      return NextResponse.json(
+        { error: "נדרשת הזדהות לביצוע פעולה זו" },
+        { status: 401 },
+      );
+    }
+
     // Idempotently materialise the extension support pages on first call
     // after deploy, so the admin sees them in the list without a manual
     // seed step. No-op once the rows exist.

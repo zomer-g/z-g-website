@@ -86,3 +86,35 @@ export async function readJsonBody<T = unknown>(
     };
   }
 }
+
+/**
+ * The raw body as bytes, or null once it passes `maxBytes`. Counts while
+ * reading, so a chunked body with no Content-Length can't be buffered whole
+ * before the size check runs.
+ */
+export async function readCappedBody(req: Request, maxBytes: number): Promise<Uint8Array<ArrayBuffer> | null> {
+  if (!req.body) {
+    const buf = new Uint8Array(await req.arrayBuffer());
+    return buf.length > maxBytes ? null : buf;
+  }
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    out.set(c, off);
+    off += c.byteLength;
+  }
+  return out;
+}
