@@ -91,6 +91,12 @@ export const config = {
     // image extensions, and hidden files must be checked whatever their type.
     "/uploads/:path*",
     "/seed-uploads/:path*",
+    // Spellings of those paths the two lines above miss: percent-encoded
+    // (`/%75ploads/x.png`, `/uploads%2fx.png`), dot segments, or "uploads"
+    // anywhere in the path. The catch-all below skips image extensions, so
+    // without these an encoded image path never reached the private check.
+    "/(.*%.*)",
+    "/(.*[uU][pP][lL][oO][aA][dD][sS].*)",
     "/_next/image",
     // Exclude /api/mcp/* and /.well-known/* from middleware entirely.
     // The MCP server does its own Bearer auth check; running the NextAuth
