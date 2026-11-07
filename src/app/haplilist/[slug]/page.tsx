@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isAdminViewer } from "@/lib/admin-viewer";
+import { DraftBanner } from "@/components/admin/draft-banner";
 import { ChevronLeft, Calendar, User, ArrowLeft, FileText } from "lucide-react";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
@@ -45,7 +47,9 @@ async function getPost(slug: string) {
       include: { author: { select: { name: true } } },
     });
 
-    if (!post || post.status !== "PUBLISHED") return null;
+    if (!post) return null;
+    // Drafts are visible to admins only, for the editor's preview iframe.
+    if (post.status !== "PUBLISHED" && !(await isAdminViewer())) return null;
 
     return post;
   } catch {
@@ -95,6 +99,7 @@ export async function generateMetadata({
     title: { absolute: `${post.title} | הפליליסט הדיגיטלי` },
     description: post.excerpt || post.seoDesc || undefined,
     alternates: { canonical: `/haplilist/${slug}` },
+    ...(post.status !== "PUBLISHED" ? { robots: { index: false, follow: false } } : {}),
   };
 }
 
@@ -114,6 +119,7 @@ export default async function PlilistPostPage({ params }: PageProps) {
 
   return (
     <PublicLayout>
+      {post.status !== "PUBLISHED" ? <DraftBanner /> : null}
       {/* Breadcrumbs */}
       <nav aria-label="מיקום נוכחי" className="border-b border-border bg-muted-bg">
         <Container className="py-3">

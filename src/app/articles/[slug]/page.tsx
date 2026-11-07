@@ -19,6 +19,8 @@ import { getPageContent } from "@/lib/content";
 import type { ArticleDetailContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
 import { ArticleSchema, BreadcrumbSchema } from "@/components/seo/json-ld";
+import { isAdminViewer } from "@/lib/admin-viewer";
+import { DraftBanner } from "@/components/admin/draft-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +61,10 @@ async function getArticle(slug: string) {
       },
     });
 
-    if (!post || post.status !== "PUBLISHED") return null;
+    if (!post) return null;
+    // Drafts are visible to admins only — that is what the editor's preview
+    // iframe loads. Everyone else gets the 404.
+    if (post.status !== "PUBLISHED" && !(await isAdminViewer())) return null;
 
     return post;
   } catch {
@@ -140,7 +145,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   // seoDesc first: it is the field written for search results, and it was
   // being ignored whenever an excerpt existed (always).
+  const isDraft = article.status !== "PUBLISHED";
   return {
+    ...(isDraft ? { robots: { index: false, follow: false } } : {}),
     title: seoTitleOf(article.seoTitle, `${article.title} | מאמרים`),
     description: article.seoDesc || article.excerpt || undefined,
     openGraph: {
@@ -178,8 +185,11 @@ export default async function ArticleDetailPage({ params }: PageProps) {
     ? cms.strings.authorTemplate.replace("{category}", categoryLabel)
     : "";
 
+  const isDraft = article.status !== "PUBLISHED";
+
   return (
     <PublicLayout>
+      {isDraft ? <DraftBanner /> : null}
       <ArticleSchema
         title={article.title}
         description={article.seoDesc || article.excerpt || article.title}

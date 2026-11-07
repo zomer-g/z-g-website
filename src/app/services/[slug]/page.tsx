@@ -15,6 +15,8 @@ import { getPageContent } from "@/lib/content";
 import type { HomePageContent, ServiceDetailContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
 import { BreadcrumbSchema, ServiceSchema } from "@/components/seo/json-ld";
+import { isAdminViewer } from "@/lib/admin-viewer";
+import { DraftBanner } from "@/components/admin/draft-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -72,11 +74,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const service = await getService(slug);
 
-  if (!service || !service.isActive) {
+  // Inactive services are drafts: an admin may preview them, never indexed.
+  if (!service || (!service.isActive && !(await isAdminViewer()))) {
     return { title: "שירות לא נמצא" };
   }
 
   return {
+    ...(service.isActive ? {} : { robots: { index: false, follow: false } }),
     title: seoTitleOf(service.seoTitle, `${service.title} | תחומי עיסוק`),
     description: service.seoDesc || service.description,
   };
@@ -88,7 +92,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const service = await getService(slug);
 
-  if (!service || !service.isActive) {
+  if (!service || (!service.isActive && !(await isAdminViewer()))) {
     notFound();
   }
 
@@ -102,6 +106,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <PublicLayout>
+      {service.isActive ? null : <DraftBanner label="טיוטה — תחום עיסוק לא פעיל. רק מנהלי האתר רואים את העמוד הזה." />}
       <ServiceSchema
         url={`/services/${service.slug}`}
         name={service.title}
