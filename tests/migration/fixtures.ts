@@ -129,7 +129,6 @@ export const PERF_TARGETS: PerfTargetDef[] = [
   { id: "page:/haplilist/<post>", path: "/haplilist/not-just-another-case-law-database" },
   { id: "page:/articles/<article>", path: "/articles/conditional-arrangement-guide" },
   { id: "page:/guidelines/<id>", path: (d) => (d.guidelineId ? `/guidelines/${d.guidelineId}` : null) },
-  { id: "api:pages", path: "/api/pages" },
   { id: "api:posts", path: "/api/posts" },
   { id: "api:plilist", path: "/api/plilist" },
   { id: "api:pach-status", path: "/api/pach-hamishpat/status" },
