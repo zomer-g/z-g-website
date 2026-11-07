@@ -1,5 +1,6 @@
 import { JWT, OAuth2Client } from "google-auth-library";
 import { prisma } from "./prisma";
+import { decryptToken, encryptToken, isEncryptedToken } from "./token-crypto";
 
 /**
  * Google Search Console (Search Analytics) client.
@@ -93,7 +94,30 @@ async function getGoogleAccountForUser(userId: string): Promise<AccountTokens | 
       scope: true,
     },
   });
-  return account;
+  if (!account) return null;
+
+  // Tokens stored before encryption at rest was added: encrypt them in place
+  // now, so plain text doesn't linger until the admin's next sign-in.
+  const legacy =
+    (account.access_token && !isEncryptedToken(account.access_token)) ||
+    (account.refresh_token && !isEncryptedToken(account.refresh_token));
+  if (legacy) {
+    await prisma.account
+      .update({
+        where: { id: account.id },
+        data: {
+          access_token: encryptToken(account.access_token),
+          refresh_token: encryptToken(account.refresh_token),
+        },
+      })
+      .catch((err) => console.error("Failed to encrypt stored Google tokens:", err));
+  }
+
+  return {
+    ...account,
+    access_token: decryptToken(account.access_token),
+    refresh_token: decryptToken(account.refresh_token),
+  };
 }
 
 async function buildOAuthClientForUser(userId: string): Promise<OAuth2Client | null> {
@@ -120,8 +144,8 @@ async function buildOAuthClientForUser(userId: string): Promise<OAuth2Client | n
       .update({
         where: { id: account.id },
         data: {
-          access_token: tokens.access_token ?? undefined,
-          refresh_token: tokens.refresh_token ?? undefined,
+          access_token: encryptToken(tokens.access_token) ?? undefined,
+          refresh_token: encryptToken(tokens.refresh_token) ?? undefined,
           expires_at: tokens.expiry_date
             ? Math.floor(tokens.expiry_date / 1000)
             : undefined,

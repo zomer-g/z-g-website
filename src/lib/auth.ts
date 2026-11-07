@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import type { Adapter } from "next-auth/adapters";
 import { prisma } from "./prisma";
+import { encryptToken } from "./token-crypto";
 import type { AppRole } from "@/types/next-auth";
 
 /**
@@ -56,13 +58,27 @@ function resolveRole(email: string): AppRole {
   return isAdminEmail(email) ? "ADMIN" : "GUEST";
 }
 
+// The adapter writes the OAuth tokens on an account's first link; encrypt
+// them there, as the signIn callback below does on every later sign-in.
+const baseAdapter = PrismaAdapter(prisma);
+const adapter: Adapter = {
+  ...baseAdapter,
+  linkAccount: (account) =>
+    baseAdapter.linkAccount!({
+      ...account,
+      access_token: encryptToken(account.access_token) ?? undefined,
+      refresh_token: encryptToken(account.refresh_token) ?? undefined,
+      id_token: encryptToken(account.id_token) ?? undefined,
+    }),
+};
+
 const publicClientId = process.env.GOOGLE_CLIENT_ID_PUBLIC;
 const publicClientSecret = process.env.GOOGLE_CLIENT_SECRET_PUBLIC;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
+  adapter,
   providers: [
     // ── Admin provider (with Search Console access) ──
     Google({
@@ -143,15 +159,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             await prisma.account.update({
               where: { id: existing.id },
               data: {
-                access_token: account.access_token ?? undefined,
-                refresh_token: account.refresh_token ?? undefined,
+                access_token: encryptToken(account.access_token) ?? undefined,
+                refresh_token: encryptToken(account.refresh_token) ?? undefined,
                 expires_at:
                   typeof account.expires_at === "number"
                     ? account.expires_at
                     : undefined,
                 scope: account.scope ?? undefined,
                 token_type: account.token_type ?? undefined,
-                id_token: account.id_token ?? undefined,
+                id_token: encryptToken(account.id_token) ?? undefined,
               },
             });
           }

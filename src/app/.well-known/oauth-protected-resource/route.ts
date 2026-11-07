@@ -18,5 +18,9 @@ export function GET(req: NextRequest) {
     bearer_methods_supported: ["header"],
     scopes_supported: ["mcp:foi-guide:read"],
     resource_documentation: "https://z-g.co.il/foi-guide",
+  }, {
+    // Built from the request's host: never let a shared cache hand one
+    // host's answer to another.
+    headers: { "Cache-Control": "no-store", Vary: "Host, X-Forwarded-Host" },
   });
 }

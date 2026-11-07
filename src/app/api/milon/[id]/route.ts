@@ -9,7 +9,10 @@ export async function GET(
   const { id } = await params;
   try {
     const entry = await prisma.milonEntry.findUnique({ where: { id } });
-    if (!entry) return NextResponse.json({ error: "לא נמצא" }, { status: 404 });
+    // Drafts only to an admin, as in the list route.
+    if (!entry || (entry.status !== "PUBLISHED" && (await auth())?.user?.role !== "ADMIN")) {
+      return NextResponse.json({ error: "לא נמצא" }, { status: 404 });
+    }
     return NextResponse.json({ entry });
   } catch {
     return NextResponse.json({ error: "שגיאה" }, { status: 500 });
