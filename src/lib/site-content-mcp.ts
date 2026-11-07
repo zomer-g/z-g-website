@@ -770,7 +770,21 @@ export async function listDocuments(ref?: string, type?: string): Promise<Docume
 // Keyed by file name, and checked against the stored size on every read: a
 // file replaced in place (PUT /api/v1/uploads/<name>/replace, e.g. with a
 // re-redacted version) must never be answered from the old version's text.
+//
+// Bounded, least-recently-used first out: unbounded, every PDF a caller asked
+// for stayed in memory for the life of the process.
+const TEXT_CACHE_MAX = 40;
 const textCache = new Map<string, { size: number | null; text: PdfText }>();
+
+function cacheText(name: string, entry: { size: number | null; text: PdfText }) {
+  textCache.delete(name);
+  textCache.set(name, entry);
+  while (textCache.size > TEXT_CACHE_MAX) {
+    const oldest = textCache.keys().next().value;
+    if (oldest === undefined) break;
+    textCache.delete(oldest);
+  }
+}
 
 async function storedSize(name: string): Promise<number | null> {
   const row = await prisma.uploadedFile.findUnique({ where: { filename: name }, select: { size: true } });
@@ -838,8 +852,8 @@ export async function getDocumentText(
     const data = await readHostedFile(doc.id);
     if (!data) return { ok: false, error: "הקובץ לא נמצא בשרת." };
     cached = { size, text: await extractPdfText(data) };
-    textCache.set(doc.id, cached);
   }
+  cacheText(doc.id, cached);
   const parsed = cached.text;
 
   const total = parsed.totalPages;

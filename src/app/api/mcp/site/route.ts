@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readJsonBody } from "@/lib/request-body";
 import { prisma } from "@/lib/prisma";
 import {
   CONTENT_TYPES,
@@ -410,18 +411,28 @@ async function handleRpc(req: JsonRpcRequest): Promise<JsonRpcResponse | null> {
   }
 }
 
+const MAX_RPC_BATCH = 20;
+const MAX_RPC_BODY_BYTES = 256 * 1024;
+
 export async function POST(req: NextRequest) {
   const { rateLimit, getClientIp } = await import("@/lib/rate-limit");
   const limited = rateLimit(`mcp-site:${getClientIp(req)}`, { limit: 120, windowMs: 60_000 });
   if (limited) return limited;
 
-  let body: JsonRpcRequest | JsonRpcRequest[];
-  try {
-    body = (await req.json()) as JsonRpcRequest | JsonRpcRequest[];
-  } catch {
-    return NextResponse.json(rpcError(null, -32700, "Parse error"), { status: 400, headers: CORS });
+  const parsed = await readJsonBody<JsonRpcRequest | JsonRpcRequest[]>(req, MAX_RPC_BODY_BYTES);
+  if (!parsed.ok) {
+    return NextResponse.json(rpcError(null, -32700, "Parse error or body too large"), { status: 400, headers: CORS });
   }
+  const body = parsed.data;
   const requests = Array.isArray(body) ? body : [body];
+  // The rate limit counts HTTP requests, so an uncapped batch turned one
+  // allowed request into thousands of tool calls.
+  if (requests.length > MAX_RPC_BATCH) {
+    return NextResponse.json(rpcError(null, -32600, `Batch too large (max ${MAX_RPC_BATCH})`), {
+      status: 400,
+      headers: CORS,
+    });
+  }
   const responses: JsonRpcResponse[] = [];
   for (const r of requests) {
     if (!r || r.jsonrpc !== "2.0" || typeof r.method !== "string") {
