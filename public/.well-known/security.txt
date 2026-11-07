@@ -1,0 +1,4 @@
+Contact: mailto:guy@z-g.co.il
+Expires: 2027-11-07T00:00:00.000Z
+Preferred-Languages: he, en
+Canonical: https://www.z-g.co.il/.well-known/security.txt

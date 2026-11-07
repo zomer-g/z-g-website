@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { documentChunks, documentSitemap } from "@/lib/sitemap-documents";
+import { escapeXml } from "@/lib/pach-public";
 
 /**
  * Document sitemaps, one slice per URL: /sitemap-docs/0.xml … /sitemap-docs/5.xml
@@ -20,9 +21,9 @@ function xml(urls: { url: string; lastModified?: Date | string }[]): string {
       const last = u.lastModified
         ? `<lastmod>${new Date(u.lastModified).toISOString().slice(0, 10)}</lastmod>`
         : "";
-      // The titles these point at are Hebrew, but the URLs are numeric ids —
-      // no escaping beyond the ampersand is needed, and there are none.
-      return `<url><loc>${u.url}</loc>${last}<changefreq>yearly</changefreq><priority>0.5</priority></url>`;
+      // The URLs are numeric ids today; escaped anyway so a future source of
+      // URLs can't break (or inject into) the XML.
+      return `<url><loc>${escapeXml(u.url)}</loc>${last}<changefreq>yearly</changefreq><priority>0.5</priority></url>`;
     })
     .join("");
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`;

@@ -36,6 +36,8 @@ const contentSecurityPolicy = {
 };
 
 const nextConfig: NextConfig = {
+  // No "X-Powered-By: Next.js": it tells a scanner which advisories to try.
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       {
@@ -62,6 +64,18 @@ const nextConfig: NextConfig = {
       {
         source: "/((?!api/mcp/foi-guide/oauth/callback).*)",
         headers: [contentSecurityPolicy],
+      },
+      // SVGs committed under public/ are served statically, past the
+      // /uploads route's own header: same sandbox, so one opened directly
+      // can't run script on this origin.
+      {
+        source: "/:dir(uploads|seed-uploads)/:file*.svg",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:",
+          },
+        ],
       },
       // ── Back/forward cache ──
       //

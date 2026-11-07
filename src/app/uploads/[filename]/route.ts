@@ -53,6 +53,13 @@ function fileResponse(
       // an admin is viewing must not land in any shared cache at all.
       "Cache-Control": isPrivate ? "private, no-store" : "public, max-age=3600",
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      // An SVG is a document that can run script, and this is the site's own
+      // origin: opened directly, it must not be able to act as the site.
+      // `sandbox` keeps it rendering as an image but with no script and a
+      // unique origin. Inside an <img> it renders the same either way.
+      ...(contentType === "image/svg+xml"
+        ? { "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:" }
+        : {}),
     },
   });
 }
