@@ -45,6 +45,9 @@ const draftSchema = z
   })
   .strict();
 
+/** Rolls the transaction back when the post stopped being a draft mid-write. */
+class DraftNoLongerDraft extends Error {}
+
 function slugOk(slug: string) {
   return slug.length <= 120 && SLUG_RE.test(slug);
 }
@@ -55,7 +58,9 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   const { slug } = await ctx.params;
   const post = slugOk(slug) ? await prisma.plilistPost.findUnique({ where: { slug } }) : null;
-  if (!post) return NextResponse.json({ error: "not found" }, { status: 404 });
+  // ARCHIVED posts were taken down by an admin; a drafting key has no use
+  // for them and they are not public, so they read as missing.
+  if (!post || post.status === "ARCHIVED") return NextResponse.json({ error: "not found" }, { status: 404 });
 
   return NextResponse.json(
     {
@@ -105,8 +110,31 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   const data = { ...fields, content: content as object };
 
   if (existing) {
-    const post = await prisma.plilistPost.update({ where: { id: existing.id }, data });
-    return done(200, { id: post.id, slug: post.slug, status: post.status, created: false, adminUrl: `/admin/plilist/${post.id}` });
+    // One transaction, and the write itself requires status DRAFT: the check
+    // above can be stale by the time we write if an admin publishes in
+    // between, and a draft key must never overwrite a published post. The
+    // replaced version is kept as a revision, as the /edit route does.
+    const result = await prisma.$transaction(async (tx) => {
+      const current = await tx.plilistPost.findUnique({ where: { id: existing.id } });
+      if (!current || current.status !== "DRAFT") return null;
+      await tx.plilistRevision.create({
+        data: {
+          postId: current.id,
+          title: current.title,
+          excerpt: current.excerpt,
+          content: current.content as object,
+          replacedBy: `api:${caller.keyId}`,
+        },
+      });
+      const { count } = await tx.plilistPost.updateMany({ where: { id: current.id, status: "DRAFT" }, data });
+      if (count === 0) throw new DraftNoLongerDraft();
+      return current.id;
+    }).catch((err) => {
+      if (err instanceof DraftNoLongerDraft) return null;
+      throw err;
+    });
+    if (!result) return done(409, { error: "post is no longer a DRAFT; the API only edits drafts" });
+    return done(200, { id: result, slug, status: "DRAFT", created: false, adminUrl: `/admin/plilist/${result}` });
   }
 
   const authorId = caller.createdBy;
