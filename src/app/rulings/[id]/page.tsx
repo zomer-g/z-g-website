@@ -3,6 +3,18 @@ import { notFound } from "next/navigation";
 import PublicLayout from "@/components/layout/public-layout";
 import { Container } from "@/components/ui/container";
 import { RulingDetail, type DetailRuling } from "./ruling-detail";
+import { BreadcrumbSchema, DocumentSchema } from "@/components/seo/json-ld";
+import { RelatedDocs } from "@/components/seo/related-docs";
+import { practiceLinksForScope, relatedRulings, rulingDescription } from "@/lib/seo-docs";
+
+// Appended to the <title>, so a search result says what kind of document this
+// is — the bare case name ("ת"א 62612-10-24 פלוני נ' אלמוני") says nothing to
+// someone searching for defamation case law.
+const SCOPE_TITLE_LABEL: Record<number, string> = {
+  4: "פסק דין בלשון הרע",
+  6: "פסק דין בחופש מידע",
+  1: "גזר דין בעבירות סמים",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +126,7 @@ async function getRuling(id: number): Promise<DetailRuling | null> {
     documentUrl: `/api/rulings/documents/${Number(doc.id ?? id)}/file`,
     parentSlug: parent?.slug ?? null,
     parentTitle: parent?.title ?? null,
+    scopeId: scope,
   };
 }
 
@@ -129,10 +142,11 @@ export async function generateMetadata({
   }
   const ruling = await getRuling(id);
   if (!ruling) return { title: `פסק דין ${id}` };
-  const desc = (ruling.summary || "").replace(/\s+/g, " ").trim().slice(0, 160);
+  const label = ruling.scopeId ? SCOPE_TITLE_LABEL[ruling.scopeId] : undefined;
   return {
-    title: `${ruling.caseName}`,
-    description: desc || "פסק דין ממאגר הפסיקה.",
+    title: label ? `${ruling.caseName} | ${label}` : ruling.caseName,
+    description: rulingDescription(ruling),
+    openGraph: { type: "article" },
   };
 }
 
@@ -147,10 +161,51 @@ export default async function RulingDetailPage({
   const ruling = await getRuling(id);
   if (!ruling) notFound();
 
+  // Neighbour links only within the corpora that are public in full (the same
+  // two the document sitemaps list). Scope 1's public listing is a filtered
+  // subset; chaining through its neighbours would expose the rest.
+  const related =
+    ruling.scopeId === 4 || ruling.scopeId === 6
+      ? await relatedRulings(ruling.scopeId, ruling.id)
+      : [];
+  const url = `/rulings/${ruling.id}`;
+  const crumbs = [
+    { name: "ראשי", url: "/" },
+    ...(ruling.parentSlug && ruling.parentTitle
+      ? [{ name: ruling.parentTitle, url: ruling.parentSlug }]
+      : []),
+    { name: ruling.caseName, url },
+  ];
+
   return (
     <PublicLayout>
+      <BreadcrumbSchema items={crumbs} />
+      <DocumentSchema
+        url={url}
+        name={ruling.caseName}
+        description={ruling.summary || undefined}
+        datePublished={ruling.date || undefined}
+        issuer={ruling.court || undefined}
+        issuerIsGovernment
+        genre={ruling.scopeId ? SCOPE_TITLE_LABEL[ruling.scopeId] : undefined}
+        collection={
+          ruling.parentSlug && ruling.parentTitle
+            ? { name: ruling.parentTitle, url: ruling.parentSlug }
+            : undefined
+        }
+      />
       <Container className="py-8">
         <RulingDetail ruling={ruling} />
+        <RelatedDocs
+          practice={ruling.scopeId ? practiceLinksForScope(ruling.scopeId) : []}
+          related={related}
+          relatedHeading="פסקי דין נוספים במאגר"
+          collection={
+            ruling.parentSlug && ruling.parentTitle
+              ? { href: ruling.parentSlug, label: `לכל ה${ruling.parentTitle}` }
+              : undefined
+          }
+        />
       </Container>
     </PublicLayout>
   );

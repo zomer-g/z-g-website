@@ -18,6 +18,7 @@ import { TipTapRenderer } from "@/components/tiptap-renderer";
 import { getPageContent } from "@/lib/content";
 import type { ArticleDetailContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
+import { ArticleSchema, BreadcrumbSchema } from "@/components/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,16 @@ async function getRelatedArticles(currentSlug: string, category?: string | null)
 
 /* ─── Dynamic Metadata ─── */
 
+// The root layout appends "| עו"ד גיא זומר" to every title. A hand-written
+// seoTitle that already carries the name would get it twice, so take those
+// as the whole title.
+function seoTitleOf(seoTitle: string | null | undefined, fallback: string): Metadata["title"] {
+  const t = seoTitle?.trim();
+  if (!t) return fallback;
+  return t.includes("זומר") ? { absolute: t } : t;
+}
+
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -127,9 +138,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "מאמר לא נמצא" };
   }
 
+  // seoDesc first: it is the field written for search results, and it was
+  // being ignored whenever an excerpt existed (always).
   return {
-    title: `${article.title} | מאמרים`,
-    description: article.excerpt || article.seoDesc || undefined,
+    title: seoTitleOf(article.seoTitle, `${article.title} | מאמרים`),
+    description: article.seoDesc || article.excerpt || undefined,
+    openGraph: {
+      type: "article",
+      publishedTime: article.publishedAt?.toISOString(),
+      modifiedTime: article.updatedAt.toISOString(),
+      authors: ["עו\"ד גיא זומר"],
+    },
   };
 }
 
@@ -161,6 +180,21 @@ export default async function ArticleDetailPage({ params }: PageProps) {
 
   return (
     <PublicLayout>
+      <ArticleSchema
+        title={article.title}
+        description={article.seoDesc || article.excerpt || article.title}
+        datePublished={(article.publishedAt ?? article.createdAt).toISOString()}
+        dateModified={article.updatedAt.toISOString()}
+        url={`/articles/${article.slug}`}
+        category={categoryLabel || undefined}
+      />
+      <BreadcrumbSchema
+        items={[
+          { name: "ראשי", url: "/" },
+          { name: "מאמרים", url: "/articles" },
+          { name: article.title, url: `/articles/${article.slug}` },
+        ]}
+      />
       {/* Breadcrumbs */}
       <nav
         aria-label="מיקום נוכחי"

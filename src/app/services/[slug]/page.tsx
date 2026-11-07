@@ -14,6 +14,7 @@ import { TipTapRenderer } from "@/components/tiptap-renderer";
 import { getPageContent } from "@/lib/content";
 import type { HomePageContent, ServiceDetailContent } from "@/types/content";
 import { EditableSection } from "@/components/admin/editable-section";
+import { BreadcrumbSchema, ServiceSchema } from "@/components/seo/json-ld";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,16 @@ async function getRelatedServices(currentSlug: string) {
 
 /* ─── Dynamic Metadata ─── */
 
+// The root layout appends "| עו"ד גיא זומר" to every title. A hand-written
+// seoTitle that already carries the name would get it twice, so take those
+// as the whole title.
+function seoTitleOf(seoTitle: string | null | undefined, fallback: string): Metadata["title"] {
+  const t = seoTitle?.trim();
+  if (!t) return fallback;
+  return t.includes("זומר") ? { absolute: t } : t;
+}
+
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -66,7 +77,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${service.seoTitle || service.title} | תחומי עיסוק`,
+    title: seoTitleOf(service.seoTitle, `${service.title} | תחומי עיסוק`),
     description: service.seoDesc || service.description,
   };
 }
@@ -91,6 +102,18 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   return (
     <PublicLayout>
+      <ServiceSchema
+        url={`/services/${service.slug}`}
+        name={service.title}
+        description={service.seoDesc || service.description}
+      />
+      <BreadcrumbSchema
+        items={[
+          { name: "ראשי", url: "/" },
+          { name: "תחומי עיסוק", url: "/services" },
+          { name: service.title, url: `/services/${service.slug}` },
+        ]}
+      />
       {/* Breadcrumbs */}
       <nav
         aria-label="מיקום נוכחי"

@@ -362,3 +362,97 @@ export function WebSiteSchema() {
 
   return <JsonLd data={data} />;
 }
+
+/* ─── Document Schema (rulings, guidelines) ─── */
+
+interface DocumentSchemaProps {
+  url: string;
+  name: string;
+  description?: string;
+  datePublished?: string;
+  /** The court or authority that issued the document. */
+  issuer?: string;
+  issuerIsGovernment?: boolean;
+  identifier?: string;
+  /** The listing this document belongs to, e.g. /defamation-rulings. */
+  collection?: { name: string; url: string };
+  genre?: string;
+}
+
+/**
+ * Court rulings and enforcement guidelines are not articles this site wrote,
+ * so they get a plain CreativeWork whose author is the court/authority, not
+ * the Article-by-the-attorney markup — claiming authorship of a judgment would
+ * be both wrong and the kind of mismatch that gets markup ignored.
+ */
+export function DocumentSchema({
+  url,
+  name,
+  description,
+  datePublished,
+  issuer,
+  issuerIsGovernment,
+  identifier,
+  collection,
+  genre,
+}: DocumentSchemaProps) {
+  const abs = url.startsWith("http") ? url : `${SITE_URL}${url}`;
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    "@id": `${abs}#document`,
+    name,
+    headline: name.length > 110 ? `${name.slice(0, 109)}…` : name,
+    url: abs,
+    inLanguage: "he",
+    mainEntityOfPage: abs,
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    isPartOf: collection
+      ? {
+          "@type": "CollectionPage",
+          name: collection.name,
+          url: collection.url.startsWith("http") ? collection.url : `${SITE_URL}${collection.url}`,
+        }
+      : { "@id": `${SITE_URL}/#website` },
+  };
+  if (description) data.abstract = description;
+  if (genre) data.genre = genre;
+  if (identifier) data.identifier = identifier;
+  if (datePublished && !Number.isNaN(new Date(datePublished).getTime())) {
+    data.datePublished = new Date(datePublished).toISOString().slice(0, 10);
+  }
+  if (issuer) {
+    data.author = { "@type": issuerIsGovernment ? "GovernmentOrganization" : "Organization", name: issuer };
+  }
+  return <JsonLd data={data} />;
+}
+
+/* ─── Service Schema (practice-area pages) ─── */
+
+export function ServiceSchema({
+  url,
+  name,
+  description,
+}: {
+  url: string;
+  name: string;
+  description: string;
+}) {
+  const abs = url.startsWith("http") ? url : `${SITE_URL}${url}`;
+  return (
+    <JsonLd
+      data={{
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${abs}#service`,
+        name,
+        serviceType: name,
+        description,
+        url: abs,
+        inLanguage: "he",
+        areaServed: { "@type": "Country", name: "ישראל" },
+        provider: { "@id": `${SITE_URL}/#organization` },
+      }}
+    />
+  );
+}

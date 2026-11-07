@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "./prisma";
 import { SITE_ORIGIN } from "./site";
+import { safeLastModified } from "./seo-text";
 
 /**
  * The document half of the sitemap.
@@ -36,7 +37,7 @@ let planCache: { at: number; chunks: Chunk[] } | null = null;
  * as "ללא שם" is a thin result, and asking Google to crawl thousands of them
  * is worse than not asking at all.
  */
-const RULING_HAS_TITLE = `COALESCE(
+export const RULING_HAS_TITLE = `COALESCE(
   NULLIF(TRIM(data::jsonb->'ai'->>'שם_התיק'), ''),
   NULLIF(TRIM(data::jsonb->'meta'->>'case_name'), ''),
   NULLIF(TRIM(data::jsonb->>'case_name'), ''),
@@ -123,7 +124,7 @@ export async function documentSitemap(index: number): Promise<MetadataRoute.Site
       });
       return rows.map((r) => ({
         url: `${SITE_ORIGIN}/guidelines/${r.id}`,
-        lastModified: r.documentDate ?? undefined,
+        lastModified: safeLastModified(r.documentDate),
         changeFrequency: "yearly" as const,
         priority: 0.5,
       }));
@@ -142,7 +143,7 @@ export async function documentSitemap(index: number): Promise<MetadataRoute.Site
     );
     return rows.map((r) => ({
       url: `${SITE_ORIGIN}/rulings/${r.doc_id}`,
-      lastModified: r.document_date ?? undefined,
+      lastModified: safeLastModified(r.document_date),
       changeFrequency: "yearly" as const,
       priority: 0.5,
     }));

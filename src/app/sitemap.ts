@@ -24,7 +24,9 @@ const staticEntry = (
   priority: number,
 ): Entry => ({
   url: path === "" ? SITE_URL : `${SITE_URL}${path}`,
-  lastModified: new Date(),
+  // No lastModified. It was `new Date()`, so every page claimed to have
+  // changed at the moment of every fetch; Google learns to ignore a lastmod
+  // that is always "now", and then ignores the real ones (articles) too.
   changeFrequency,
   priority,
 });

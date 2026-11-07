@@ -26,6 +26,8 @@ export interface DetailRuling {
   // it belongs to.
   parentSlug: string | null;
   parentTitle: string | null;
+  /** TAG-IT scope the document was found in (4 defamation, 6 FOI, 1 drugs). */
+  scopeId?: number;
 }
 
 function fmtDate(s: string): string {
