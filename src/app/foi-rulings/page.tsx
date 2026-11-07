@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 /**
  * /foi-rulings was split into two specialised pages:
@@ -10,5 +10,5 @@ import { redirect } from "next/navigation";
  * land on the closest successor.
  */
 export default function FoiRulingsRedirect(): never {
-  redirect("/foi-judgments");
+  permanentRedirect("/foi-judgments");
 }

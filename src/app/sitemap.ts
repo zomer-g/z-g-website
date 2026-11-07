@@ -62,7 +62,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/pach-hamishpat", "hourly", 0.8),
     staticEntry("/haplilist", "weekly", 0.7),
     staticEntry("/drug-sentencing", "weekly", 0.7),
-    staticEntry("/foi-rulings", "weekly", 0.7),
     staticEntry("/comptroller-reports", "weekly", 0.7),
     staticEntry("/mmm", "weekly", 0.7),
     staticEntry("/dictionary", "monthly", 0.6),
