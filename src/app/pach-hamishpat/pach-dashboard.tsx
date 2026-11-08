@@ -237,9 +237,12 @@ export function PachDashboard({
   }, [reports, comments, daysToShow]);
 
   return (
-    <div dir="rtl" className="grid lg:grid-cols-4 gap-8">
+    // grid-cols-1 on mobile: without an explicit column the implicit track is
+    // sized to its content and pushed the page 6px past a phone's edge.
+    // pb-28 keeps the floating buttons below from covering the last items.
+    <div dir="rtl" className="grid grid-cols-1 lg:grid-cols-4 gap-8 pb-28 lg:pb-0">
       {/* Main column: status indicator + report controls + timeline */}
-      <div className="lg:col-span-3 space-y-10">
+      <div className="lg:col-span-3 space-y-10 min-w-0">
         <StatusBanner status={currentStatus} text={statusText} />
 
         <AutoRefreshToggle
@@ -307,7 +310,7 @@ export function PachDashboard({
       </div>
 
       {/* Sidebar: system messages */}
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-1 min-w-0">
         <SystemMessagesPanel messages={messages} />
       </div>
 
@@ -316,16 +319,17 @@ export function PachDashboard({
       <div className="fixed bottom-6 left-6 sm:bottom-8 sm:left-8 z-40 flex flex-col items-stretch gap-3">
         <Link
           href="/pach-hamishpat/personal-area"
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-bold text-white shadow-2xl transition focus:ring-4 focus:ring-red-300"
+          className="inline-flex h-12 w-12 sm:h-auto sm:w-auto items-center justify-center gap-1.5 rounded-full bg-red-600 hover:bg-red-700 sm:px-4 sm:py-2.5 text-sm font-bold text-white shadow-2xl transition focus:ring-4 focus:ring-red-300"
           aria-label="לפתיחת האזור האישי החדש"
         >
-          <UserIcon className="h-4 w-4" />
-          <span>אזור אישי חדש</span>
+          <UserIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+          {/* Icon only on phones, where the label covered the report buttons. */}
+          <span className="hidden sm:inline">אזור אישי חדש</span>
         </Link>
         <button
           type="button"
           onClick={() => setShowWhatsApp(true)}
-          className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:ring-4 focus:ring-green-300 self-start"
+          className="inline-flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-green-500 hover:bg-green-600 text-white shadow-2xl transition transform hover:scale-110 focus:ring-4 focus:ring-green-300 self-start"
           aria-label="לפתיחת חלון הצ׳אט"
         >
           <MessageCircle className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />

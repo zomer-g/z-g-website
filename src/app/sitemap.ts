@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
+import { getPageContent } from "@/lib/content";
+import type { MmmPageContent } from "@/types/content";
 
 // Was a second hardcoded copy of the domain — and the bare form, while the
 // site serves www. Structured data and the sitemap must name the same URL the
@@ -63,7 +65,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/haplilist", "weekly", 0.7),
     staticEntry("/drug-sentencing", "weekly", 0.7),
     staticEntry("/comptroller-reports", "weekly", 0.7),
-    staticEntry("/mmm", "weekly", 0.7),
     staticEntry("/dictionary", "monthly", 0.6),
     staticEntry("/letz", "monthly", 0.6),
     staticEntry("/govscraper", "monthly", 0.5),
@@ -143,5 +144,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ignore
   }
 
-  return [...staticPages, ...servicePages, ...articlePages, ...plilistPages];
+  /* ── /mmm: listed only while it is public ── */
+
+  // The page 404s unless its CMS content has isPublic on (it is admin-only
+  // today). Listing it unconditionally submitted a 404 to Google.
+  let mmmPages: MetadataRoute.Sitemap = [];
+  try {
+    const mmm = await getPageContent<MmmPageContent>("mmm");
+    if (mmm.isPublic) mmmPages = [staticEntry("/mmm", "weekly", 0.7)];
+  } catch {
+    // ignore
+  }
+
+  return [...staticPages, ...servicePages, ...articlePages, ...plilistPages, ...mmmPages];
 }

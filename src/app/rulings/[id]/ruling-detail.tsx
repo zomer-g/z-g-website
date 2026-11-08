@@ -53,10 +53,15 @@ function Badge({ children }: { children: React.ReactNode }) {
 }
 
 export function RulingDetail({ ruling }: { ruling: DetailRuling }) {
+  // 0 means "none recorded", not an award of 0 ₪ — showing it read as a finding.
   const comp =
     typeof ruling.compensation === "number"
-      ? ruling.compensation.toLocaleString("he-IL") + " ₪"
-      : ruling.compensation || "";
+      ? ruling.compensation > 0
+        ? ruling.compensation.toLocaleString("he-IL") + " ₪"
+        : ""
+      : ruling.compensation && !/^0+(\.0+)?$/.test(String(ruling.compensation).trim())
+        ? ruling.compensation
+        : "";
 
   const parentSlug = ruling.parentSlug;
   const parentTitle = ruling.parentTitle;
