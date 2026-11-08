@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { LegislationLink } from "@/types/content";
 import { LegislationMenu } from "@/components/ui/legislation-menu";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 interface Ruling {
   id: number;
@@ -2201,16 +2202,21 @@ export function RulingsList({
         </div>
       ) : null}
       {showFilterBar ? (
-        <FilterBar
-          fields={filterFields}
-          options={filterOptions}
-          draft={draftFilters}
-          setDraft={setDraftFilters}
-          onApply={applyFilters}
-          onClear={clearFilters}
-          legislation={legislation}
-          lawSectionFilter={lawSectionFilter}
-        />
+        <MobileFilters>
+          <MobileFiltersButton className="mb-4" />
+          <div className="mf-collapse">
+            <FilterBar
+              fields={filterFields}
+              options={filterOptions}
+              draft={draftFilters}
+              setDraft={setDraftFilters}
+              onApply={applyFilters}
+              onClear={clearFilters}
+              legislation={legislation}
+              lawSectionFilter={lawSectionFilter}
+            />
+          </div>
+        </MobileFilters>
       ) : null}
 
       {/* Results header + sort control */}

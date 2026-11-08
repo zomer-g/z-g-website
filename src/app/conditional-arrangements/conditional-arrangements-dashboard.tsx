@@ -9,6 +9,7 @@ import type {
   ArrangementSource,
 } from "@/types/conditional-arrangement";
 import { DateInputIL } from "@/components/ui/date-input-il";
+import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 // 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -520,6 +521,7 @@ export function ConditionalArrangementsDashboard({
 
   return (
     <div dir="rtl">
+      <MobileFilters>
       {/* ── Filters ── */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
 
@@ -576,8 +578,10 @@ export function ConditionalArrangementsDashboard({
           />
         </div>
 
+        <MobileFiltersButton className="mb-3" />
+
         {/* Secondary filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="mf-collapse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label htmlFor="ca-date-from" className="block text-xs font-semibold text-gray-700 mb-1">
               מתאריך
@@ -646,6 +650,8 @@ export function ConditionalArrangementsDashboard({
           </button>
         </div>
       </div>
+
+      </MobileFilters>
 
       {/* ── Results header ── */}
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">

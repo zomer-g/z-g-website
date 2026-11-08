@@ -11,6 +11,7 @@ import {
 import type { ComptrollerReport } from "@/types/comptroller-report";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 // 12 = LCM(1, 2, 3) × 2 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -495,6 +496,7 @@ export function ComptrollerDashboard() {
 
   return (
     <div dir="rtl">
+      <MobileFilters>
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         {/* Free-text search */}
@@ -518,8 +520,10 @@ export function ComptrollerDashboard() {
           />
         </div>
 
+        <MobileFiltersButton className="mb-3" />
+
         {/* Date range */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="mf-collapse grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="cr-date-from" className="block text-xs font-semibold text-gray-700 mb-1">
               מתאריך
@@ -545,6 +549,7 @@ export function ComptrollerDashboard() {
         </div>
 
         {/* Source facet pills — derived from current results, applied instantly. */}
+        <div className="mf-collapse">
         {facetSources.length > 0 || filters.sources.length > 0 ? (
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
@@ -609,6 +614,8 @@ export function ComptrollerDashboard() {
           </div>
         ) : null}
 
+        </div>
+
         <div className="flex items-center justify-end gap-2 mt-4">
           <button
             type="button"
@@ -629,6 +636,7 @@ export function ComptrollerDashboard() {
       </div>
 
       {/* Admin-configured extra filters (additive). Hidden when none set. */}
+      <div className="mf-collapse">
       {extraFilterFields.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -701,6 +709,9 @@ export function ComptrollerDashboard() {
           </div>
         </div>
       ) : null}
+
+      </div>
+      </MobileFilters>
 
       {/* Results header */}
       <div className="flex items-center justify-between mb-3 text-sm text-gray-600">

@@ -343,3 +343,12 @@ html.view-clean body {
   min-width: 44px;
   min-height: 44px;
 }
+
+/* Mobile-collapsible filter panels — see components/ui/mobile-filters.tsx.
+   Below md, filter fields marked .mf-collapse stay hidden until the reader
+   opens them, so results are reachable without scrolling past every filter. */
+@media (max-width: 767.98px) {
+  .mf-root:not(.mf-open) .mf-collapse {
+    display: none;
+  }
+}

@@ -17,6 +17,7 @@ import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
 import { LegislationMenu } from "@/components/ui/legislation-menu";
 import type { LegislationLink } from "@/types/content";
+import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 // 24 = LCM(1, 2, 3) × 4 — keeps every full page row-aligned across the
 // 1-col / 2-col / 3-col breakpoints so there's never a half-row at the end.
@@ -627,6 +628,7 @@ export function ClassActionsDashboard({
 
   return (
     <div dir="rtl">
+      <MobileFilters>
       {/* Filters */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
         {/* Free-text search row */}
@@ -646,8 +648,10 @@ export function ClassActionsDashboard({
           />
         </div>
 
+        <MobileFiltersButton className="mb-3" />
+
         {/* Primary filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="mf-collapse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label htmlFor="ca-date-from" className="block text-xs font-semibold text-gray-700 mb-1">
               מתאריך
@@ -698,7 +702,7 @@ export function ClassActionsDashboard({
         </div>
 
         {/* Secondary filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+        <div className="mf-collapse grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
           <div>
             <label htmlFor="ca-4" className="block text-xs font-semibold text-gray-600 mb-1">
               סוג הליך
@@ -787,6 +791,7 @@ export function ClassActionsDashboard({
       </div>
 
       {/* Admin-configured extra filters (additive). Hidden when none set. */}
+      <div className="mf-collapse">
       {extraFilterFields.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -872,6 +877,9 @@ export function ClassActionsDashboard({
           </div>
         </div>
       ) : null}
+
+      </div>
+      </MobileFilters>
 
       {/* Results header */}
       <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
