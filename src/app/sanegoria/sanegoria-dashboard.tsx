@@ -17,6 +17,25 @@ const C_PD      = "#1c5069";      // כחול-טורקיז — עמודות סנ
 const C_OTHER   = "#e07b54";      // כתום-חום — עמודות ללא סניגוריה
 const C_MUTED   = "#414a57";      // אפור
 
+// ── Mobile detection ──
+//
+// Recharts sizes everything in pixels, so CSS alone cannot narrow an axis or
+// turn a chart on its side. Below 640px the category charts switch to
+// horizontal bars (names readable at full width instead of tilted 45° into a
+// 150px column) and the margins shrink. Starts false so the server render and
+// the first client render agree, then corrects itself after mount.
+function useIsMobile(maxWidth = 640): boolean {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${maxWidth}px)`);
+    const update = () => setMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [maxWidth]);
+  return mobile;
+}
+
 // ── Reusable components ──
 
 function KpiCard({ label, value, color = C_PRIMARY }: { label: string; value: string | number; color?: string }) {
@@ -41,7 +60,7 @@ function SectionDivider({ children, color = C_PRIMARY }: { children: string; col
 
 function ChartCard({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-3 flex-1">
+    <div className="bg-white rounded-xl shadow-sm p-3 flex-1 min-w-0">
       {title && <h3 className="text-sm font-semibold text-foreground mb-2">{title}</h3>}
       {/* Force LTR inside chart area so Recharts renders Y-axis on the left correctly */}
       <div dir="ltr">{children}</div>
@@ -51,8 +70,25 @@ function ChartCard({ title, children }: { title?: string; children: React.ReactN
 
 // ── Chart helpers ──
 
+// Module level, not inside GroupedBarChart: a component created during render
+// is a new type on every render, so React remounts it each time.
+function GroupedTooltip({ active, payload, label }: any) {
+  if (!active || !payload) return null;
+  return (
+    <div className="bg-white border rounded-lg shadow-lg p-3 text-sm" dir="rtl">
+      <div className="font-semibold mb-1">{label}</div>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} style={{ color: p.fill }}>
+          {p.dataKey}: {p.value}% (N={p.payload[`${p.dataKey}_n`]?.toLocaleString()})
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
   { data: GroupedCount[]; catKey?: string; title: string; topN?: number; height?: number }) {
+  const isMobile = useIsMobile();
   // Pivot data for Recharts
   const catMap = new Map<string, { [key: string]: number }>();
   for (const d of data) {
@@ -80,19 +116,33 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
     [`${OTHER}_n`]: r[OTHER] || 0,
   }));
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload) return null;
+  const CustomTooltip = GroupedTooltip;
+
+  if (isMobile) {
+    // Horizontal bars: one row per category, name on the right-hand axis.
     return (
-      <div className="bg-white border rounded-lg shadow-lg p-3 text-sm" dir="rtl">
-        <div className="font-semibold mb-1">{label}</div>
-        {payload.map((p: any) => (
-          <div key={p.dataKey} style={{ color: p.fill }}>
-            {p.dataKey}: {p.value}% (N={p.payload[`${p.dataKey}_n`]?.toLocaleString()})
-          </div>
-        ))}
-      </div>
+      <ChartCard title={`${title} (N=${grand.toLocaleString()})`}>
+        <ResponsiveContainer width="100%" height={pctRows.length * 52 + 70}>
+          <BarChart data={pctRows} layout="vertical" margin={{ top: 5, right: 4, left: 4, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" horizontal={false} />
+            <XAxis type="number" tick={{ fontSize: 11, fill: C_PRIMARY }} unit="%" />
+            <YAxis
+              type="category"
+              dataKey="category"
+              orientation="right"
+              width={112}
+              interval={0}
+              tick={{ fontSize: 11, fill: C_PRIMARY }}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
+            <Bar dataKey={PD} fill={C_PD} radius={[0, 2, 2, 0]} barSize={14} />
+            <Bar dataKey={OTHER} fill={C_OTHER} radius={[0, 2, 2, 0]} barSize={14} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
     );
-  };
+  }
 
   return (
     <ChartCard title={`${title} (N=${grand.toLocaleString()})`}>
@@ -119,6 +169,7 @@ function GroupedBarChart({ data, catKey, title, topN, height = 300 }:
 }
 
 function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
+  const isMobile = useIsMobile();
   const catMap = new Map<string, any>();
   for (const d of data) {
     if (!catMap.has(d.category)) catMap.set(d.category, { year: d.category, [PD]: 0, [OTHER]: 0 });
@@ -144,11 +195,11 @@ function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
 
   return (
     <ChartCard title={`התפלגות שנתית (N=${grand.toLocaleString()})`}>
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={rows} margin={{ top: 20, right: 20, left: 40, bottom: 10 }}>
+      <ResponsiveContainer width="100%" height={isMobile ? 280 : 320}>
+        <BarChart data={rows} margin={isMobile ? { top: 10, right: 4, left: 0, bottom: 5 } : { top: 20, right: 20, left: 40, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="year" tick={{ fontSize: 13, fill: C_PRIMARY }} />
-          <YAxis tick={{ fontSize: 12, fill: C_PRIMARY }} width={60} />
+          <XAxis dataKey="year" tick={{ fontSize: isMobile ? 11 : 13, fill: C_PRIMARY }} />
+          <YAxis tick={{ fontSize: isMobile ? 10 : 12, fill: C_PRIMARY }} width={isMobile ? 44 : 60} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
           <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
           <Bar dataKey={PD} stackId="a" fill={C_PD} />
@@ -160,6 +211,7 @@ function StackedAnnualChart({ data }: { data: GroupedCount[] }) {
 }
 
 function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string; ylabel?: string }) {
+  const isMobile = useIsMobile();
   const rows = data.flatMap(d => [
     { metric: "ממוצע", group: d.group, value: d.avg, err: d.std },
     { metric: "חציון", group: d.group, value: d.median, err: 0 },
@@ -179,14 +231,14 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
 
   return (
     <ChartCard title={`${title}${totalN ? ` (N=${totalN.toLocaleString()})` : ""}`}>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={pivoted} margin={{ top: 20, right: 20, left: 50, bottom: 10 }}>
+      <ResponsiveContainer width="100%" height={isMobile ? 260 : 300}>
+        <BarChart data={pivoted} margin={isMobile ? { top: 10, right: 4, left: 0, bottom: 5 } : { top: 20, right: 20, left: 50, bottom: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
-          <XAxis dataKey="metric" tick={{ fontSize: 13, fill: C_PRIMARY }} />
+          <XAxis dataKey="metric" tick={{ fontSize: isMobile ? 12 : 13, fill: C_PRIMARY }} />
           <YAxis
-            tick={{ fontSize: 12, fill: C_PRIMARY }}
-            width={60}
-            label={ylabel ? { value: ylabel, angle: -90, position: "insideLeft", style: { fontSize: 12, fill: C_PRIMARY }, offset: -5 } : undefined}
+            tick={{ fontSize: isMobile ? 10 : 12, fill: C_PRIMARY }}
+            width={isMobile ? 40 : 60}
+            label={ylabel && !isMobile ? { value: ylabel, angle: -90, position: "insideLeft", style: { fontSize: 12, fill: C_PRIMARY }, offset: -5 } : undefined}
           />
           <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} />
           <Legend wrapperStyle={{ fontSize: 13, paddingTop: 10 }} />
@@ -203,6 +255,7 @@ function MetricChart({ data, title, ylabel }: { data: MetricRow[]; title: string
 }
 
 function PdPieChart({ pd, other }: { pd: number; other: number }) {
+  const isMobile = useIsMobile();
   const data = [
     { name: PD, value: pd, color: C_PD },
     { name: OTHER, value: other, color: C_OTHER },
@@ -248,7 +301,7 @@ function PdPieChart({ pd, other }: { pd: number; other: number }) {
       <ResponsiveContainer width="100%" height={320}>
         <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 30 }}>
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="45%"
-               innerRadius={55} outerRadius={95} paddingAngle={2}
+               innerRadius={isMobile ? 50 : 55} outerRadius={isMobile ? 88 : 95} paddingAngle={2}
                label={renderLabel}
                labelLine={false}>
             <Cell fill={C_PD} />
@@ -514,13 +567,16 @@ export function SanegoriaDashboard({ disclaimerParagraphs = [] }: { disclaimerPa
             <KpiCard label="% סניגוריה ציבורית" value={data.kpis.pctPd} color={C_PD} />
             <KpiCard label="% נאשם יחיד" value={data.kpis.pctSole} />
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-[1.5]"><StackedAnnualChart data={data.annual} /></div>
-            <div className="flex-1"><PdPieChart pd={data.pie.pd} other={data.pie.other} /></div>
+          {/* Rows are grids, not flex-wrap: flex-1 children have a zero basis and
+              never wrap, which squeezed two charts into a phone's width. One
+              column below lg, the original proportions above. */}
+          <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 mb-4">
+            <div className="min-w-0"><StackedAnnualChart data={data.annual} /></div>
+            <div className="min-w-0"><PdPieChart pd={data.pie.pd} other={data.pie.other} /></div>
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><GroupedBarChart data={data.verdicts} title="תוצאות גזר דין" topN={8} /></div>
-            <div className="flex-[1.4]"><GroupedBarChart data={data.courts} title="פילוח לפי בית משפט — Top 15" topN={15} /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-4 mb-4">
+            <div className="min-w-0"><GroupedBarChart data={data.verdicts} title="תוצאות גזר דין" topN={8} /></div>
+            <div className="min-w-0"><GroupedBarChart data={data.courts} title="פילוח לפי בית משפט — Top 15" topN={15} /></div>
           </div>
 
           {/* Section 2: Hearings */}
@@ -529,16 +585,16 @@ export function SanegoriaDashboard({ disclaimerParagraphs = [] }: { disclaimerPa
             <KpiCard label="ממוצע דיונים לתיק" value={data.kpis.avgHearings} />
             <KpiCard label="ימים לדיון ראשון" value={data.kpis.avgDaysFirst} color={C_PD} />
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><GroupedBarChart data={data.hearingTypes} title="סוגי דיונים" topN={6} /></div>
-            <div className="flex-1"><GroupedBarChart data={data.hearingStatuses} title="סטטוס דיונים" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="min-w-0"><GroupedBarChart data={data.hearingTypes} title="סוגי דיונים" topN={6} /></div>
+            <div className="min-w-0"><GroupedBarChart data={data.hearingStatuses} title="סטטוס דיונים" /></div>
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><MetricChart data={data.hearingsPerCase} title="דיונים לתיק" ylabel="דיונים" /></div>
-            <div className="flex-1"><MetricChart data={data.daysToFirst} title="ימים עד דיון ראשון" ylabel="ימים" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="min-w-0"><MetricChart data={data.hearingsPerCase} title="דיונים לתיק" ylabel="דיונים" /></div>
+            <div className="min-w-0"><MetricChart data={data.daysToFirst} title="ימים עד דיון ראשון" ylabel="ימים" /></div>
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><MetricChart data={data.duration} title="משך הליך (ימים)" ylabel="ימים" /></div>
+          <div className="mb-4 min-w-0">
+            <MetricChart data={data.duration} title="משך הליך (ימים)" ylabel="ימים" />
           </div>
 
           {/* Section 3: Offenses */}
@@ -546,11 +602,11 @@ export function SanegoriaDashboard({ disclaimerParagraphs = [] }: { disclaimerPa
           <div className="flex gap-4 mb-5 flex-wrap">
             <KpiCard label="עבירות לתיק (ממוצע)" value={data.kpis.avgOffenses} />
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-[2]"><GroupedBarChart data={data.topOffenses} title="Top 10 עבירות שכיחות" topN={10} /></div>
+          <div className="mb-4 min-w-0">
+            <GroupedBarChart data={data.topOffenses} title="Top 10 עבירות שכיחות" topN={10} />
           </div>
-          <div className="flex gap-4 mb-4 flex-wrap">
-            <div className="flex-1"><GroupedBarChart data={data.offenseCategories} title="קטגוריות עבירה" /></div>
+          <div className="mb-4 min-w-0">
+            <GroupedBarChart data={data.offenseCategories} title="קטגוריות עבירה" />
           </div>
 
           <div className="text-center text-muted text-xs mt-3 pb-5">
