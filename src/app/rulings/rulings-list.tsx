@@ -1233,6 +1233,18 @@ function optionLabel(o: string, labels?: Record<string, string>): string {
   return o;
 }
 
+/**
+ * Sort labels are admin-configured and some were saved as the raw field path
+ * ("היבטים_פיננסיים.סכום_פיצוי_נפסק"), which readers saw as-is. A label that
+ * looks like a path shows its last segment with spaces; real labels pass
+ * through untouched.
+ */
+function readableFieldLabel(label: string): string {
+  if (!/[_.]/.test(label) || /\s/.test(label)) return label;
+  const last = label.split(".").pop() || label;
+  return last.replace(/_/g, " ");
+}
+
 function isFilterActive(v: UserFilterValue | undefined): boolean {
   if (v == null) return false;
   if (typeof v === "string") return v.trim() !== "";
@@ -2219,8 +2231,10 @@ export function RulingsList({
         </MobileFilters>
       ) : null}
 
-      {/* Results header + sort control */}
-      <div className="flex items-center justify-between gap-3 mb-3 text-sm text-gray-600">
+      {/* Results header + sort control. flex-wrap: on a phone the controls
+          (384px) used to sit beside the count with shrink-0 and pushed the
+          page 72px past the screen edge; now they drop to their own line. */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3 text-sm text-gray-600">
         {/* Filtering swaps the list without moving focus, so the count is
             the only signal anything happened — announce it (WCAG 4.1.3). */}
         <div role="status" aria-atomic="true">
@@ -2256,7 +2270,7 @@ export function RulingsList({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           {!showFilterBar ? (
             <LegislationMenu items={legislation} align="end" />
           ) : null}
@@ -2280,11 +2294,11 @@ export function RulingsList({
                   setSortKey(e.target.value);
                   setPage(1);
                 }}
-                className="border border-border-control rounded-md px-2 py-1 text-xs bg-white"
+                className="border border-border-control rounded-md px-2 py-1 text-xs bg-white max-w-[12rem]"
               >
                 {sortFields.map((s) => (
                   <option key={s.key} value={s.key}>
-                    {s.label}
+                    {readableFieldLabel(s.label)}
                   </option>
                 ))}
               </select>
