@@ -752,6 +752,75 @@ test("#T8c token: the winning redemption claims the unused code and mints one to
   assert.equal(creates.length, 1, "exactly one token");
 });
 
+test("#T8e token: the code exchange also returns a refresh token, stored only as a hash", async () => {
+  const res = await tokenExchange(1);
+  const body = await res.json();
+  assert.ok(body.refresh_token, "refresh token returned, or the client must reconnect every day");
+  const stored = lastCall("mcpOauthRefreshToken", "create")?.args[0].data;
+  assert.ok(stored, "refresh token row created");
+  assert.notEqual(stored.tokenHash, body.refresh_token, "raw refresh token must not be stored");
+});
+
+async function refreshExchange(opts: {
+  record?: any;
+  claimCount?: number;
+  rotatedAt?: Date | null;
+  invite?: boolean;
+  clientId?: string;
+}) {
+  const record = opts.record === undefined
+    ? { clientId: "c", email: "u@example.com", expiresAt: new Date(Date.now() + 60_000), rotatedAt: null }
+    : opts.record;
+  let reads = 0;
+  state.impl = {
+    mcpOauthRefreshToken: {
+      findUnique: () => (reads++ === 0 ? record : record && { ...record, rotatedAt: opts.rotatedAt ?? null }),
+      updateMany: () => ({ count: opts.claimCount ?? 1 }),
+      create: (a: any) => ({ ...a.data }),
+      deleteMany: () => ({ count: 0 }),
+    },
+    mcpOauthAccessToken: { create: (a: any) => ({ ...a.data }), deleteMany: () => ({ count: 0 }) },
+    mcpInvite: { findUnique: () => (opts.invite === false ? null : { email: "u@example.com" }) },
+  };
+  const { POST } = await import("@/app/api/mcp/foi-guide/oauth/token/route");
+  return POST(
+    formReq("https://z-g.co.il/api/mcp/foi-guide/oauth/token", {
+      grant_type: "refresh_token",
+      refresh_token: "raw-refresh",
+      ...(opts.clientId ? { client_id: opts.clientId } : {}),
+    }),
+  );
+}
+
+test("#T8f refresh: a live refresh token is rotated and a new pair issued", async () => {
+  const res = await refreshExchange({ clientId: "c" });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.ok(body.access_token && body.refresh_token);
+  assert.equal(lastCall("mcpOauthRefreshToken", "updateMany")?.args[0].where.rotatedAt, null, "rotation must be conditional");
+});
+
+test("#T8g refresh: unknown, expired, foreign-client or revoked-invite tokens are refused", async () => {
+  for (const [label, opts] of [
+    ["unknown", { record: null }],
+    ["expired", { record: { clientId: "c", email: "u@example.com", expiresAt: new Date(Date.now() - 1), rotatedAt: null } }],
+    ["other client", { clientId: "evil" }],
+    ["invite revoked", { invite: false }],
+  ] as const) {
+    const res = await refreshExchange(opts as any);
+    assert.equal(res.status, 400, label);
+    assert.equal((await res.json()).error, "invalid_grant", label);
+    assert.equal(called("mcpOauthAccessToken", "create"), false, `${label}: no token minted`);
+  }
+});
+
+test("#T8h refresh: reuse of a rotated token works only inside the grace window", async () => {
+  const retry = await refreshExchange({ claimCount: 0, rotatedAt: new Date(Date.now() - 5_000) });
+  assert.equal(retry.status, 200, "a quick retry must not disconnect the user");
+  const replay = await refreshExchange({ claimCount: 0, rotatedAt: new Date(Date.now() - 3_600_000) });
+  assert.equal(replay.status, 400, "an old rotated token must be refused");
+});
+
 test("#T8d JsonLd: a </script> inside a value cannot close the script element", async () => {
   const { JsonLd }: any = await import("@/components/seo/json-ld");
   const payload = "</script><img src=x onerror=alert(1)>";

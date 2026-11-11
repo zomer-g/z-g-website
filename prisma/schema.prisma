@@ -985,6 +985,24 @@ model McpOauthAccessToken {
   @@map("mcp_oauth_access_tokens")
 }
 
+// Refresh tokens let a client (Claude.ai) renew an expired access token
+// without sending the user back through Google. Without them every user was
+// asked to "reconnect" once a day. Rotated on every use: the presented token
+// is marked rotatedAt and a fresh one is issued.
+model McpOauthRefreshToken {
+  // sha256 of the refresh token, never the token itself.
+  tokenHash String    @id @map("token_hash")
+  clientId  String    @map("client_id")
+  email     String
+  expiresAt DateTime  @map("expires_at")
+  rotatedAt DateTime? @map("rotated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("mcp_oauth_refresh_tokens")
+}
+
 // ── TAG-IT local mirror ──
 // A periodically-synced copy of the TAG-IT rulings corpora, so /api/rulings
 // serves listings from OUR Postgres (tens of ms) instead of querying

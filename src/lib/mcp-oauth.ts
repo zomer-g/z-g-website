@@ -37,6 +37,14 @@ export const MCP_OAUTH_BASE_PATH = "/api/mcp/foi-guide/oauth";
 
 export const ACCESS_TOKEN_TTL_SECONDS = 24 * 3600;
 export const AUTH_CODE_TTL_SECONDS = 10 * 60;
+// Sliding: each refresh issues a new refresh token with a fresh lifetime, so
+// a user who uses the connector at least once in this window never has to
+// reconnect. Revoking the invite still cuts access on the next call.
+export const REFRESH_TOKEN_TTL_SECONDS = 90 * 24 * 3600;
+// A rotated refresh token is still honoured for this long, so a client that
+// retries a refresh (lost response, two tabs refreshing at once) isn't
+// disconnected. Past it, a reused token is refused.
+export const REFRESH_REUSE_GRACE_SECONDS = 120;
 
 // Pulls the origin from env. Used only as a fallback when there's no
 // request context (e.g. during build-time static generation of well-known

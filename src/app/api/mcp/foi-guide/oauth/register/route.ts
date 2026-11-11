@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       client_name: created.clientName ?? undefined,
       redirect_uris: created.redirectUris,
       token_endpoint_auth_method: "none",
-      grant_types: ["authorization_code"],
+      grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       // Public clients — no client_secret returned.
     },

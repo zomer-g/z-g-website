@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  REFRESH_REUSE_GRACE_SECONDS,
+  REFRESH_TOKEN_TTL_SECONDS,
   hashToken,
   randomToken,
   verifyPkce,
@@ -9,6 +11,8 @@ import {
 
 // RFC 6749 §4.1.3 / OAuth 2.1 — exchange the authorization code for an
 // access token. We require PKCE; no client secret (public clients only).
+// RFC 6749 §6 — exchange a refresh token for a new access token. Refresh
+// tokens are rotated on every use (OAuth 2.1 §4.3.1 for public clients).
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +107,8 @@ export async function POST(req: NextRequest) {
   );
 
   const grantType = body.grant_type;
+  if (grantType === "refresh_token") return refreshGrant(req, body);
+
   const code = body.code;
   const codeVerifier = body.code_verifier;
   const clientId = body.client_id || clientIdFromBasic(req);
@@ -158,45 +164,118 @@ export async function POST(req: NextRequest) {
     return jsonError("access_denied", "invitation revoked", 403);
   }
 
-  const token = randomToken(32);
-  const expiresAt = new Date(Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000);
-
   // Claim the code and mint the token together, and claim it only while it is
   // still unused. The `record.used` check above reads before this write, so two
   // concurrent redemptions of one code could both pass it and each get a token.
-  const claimed = await prisma.$transaction(async (tx) => {
+  const issued = await prisma.$transaction(async (tx) => {
     const { count } = await tx.mcpOauthAuthCode.updateMany({
       where: { codeHash, used: false },
       data: { used: true },
     });
-    if (count !== 1) return false;
-    await tx.mcpOauthAccessToken.create({
-      data: {
-        tokenHash: hashToken(token),
-        clientId,
-        email: record.email,
-        expiresAt,
-      },
-    });
-    return true;
+    if (count !== 1) return null;
+    return issueTokens(tx, clientId, record.email);
   });
-  if (!claimed) return jsonError("invalid_grant", "code already used");
+  if (!issued) return jsonError("invalid_grant", "code already used");
 
-  // Identify the token in logs by its hash prefix, never the token itself —
-  // the raw value appears only in the response body below.
+  return tokenResponse(issued, "authorization_code", record.email, clientId);
+}
+
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+interface Issued {
+  access: string;
+  refresh: string;
+}
+
+// Mint an access token + refresh token pair. Only the sha256 of each is stored.
+async function issueTokens(tx: Tx, clientId: string, email: string): Promise<Issued> {
+  const access = randomToken(32);
+  const refresh = randomToken(32);
+  const now = Date.now();
+  await tx.mcpOauthAccessToken.create({
+    data: {
+      tokenHash: hashToken(access),
+      clientId,
+      email,
+      expiresAt: new Date(now + ACCESS_TOKEN_TTL_SECONDS * 1000),
+    },
+  });
+  await tx.mcpOauthRefreshToken.create({
+    data: {
+      tokenHash: hashToken(refresh),
+      clientId,
+      email,
+      expiresAt: new Date(now + REFRESH_TOKEN_TTL_SECONDS * 1000),
+    },
+  });
+  return { access, refresh };
+}
+
+function tokenResponse(issued: Issued, grant: string, email: string, clientId: string) {
+  // Identify tokens in logs by hash prefix, never the token itself — the raw
+  // values appear only in the response body below.
   console.error(
-    `[mcp/token] success email=${record.email} client=${clientId} token_sha=${hashToken(token).slice(0, 8)}…`,
+    `[mcp/token] success grant=${grant} email=${email} client=${clientId} ` +
+      `token_sha=${hashToken(issued.access).slice(0, 8)}… refresh_sha=${hashToken(issued.refresh).slice(0, 8)}…`,
   );
-
   return NextResponse.json(
     {
-      access_token: token,
+      access_token: issued.access,
       token_type: "Bearer",
       expires_in: ACCESS_TOKEN_TTL_SECONDS,
+      refresh_token: issued.refresh,
       scope: "mcp:foi-guide:read",
     },
     { headers: { "Cache-Control": "no-store", Pragma: "no-cache" } },
   );
+}
+
+async function refreshGrant(req: NextRequest, body: Record<string, string>) {
+  const refreshToken = body.refresh_token;
+  if (!refreshToken) return jsonError("invalid_request", "missing: refresh_token");
+  const clientId = body.client_id || clientIdFromBasic(req);
+
+  const tokenHash = hashToken(refreshToken);
+  const record = await prisma.mcpOauthRefreshToken.findUnique({ where: { tokenHash } });
+  if (!record) return jsonError("invalid_grant", "refresh token not found");
+  if (record.expiresAt.getTime() < Date.now()) {
+    return jsonError("invalid_grant", "refresh token expired");
+  }
+  // client_id is optional on a refresh request from a public client, but if
+  // one is sent it must be the client the token was issued to.
+  if (clientId && clientId !== record.clientId) {
+    return jsonError("invalid_grant", "refresh token was issued to another client");
+  }
+
+  const invite = await prisma.mcpInvite.findUnique({ where: { email: record.email } });
+  if (!invite) return jsonError("invalid_grant", "invitation revoked");
+
+  const issued = await prisma.$transaction(async (tx) => {
+    // Rotate: claim the token only while it is still unrotated, so two
+    // concurrent refreshes can't both silently succeed past the grace window.
+    const { count } = await tx.mcpOauthRefreshToken.updateMany({
+      where: { tokenHash, rotatedAt: null },
+      data: { rotatedAt: new Date() },
+    });
+    if (count !== 1) {
+      const current = await tx.mcpOauthRefreshToken.findUnique({ where: { tokenHash } });
+      const rotatedAt = current?.rotatedAt?.getTime();
+      const withinGrace =
+        rotatedAt !== undefined && Date.now() - rotatedAt <= REFRESH_REUSE_GRACE_SECONDS * 1000;
+      if (!withinGrace) return null;
+    }
+    return issueTokens(tx, record.clientId, record.email);
+  });
+  if (!issued) return jsonError("invalid_grant", "refresh token already used");
+
+  // Opportunistic cleanup of this user's dead rows, so the tables don't grow
+  // by two rows a day per user forever.
+  const now = new Date();
+  await Promise.all([
+    prisma.mcpOauthRefreshToken.deleteMany({ where: { email: record.email, expiresAt: { lt: now } } }),
+    prisma.mcpOauthAccessToken.deleteMany({ where: { email: record.email, expiresAt: { lt: now } } }),
+  ]).catch((err) => console.error("[mcp/token] cleanup failed:", err));
+
+  return tokenResponse(issued, "refresh_token", record.email, record.clientId);
 }
 
 // Some MCP/OAuth clients send a CORS preflight before the token POST.
