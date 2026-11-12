@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { plilistPostSchema } from "@/lib/validations";
+import { plilistPostSchema, parseUpdate } from "@/lib/validations";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -70,7 +70,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const parsed = plilistPostSchema.partial().safeParse(body);
+    const parsed = parseUpdate(plilistPostSchema, body);
 
     if (!parsed.success) {
       return NextResponse.json(

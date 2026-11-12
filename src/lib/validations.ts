@@ -131,3 +131,27 @@ export type ServiceInput = z.infer<typeof serviceSchema>;
 export type PageInput = z.infer<typeof pageSchema>;
 export type MediaAppearanceInput = z.infer<typeof mediaAppearanceSchema>;
 export type CaseDocumentInput = z.infer<typeof caseDocumentSchema>;
+
+/**
+ * Parse a partial update (PUT that may send only some fields).
+ *
+ * `schema.partial()` alone is not enough: in zod 4 a field's `.default()`
+ * still fires when the key is missing, so a PUT that sends only the title
+ * of a published post comes back with status "DRAFT" and tags [] — and a
+ * service or case document with isActive true and order 0. Only the keys the
+ * client actually sent are kept, so a missing field means "leave as is".
+ */
+export function parseUpdate<T extends z.ZodObject>(
+  schema: T,
+  body: unknown,
+):
+  | { success: true; data: Partial<z.output<T>> }
+  | { success: false; error: z.ZodError } {
+  const parsed = schema.partial().safeParse(body);
+  if (!parsed.success) return { success: false, error: parsed.error };
+  const sent = new Set(body && typeof body === "object" ? Object.keys(body) : []);
+  const data = Object.fromEntries(
+    Object.entries(parsed.data as Record<string, unknown>).filter(([key]) => sent.has(key)),
+  ) as Partial<z.output<T>>;
+  return { success: true, data };
+}

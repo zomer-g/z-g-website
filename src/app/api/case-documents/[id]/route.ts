@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { caseDocumentSchema } from "@/lib/validations";
+import { caseDocumentSchema, parseUpdate } from "@/lib/validations";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -28,7 +28,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     if (!existing) return NextResponse.json(NOT_FOUND, { status: 404 });
 
     const body = await req.json();
-    const parsed = caseDocumentSchema.partial().safeParse(body);
+    const parsed = parseUpdate(caseDocumentSchema, body);
 
     if (!parsed.success) {
       return NextResponse.json(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { serviceSchema } from "@/lib/validations";
+import { serviceSchema, parseUpdate } from "@/lib/validations";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -61,7 +61,7 @@ export async function PUT(
     }
 
     const body = await req.json();
-    const parsed = serviceSchema.partial().safeParse(body);
+    const parsed = parseUpdate(serviceSchema, body);
 
     if (!parsed.success) {
       return NextResponse.json(
