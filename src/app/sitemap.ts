@@ -78,6 +78,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     staticEntry("/over-looker-privacy", "yearly", 0.2),
     staticEntry("/over-looker-terms", "yearly", 0.2),
     staticEntry("/over-looker-support", "yearly", 0.2),
+    staticEntry("/magna-clipper/privacy", "yearly", 0.2),
+    staticEntry("/magna-clipper/privacy/en", "yearly", 0.2),
     // /whatsapp is the public landing/demo (mock chats). Private workspace
     // sub-pages live under /whatsapp/<slug> and are blocked in robots.ts;
     // we deliberately do NOT enumerate them here.

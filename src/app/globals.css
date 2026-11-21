@@ -227,6 +227,17 @@ body {
   margin-bottom: 1.25em;
 }
 
+/* English text inside the RTL site (e.g. /magna-clipper/privacy/en): same
+   prose look, mirrored. */
+.prose-rtl.prose-ltr {
+  direction: ltr;
+  text-align: left;
+}
+.prose-rtl.prose-ltr ul,
+.prose-rtl.prose-ltr ol {
+  padding-right: 0;
+}
+
 .prose-rtl li {
   margin-bottom: 0.5em;
 }
