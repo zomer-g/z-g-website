@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Container } from "@/components/ui/container";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 import {
   Calendar,
   Scale,
@@ -215,6 +216,9 @@ export function RulingsClient() {
                           <ExternalLink className="h-3 w-3" aria-hidden="true" />
                         <span className="sr-only"> (נפתח בלשונית חדשה)</span>
                         </a>
+                        <div className="pt-1 text-end">
+                          <FileDownloadFallback href={ruling.documentUrl} />
+                        </div>
                       </div>
                     </div>
                   </CardContent>

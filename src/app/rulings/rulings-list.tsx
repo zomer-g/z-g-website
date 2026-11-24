@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { LegislationLink } from "@/types/content";
 import { LegislationMenu } from "@/components/ui/legislation-menu";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 interface Ruling {
@@ -1139,6 +1140,9 @@ function RulingCard({
           <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
+        <div className="pt-1 text-end">
+          <FileDownloadFallback href={ruling.documentUrl} />
+        </div>
       </article>
     );
   }
@@ -1217,6 +1221,9 @@ function RulingCard({
           <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
         </div>
+      </div>
+      <div className="pt-1 text-end">
+        <FileDownloadFallback href={ruling.documentUrl} />
       </div>
     </article>
   );

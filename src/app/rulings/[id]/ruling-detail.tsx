@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { StructuredFieldRows } from "../rulings-list";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 
 const C_PRIMARY = "#1a365d";
 
@@ -184,6 +185,9 @@ export function RulingDetail({ ruling }: { ruling: DetailRuling }) {
             צפייה במסמך (PDF)
           <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
+        </div>
+        <div className="pt-1 text-end">
+          <FileDownloadFallback href={ruling.documentUrl} />
         </div>
       </div>
     </article>

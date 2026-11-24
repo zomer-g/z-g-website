@@ -11,6 +11,7 @@ import {
 import type { MmmDoc } from "@/types/mmm-doc";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 // Capped at 12 (not 24): like scope-13, TAG-IT's sorted "new shape" projection
@@ -355,6 +356,7 @@ function DocCard({
           קובץ PDF
         <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </a>
+        <FileDownloadFallback href={`/api/rulings/documents/${doc.id}/file`} />
         <Link
           href={detailHref}
           onClick={(e) => e.stopPropagation()}

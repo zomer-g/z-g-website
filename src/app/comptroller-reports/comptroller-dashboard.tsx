@@ -11,6 +11,7 @@ import {
 import type { ComptrollerReport } from "@/types/comptroller-report";
 import { DateInputIL } from "@/components/ui/date-input-il";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 import { MobileFilters, MobileFiltersButton } from "@/components/ui/mobile-filters";
 
 // 12 = LCM(1, 2, 3) × 2 — keeps every full page row-aligned across the
@@ -364,6 +365,7 @@ function ReportCard({
           קובץ PDF
         <span className="sr-only"> (נפתח בלשונית חדשה)</span>
         </a>
+        <FileDownloadFallback href={`/api/rulings/documents/${doc.id}/file`} />
         <Link
           href={detailHref}
           onClick={(e) => e.stopPropagation()}

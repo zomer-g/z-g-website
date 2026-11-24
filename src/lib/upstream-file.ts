@@ -15,7 +15,10 @@ const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
  * No CSP sandbox on the PDF itself: Chrome refuses to render a PDF under it,
  * which would break the inline viewer on the detail pages.
  */
-export async function upstreamFileResponse(upstream: Response): Promise<NextResponse> {
+export async function upstreamFileResponse(
+  upstream: Response,
+  opts: { download?: boolean; fallbackName?: string } = {},
+): Promise<NextResponse> {
   const body = upstream.body!;
   const reader = body.getReader();
 
@@ -59,7 +62,9 @@ export async function upstreamFileResponse(upstream: Response): Promise<NextResp
   const m = cd?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
   // The name goes back out inside a quoted header value: drop quotes,
   // backslashes and control characters rather than trusting the upstream.
-  const name = m ? m[1].replace(/["\\\u0000-\u001f\u007f]/g, "").trim() : "";
+  const name =
+    (m ? m[1].replace(/["\\\u0000-\u001f\u007f]/g, "").trim() : "") ||
+    (opts.download ? opts.fallbackName ?? "" : "");
   const filenamePart = name ? `; filename="${name}"` : "";
 
   const headers = new Headers();
@@ -67,7 +72,12 @@ export async function upstreamFileResponse(upstream: Response): Promise<NextResp
     headers.set("Content-Type", "application/pdf");
     // Inline so the PDF renders in the detail page's <iframe> (upstream
     // sometimes sends `attachment`); the filename keeps "Save as" useful.
-    headers.set("Content-Disposition", `inline${filenamePart}`);
+    // `download` (the "didn't open? download" fallback link) asks for a
+    // plain download instead, for proxies that block PDFs opened inline.
+    headers.set(
+      "Content-Disposition",
+      `${opts.download ? "attachment" : "inline"}${filenamePart}`,
+    );
     const cl = upstream.headers.get("content-length");
     if (cl) headers.set("Content-Length", cl);
   } else {

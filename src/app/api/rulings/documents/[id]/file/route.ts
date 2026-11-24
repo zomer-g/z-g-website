@@ -14,7 +14,7 @@ function getApiKey() {
  * forces inline Content-Disposition for real PDFs (see src/lib/upstream-file.ts).
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const apiKey = getApiKey();
@@ -45,7 +45,10 @@ export async function GET(
       );
     }
 
-    return await upstreamFileResponse(upstream);
+    return await upstreamFileResponse(upstream, {
+      download: req.nextUrl.searchParams.get("download") === "1",
+      fallbackName: `${id}.pdf`,
+    });
   } catch (err) {
     console.error("Rulings PDF proxy error:", err);
     return NextResponse.json({ error: "Upstream fetch failed" }, { status: 502 });

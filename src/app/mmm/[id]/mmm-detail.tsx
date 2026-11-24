@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { MmmDoc } from "@/types/mmm-doc";
 import { ShareLinkButton } from "@/components/ui/share-link-button";
+import { FileDownloadFallback } from "@/components/ui/file-download-fallback";
 
 const C_PRIMARY = "#1a365d";
 // 7.29:1 on the #e1ecf3 badge tint and 8.75:1 on white — the old
@@ -123,6 +124,9 @@ export function MmmDetail({ doc }: { doc: MmmDoc }) {
             לפתיחה בלשונית נפרדת
           <span className="sr-only"> (נפתח בלשונית חדשה)</span>
           </a>
+        </div>
+        <div className="pt-1 text-center sm:text-end">
+          <FileDownloadFallback href={fileHref} />
         </div>
       </section>
 
